@@ -55,6 +55,54 @@ export type Database = {
           },
         ]
       }
+      ai_business_learning_events: {
+        Row: {
+          agent_surface: string
+          assistant_response_excerpt: string
+          business_id: string | null
+          created_at: string
+          dna_alignment_score: number
+          employee_id: string | null
+          id: string
+          metadata: Json
+          mode: string
+          recommendation_type: string
+          user_id: string
+          user_message: string
+          workspace_id: string | null
+        }
+        Insert: {
+          agent_surface: string
+          assistant_response_excerpt?: string
+          business_id?: string | null
+          created_at?: string
+          dna_alignment_score?: number
+          employee_id?: string | null
+          id?: string
+          metadata?: Json
+          mode: string
+          recommendation_type?: string
+          user_id: string
+          user_message?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          agent_surface?: string
+          assistant_response_excerpt?: string
+          business_id?: string | null
+          created_at?: string
+          dna_alignment_score?: number
+          employee_id?: string | null
+          id?: string
+          metadata?: Json
+          mode?: string
+          recommendation_type?: string
+          user_id?: string
+          user_message?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       ai_employee_logs: {
         Row: {
           created_at: string
@@ -176,6 +224,135 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      business_learning_state: {
+        Row: {
+          business_id: string
+          category_weights: Json
+          created_at: string
+          id: string
+          source_weights: Json
+          tab_weights: Json
+          theme_weights: Json
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          business_id: string
+          category_weights?: Json
+          created_at?: string
+          id?: string
+          source_weights?: Json
+          tab_weights?: Json
+          theme_weights?: Json
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          category_weights?: Json
+          created_at?: string
+          id?: string
+          source_weights?: Json
+          tab_weights?: Json
+          theme_weights?: Json
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      dashboard_card_events: {
+        Row: {
+          business_id: string | null
+          card_id: string
+          category: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          priority: string | null
+          source: string | null
+          tab: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          card_id: string
+          category?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          priority?: string | null
+          source?: string | null
+          tab: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          card_id?: string
+          category?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          priority?: string | null
+          source?: string | null
+          tab?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
+      dashboard_objective_outcomes: {
+        Row: {
+          business_id: string | null
+          created_at: string
+          current_value: number | null
+          delta_value: number | null
+          id: string
+          metadata: Json
+          metric_name: string
+          objective_id: string
+          source: string | null
+          target_value: number | null
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string
+          current_value?: number | null
+          delta_value?: number | null
+          id?: string
+          metadata?: Json
+          metric_name: string
+          objective_id: string
+          source?: string | null
+          target_value?: number | null
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string
+          current_value?: number | null
+          delta_value?: number | null
+          id?: string
+          metadata?: Json
+          metric_name?: string
+          objective_id?: string
+          source?: string | null
+          target_value?: number | null
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
       }
       dashboard_snapshots: {
         Row: {
