@@ -113,6 +113,7 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
   const seenEmails = new Set<string>();
   const seenFiles = new Set<string>();
   const searchTerms = buildSearchTerms(query, topic);
+  const isGenericRecentFiles = isGenericRecentFileQuery(query);
   if (searchTerms.length === 0) return results;
 
   for (const term of searchTerms) {
@@ -151,6 +152,24 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
 
     try {
       if (searchFiles && results.files.length < 5) {
+        if (isGenericRecentFiles) {
+          const fileRes = await fetch(
+            `https://graph.microsoft.com/v1.0/me/drive/recent?$top=5`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          );
+          if (fileRes.ok) {
+            const data = await fileRes.json();
+            for (const file of (data.value || [])) {
+              const fileKey = file.webUrl || `${file.name}|${file.lastModifiedDateTime || ""}`;
+              if (seenFiles.has(fileKey)) continue;
+              seenFiles.add(fileKey);
+              results.files.push(`📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+              if (results.files.length >= 5) break;
+            }
+          }
+          if (results.files.length >= 5) break;
+          continue;
+        }
         const fileRes = await fetch(
           `https://graph.microsoft.com/v1.0/me/drive/root/search(q='${encodedTerm}')?$top=5&$select=name,webUrl,lastModifiedDateTime,size`,
           { headers: { Authorization: `Bearer ${token}` } },
@@ -320,8 +339,7 @@ export async function searchGmailData(token: string, query: string, topic?: stri
 export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
-  const isGenericRecent = /\b(recent|latest|last|new|my\s+files?|my\s+docs?|my\s+drive)\b/i.test(query) &&
-    !/\b(about|regarding|named|called|titled)\b/i.test(query);
+  const isGenericRecent = isGenericRecentFileQuery(query) || (/\b(my\s+drive)\b/i.test(query) && !/\b(about|regarding|named|called|titled)\b/i.test(query));
 
   // Generic recent → just list recent non-trashed files.
   if (isGenericRecent || searchTerms.length === 0) {
