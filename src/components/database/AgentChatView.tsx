@@ -1620,7 +1620,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 value={sessionMemory}
                 onChange={(e) => setSessionMemory(e.target.value)}
                 placeholder="Notes for this thread: facts, preferences, goals (saved with the chat)."
-                className="mt-1 min-h-[72px] max-h-[160px] resize-y text-sm"
+                className="mt-1 min-h-[72px] max-h-[160px] resize-y text-sm bg-white"
               />
             )}
           </div>
