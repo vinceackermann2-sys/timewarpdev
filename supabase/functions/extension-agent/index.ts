@@ -298,14 +298,44 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
         (async () => {
           try {
+            // Pick varied, personal phrasings so the sub-log doesn't feel templated.
+            // Always uses "Business DNA" wording when the topic is the user's own DNA
+            // so the UI maps it to the Dna icon.
+            const isDnaTopic = /\b(dna|brand|audience|product|positioning|business model)\b/i.test(topic);
+            const understandPhrases = isDnaTopic ? [
+              `Reading your Business DNA on ${topic}`,
+              `Tuning into your Business DNA — ${topic}`,
+              `Lining up your Business DNA for ${topic}`,
+            ] : [
+              `Unpacking what you mean by ${topic}`,
+              `Sitting with your question on ${topic}`,
+              `Framing the real ask behind ${topic}`,
+              `Listening closely to your ${topic} question`,
+              `Sharpening the angle on ${topic}`,
+            ];
+            const gatherPhrases = isDnaTopic ? [
+              `Pulling the Business DNA threads on ${topic}`,
+              `Walking through your Business DNA for ${topic}`,
+              `Cross-checking your Business DNA on ${topic}`,
+            ] : [
+              `Pulling the receipts on ${topic}`,
+              `Digging into your numbers around ${topic}`,
+              `Lining up the facts on ${topic}`,
+              `Sweeping your business for ${topic} signals`,
+              `Stitching together what you have on ${topic}`,
+            ];
+            const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+            const understandLabel = pick(understandPhrases);
+            const gatherLabel = pick(gatherPhrases);
+
             // Emit immediately so UI shows sub-logging without delay
-            sendStep(`Understanding your question about ${topic}`, "running", "analysis");
+            sendStep(understandLabel, "running", "analysis");
 
-            sendStep(`Understanding your question about ${topic}`, "done", "analysis", initialConnectionDecision.reason);
+            sendStep(understandLabel, "done", "analysis", initialConnectionDecision.reason);
 
-            sendStep(`Gathering business data on ${topic}`, "running", "context");
+            sendStep(gatherLabel, "running", "context");
             const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
-            sendStep(`Gathering business data on ${topic}`, "done", "context");
+            sendStep(gatherLabel, "done", "context");
 
             const { connectionContext, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
               supabase,
