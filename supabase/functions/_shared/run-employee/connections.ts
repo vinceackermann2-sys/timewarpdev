@@ -928,7 +928,10 @@ export async function searchConnectedProviders(
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "done", action: "connections" });
         } catch (e) {
           console.error("[connections] Drive search failed:", e);
-          skippedProviderDetails.push({ provider: "google_drive", reason: "search failed" });
+          const reason = e instanceof Error && e.message === "google_drive_permission_denied"
+            ? "needs reconnecting"
+            : "search failed";
+          skippedProviderDetails.push({ provider: "google_drive", reason });
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "error", action: "connections" });
         }
       })());
