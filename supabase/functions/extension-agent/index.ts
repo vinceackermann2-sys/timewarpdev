@@ -365,15 +365,15 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
             const isAnswerDna = /\b(dna|brand|audience|product|positioning|business model)\b/i.test(answerTopic);
             const craftPhrases = isAnswerDna ? [
-              `Drafting your Business DNA take on ${answerTopic}`,
-              `Writing your Business DNA read on ${answerTopic}`,
-              `Shaping your Business DNA call on ${answerTopic}`,
+              "Drafting your DNA take",
+              "Writing the DNA read",
+              "Shaping the DNA call",
             ] : [
-              `Putting your move together on ${answerTopic}`,
-              `Sketching your play for ${answerTopic}`,
-              `Writing your sharp take on ${answerTopic}`,
-              `Pulling my recommendation on ${answerTopic}`,
-              `Lining up the call on ${answerTopic}`,
+              "Building your move",
+              "Sketching the play",
+              "Writing the take",
+              "Pulling the call",
+              "Loading the answer",
             ];
             const craftLabel = craftPhrases[Math.floor(Math.random() * craftPhrases.length)];
             sendStep(craftLabel, "running", "response");
