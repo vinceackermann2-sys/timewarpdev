@@ -50,6 +50,14 @@ function buildSearchTerms(query: string, topic?: string): string[] {
   ).slice(0, 4);
 }
 
+function isGenericRecentFileQuery(query: string): boolean {
+  const normalized = normalizeSearchTerm(query);
+  const asksForRecency = /\b(recent|latest|last|newest|new|most\s+recent)\b/i.test(normalized);
+  const asksForFiles = /\b(documents?|docs?|files?|spreadsheets?|sheets?|slides?|presentations?)\b/i.test(normalized);
+  const asksForNamedFile = /\b(about|regarding|named|called|titled|containing|with)\b/i.test(normalized);
+  return asksForRecency && asksForFiles && !asksForNamedFile;
+}
+
 function formatProviderName(provider: string): string {
   if (provider === "microsoft") return "Microsoft 365";
   if (provider === "microsoft_outlook") return "Outlook";
@@ -481,6 +489,25 @@ async function getAnyGoogleToken(supabaseAdmin: any, userId: string): Promise<st
   return null;
 }
 
+async function getGoogleTokenForProvider(
+  supabaseAdmin: any,
+  userId: string,
+  provider: "google_gmail" | "google_drive" | "google_calendar",
+): Promise<string | null> {
+  const candidates = {
+    google_gmail: ["google_gmail", "google"],
+    google_drive: ["google_drive", "google"],
+    google_calendar: ["google_calendar", "google"],
+  }[provider];
+
+  for (const candidate of candidates) {
+    const token = await getValidAccessToken(supabaseAdmin, userId, candidate);
+    if (token) return token;
+  }
+
+  return null;
+}
+
 // --- Per-provider intent detection ---
 // If the user explicitly names a provider, only search that one (saves usage).
 const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
@@ -537,7 +564,10 @@ export function narrowProvidersByConnections(
       ["google_gmail", "google_drive", "google_calendar", "google_docs", "google_sheets", "google_slides"].forEach((x) => connectedSet.add(x));
     }
     if (p === "microsoft") {
-      ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"].forEach((x) => connectedSet.add(x));
+      ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
+    }
+    if (p === "microsoft_calendar") {
+      ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
     }
   }
   const narrowed = detectedProviders.filter((p) => connectedSet.has(p));
@@ -559,7 +589,8 @@ export function buildConnectedToolsInventory(connectedProviders: string[]): stri
   for (const p of connectedProviders) {
     connectedSet.add(p);
     if (p === "google") ["google_gmail", "google_drive", "google_calendar"].forEach((x) => connectedSet.add(x));
-    if (p === "microsoft") ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote"].forEach((x) => connectedSet.add(x));
+    if (p === "microsoft") ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
+    if (p === "microsoft_calendar") ["microsoft_outlook"].forEach((x) => connectedSet.add(x));
   }
   const connected = ALL_TRACKED_PROVIDERS.filter((p) => connectedSet.has(p));
   const notConnected = ALL_TRACKED_PROVIDERS.filter((p) => !connectedSet.has(p));
