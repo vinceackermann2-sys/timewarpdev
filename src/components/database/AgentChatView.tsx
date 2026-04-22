@@ -783,6 +783,9 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
 
     const assistantId = crypto.randomUUID();
     setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
+    activeAssistantIdRef.current = assistantId;
+    stalledRef.current = false;
+    lastActivityRef.current = Date.now();
 
     try {
       await runComputerMode(session, userMsg, assistantId);
