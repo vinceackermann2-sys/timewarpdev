@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
-  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown,
+  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown, StickyNote,
   Plug, Unplug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
   Palette, BarChart3, PieChart, Table2, Presentation, CheckCircle2
 } from "lucide-react";
@@ -13,7 +13,9 @@ import { TaskStepsDisplay } from "./TaskStepsDisplay";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { SettingsView } from "@/components/database/SettingsView";
 import { AssistantSuggestions } from "./AssistantSuggestions";
+import { AssistantInsightFeedback } from "./AssistantInsightFeedback";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -24,6 +26,10 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import type { ChatMessage } from "@/lib/agentChat/types";
+import { isExplicitEmployeeComputerRequest } from "@/lib/agentChat/computerModePatterns";
+import { buildMultimodalContent } from "@/lib/agentChat/multimodal";
+import { useAgentChatTransports } from "@/hooks/useAgentChatTransports";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
@@ -163,144 +169,6 @@ function TaskReportViewer({ content, onSaveToDb, savedToDb }: {
   );
 }
 
-/* ─── Types ─── */
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  files?: { name: string; url?: string }[];
-  employees?: { id: string; name: string; role: string }[];
-  isStreaming?: boolean;
-  streamStartTime?: number;
-  taskSteps?: { action: string; label: string; status: "running" | "done" | "error"; detail?: string }[];
-  currentStepIndex?: number;
-  reportContent?: string;
-  reportSavedToDb?: boolean;
-  suggestions?: string[];
-}
-
-type EmployeeContext = { id: string; name: string; role: string };
-type ChatTaskStep = NonNullable<ChatMessage["taskSteps"]>[number];
-
-const EMPLOYEE_COMPUTER_MODE_DIRECT_PATTERNS = [
-  /\b(run|execute|perform|carry\s+out)\b.{0,30}\b(sop|standard operating procedure|workflow|task|steps?)\b/i,
-  /\b(open|navigate|go\s+to|visit|browse|log\s?in|sign\s?in|click|tap|select|choose|fill|type|enter|submit|scroll|upload|download)\b/i,
-];
-
-const EMPLOYEE_COMPUTER_MODE_TARGET_PATTERNS = [
-  /\b(on|in|inside|through|using)\b.{0,25}\b(page|browser|site|website|dashboard|app|portal|account|form|crm|ads?\s+manager)\b/i,
-  /\b(meta|facebook ads|google ads|linkedin|hubspot|shopify|gmail|slack|notion|airtable|stripe)\b/i,
-  /\bthis\s+page\b/i,
-];
-
-function isExplicitEmployeeComputerRequest(message: string) {
-  const normalized = message.trim();
-  if (!normalized) return false;
-  if (/^run\s+.+?:\s*execute the standard operating procedure\.?$/i.test(normalized)) return true;
-  if (EMPLOYEE_COMPUTER_MODE_DIRECT_PATTERNS.some((pattern) => pattern.test(normalized))) return true;
-  return /^(create|update|edit|delete|launch|publish|build)\b/i.test(normalized)
-    && EMPLOYEE_COMPUTER_MODE_TARGET_PATTERNS.some((pattern) => pattern.test(normalized));
-}
-
-function getConnectionSearchLabel(provider: string, topic: string) {
-  if (provider === "microsoft_outlook") return `Peeking into your Outlook inbox for ${topic}`;
-  if (provider === "microsoft_onedrive") return `Looking through your OneDrive for ${topic}`;
-  if (provider === "microsoft_onenote") return `Flipping through your OneNote pages for ${topic}`;
-  if (provider === "microsoft") return `Peeking into your Microsoft 365 for ${topic}`;
-  if (provider === "google_gmail") return `Peeking into your Gmail for ${topic}`;
-  if (provider === "google_calendar") return `Checking your Google Calendar for ${topic}`;
-  if (provider === "google_drive") return `Looking through your Google Drive for ${topic}`;
-  if (provider === "google_docs") return `Skimming your Google Docs for ${topic}`;
-  if (provider === "google_sheets") return `Scanning your Google Sheets for ${topic}`;
-  if (provider === "google_slides") return `Browsing your Google Slides for ${topic}`;
-  if (provider === "slack") return `Listening in on your Slack for ${topic}`;
-  if (provider === "zoom") return `Checking your Zoom meetings for ${topic}`;
-  if (provider === "hubspot") return `Digging through your HubSpot for ${topic}`;
-  return `Searching ${provider} for ${topic}`;
-}
-
-function getConnectionSkipLabel(provider: string, reason: string) {
-  const friendly = (r: string) => {
-    if (r === "not connected") return "not connected yet";
-    if (r === "not requested in this query") return "not needed for this one";
-    if (r === "token expired or missing") return "needs reconnecting";
-    if (r === "search failed") return "couldn't reach it";
-    return r;
-  };
-  const r = friendly(reason);
-  if (provider === "microsoft_outlook") return `Skipping Outlook — ${r}`;
-  if (provider === "microsoft_onedrive") return `Skipping OneDrive — ${r}`;
-  if (provider === "microsoft_onenote") return `Skipping OneNote — ${r}`;
-  if (provider === "microsoft") return `Skipping Microsoft — ${r}`;
-  if (provider === "google_gmail") return `Skipping Gmail — ${r}`;
-  if (provider === "google_calendar") return `Skipping Google Calendar — ${r}`;
-  if (provider === "google_drive") return `Skipping Google Drive — ${r}`;
-  if (provider === "google_docs") return `Skipping Google Docs — ${r}`;
-  if (provider === "google_sheets") return `Skipping Google Sheets — ${r}`;
-  if (provider === "google_slides") return `Skipping Google Slides — ${r}`;
-  if (provider === "slack") return `Skipping Slack — ${r}`;
-  if (provider === "zoom") return `Skipping Zoom — ${r}`;
-  if (provider === "hubspot") return `Skipping HubSpot — ${r}`;
-  return `Skipping ${provider} — ${r}`;
-}
-
-function upsertChatTaskStep(taskSteps: ChatTaskStep[], nextStep: ChatTaskStep) {
-  const existingIndex = taskSteps.findIndex((step) => step.label === nextStep.label);
-  if (existingIndex === -1) {
-    taskSteps.push(nextStep);
-    return;
-  }
-
-  taskSteps[existingIndex] = {
-    ...taskSteps[existingIndex],
-    ...nextStep,
-    detail: nextStep.detail ?? taskSteps[existingIndex].detail,
-  };
-}
-
-function buildConnectionTaskSteps(payload: {
-  connectionDecision?: { shouldSearch?: boolean; reason?: string };
-  searchedProviders?: string[];
-  skippedProviderDetails?: { provider: string; reason: string }[];
-  queryTopic?: string;
-}): ChatTaskStep[] {
-  if (!payload.connectionDecision) return [];
-
-  const topic = payload.queryTopic?.trim() || "your request";
-  if (!payload.connectionDecision.shouldSearch) {
-    return [{
-      action: "connections",
-      label: `No need to check connected tools for ${topic} — ${payload.connectionDecision.reason || "I can answer from your business context"}`,
-      status: "done",
-    }];
-  }
-
-  const steps: ChatTaskStep[] = [{
-    action: "connections",
-    label: `Checking your connected tools for ${topic}`,
-    status: "done",
-    detail: payload.connectionDecision.reason,
-  }];
-
-  for (const provider of payload.searchedProviders || []) {
-    steps.push({
-      action: "connections",
-      label: getConnectionSearchLabel(provider, topic),
-      status: "done",
-    });
-  }
-
-  for (const skipped of payload.skippedProviderDetails || []) {
-    steps.push({
-      action: "connections",
-      label: getConnectionSkipLabel(skipped.provider, skipped.reason),
-      status: "done",
-    });
-  }
-
-  return steps;
-}
-
 /* ─── Main view ─── */
 export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageConsumed }: { activeBrandId?: string | null; initialMessage?: string | null; onInitialMessageConsumed?: () => void }) {
   const { user } = useAuth();
@@ -428,6 +296,8 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
     }
   }, [isMobileChatView]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [sessionMemory, setSessionMemory] = useState("");
+  const [sessionMemoryOpen, setSessionMemoryOpen] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasMessages = messages.length > 0;
@@ -473,23 +343,24 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
       agent_name: selectedAgent || null,
       title,
       messages: nonStreaming,
+      assistant_memory: sessionMemory ?? "",
       updated_at: new Date().toISOString(),
     };
 
     try {
       if (chatId) {
-        await (supabase as any).from("agent_chat_sessions")
-          .update({ messages: nonStreaming, updated_at: new Date().toISOString(), title })
+        await supabase.from("agent_chat_sessions")
+          .update({ messages: nonStreaming, updated_at: new Date().toISOString(), title, assistant_memory: sessionMemory ?? "" })
           .eq("id", chatId);
       } else {
-        const { data } = await (supabase as any).from("agent_chat_sessions")
+        const { data } = await supabase.from("agent_chat_sessions")
           .insert(payload)
           .select("id")
           .maybeSingle();
         if (data?.id) setActiveChatId(data.id);
       }
     } catch (e) { console.warn("Failed to save chat session:", e); }
-  }, [user, activeWorkspaceId, selectedAgent]);
+  }, [user, activeWorkspaceId, selectedAgent, sessionMemory]);
 
   // Debounced save when messages change
   useEffect(() => {
@@ -497,12 +368,14 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => saveChatSession(messages, activeChatId), 2000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [messages, activeChatId, saveChatSession]);
+  }, [messages, activeChatId, saveChatSession, sessionMemory]);
 
   const handleSelectChat = (session: ChatSession) => {
     setActiveChatId(session.id);
     const msgs = session.messages as ChatMessage[];
     setMessages(msgs);
+    setSessionMemory(typeof session.assistant_memory === "string" ? session.assistant_memory : "");
+    setSessionMemoryOpen(!!(session.assistant_memory && String(session.assistant_memory).trim()));
     if (session.agent_name) setSelectedAgent(session.agent_name);
     // Restore employee context from saved messages
     const lastEmployeeMsg = [...msgs].reverse().find(m => m.employees && m.employees.length > 0);
@@ -517,6 +390,8 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
     setActiveChatId(null);
     setMessages([]);
     setSelectedChatEmployees([]);
+    setSessionMemory("");
+    setSessionMemoryOpen(false);
   };
 
   /* ── Integration connection state ── */
@@ -994,46 +869,6 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     setIsSending(false);
   };
 
-  /* ── Helper: build multimodal message content from text that may contain image markers ── */
-  const buildMultimodalContent = (text: string): any => {
-    const IMAGE_MARKER = "__IMAGE_BASE64__";
-    if (!text.includes(IMAGE_MARKER)) return text;
-
-    // Split text around image markers and build multimodal content array
-    const parts: any[] = [];
-    let remaining = text;
-
-    while (remaining.includes(IMAGE_MARKER)) {
-      const markerStart = remaining.indexOf(IMAGE_MARKER);
-      const beforeMarker = remaining.slice(0, markerStart).trim();
-      if (beforeMarker) parts.push({ type: "text", text: beforeMarker });
-
-      const afterMarker = remaining.slice(markerStart + IMAGE_MARKER.length);
-      const mimeEnd = afterMarker.indexOf("__");
-      const mimeType = afterMarker.slice(0, mimeEnd);
-      const restAfterMime = afterMarker.slice(mimeEnd + 2);
-
-      // Find end of base64 (next marker or end of string)
-      const nextMarker = restAfterMime.indexOf(IMAGE_MARKER);
-      let base64: string;
-      if (nextMarker >= 0) {
-        base64 = restAfterMime.slice(0, nextMarker).trim();
-        remaining = restAfterMime.slice(nextMarker);
-      } else {
-        base64 = restAfterMime.trim();
-        remaining = "";
-      }
-
-      parts.push({
-        type: "image_url",
-        image_url: { url: `data:${mimeType};base64,${base64}` },
-      });
-    }
-
-    if (remaining.trim()) parts.push({ type: "text", text: remaining.trim() });
-    return parts.length === 1 && parts[0].type === "text" ? parts[0].text : parts;
-  };
-
   /* ── Fetch with timeout and cancellation support ── */
   const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> => {
     const controller = new AbortController();
@@ -1056,758 +891,19 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     }
   };
 
-  /* ── Agent chat (streaming) ── */
-  const runAgentChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
-    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
-    const userContent = buildMultimodalContent(userMsg.content);
-    chatHistory.push({ role: "user", content: userContent });
-
-    const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
-    const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
-
-    const taskSteps: ChatMessage["taskSteps"] = [];
-    const syncTaskSteps = (content?: string) => {
-      setMessages(prev => prev.map(m => m.id === assistantId ? {
-        ...m,
-        ...(content !== undefined ? { content } : {}),
-        taskSteps: [...taskSteps],
-        currentStepIndex: taskSteps.length - 1,
-        isStreaming: true,
-        streamStartTime: m.streamStartTime || Date.now(),
-      } : m));
-    };
-    const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
-      const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
-      if (existingIdx !== -1 && step.status !== "running") {
-        taskSteps[existingIdx].status = step.status;
-        if (step.detail) taskSteps[existingIdx].detail = step.detail;
-      } else if (existingIdx === -1) {
-        taskSteps.push({ action: step.action || "process", label: step.label, status: step.status, detail: step.detail });
-      }
-      syncTaskSteps();
-    };
-
-    // Show processing state
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
-
-    const response = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({
-          messages: chatHistory,
-          pageContext: null,
-          brandId: brandRowId,
-          workspaceId: activeWorkspaceId,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      handleProgressStep({ label: "Error", status: "error" });
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || "Failed to get response");
-    }
-
-    const contentType = response.headers.get("content-type") || "";
-    console.log("[agent-chat] extension-agent response content-type:", contentType);
-    let fullContent = "";
-
-    if (contentType.includes("text/event-stream")) {
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
-          const raw = line.slice(6).trim();
-          if (raw === "[DONE]") break;
-          try {
-            const evt = JSON.parse(raw);
-            if (evt.type === "progress" && evt.step) {
-              handleProgressStep(evt.step);
-            } else if (evt.type === "content" && evt.delta) {
-              fullContent += evt.delta;
-              syncTaskSteps(fullContent);
-            } else if (evt.type === "result") {
-              if (evt.content) fullContent = evt.content;
-            } else if (evt.type === "error") {
-              handleProgressStep({ label: evt.error || "Error", status: "error" });
-              throw new Error(evt.error || "Failed");
-            }
-          } catch (e: any) {
-            if (e.message === "Failed" || e.message?.includes("Error")) throw e;
-          }
-        }
-      }
-    } else {
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content || "";
-            if (delta) {
-              fullContent += delta;
-              setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, taskSteps: [...taskSteps], isStreaming: true } : m));
-            }
-          } catch {}
-        }
-      }
-      handleProgressStep({ label: "Finished", status: "done", action: "complete" });
-    }
-
-    // Parse suggestions from final content
-    const { content: cleanContent, suggestions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
-  };
-
-  /* ── Agent chat with browser context (computer mode, no employee) ── */
-  const runAgentChatWithBrowser = async (session: any, userMsg: ChatMessage, assistantId: string) => {
-    const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
-    const brandRowId = activeBrand ? (activeBrand as any)._rowId : undefined;
-
-    // Signal extension
-    await signalStart("agent", selectedAgent || "AI Agent");
-    updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: "Starting..." });
-
-    let stepCount = 0;
-    let consecutiveErrors = 0;
-    const maxSteps = 30;
-    let finalMessage = "";
-    let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
-    const startTime = new Date();
-
-    interface StepLog { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }
-    const stepLogs: StepLog[] = [];
-    const taskSteps: ChatMessage["taskSteps"] = [];
-    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Starting task...", taskSteps: [], currentStepIndex: -1, isStreaming: true } : m));
-
-    try {
-      while (stepCount < maxSteps) {
-        const pageContext = await getPageContext();
-        const stepTime = new Date();
-        updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
-
-        const response = await fetchWithTimeout(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({
-              messages: conversationHistory.slice(-6),
-              pageContext,
-              brandId: brandRowId,
-              workspaceId: activeWorkspaceId,
-              browserMode: true,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.error || "Browser step failed");
-        }
-
-        const data = await response.json();
-        const content = data.content || "";
-        conversationHistory.push({ role: "assistant" as const, content });
-
-        // Parse action JSON
-        const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
-        if (!jsonMatch) {
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: content, taskSteps: [...taskSteps], isStreaming: false } : m));
-          break;
-        }
-
-        let parsed: any;
-        try {
-          parsed = JSON.parse(jsonMatch[1]);
-        } catch (parseErr) {
-          conversationHistory.push({ role: "user" as const, content: "Error: Your last response contained invalid JSON. Please re-send your action as valid JSON inside ```json``` fences." });
-          stepCount++;
-          continue;
-        }
-        // Support batched steps array or single action
-        const actions = parsed.steps ? parsed.steps : [parsed];
-        let shouldBreak = false;
-        let shouldContinue = false;
-
-        for (const action of actions) {
-          if (stepCount >= maxSteps) break;
-          const stepLabel = action.reasoning || action.action;
-          const timeStr = formatTime(stepTime);
-
-          stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
-          const stepDetail = [action.reasoning, action.url, action.selector].filter(Boolean).join(" · ");
-          taskSteps.push({ action: action.action, label: stepLabel, status: "running", detail: stepDetail || undefined });
-
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
-          updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: stepLabel });
-
-          if (action.done || action.action === "done") {
-            finalMessage = action.message || "Task completed.";
-            stepLogs[stepLogs.length - 1].result = "done";
-            taskSteps[taskSteps.length - 1].status = "done";
-            shouldBreak = true;
-            break;
-          }
-
-          if (action.action === "respond") {
-            stepLogs[stepLogs.length - 1].result = "respond";
-            taskSteps[taskSteps.length - 1].status = "done";
-            taskSteps[taskSteps.length - 1].detail = action.message || "";
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
-            conversationHistory.push({ role: "user" as const, content: `Noted. Now proceed with the next action to execute the task. Do NOT respond again — take an actual browser action (navigate, click, type, etc.).` });
-            stepCount++;
-            shouldContinue = true;
-            break;
-          }
-
-          // Handle wait action client-side (don't send to extension)
-          if (action.action === "wait") {
-            const waitMs = Math.min(action.duration || 1000, 5000);
-            await new Promise(resolve => setTimeout(resolve, waitMs));
-            stepLogs[stepLogs.length - 1].result = "success";
-            taskSteps[taskSteps.length - 1].status = "done";
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
-            consecutiveErrors = 0;
-            conversationHistory.push({ role: "user" as const, content: `Action result: {"success":true,"action":"wait"}` });
-            stepCount++;
-            continue;
-          }
-
-          // Execute action via extension
-          let result = await executeAction(action);
-
-          // Fallback for extract: if extension can't extract, use page context
-          if (!result.success && action.action === "extract" && pageContext?.pageContent) {
-            result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
-          }
-
-          // Detect extension disconnection
-          if (!result.success && result.error === "Timeout waiting for extension") {
-            taskSteps[taskSteps.length - 1].status = "error";
-            taskSteps[taskSteps.length - 1].detail = "Browser extension disconnected";
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "⚠️ Browser extension lost connection. Please check your extension is running and try again.", taskSteps: [...taskSteps], isStreaming: false } : m));
-            break;
-          }
-
-          stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
-          taskSteps[taskSteps.length - 1].status = result.success ? "done" : "error";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
-
-          if (result.success) {
-            consecutiveErrors = 0;
-            conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
-          } else {
-            consecutiveErrors++;
-            const recoveryHint = `Action failed: ${result.error || "unknown error"}. Try an alternative approach — use a different selector, scroll to find the element, or navigate differently.`;
-            conversationHistory.push({ role: "user" as const, content: recoveryHint });
-            if (consecutiveErrors >= 3) {
-              finalMessage = "Task stopped after multiple consecutive failures. Here is what was collected so far.";
-              shouldBreak = true;
-              break;
-            }
-          }
-
-          // Handle extract with success but empty data
-          if (result.success && action.action === "extract" && (!result.data || !result.data.content) && pageContext?.pageContent) {
-            conversationHistory[conversationHistory.length - 1] = { role: "user" as const, content: `Action result: ${JSON.stringify({ success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } })}` };
-          }
-
-          stepCount++;
-        }
-
-        if (shouldBreak) break;
-        if (shouldContinue) continue;
-        if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
-      }
-
-      // If no explicit done message, use respond messages or last AI summary
-      if (!finalMessage) {
-        const respondMessages = stepLogs.filter(s => s.result === "respond").map(s => s.reasoning);
-
-        if (respondMessages.length > 0) {
-          finalMessage = respondMessages.join("\n\n");
-        } else {
-          // Last resort: use the last AI response content (strip JSON blocks)
-          const lastAiMsg = [...conversationHistory].reverse().find(m => m.role === "assistant");
-          if (lastAiMsg) {
-            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task completed but no structured results were returned.";
-          }
-        }
-      }
-
-      // Generate results document
-      const endTime = new Date();
-      const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-      const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
-
-      setMessages(prev => prev.map(m => m.id === assistantId ? {
-        ...m,
-        content: finalMessage || `Task completed — ${durationSec}s`,
-        taskSteps: [...taskSteps],
-        isStreaming: false,
-        reportContent: report,
-        reportSavedToDb: false,
-      } : m));
-    } catch (err: any) {
-      taskSteps.push({ action: "error", label: err.message || "Unknown error", status: "error" });
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: err.message || "Something went wrong.", taskSteps: [...taskSteps], isStreaming: false } : m));
-      throw err;
-    } finally {
-      updateOverlay({ visible: false });
-      signalStop("agent");
-    }
-  };
-
-  const runEmployeeChat = async (session: any, userMsg: ChatMessage, assistantId: string) => {
-    const emp = userMsg.employees?.[0];
-    if (!emp) return;
-
-    const startTime = new Date();
-    const taskSteps: ChatMessage["taskSteps"] = [];
-
-    const syncUI = (content?: string) => {
-      setMessages(prev => prev.map(m => m.id === assistantId ? {
-        ...m,
-        ...(content !== undefined ? { content } : {}),
-        taskSteps: [...taskSteps],
-        currentStepIndex: taskSteps.length - 1,
-        isStreaming: true,
-        streamStartTime: m.streamStartTime || Date.now(),
-      } : m));
-    };
-
-    const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
-      // If this label already exists as "running", update its status instead of adding a duplicate
-      const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
-      if (existingIdx !== -1 && step.status !== "running") {
-        taskSteps[existingIdx].status = step.status;
-        if (step.detail) taskSteps[existingIdx].detail = step.detail;
-      } else if (existingIdx === -1) {
-        taskSteps.push({ action: step.action || "process", label: step.label, status: step.status, detail: step.detail });
-      }
-      syncUI();
-    };
-
-    // Show processing state
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
-
-    // Log to DB
-    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
-
-    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
-    const userContent = buildMultimodalContent(userMsg.content);
-    chatHistory.push({ role: "user", content: userContent });
-
-    const brandRowId = (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })();
-
-    let accumulatedContent = "";
-    let continuationCount = 0;
-    const MAX_CONTINUATIONS = 5;
-    let needsContinuation = false;
-
-    do {
-      needsContinuation = false;
-
-      const response = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            employee_id: emp.id,
-            messages: chatHistory,
-            brandId: brandRowId,
-            workspaceId: activeWorkspaceId,
-            skip_action: continuationCount > 0,
-            ...(accumulatedContent ? { continuationContent: accumulatedContent } : {}),
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        handleProgressStep({ label: "Error", status: "error" });
-        supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.error || "Failed" }).then(() => {});
-        throw new Error(err.error || "Employee failed");
-      }
-
-      const contentType = response.headers.get("content-type") || "";
-
-      if (contentType.includes("text/event-stream")) {
-        // SSE stream — consume progress + content events
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error("No response body");
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const raw = line.slice(6).trim();
-            if (raw === "[DONE]") break;
-            try {
-              const evt = JSON.parse(raw);
-              if (evt.type === "progress" && evt.step) {
-                handleProgressStep(evt.step);
-              } else if (evt.type === "content" && evt.delta) {
-                accumulatedContent += evt.delta;
-                syncUI(accumulatedContent);
-              } else if (evt.type === "result") {
-                if (evt.content) accumulatedContent = evt.content;
-                if (evt.continuation) needsContinuation = true;
-              } else if (evt.type === "error") {
-                handleProgressStep({ label: evt.error || "Error", status: "error" });
-                throw new Error(evt.error || "Employee failed");
-              }
-            } catch (e: any) {
-              if (e.message === "Employee failed" || e.message?.includes("Error")) throw e;
-            }
-          }
-        }
-      } else {
-        // Fallback: JSON response (browser mode returns this)
-        const data = await response.json();
-        for (const step of buildConnectionTaskSteps(data)) {
-          handleProgressStep({
-            label: step.label,
-            status: step.status,
-            action: step.action,
-            detail: step.detail,
-          });
-        }
-        accumulatedContent = data.content || accumulatedContent;
-        syncUI(accumulatedContent);
-        if (data.continuation) needsContinuation = true;
-      }
-
-      continuationCount++;
-    } while (needsContinuation && continuationCount <= MAX_CONTINUATIONS);
-
-    handleProgressStep({ label: "Finished", status: "done", action: "complete" });
-
-    const endTime = new Date();
-    const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-
-    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
-
-    // Parse suggestions from final content
-    const { content: cleanContent, suggestions } = extractSuggestions(accumulatedContent || "Task completed.");
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
-  };
-
-  /* ── Computer mode: run employee via browser extension ── */
-  const runComputerMode = async (session: any, userMsg: ChatMessage, assistantId: string) => {
-    const emp = userMsg.employees?.[0];
-    if (!emp) { toast.error("Select an employee to use Computer mode"); return; }
-
-    // Signal extension to start
-    await signalStart(emp.id, emp.name);
-    updateOverlay({ visible: true, employeeName: emp.name, currentStep: "Starting..." });
-
-    let stepCount = 0;
-    let consecutiveErrors = 0;
-    const maxSteps = 30;
-    let finalMessage = "";
-    let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
-    const startTime = new Date();
-
-    // Structured log for report
-    interface StepLog { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }
-    const stepLogs: StepLog[] = [];
-    const taskSteps: ChatMessage["taskSteps"] = [];
-
-    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Starting task...", taskSteps: [], currentStepIndex: -1, isStreaming: true } : m));
-
-    // Log to DB
-    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
-
-    try {
-      while (stepCount < maxSteps) {
-        // Get page context from extension
-        const pageContext = await getPageContext();
-        const stepTime = new Date();
-
-        updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
-
-        // Call run-employee
-        const response = await fetchWithTimeout(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({
-              employee_id: emp.id,
-              messages: conversationHistory.slice(-6),
-              connectionQuery: userMsg.content,
-              pageContext,
-              skip_action: stepCount > 0,
-              brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as any)._rowId : undefined; })(),
-              workspaceId: activeWorkspaceId,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.error || "Employee step failed");
-        }
-
-        const data = await response.json();
-        const content = data.content || "";
-        conversationHistory.push({ role: "assistant" as const, content });
-
-        const connectionSteps = buildConnectionTaskSteps(data);
-        for (const step of connectionSteps) {
-          upsertChatTaskStep(taskSteps, step);
-        }
-        if (connectionSteps.length > 0) {
-          setMessages(prev => prev.map(m => m.id === assistantId ? {
-            ...m,
-            taskSteps: [...taskSteps],
-            currentStepIndex: taskSteps.length - 1,
-            isStreaming: true,
-          } : m));
-        }
-
-        // Parse action JSON from response
-        const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
-        if (!jsonMatch) {
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: content, taskSteps: [...taskSteps], isStreaming: false } : m));
-          stepLogs.push({ step: stepCount + 1, action: "response", reasoning: content, result: "completed", timestamp: formatTime(stepTime), url: pageContext?.url });
-          break;
-        }
-
-        let parsed: any;
-        try {
-          parsed = JSON.parse(jsonMatch[1]);
-        } catch (parseErr) {
-          conversationHistory.push({ role: "user" as const, content: "Error: Your last response contained invalid JSON. Please re-send your action as valid JSON inside ```json``` fences." });
-          stepCount++;
-          continue;
-        }
-        const actions = parsed.steps ? parsed.steps : [parsed];
-        let shouldBreak = false;
-        let shouldContinue = false;
-
-        for (const action of actions) {
-          if (stepCount >= maxSteps) break;
-          const stepLabel = action.reasoning || action.action;
-          const timeStr = formatTime(stepTime);
-
-          stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
-          const stepDetail = [action.reasoning, action.url, action.selector].filter(Boolean).join(" · ");
-          taskSteps.push({ action: action.action, label: stepLabel, status: "running", detail: stepDetail || undefined });
-
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
-
-          supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: `Step ${stepCount + 1}: ${action.action}`, message: stepLabel }).then(() => {});
-
-          updateOverlay({ visible: true, employeeName: emp.name, currentStep: stepLabel });
-
-          if (action.done || action.action === "done") {
-            finalMessage = action.message || "Task completed.";
-            stepLogs[stepLogs.length - 1].result = "done";
-            taskSteps[taskSteps.length - 1].status = "done";
-            shouldBreak = true;
-            break;
-          }
-
-          if (action.action === "respond") {
-            stepLogs[stepLogs.length - 1].result = "respond";
-            taskSteps[taskSteps.length - 1].status = "done";
-            taskSteps[taskSteps.length - 1].detail = action.message || "";
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
-            conversationHistory.push({ role: "user" as const, content: `Noted. Now proceed with the next action to execute the task. Do NOT respond again — take an actual browser action (navigate, click, type, etc.).` });
-            stepCount++;
-            shouldContinue = true;
-            break;
-          }
-
-          // Handle wait action client-side (don't send to extension)
-          if (action.action === "wait") {
-            const waitMs = Math.min(action.duration || 1000, 5000);
-            await new Promise(resolve => setTimeout(resolve, waitMs));
-            stepLogs[stepLogs.length - 1].result = "success";
-            taskSteps[taskSteps.length - 1].status = "done";
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps], isStreaming: true } : m));
-            consecutiveErrors = 0;
-            conversationHistory.push({ role: "user" as const, content: `Action result: {"success":true,"action":"wait"}` });
-            stepCount++;
-            continue;
-          }
-
-          let result = await executeAction(action);
-
-          // Fallback for extract: if extension can't extract, use page context
-          if (!result.success && action.action === "extract" && pageContext?.pageContent) {
-            result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
-          }
-
-          // Detect extension disconnection
-          if (!result.success && result.error === "Timeout waiting for extension") {
-            taskSteps[taskSteps.length - 1].status = "error";
-            taskSteps[taskSteps.length - 1].detail = "Browser extension disconnected";
-            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "⚠️ Browser extension lost connection. Please check your extension is running and try again.", taskSteps: [...taskSteps], isStreaming: false } : m));
-            break;
-          }
-
-          stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
-          taskSteps[taskSteps.length - 1].status = result.success ? "done" : "error";
-          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps], currentStepIndex: taskSteps.length - 1, isStreaming: true } : m));
-
-          if (result.success) {
-            consecutiveErrors = 0;
-            conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
-          } else {
-            consecutiveErrors++;
-            const recoveryHint = `Action failed: ${result.error || "unknown error"}. Try an alternative approach — use a different selector, scroll to find the element, or navigate differently.`;
-            conversationHistory.push({ role: "user" as const, content: recoveryHint });
-            if (consecutiveErrors >= 3) {
-              finalMessage = "Task stopped after multiple consecutive failures. Here is what was collected so far.";
-              shouldBreak = true;
-              break;
-            }
-          }
-
-          // Handle extract with success but empty data
-          if (result.success && action.action === "extract" && (!result.data || !result.data.content) && pageContext?.pageContent) {
-            conversationHistory[conversationHistory.length - 1] = { role: "user" as const, content: `Action result: ${JSON.stringify({ success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } })}` };
-          }
-
-          stepCount++;
-        }
-
-        if (shouldBreak) break;
-        if (shouldContinue) continue;
-        if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
-      }
-
-      // If no explicit done message, use respond messages or last AI summary
-      if (!finalMessage) {
-        const respondMessages = stepLogs.filter(s => s.result === "respond").map(s => s.reasoning);
-
-        if (respondMessages.length > 0) {
-          finalMessage = respondMessages.join("\n\n");
-        } else {
-          // Last resort: use the last AI response content (strip JSON blocks)
-          const lastAiMsg = [...conversationHistory].reverse().find(m => m.role === "assistant");
-          if (lastAiMsg) {
-            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task completed but no structured results were returned.";
-          }
-        }
-      }
-
-      // Generate results document
-      const endTime = new Date();
-      const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-      const report = generateTaskReport(emp.name, userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
-
-      setMessages(prev => prev.map(m => m.id === assistantId ? {
-        ...m,
-        content: finalMessage || `Task completed — ${durationSec}s`,
-        taskSteps: [...taskSteps],
-        isStreaming: false,
-        reportContent: report,
-        reportSavedToDb: false,
-      } : m));
-
-      // Log completion to DB
-      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `${stepLogs.length} steps in ${durationSec}s` }).then(() => {});
-
-    } catch (err: any) {
-      taskSteps.push({ action: "error", label: err.message || "Unknown error", status: "error" });
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: err.message || "Something went wrong.", taskSteps: [...taskSteps], isStreaming: false } : m));
-      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: err.message || "Unknown error" }).then(() => {});
-      throw err;
-    } finally {
-      updateOverlay({ visible: false });
-      signalStop(emp.id);
-    }
-  };
-
-  /* ── Generate results-focused document (data only, no metadata noise) ── */
-  const generateTaskReport = (
-    agentName: string,
-    task: string,
-    steps: { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }[],
-    startTime: Date,
-    endTime: Date,
-    durationSec: number,
-    finalMessage?: string
-  ): string => {
-    const lines: string[] = [];
-
-    // The final message IS the deliverable — show it front and center
-    if (finalMessage) {
-      lines.push(finalMessage);
-    } else {
-      // Fallback: collect all respond messages as results
-      const respondSteps = steps.filter(s => s.result === "respond" || s.result === "done");
-      if (respondSteps.length > 0) {
-        lines.push(respondSteps.map(s => s.reasoning).join("\n\n"));
-      } else {
-        lines.push("No results were collected for this task.");
-      }
-    }
-
-    // Append sources at the end
-    const urls = [...new Set(steps.filter(s => s.url && !s.url.includes("about:blank")).map(s => s.url!))];
-    if (urls.length > 0) {
-      lines.push(`\n\n---\n**Sources:**`);
-      urls.forEach(u => lines.push(`- ${u}`));
-    }
-
-    return lines.join("\n");
-  };
+  const transport = useAgentChatTransports({
+    messages,
+    setMessages,
+    brands,
+    selectedAgent,
+    activeWorkspaceId,
+    sessionMemory,
+    user,
+    supabase,
+    fetchWithTimeout,
+    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
+  });
+  const { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode } = transport;
 
   /* ── @mention / reference helpers ── */
   const insertReference = (result: { url: string; name: string; logo: string }) => {
@@ -2310,7 +1406,14 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         ) : (
           /* ── Chat messages ── */
           <div className="flex-1 min-h-full px-4 md:px-6 py-6 space-y-5 max-w-3xl mx-auto w-full">
-            {messages.map((msg) => {
+            {messages.map((msg, msgIndex) => {
+              let priorUserSnippet = "";
+              for (let j = msgIndex - 1; j >= 0; j--) {
+                if (messages[j].role === "user") {
+                  priorUserSnippet = (messages[j].content || "").slice(0, 500);
+                  break;
+                }
+              }
               const displayTaskSteps = msg.role === "assistant"
                 ? ((msg.taskSteps && msg.taskSteps.length > 0)
                     ? msg.taskSteps
@@ -2439,6 +1542,20 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           }}
                         />
                       )}
+                      {!msg.isStreaming && resolvedBrandId && (msg.content?.trim().length ?? 0) >= 30 && !msg.reportContent && (
+                        <AssistantInsightFeedback
+                          businessId={resolvedBrandId}
+                          workspaceId={activeWorkspaceId}
+                          assistantExcerpt={msg.content}
+                          userContextSnippet={priorUserSnippet || undefined}
+                          recorded={msg.insightFeedback}
+                          onRecorded={(sentiment) => {
+                            setMessages((prev) =>
+                              prev.map((m) => (m.id === msg.id ? { ...m, insightFeedback: sentiment } : m)),
+                            );
+                          }}
+                        />
+                      )}
                     </div>
                   ) : (
                     <>
@@ -2488,6 +1605,25 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         />
 
         <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
+          <div className="px-1 pb-1 border-b border-border/40 mb-1">
+            <button
+              type="button"
+              onClick={() => setSessionMemoryOpen((o) => !o)}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+            >
+              <StickyNote className="h-3.5 w-3.5 shrink-0" />
+              <span className="flex-1 text-left">Session memory</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform", sessionMemoryOpen && "rotate-180")} />
+            </button>
+            {sessionMemoryOpen && (
+              <Textarea
+                value={sessionMemory}
+                onChange={(e) => setSessionMemory(e.target.value)}
+                placeholder="Notes for this thread: facts, preferences, goals (saved with the chat)."
+                className="mt-1 min-h-[72px] max-h-[160px] resize-y text-sm"
+              />
+            )}
+          </div>
           {/* Chips row: files, employees, computer mode — all inline */}
           {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0 || selectedGraphic || (isActionMode && extensionConnected)) && (
             <div className="flex flex-wrap gap-1.5 px-1 pb-2">

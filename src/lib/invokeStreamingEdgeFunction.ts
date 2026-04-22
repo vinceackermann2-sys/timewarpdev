@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { consumeNdjsonStream } from "@/lib/streamNdjson";
 
 export interface StreamProgress {
   type: "progress";
@@ -67,50 +68,19 @@ export async function invokeStreamingEdgeFunction<T = any>(
       return { data, error: null };
     }
 
-    // Read NDJSON stream
-    const reader = response.body?.getReader();
-    if (!reader) {
-      return { data: null, error: new Error("No response body") };
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = "";
     let finalData: T | null = null;
     let streamError: string | null = null;
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || ""; // Keep incomplete line in buffer
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const event: StreamEvent<T> = JSON.parse(line);
-          if (event.type === "progress") {
-            onProgress(event.stage, event.percent);
-          } else if (event.type === "result") {
-            finalData = event.data;
-          } else if (event.type === "error") {
-            streamError = event.error;
-          }
-        } catch {
-          // Ignore malformed lines
-        }
+    await consumeNdjsonStream(response, (parsed) => {
+      const event = parsed as StreamEvent<T>;
+      if (event.type === "progress") {
+        onProgress(event.stage, event.percent);
+      } else if (event.type === "result") {
+        finalData = event.data;
+      } else if (event.type === "error") {
+        streamError = event.error;
       }
-    }
-
-    // Process any remaining buffer
-    if (buffer.trim()) {
-      try {
-        const event: StreamEvent<T> = JSON.parse(buffer);
-        if (event.type === "result") finalData = event.data;
-        else if (event.type === "error") streamError = event.error;
-      } catch { /* ignore */ }
-    }
+    });
 
     if (streamError) {
       return { data: null, error: new Error(streamError) };

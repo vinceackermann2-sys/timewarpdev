@@ -10,6 +10,7 @@ export interface ChatSession {
   id: string;
   title: string;
   agent_name: string | null;
+  assistant_memory?: string | null;
   messages: any[];
   created_at: string;
   updated_at: string;
@@ -37,9 +38,9 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
   const loadSessions = useCallback(async () => {
     if (!user) return;
     try {
-      let query = (supabase as any)
+      let query = supabase
         .from("agent_chat_sessions")
-        .select("id, title, agent_name, messages, created_at, updated_at")
+        .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at")
         .order("updated_at", { ascending: false })
         .limit(50);
 
@@ -63,7 +64,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    await (supabase as any).from("agent_chat_sessions").delete().eq("id", id);
+    await supabase.from("agent_chat_sessions").delete().eq("id", id);
     setSessions(prev => prev.filter(s => s.id !== id));
     if (activeChatId === id) onNewChat();
   };

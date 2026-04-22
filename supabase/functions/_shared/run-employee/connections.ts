@@ -1,6 +1,10 @@
 // --- Live Connection Search ---
 
 import { getValidAccessToken, getAnyMicrosoftToken as _getAnyMicrosoftToken } from "../oauth/refresh.ts";
+import { buildConnectorSearchIntentProfile } from "../connector-search-intent.ts";
+import { shouldSearchConnections } from "../connection-search-decision.ts";
+
+export { shouldSearchConnections };
 
 const STOPWORDS = new Set(["this","that","with","from","have","been","were","they","their","what","about","which","when","where","will","would","could","should","there","these","those","some","other","into","more","also","than","then","just","only","very","much","such","like","over","after","before","between","under","each","every","both","most","same","does","doing","done","make","made","know","think","want","need","help","find","give","tell","show","look","come","back","take","well","still","even","here","many","while"]);
 
@@ -628,31 +632,7 @@ export function buildConnectedToolsInventory(connectedProviders: string[]): stri
   return `\n\n## 🔌 User's Connected Integrations Inventory\nThis is the AUTHORITATIVE list of integrations the user has connected to their account. Use this to interpret generic questions correctly:\n- If the user asks about "documents" or "files" and only Google Drive is connected, they mean Google Drive. Do NOT mention OneDrive.\n- If the user asks about "emails" and only Gmail is connected, they mean Gmail. Do NOT mention Outlook.\n- If the user asks about a tool that is NOT connected, say plainly it isn't connected yet and suggest connecting it under Settings → Connections.\n- NEVER claim to have searched a tool that is marked ❌ below.\n\n### Connected\n${connectedList}\n\n### Not connected\n${notConnectedList}\n`;
 }
 
-// --- Intent Analysis ---
-const CONNECTION_TRIGGER_PATTERNS = [
-  /\b(collab\w*|collaboration\w*|partnership\w*|partner\w*|meeting\w*|follow.?up|agenda)\b/i,
-  /\b(complaint|issue|ticket|support|bug|problem|incident)s?\b/i,
-  /\b(email|mail|inbox|message|slack|teams|chat|dm|thread|gmail|outlook)s?\b/i,
-  /\b(file|document|doc|sheet|attachment|drive|onedrive|sharepoint|gdrive|gdoc|gsheet|gslide|slides?|presentation)s?\b/i,
-  /\b(calendar|schedule|event|appointment|invite|gcal)s?\b/i,
-  /\b(customer|client|contact|deal|lead|crm|hubspot)s?\b.{0,40}\b(said|wrote|asked|mentioned|replied|responded|deal|stage|pipeline|value)s?\b/i,
-  /\b(hubspot|crm)\b/i,
-  /\b(recent|latest|new|incoming|pending|unread|last)\b.{0,30}\b(email|mail|message|file|document|doc|sheet|drive|onedrive|gmail|slack|meeting|event|note|page|ticket|deal|lead|contact|presentation|slide)s?\b/i,
-  /\b(my|our|the)\s+(last|latest|recent)\s+\d*\s*(email|mail|message|file|document|doc|sheet|drive|onedrive|gmail|slack|meeting|event|note|page|ticket|deal|lead|contact|presentation|slide)s?\b/i,
-  /\b(check|search|find|look\s+up|pull|show|list|get)\s+(me\s+)?(my|our|the)?\s*(email|slack|message|file|document|doc|sheet|drive|gmail|hubspot|crm|note|page|meeting|event|deal|lead|contact|presentation|slide)s?\b/i,
-  /\b(what|any)\b.{0,30}\b(coming\s+up|scheduled|planned|pending)\b/i,
-];
-
-export function shouldSearchConnections(query: string): { shouldSearch: boolean; reason: string } {
-  if (!query || query.length < 3) return { shouldSearch: false, reason: "Query too short" };
-  const q = query.toLowerCase();
-  for (const pattern of CONNECTION_TRIGGER_PATTERNS) {
-    if (pattern.test(q)) {
-      return { shouldSearch: true, reason: "Your request points to live communications, files, or connected work activity" };
-    }
-  }
-  return { shouldSearch: false, reason: "This looks like a strategy or knowledge question that can be answered from existing business context" };
-}
+// --- Intent Analysis (shouldSearchConnections lives in connection-search-decision.ts) ---
 
 export function extractQueryTopic(query: string): string {
   if (!query || query.length < 3) return "your request";
@@ -737,6 +717,9 @@ export async function searchConnectedProviders(
   const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
   const t = topic || extractQueryTopic(userQuery);
+  const intentProfile = buildConnectorSearchIntentProfile(userQuery);
+  const effectiveQuery = intentProfile.augmentedQuery;
+  const searchTopicForApis = intentProfile.topicHint || t;
   const connectionCheckLabel = `Checking your connected tools for ${t}`;
 
   const decision = shouldSearchConnections(userQuery);
@@ -799,6 +782,10 @@ export async function searchConnectedProviders(
     console.log("[connections] Targeted search — raw:", rawNamedProviders, "narrowed:", namedProviders);
   }
 
+  if (intentProfile.omitZoom && connectedProviders.includes("zoom") && isAllowed("zoom")) {
+    skippedProviderDetails.push({ provider: "zoom", reason: "not requested for this query type" });
+  }
+
   const hasOutlookConnection = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_outlook");
   const hasOnedriveConnection = connectedProviders.includes("microsoft_onedrive");
   const hasOnenoteConnection = connectedProviders.includes("microsoft_onenote");
@@ -858,7 +845,7 @@ export async function searchConnectedProviders(
             emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "running", action: "connections" });
             searchedProviders.push("microsoft_onedrive");
           }
-          const results = await searchMicrosoftData(token, userQuery, t, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
+          const results = await searchMicrosoftData(token, effectiveQuery, searchTopicForApis, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
           if (results.emails.length > 0) connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${results.emails.join("\n\n")}\n`;
           if (results.files.length > 0) connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${results.files.join("\n\n")}\n`;
           if (hasOutlook) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
@@ -881,7 +868,7 @@ export async function searchConnectedProviders(
           }
           emitProgress?.({ label: `Searching OneNote pages for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("microsoft_onenote");
-          const results = await searchOneNoteData(token, userQuery, t);
+          const results = await searchOneNoteData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from OneNote\n#### Recent Notes\n${results.join("\n\n")}\n`;
           }
@@ -908,7 +895,7 @@ export async function searchConnectedProviders(
           if (!token) { skippedProviderDetails.push({ provider: "google_gmail", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_gmail");
-          const results = await searchGmailData(token, userQuery, t);
+          const results = await searchGmailData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) connectionContext += `\n\n### Live Data from Gmail\n${results.join("\n\n")}\n`;
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -926,7 +913,7 @@ export async function searchConnectedProviders(
           if (!token) { skippedProviderDetails.push({ provider: "google_drive", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_drive");
-          const results = await searchGoogleDriveData(token, userQuery, t);
+          const results = await searchGoogleDriveData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) connectionContext += `\n\n### Live Data from Google Drive\n${results.join("\n\n")}\n`;
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -947,7 +934,7 @@ export async function searchConnectedProviders(
           if (!token) { skippedProviderDetails.push({ provider: "google_calendar", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_calendar");
-          const results = await searchGoogleCalendarData(token, userQuery, t);
+          const results = await searchGoogleCalendarData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) connectionContext += `\n\n### Live Data from Google Calendar\n${results.join("\n\n")}\n`;
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -970,7 +957,7 @@ export async function searchConnectedProviders(
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "running", action: "connections" });
         searchedProviders.push("slack");
-        const results = await searchSlackData(token, userQuery, t);
+        const results = await searchSlackData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Slack\n${results.join("\n\n")}\n`;
         }
@@ -993,7 +980,7 @@ export async function searchConnectedProviders(
         }
         emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "running", action: "connections" });
         searchedProviders.push("hubspot");
-        const results = await searchHubspotData(token, userQuery, t);
+        const results = await searchHubspotData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from HubSpot\n${results.join("\n\n")}\n`;
         }
@@ -1002,6 +989,29 @@ export async function searchConnectedProviders(
         console.error("[connections] HubSpot search failed:", e);
         skippedProviderDetails.push({ provider: "hubspot", reason: "search failed" });
         emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "error", action: "connections" });
+      }
+    })());
+  }
+
+  if (connectedProviders.includes("zoom") && isAllowed("zoom") && !intentProfile.omitZoom) {
+    searchPromises.push((async () => {
+      try {
+        const token = await getValidProviderToken(supabase, userId, "zoom");
+        if (!token) {
+          skippedProviderDetails.push({ provider: "zoom", reason: "token expired or missing" });
+          return;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("zoom", t), status: "running", action: "connections" });
+        searchedProviders.push("zoom");
+        const results = await searchZoomData(token, effectiveQuery, searchTopicForApis);
+        if (results.length > 0) {
+          connectionContext += `\n\n### Live Data from Zoom\n${results.join("\n\n")}\n`;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("zoom", t), status: "done", action: "connections" });
+      } catch (e) {
+        console.error("[connections] Zoom search failed:", e);
+        skippedProviderDetails.push({ provider: "zoom", reason: "search failed" });
+        emitProgress?.({ label: getProviderSearchLabel("zoom", t), status: "error", action: "connections" });
       }
     })());
   }

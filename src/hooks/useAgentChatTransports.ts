@@ -1,0 +1,677 @@
+import { useCallback, useMemo } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import { toast } from "sonner";
+import { extractSuggestions } from "@/lib/parseSuggestions";
+import { buildMultimodalContent } from "@/lib/agentChat/multimodal";
+import { buildConnectionTaskSteps, upsertChatTaskStep } from "@/lib/agentChat/connectionSteps";
+import { generateTaskReport } from "@/lib/agentChat/taskReport";
+import type { ChatMessage } from "@/lib/agentChat/types";
+import { consumeAgentChatSseStream, consumeOpenAiStyleSseStream } from "@/lib/streamReaders";
+import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type BrandRow = { id: string; agentName?: string; name?: string; _rowId?: string };
+
+export interface ExtensionBridgeActions {
+  getPageContext: () => Promise<any>;
+  executeAction: (action: any) => Promise<any>;
+  signalStart: (id: string, name: string) => Promise<void>;
+  signalStop: (id: string) => Promise<void>;
+  updateOverlay: (state: { visible: boolean; employeeName?: string; currentStep?: string }) => void;
+}
+
+export interface AgentChatTransportDeps {
+  messages: ChatMessage[];
+  setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+  brands: BrandRow[];
+  selectedAgent: string;
+  activeWorkspaceId: string | null;
+  sessionMemory: string;
+  user: User | null;
+  supabase: SupabaseClient;
+  fetchWithTimeout: (url: string, options: RequestInit, timeoutMs?: number) => Promise<Response>;
+  extension: ExtensionBridgeActions;
+}
+
+export function useAgentChatTransports(deps: AgentChatTransportDeps) {
+  const {
+    messages,
+    setMessages,
+    brands,
+    selectedAgent,
+    activeWorkspaceId,
+    sessionMemory,
+    user,
+    supabase,
+    fetchWithTimeout,
+    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
+  } = deps;
+
+  const resolveBrandRowId = useCallback(() => {
+    const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+    return ab ? (ab as BrandRow)._rowId : undefined;
+  }, [brands, selectedAgent]);
+
+  const runAgentChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
+    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
+    const userContent = buildMultimodalContent(userMsg.content);
+    chatHistory.push({ role: "user", content: userContent as string | Record<string, unknown>[] });
+
+    const brandRowId = resolveBrandRowId();
+
+    const taskSteps: ChatMessage["taskSteps"] = [];
+    const syncTaskSteps = (content?: string) => {
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        ...(content !== undefined ? { content } : {}),
+        taskSteps: [...(taskSteps || [])],
+        currentStepIndex: (taskSteps?.length ?? 0) - 1,
+        isStreaming: true,
+        streamStartTime: m.streamStartTime || Date.now(),
+      } : m));
+    };
+    const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
+      const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
+      if (existingIdx !== -1 && step.status !== "running") {
+        taskSteps[existingIdx].status = step.status;
+        if (step.detail) taskSteps[existingIdx].detail = step.detail;
+      } else if (existingIdx === -1) {
+        taskSteps.push({ action: step.action || "process", label: step.label, status: step.status, detail: step.detail });
+      }
+      syncTaskSteps();
+    };
+
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
+
+    const response = await fetchWithTimeout(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          messages: chatHistory,
+          pageContext: null,
+          brandId: brandRowId,
+          workspaceId: activeWorkspaceId,
+          sessionMemory: sessionMemory || undefined,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      handleProgressStep({ label: "Error", status: "error" });
+      const err = await response.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error || "Failed to get response");
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    let fullContent = "";
+
+    if (contentType.includes("text/event-stream")) {
+      let streaming = "";
+      await consumeAgentChatSseStream(response, {
+        onProgressStep: handleProgressStep,
+        onContentDelta: (delta) => {
+          streaming += delta;
+          syncTaskSteps(streaming);
+        },
+        onResult: (evt) => {
+          if (evt.content) streaming = evt.content;
+        },
+      });
+      fullContent = streaming;
+    } else {
+      await consumeOpenAiStyleSseStream(response, (delta) => {
+        fullContent += delta;
+        setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullContent, taskSteps: [...taskSteps], isStreaming: true } : m));
+      });
+      handleProgressStep({ label: "Finished", status: "done", action: "complete" });
+    }
+
+    const { content: cleanContent, suggestions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
+  }, [messages, setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId]);
+
+  const runAgentChatWithBrowser = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
+    const brandRowId = resolveBrandRowId();
+    await signalStart("agent", selectedAgent || "AI Agent");
+    updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: "Starting..." });
+
+    let stepCount = 0;
+    let consecutiveErrors = 0;
+    const maxSteps = 30;
+    let finalMessage = "";
+    let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
+    const startTime = new Date();
+
+    interface StepLog { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }
+    const stepLogs: StepLog[] = [];
+    const taskSteps: ChatMessage["taskSteps"] = [];
+    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Starting task...", taskSteps: [], currentStepIndex: -1, isStreaming: true } : m));
+
+    try {
+      while (stepCount < maxSteps) {
+        const pageContext = await getPageContext();
+        const stepTime = new Date();
+        updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
+
+        const response = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              messages: conversationHistory.slice(-6),
+              pageContext,
+              brandId: brandRowId,
+              workspaceId: activeWorkspaceId,
+              browserMode: true,
+              sessionMemory: sessionMemory || undefined,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error || "Browser step failed");
+        }
+
+        const data = await response.json();
+        const content = data.content || "";
+        conversationHistory.push({ role: "assistant" as const, content });
+
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
+        if (!jsonMatch) {
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content, taskSteps: [...(taskSteps || [])], isStreaming: false } : m));
+          break;
+        }
+
+        let parsed: any;
+        try {
+          parsed = JSON.parse(jsonMatch[1]);
+        } catch {
+          conversationHistory.push({ role: "user" as const, content: "Error: Your last response contained invalid JSON. Please re-send your action as valid JSON inside ```json``` fences." });
+          stepCount++;
+          continue;
+        }
+        const actions = parsed.steps ? parsed.steps : [parsed];
+        let shouldBreak = false;
+        let shouldContinue = false;
+
+        for (const action of actions) {
+          if (stepCount >= maxSteps) break;
+          const stepLabel = action.reasoning || action.action;
+          const timeStr = formatTime(stepTime);
+
+          stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
+          const stepDetail = [action.reasoning, action.url, action.selector].filter(Boolean).join(" · ");
+          taskSteps!.push({ action: action.action, label: stepLabel, status: "running", detail: stepDetail || undefined });
+
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps!], currentStepIndex: taskSteps!.length - 1, isStreaming: true } : m));
+          updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: stepLabel });
+
+          if (action.done || action.action === "done") {
+            finalMessage = action.message || "Task completed.";
+            stepLogs[stepLogs.length - 1].result = "done";
+            taskSteps![taskSteps!.length - 1].status = "done";
+            shouldBreak = true;
+            break;
+          }
+
+          if (action.action === "respond") {
+            stepLogs[stepLogs.length - 1].result = "respond";
+            taskSteps![taskSteps!.length - 1].status = "done";
+            taskSteps![taskSteps!.length - 1].detail = action.message || "";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || stepLabel, taskSteps: [...taskSteps!], currentStepIndex: taskSteps!.length - 1, isStreaming: true } : m));
+            conversationHistory.push({ role: "user" as const, content: `Noted. Now proceed with the next action to execute the task. Do NOT respond again — take an actual browser action (navigate, click, type, etc.).` });
+            stepCount++;
+            shouldContinue = true;
+            break;
+          }
+
+          if (action.action === "wait") {
+            const waitMs = Math.min(action.duration || 1000, 5000);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            stepLogs[stepLogs.length - 1].result = "success";
+            taskSteps![taskSteps!.length - 1].status = "done";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps!], isStreaming: true } : m));
+            consecutiveErrors = 0;
+            conversationHistory.push({ role: "user" as const, content: `Action result: {"success":true,"action":"wait"}` });
+            stepCount++;
+            continue;
+          }
+
+          let result = await executeAction(action);
+
+          if (!result.success && action.action === "extract" && pageContext?.pageContent) {
+            result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
+          }
+
+          if (!result.success && result.error === "Timeout waiting for extension") {
+            taskSteps![taskSteps!.length - 1].status = "error";
+            taskSteps![taskSteps!.length - 1].detail = "Browser extension disconnected";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "⚠️ Browser extension lost connection. Please check your extension is running and try again.", taskSteps: [...taskSteps!], isStreaming: false } : m));
+            break;
+          }
+
+          stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
+          taskSteps![taskSteps!.length - 1].status = result.success ? "done" : "error";
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps!], currentStepIndex: taskSteps!.length - 1, isStreaming: true } : m));
+
+          if (result.success) {
+            consecutiveErrors = 0;
+            conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
+          } else {
+            consecutiveErrors++;
+            const recoveryHint = `Action failed: ${result.error || "unknown error"}. Try an alternative approach — use a different selector, scroll to find the element, or navigate differently.`;
+            conversationHistory.push({ role: "user" as const, content: recoveryHint });
+            if (consecutiveErrors >= 3) {
+              finalMessage = "Task stopped after multiple consecutive failures. Here is what was collected so far.";
+              shouldBreak = true;
+              break;
+            }
+          }
+
+          if (result.success && action.action === "extract" && (!result.data || !result.data.content) && pageContext?.pageContent) {
+            conversationHistory[conversationHistory.length - 1] = { role: "user" as const, content: `Action result: ${JSON.stringify({ success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } })}` };
+          }
+
+          stepCount++;
+        }
+
+        if (shouldBreak) break;
+        if (shouldContinue) continue;
+        if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
+      }
+
+      if (!finalMessage) {
+        const respondMessages = stepLogs.filter(s => s.result === "respond").map(s => s.reasoning);
+        if (respondMessages.length > 0) {
+          finalMessage = respondMessages.join("\n\n");
+        } else {
+          const lastAiMsg = [...conversationHistory].reverse().find(m => m.role === "assistant");
+          if (lastAiMsg) {
+            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task completed but no structured results were returned.";
+          }
+        }
+      }
+
+      const endTime = new Date();
+      const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+      const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
+
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        content: finalMessage || `Task completed — ${durationSec}s`,
+        taskSteps: [...(taskSteps || [])],
+        isStreaming: false,
+        reportContent: report,
+        reportSavedToDb: false,
+      } : m));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      taskSteps!.push({ action: "error", label: msg, status: "error" });
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: msg || "Something went wrong.", taskSteps: [...taskSteps!], isStreaming: false } : m));
+      throw err;
+    } finally {
+      updateOverlay({ visible: false });
+      signalStop("agent");
+    }
+  }, [setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, selectedAgent, resolveBrandRowId, getPageContext, executeAction, signalStart, signalStop, updateOverlay]);
+
+  const runEmployeeChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
+    const emp = userMsg.employees?.[0];
+    if (!emp) return;
+
+    const startTime = new Date();
+    const taskSteps: ChatMessage["taskSteps"] = [];
+
+    const syncUI = (content?: string) => {
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        ...(content !== undefined ? { content } : {}),
+        taskSteps: [...(taskSteps || [])],
+        currentStepIndex: (taskSteps?.length ?? 0) - 1,
+        isStreaming: true,
+        streamStartTime: m.streamStartTime || Date.now(),
+      } : m));
+    };
+
+    const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
+      const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
+      if (existingIdx !== -1 && step.status !== "running") {
+        taskSteps[existingIdx].status = step.status;
+        if (step.detail) taskSteps[existingIdx].detail = step.detail;
+      } else if (existingIdx === -1) {
+        taskSteps.push({ action: step.action || "process", label: step.label, status: step.status, detail: step.detail });
+      }
+      syncUI();
+    };
+
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
+
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
+
+    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
+    const userContent = buildMultimodalContent(userMsg.content);
+    chatHistory.push({ role: "user", content: userContent as string | Record<string, unknown>[] });
+
+    const brandRowId = resolveBrandRowId();
+
+    let accumulatedContent = "";
+    let continuationCount = 0;
+    const MAX_CONTINUATIONS = 5;
+    let needsContinuation = false;
+
+    do {
+      needsContinuation = false;
+
+      const response = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            employee_id: emp.id,
+            messages: chatHistory,
+            brandId: brandRowId,
+            workspaceId: activeWorkspaceId,
+            skip_action: continuationCount > 0,
+            sessionMemory: sessionMemory || undefined,
+            ...(accumulatedContent ? { continuationContent: accumulatedContent } : {}),
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        handleProgressStep({ label: "Error", status: "error" });
+        supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: (err as { error?: string }).error || "Failed" }).then(() => {});
+        throw new Error((err as { error?: string }).error || "Employee failed");
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("text/event-stream")) {
+        let acc = accumulatedContent;
+        await consumeAgentChatSseStream(response, {
+          onProgressStep: handleProgressStep,
+          onContentDelta: (delta) => {
+            acc += delta;
+            syncUI(acc);
+          },
+          onResult: (evt) => {
+            if (evt.content) acc = evt.content;
+            if (evt.continuation) needsContinuation = true;
+          },
+        });
+        accumulatedContent = acc;
+      } else {
+        const data = await response.json();
+        for (const step of buildConnectionTaskSteps(data)) {
+          handleProgressStep({
+            label: step.label,
+            status: step.status,
+            action: step.action,
+            detail: step.detail,
+          });
+        }
+        accumulatedContent = data.content || accumulatedContent;
+        syncUI(accumulatedContent);
+        if (data.continuation) needsContinuation = true;
+      }
+
+      continuationCount++;
+    } while (needsContinuation && continuationCount <= MAX_CONTINUATIONS);
+
+    handleProgressStep({ label: "Finished", status: "done", action: "complete" });
+
+    const endTime = new Date();
+    const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
+
+    const { content: cleanContent, suggestions } = extractSuggestions(accumulatedContent || "Task completed.");
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
+  }, [messages, setMessages, user, supabase, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId]);
+
+  const runComputerMode = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
+    const emp = userMsg.employees?.[0];
+    if (!emp) { toast.error("Select an employee to use Computer mode"); return; }
+
+    await signalStart(emp.id, emp.name);
+    updateOverlay({ visible: true, employeeName: emp.name, currentStep: "Starting..." });
+
+    let stepCount = 0;
+    let consecutiveErrors = 0;
+    const maxSteps = 30;
+    let finalMessage = "";
+    let conversationHistory: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: userMsg.content }];
+    const startTime = new Date();
+
+    interface StepLog { step: number; action: string; reasoning: string; result: string; timestamp: string; url?: string }
+    const stepLogs: StepLog[] = [];
+    const taskSteps: ChatMessage["taskSteps"] = [];
+
+    const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "Starting task...", taskSteps: [], currentStepIndex: -1, isStreaming: true } : m));
+
+    supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
+
+    try {
+      while (stepCount < maxSteps) {
+        const pageContext = await getPageContext();
+        const stepTime = new Date();
+
+        updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
+
+        const response = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              employee_id: emp.id,
+              messages: conversationHistory.slice(-6),
+              connectionQuery: userMsg.content,
+              pageContext,
+              skip_action: stepCount > 0,
+              brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as BrandRow)._rowId : undefined; })(),
+              workspaceId: activeWorkspaceId,
+              sessionMemory: sessionMemory || undefined,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error || "Employee step failed");
+        }
+
+        const data = await response.json();
+        const content = data.content || "";
+        conversationHistory.push({ role: "assistant" as const, content });
+
+        const connectionSteps = buildConnectionTaskSteps(data);
+        for (const step of connectionSteps) {
+          upsertChatTaskStep(taskSteps!, step);
+        }
+        if (connectionSteps.length > 0) {
+          setMessages(prev => prev.map(m => m.id === assistantId ? {
+            ...m,
+            taskSteps: [...taskSteps!],
+            currentStepIndex: taskSteps!.length - 1,
+            isStreaming: true,
+          } : m));
+        }
+
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)```/);
+        if (!jsonMatch) {
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content, taskSteps: [...taskSteps!], isStreaming: false } : m));
+          stepLogs.push({ step: stepCount + 1, action: "response", reasoning: content, result: "completed", timestamp: formatTime(stepTime), url: pageContext?.url });
+          break;
+        }
+
+        let parsed: any;
+        try {
+          parsed = JSON.parse(jsonMatch[1]);
+        } catch {
+          conversationHistory.push({ role: "user" as const, content: "Error: Your last response contained invalid JSON. Please re-send your action as valid JSON inside ```json``` fences." });
+          stepCount++;
+          continue;
+        }
+        const actions = parsed.steps ? parsed.steps : [parsed];
+        let shouldBreak = false;
+        let shouldContinue = false;
+
+        for (const action of actions) {
+          if (stepCount >= maxSteps) break;
+          const stepLabel = action.reasoning || action.action;
+          const timeStr = formatTime(stepTime);
+
+          stepLogs.push({ step: stepCount + 1, action: action.action, reasoning: stepLabel, result: "pending", timestamp: timeStr, url: pageContext?.url || action.url });
+          const stepDetail = [action.reasoning, action.url, action.selector].filter(Boolean).join(" · ");
+          taskSteps!.push({ action: action.action, label: stepLabel, status: "running", detail: stepDetail || undefined });
+
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps!], currentStepIndex: taskSteps!.length - 1, isStreaming: true } : m));
+
+          supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: `Step ${stepCount + 1}: ${action.action}`, message: stepLabel }).then(() => {});
+
+          updateOverlay({ visible: true, employeeName: emp.name, currentStep: stepLabel });
+
+          if (action.done || action.action === "done") {
+            finalMessage = action.message || "Task completed.";
+            stepLogs[stepLogs.length - 1].result = "done";
+            taskSteps![taskSteps!.length - 1].status = "done";
+            shouldBreak = true;
+            break;
+          }
+
+          if (action.action === "respond") {
+            stepLogs[stepLogs.length - 1].result = "respond";
+            taskSteps![taskSteps!.length - 1].status = "done";
+            taskSteps![taskSteps!.length - 1].detail = action.message || "";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: action.message || stepLabel, taskSteps: [...taskSteps!], currentStepIndex: taskSteps!.length - 1, isStreaming: true } : m));
+            conversationHistory.push({ role: "user" as const, content: `Noted. Now proceed with the next action to execute the task. Do NOT respond again — take an actual browser action (navigate, click, type, etc.).` });
+            stepCount++;
+            shouldContinue = true;
+            break;
+          }
+
+          if (action.action === "wait") {
+            const waitMs = Math.min(action.duration || 1000, 5000);
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            stepLogs[stepLogs.length - 1].result = "success";
+            taskSteps![taskSteps!.length - 1].status = "done";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, taskSteps: [...taskSteps!], isStreaming: true } : m));
+            consecutiveErrors = 0;
+            conversationHistory.push({ role: "user" as const, content: `Action result: {"success":true,"action":"wait"}` });
+            stepCount++;
+            continue;
+          }
+
+          let result = await executeAction(action);
+
+          if (!result.success && action.action === "extract" && pageContext?.pageContent) {
+            result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
+          }
+
+          if (!result.success && result.error === "Timeout waiting for extension") {
+            taskSteps![taskSteps!.length - 1].status = "error";
+            taskSteps![taskSteps!.length - 1].detail = "Browser extension disconnected";
+            setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "⚠️ Browser extension lost connection. Please check your extension is running and try again.", taskSteps: [...taskSteps!], isStreaming: false } : m));
+            break;
+          }
+
+          stepLogs[stepLogs.length - 1].result = result.success ? "success" : (result.error || "failed");
+          taskSteps![taskSteps!.length - 1].status = result.success ? "done" : "error";
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: stepLabel, taskSteps: [...taskSteps!], currentStepIndex: taskSteps!.length - 1, isStreaming: true } : m));
+
+          if (result.success) {
+            consecutiveErrors = 0;
+            conversationHistory.push({ role: "user" as const, content: `Action result: ${JSON.stringify(result)}` });
+          } else {
+            consecutiveErrors++;
+            const recoveryHint = `Action failed: ${result.error || "unknown error"}. Try an alternative approach — use a different selector, scroll to find the element, or navigate differently.`;
+            conversationHistory.push({ role: "user" as const, content: recoveryHint });
+            if (consecutiveErrors >= 3) {
+              finalMessage = "Task stopped after multiple consecutive failures. Here is what was collected so far.";
+              shouldBreak = true;
+              break;
+            }
+          }
+
+          if (result.success && action.action === "extract" && (!result.data || !result.data.content) && pageContext?.pageContent) {
+            conversationHistory[conversationHistory.length - 1] = { role: "user" as const, content: `Action result: ${JSON.stringify({ success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } })}` };
+          }
+
+          stepCount++;
+        }
+
+        if (shouldBreak) break;
+        if (shouldContinue) continue;
+        if (!shouldBreak && !shouldContinue && actions.length > 0) continue;
+      }
+
+      if (!finalMessage) {
+        const respondMessages = stepLogs.filter(s => s.result === "respond").map(s => s.reasoning);
+        if (respondMessages.length > 0) {
+          finalMessage = respondMessages.join("\n\n");
+        } else {
+          const lastAiMsg = [...conversationHistory].reverse().find(m => m.role === "assistant");
+          if (lastAiMsg) {
+            finalMessage = lastAiMsg.content.replace(/```json[\s\S]*?```/g, "").trim() || "Task completed but no structured results were returned.";
+          }
+        }
+      }
+
+      const endTime = new Date();
+      const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+      const report = generateTaskReport(emp.name, userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
+
+      setMessages(prev => prev.map(m => m.id === assistantId ? {
+        ...m,
+        content: finalMessage || `Task completed — ${durationSec}s`,
+        taskSteps: [...taskSteps!],
+        isStreaming: false,
+        reportContent: report,
+        reportSavedToDb: false,
+      } : m));
+
+      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `${stepLogs.length} steps in ${durationSec}s` }).then(() => {});
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      taskSteps!.push({ action: "error", label: msg, status: "error" });
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: msg || "Something went wrong.", taskSteps: [...taskSteps!], isStreaming: false } : m));
+      supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "error", step_label: "Error", message: msg }).then(() => {});
+      throw err;
+    } finally {
+      updateOverlay({ visible: false });
+      signalStop(emp.id);
+    }
+  }, [setMessages, brands, selectedAgent, fetchWithTimeout, activeWorkspaceId, sessionMemory, user, supabase, getPageContext, executeAction, signalStart, signalStop, updateOverlay]);
+
+  return useMemo(
+    () => ({ runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode }),
+    [runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode],
+  );
+}

@@ -1,5 +1,8 @@
 // --- Prompt Builders ---
 
+import type { AssistantReplyContract } from "../assistant-reply-contract.ts";
+import { buildAssistantGroundingBlock } from "../assistant-grounding.ts";
+
 export function buildSafetySection(safety: any): string {
   if (!safety) return "";
   let section = "\n\n## BUSINESS SAFETY GUARDRAILS";
@@ -146,10 +149,24 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 ${buildSafetySection(safetySettings)}`;
 }
 
-export function buildEmployeeChatPrompt(employee: any, identity: string, relevantContext: string, safetySettings: any): string {
+export function buildEmployeeChatPrompt(
+  employee: any,
+  identity: string,
+  relevantContext: string,
+  safetySettings: any,
+  replyContract: AssistantReplyContract = "direct",
+): string {
   const definitions = Array.isArray(employee.sop_definitions) ? employee.sop_definitions : [];
   const responsibilities = Array.isArray(employee.sop_responsibilities) ? employee.sop_responsibilities : [];
   const procedures = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
+
+  const structureBlock = replyContract === "live_lookup"
+    ? `
+## Response shape (live data first)
+Answer from live connector results first; say plainly if nothing matched or a tool is not connected. Add Business DNA only as supporting context.`.trim()
+    : `
+## Response shape (default)
+Match structure to the question — no mandatory "## DNA Fit / Recommendation / Next 7 Days / KPI Impact" template. Be concise for short asks.`.trim();
 
   return `You are an AI employee helping the user directly in chat. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base".
 
@@ -167,13 +184,9 @@ ${employee.sop_safety_notes ? `\n## Safety & Compliance Notes\n${employee.sop_sa
 ${employee.sop_documentation ? `\n## Documentation Requirements\n${employee.sop_documentation}` : ""}
 ${relevantContext}
 
-## DNA ALIGNMENT CONTRACT — MUST FOLLOW
-Use the Business Operating Profile and Learning Signals above as your decision baseline.
-Your answer MUST include these markdown sections in order:
-1. ## DNA Fit
-2. ## Recommendation
-3. ## Next 7 Days
-4. ## KPI Impact
+${buildAssistantGroundingBlock(replyContract)}
+
+${structureBlock}
 
 ## PRIVACY & SCOPE — ABSOLUTE RULES
 - You may ONLY discuss data that belongs to THIS user / THIS workspace and that appears in the Reference Material above or in the user's own messages.
@@ -198,10 +211,10 @@ Your answer MUST include these markdown sections in order:
 14. If a tool isn't connected or returned no matches, say so plainly (e.g., "Gmail isn't connected" or "No matching emails found"). Do NOT fabricate emails, events, files, messages, contacts, or meetings.
 
 ## FORMATTING
-- Use ## and ### headings for structure
+- Use ## and ### headings when they help longer answers — not for every short reply
 - Use **bold** for key terms
 - Use bullet lists and numbered lists
-- Use tables for comparisons and data
+- Use tables for comparisons and data; skip tables for trivial one-sentence answers
 - Use > blockquotes for key insights
 - Add blank lines between sections
 - Keep paragraphs short (2-3 sentences max)

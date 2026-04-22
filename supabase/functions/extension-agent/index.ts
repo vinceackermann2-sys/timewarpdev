@@ -10,6 +10,18 @@ import {
   buildBusinessBrainContext,
   logBusinessLearningEvent,
 } from "../_shared/run-employee/business-brain.ts";
+import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
+import { buildAssistantGroundingBlock } from "../_shared/assistant-grounding.ts";
+import { formatSessionMemoryBlock } from "../_shared/session-memory-context.ts";
+import { sanitizeAssistantAgainstLiveContext } from "../_shared/live-response-guard.ts";
+import {
+  runPreflightGuardrails,
+  runPostflightGuardrails,
+  validateActionPayload,
+  validateBrowserActions,
+} from "../_shared/guardrails.ts";
+import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
+import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,102 +30,6 @@ const corsHeaders = {
 };
 
 const STOPWORDS = new Set(["this","that","with","from","have","been","were","they","their","what","about","which","when","where","will","would","could","should","there","these","those","some","other","into","more","also","than","then","just","only","very","much","such","like","over","after","before","between","under","each","every","both","most","same","does","doing","done","make","made","know","think","want","need","help","find","give","tell","show","look","come","back","take","well","still","even","here","many","while"]);
-
-// =====================================================
-// MIDDLEWARE GUARDRAILS (Layer 2 + Layer 4)
-// Only enforced when user has enabled them in settings
-// =====================================================
-
-const INJECTION_PATTERNS = [
-  /ignore\s+(all\s+)?previous\s+instructions/i,
-  /you\s+are\s+now\s+/i,
-  /disregard\s+(your|all|the)\s+/i,
-  /\[INST\]/i,
-  /<<SYS>>/i,
-  /system\s*:\s*you\s+are/i,
-  /forget\s+(everything|all|your\s+instructions)/i,
-  /new\s+instructions?\s*:/i,
-  /override\s+(your|system|all)\s+/i,
-];
-
-const PII_PATTERNS = [
-  { pattern: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, label: "credit card number" },
-  { pattern: /\b\d{3}-\d{2}-\d{4}\b/, label: "SSN" },
-];
-
-const OUTPUT_BLOCKLIST = [
-  /here\s+(?:is|are)\s+(?:your|the|my)\s+(?:credit\s+card|ssn|social\s+security|password)/i,
-  /\bDROP\s+TABLE\b/i,
-  /\bDELETE\s+FROM\s+/i,
-  /\bsudo\s+rm\b/i,
-];
-
-const BLOCKED_URL_PATTERNS = [
-  /checkout/i, /payment/i, /billing/i,
-  /signin|sign-in|login|log-in/i,
-  /signup|sign-up|register/i,
-];
-
-const BLOCKED_SELECTOR_PATTERNS = [
-  /sign.?up|register|create.?account/i,
-  /log.?in|sign.?in/i,
-  /pay|purchase|buy|checkout|place.?order|subscribe/i,
-];
-
-function extractJsonCodeBlock(content: string): string | null {
-  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (jsonMatch?.[1]) return jsonMatch[1];
-  const trimmed = content.trim();
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) return trimmed;
-  return null;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function validateSingleAction(action: unknown): { valid: boolean; reason?: string; actionObj?: Record<string, unknown> } {
-  if (!isObject(action)) return { valid: false, reason: "Action must be a JSON object." };
-  const actionType = typeof action.action === "string" ? action.action : "";
-  if (!actionType) return { valid: false, reason: "Missing required field: action." };
-  if (typeof action.reasoning !== "string" || action.reasoning.trim().length === 0) {
-    return { valid: false, reason: "Missing required field: reasoning." };
-  }
-  const requires = (field: string) => action[field] !== undefined && action[field] !== null && String(action[field]).trim().length > 0;
-  if (actionType === "navigate" && !requires("url")) return { valid: false, reason: "Navigate action must include url." };
-  if ((actionType === "click" || actionType === "extract" || actionType === "type") && !requires("selector")) {
-    return { valid: false, reason: `${actionType} action must include selector.` };
-  }
-  if (actionType === "type" && !requires("value")) return { valid: false, reason: "Type action must include value." };
-  if (actionType === "wait" && typeof action.duration !== "number") return { valid: false, reason: "Wait action must include numeric duration." };
-  if ((actionType === "respond" || actionType === "done") && !requires("message")) {
-    return { valid: false, reason: `${actionType} action must include message.` };
-  }
-  return { valid: true, actionObj: action };
-}
-
-function validateActionPayload(content: string): { valid: boolean; reason?: string; payload?: any } {
-  const jsonRaw = extractJsonCodeBlock(content);
-  if (!jsonRaw) return { valid: false, reason: "Response is not valid JSON or JSON code block." };
-  let payload: any;
-  try {
-    payload = JSON.parse(jsonRaw);
-  } catch {
-    return { valid: false, reason: "JSON parsing failed." };
-  }
-  if (!isObject(payload)) return { valid: false, reason: "Top-level response must be an object." };
-  if (Array.isArray(payload.steps)) {
-    if (payload.steps.length === 0) return { valid: false, reason: "steps array cannot be empty." };
-    for (let i = 0; i < payload.steps.length; i++) {
-      const stepValidation = validateSingleAction(payload.steps[i]);
-      if (!stepValidation.valid) return { valid: false, reason: `Invalid step ${i + 1}: ${stepValidation.reason}` };
-    }
-    return { valid: true, payload };
-  }
-  const singleValidation = validateSingleAction(payload);
-  if (!singleValidation.valid) return { valid: false, reason: singleValidation.reason };
-  return { valid: true, payload };
-}
 
 async function loadSafetySettings(supabase: any, brandId?: string): Promise<any | null> {
   if (!brandId) return null;
@@ -127,104 +43,6 @@ async function loadSafetySettings(supabase: any, brandId?: string): Promise<any 
     const parsed = JSON.parse(data.content);
     return parsed?.safetySettings || null;
   } catch { return null; }
-}
-
-function runPreflightGuardrails(userMessage: string, safety: any): string | null {
-  if (!userMessage || !safety) return null;
-
-  if (safety.promptInjectionEnabled) {
-    for (const pattern of INJECTION_PATTERNS) {
-      if (pattern.test(userMessage)) {
-        return "⚠️ Your message was blocked by the **Prompt Injection Defense** guardrail. It contained patterns that could override system instructions. Please rephrase your request.";
-      }
-    }
-  }
-
-  if (safety.integrityEnabled !== false) {
-    for (const { pattern, label } of PII_PATTERNS) {
-      if (pattern.test(userMessage)) {
-        return `⚠️ Your message was blocked by the **Integrity** guardrail. It appears to contain a ${label}. Please remove sensitive data before sending.`;
-      }
-    }
-  }
-
-  return null;
-}
-
-function runPostflightGuardrails(content: string, safety: any): string {
-  if (!content || !safety) return content;
-
-  if (safety.integrityEnabled !== false) {
-    for (const pattern of OUTPUT_BLOCKLIST) {
-      if (pattern.test(content)) {
-        return "⚠️ The AI response was blocked by the **Integrity** guardrail because it contained potentially unsafe content.";
-      }
-    }
-  }
-
-  return content;
-}
-
-function validateBrowserActions(content: string, safety: any): string | null {
-  if (!safety || safety.integrityEnabled === false) return null;
-
-  try {
-    const validation = validateActionPayload(content);
-    if (!validation.valid) {
-      const blocked = JSON.stringify({ action: "respond", message: "⚠️ I could not safely execute that because the action format was invalid. Please retry.", reasoning: validation.reason || "Invalid action format", done: false });
-      return "```json\n" + blocked + "\n```";
-    }
-
-    const payload = validation.payload;
-    const actions = Array.isArray(payload.steps) ? payload.steps : [payload];
-    for (const action of actions) {
-      if (action.action === "navigate" && action.url) {
-        for (const pattern of BLOCKED_URL_PATTERNS) {
-          if (pattern.test(action.url)) {
-            const blocked = JSON.stringify({ action: "respond", message: `⚠️ Navigation to "${action.url}" was blocked by the **Integrity** guardrail. Please handle this manually.`, reasoning: "Blocked by middleware", done: false });
-            return "```json\n" + blocked + "\n```";
-          }
-        }
-      }
-
-      if (action.action === "click" && action.selector) {
-        for (const pattern of BLOCKED_SELECTOR_PATTERNS) {
-          if (pattern.test(action.selector)) {
-            const blocked = JSON.stringify({ action: "respond", message: `⚠️ Clicking "${action.selector}" was blocked by the **Integrity** guardrail. Please handle this manually.`, reasoning: "Blocked by middleware", done: false });
-            return "```json\n" + blocked + "\n```";
-          }
-        }
-      }
-
-      if (action.action === "type" && /password|passwd|secret|card.?number|cvv|cvc|ssn/i.test(action.selector || "")) {
-        const blocked = JSON.stringify({ action: "respond", message: "⚠️ Typing into a sensitive field was blocked by the **Integrity** guardrail. Please handle this manually.", reasoning: "Blocked by middleware", done: false });
-        return "```json\n" + blocked + "\n```";
-      }
-    }
-  } catch {}
-
-  return null;
-}
-
-function ensureDnaSections(content: string): string {
-  const requiredSections = ["## DNA Fit", "## Recommendation", "## Next 7 Days", "## KPI Impact"];
-  const missing = requiredSections.filter((section) => !content.includes(section));
-  if (missing.length === 0) return content;
-  return `
-## DNA Fit
-This response aligns to your Business Operating Profile and recent learning signals.
-
-## Recommendation
-${content.slice(0, 1200)}
-
-## Next 7 Days
-- Prioritize 2-3 actions that best match your core audience and channel fit.
-- Execute quickly and capture outcomes.
-- Iterate based on measurable results.
-
-## KPI Impact
-- Expected impact: stronger business-specific decisions and execution quality.
-`.trim();
 }
 
 // =====================================================
@@ -257,7 +75,29 @@ serve(async (req) => {
       });
     }
 
-    const { messages, pageContext, brandId, workspaceId, browserMode } = await req.json();
+    let jsonBody: unknown;
+    try {
+      jsonBody = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const parsedBody = safeParseJsonBody(jsonBody, extensionAgentRequestSchema);
+    if (!parsedBody.ok) {
+      return new Response(JSON.stringify({ error: parsedBody.error }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { messages, pageContext, brandId, workspaceId, browserMode, sessionMemory } = parsedBody.data;
+
+    edgeLog("extension-agent", "request", {
+      user: userIdShort(user.id),
+      browserMode: !!browserMode,
+      hasPageContext: !!pageContext,
+    });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -265,6 +105,7 @@ serve(async (req) => {
     const safetySettings = await loadSafetySettings(supabase, brandId);
     const identity = await loadBusinessIdentity(supabase, user.id, brandId);
     const lastUserMsg = extractLastUserMessage(messages);
+    const replyContract = classifyAssistantReplyContract(lastUserMsg);
     const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
       userId: user.id,
       brandId,
@@ -281,6 +122,7 @@ serve(async (req) => {
     const topic = extractQueryTopic(lastUserMsg);
     const initialConnectionDecision = shouldSearchConnections(lastUserMsg);
     const userMsg = messages?.[messages.length - 1]?.content || "";
+    const memoryBlock = formatSessionMemoryBlock(sessionMemory);
 
     const buildPageSection = () => {
       if (!pageContext) return "";
@@ -307,7 +149,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       );
 
       const pageSection = buildPageSection();
-      const fullContext = `${profileContext}\n${learningContext}\n${relevantContext}${connectionContext}`;
+      const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}`;
       const systemPrompt = buildBrowserActionPrompt(pageSection, identity, fullContext, safetySettings);
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -477,10 +319,10 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             const answerTopic = queryTopic || topic;
             const pageSection = buildPageSection();
             const hasBrowserContext = !!pageContext;
-            const fullContext = `${profileContext}\n${learningContext}\n${relevantContext}${connectionContext}`;
+            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}`;
             const systemPrompt = hasBrowserContext
               ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
-              : buildChatPrompt(identity, fullContext);
+              : buildChatPrompt(identity, fullContext, replyContract);
 
             supabase.from("timewarp_chats").insert({
               user_id: user.id,
@@ -556,9 +398,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             }
 
             let finalContent = runPostflightGuardrails(fullContent, safetySettings);
-            if (!hasBrowserContext) {
-              finalContent = ensureDnaSections(finalContent);
-            }
+            finalContent = sanitizeAssistantAgainstLiveContext(finalContent, connectionContext);
             sendStep(craftLabel, "done", "response");
             sendStep("Finished", "done", "complete");
             await logBusinessLearningEvent(supabase, {
@@ -575,6 +415,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             send({ type: "result", content: finalContent, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic: answerTopic });
             close();
           } catch (error: any) {
+            edgeLog("extension-agent", "stream_error", { message: String(error?.message || error) });
             console.error("extension-agent stream error:", error?.message || error);
             send({ type: "error", error: error?.message || "An internal error occurred" });
             close();
@@ -587,6 +428,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
     });
   } catch (e) {
+    edgeLog("extension-agent", "handler_error", { message: String((e as Error)?.message || e) });
     console.error("extension-agent error occurred");
     return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -810,18 +652,24 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 - Use CSS selectors when possible, fall back to descriptive text`;
 }
 
-function buildChatPrompt(identity: string, relevantContext: string): string {
+function buildChatPrompt(identity: string, relevantContext: string, replyContract: "live_lookup" | "direct"): string {
+  const grounding = buildAssistantGroundingBlock(replyContract);
+  const responseShape = replyContract === "live_lookup"
+    ? `
+## Response shape (live data first)
+Lead with what you found (or did not find) in live connector results. Then add only the context needed from Business DNA or profile. Do not bury the answer.`.trim()
+    : `
+## Response shape (default)
+Answer the user's question in the most natural structure for that question — prose, bullets, or a small table when comparisons need it. No mandatory section template.`.trim();
+
   return `You are an elite AI CEO and executive strategist — decisive, analytical, and unafraid to challenge assumptions. You help with strategy, marketing, content creation, analysis, operations, and decision-making.
 
 ${identity ? `# Business Context\n${identity}\n\n**IMPORTANT: You are currently representing ONLY this business. All your answers must be about this specific business. Do NOT reference or provide information about any other business the user may own.**` : ""}
 ${relevantContext}
 
-## DNA ALIGNMENT CONTRACT — MUST FOLLOW
-Your response MUST include these markdown sections in order:
-1. ## DNA Fit
-2. ## Recommendation
-3. ## Next 7 Days
-4. ## KPI Impact
+${grounding}
+
+${responseShape}
 
 ## Your Personality & Approach (The 7 Traits)
 1. **Decisive** — Give clear recommendations, not wishy-washy "it depends" answers. Pick a direction and defend it.
@@ -862,9 +710,9 @@ Aim to maximize quality across these dimensions:
 - **Suggestion Quality (10%)**: End with relevant, thought-provoking follow-up questions
 
 ## FORMATTING
-- Use ## and ### headings for structure
+- Use ## and ### headings only when they help scan longer answers — not for every short reply
 - Use **bold** for key terms and important takeaways
-- **ALWAYS** use markdown tables when presenting comparisons, metrics, lists of items with attributes, or any structured data
+- Use markdown tables when presenting comparisons, metrics, or lists of items with attributes — skip tables for one-off factual answers that do not need them
 - Use bullet points for lists and key takeaways
 - Use > blockquotes for key insights or important findings
 - Use --- to separate major sections in longer responses

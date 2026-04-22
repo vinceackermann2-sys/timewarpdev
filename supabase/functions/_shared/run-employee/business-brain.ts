@@ -8,6 +8,8 @@ type LearningSummary = {
   topRecommendationTypes: string[];
   recentThemes: string[];
   totalEvents: number;
+  insightFeedbackHelpful: number;
+  insightFeedbackNotHelpful: number;
 };
 
 function safeParseJson(value: unknown): any | null {
@@ -50,10 +52,12 @@ function scoreDnaAlignment(userMessage: string, profileContext: string): number 
   return Math.max(0, Math.min(1, matches / Math.min(messageWords.length, 8)));
 }
 
+const USER_INSIGHT_FEEDBACK = "user_insight_feedback";
+
 async function loadLearningSummary(supabase: any, userId: string, businessId?: string): Promise<LearningSummary> {
   let query = supabase
     .from("ai_business_learning_events")
-    .select("recommendation_type, user_message")
+    .select("recommendation_type, user_message, metadata")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(80);
@@ -63,15 +67,31 @@ async function loadLearningSummary(supabase: any, userId: string, businessId?: s
   const { data: events } = await query;
   const rows = events || [];
   if (rows.length === 0) {
-    return { topRecommendationTypes: [], recentThemes: [], totalEvents: 0 };
+    return {
+      topRecommendationTypes: [],
+      recentThemes: [],
+      totalEvents: 0,
+      insightFeedbackHelpful: 0,
+      insightFeedbackNotHelpful: 0,
+    };
   }
 
   const counts = new Map<string, number>();
   const themes = new Map<string, number>();
+  let insightFeedbackHelpful = 0;
+  let insightFeedbackNotHelpful = 0;
 
   for (const row of rows) {
-    const t = String(row.recommendation_type || "").trim();
-    if (t) counts.set(t, (counts.get(t) || 0) + 1);
+    const recType = String(row.recommendation_type || "").trim();
+    if (recType === USER_INSIGHT_FEEDBACK) {
+      const meta = safeParseJson(row.metadata) || {};
+      const s = meta.sentiment;
+      if (s === "helpful") insightFeedbackHelpful++;
+      else if (s === "not_helpful") insightFeedbackNotHelpful++;
+      continue;
+    }
+
+    if (recType) counts.set(recType, (counts.get(recType) || 0) + 1);
 
     const msg = String(row.user_message || "").toLowerCase();
     const theme = detectRecommendationType(msg);
@@ -92,7 +112,30 @@ async function loadLearningSummary(supabase: any, userId: string, businessId?: s
     topRecommendationTypes,
     recentThemes,
     totalEvents: rows.length,
+    insightFeedbackHelpful,
+    insightFeedbackNotHelpful,
   };
+}
+
+function formatThemeWeightsLine(themeWeights: Record<string, number>): string {
+  const entries = Object.entries(themeWeights)
+    .filter(([, v]) => typeof v === "number" && Number.isFinite(v) && Math.abs(v) > 0.12)
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, 6);
+  if (entries.length === 0) return "";
+  return entries
+    .map(([k, v]) => `${k}: ${v > 0 ? "+" : ""}${Number(v).toFixed(2)}`)
+    .join("; ");
+}
+
+async function loadThemeWeightsSummary(supabase: any, businessId: string): Promise<string> {
+  const { data: stateRow } = await supabase
+    .from("business_learning_state")
+    .select("theme_weights")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  const themeWeights = (stateRow?.theme_weights as Record<string, number> | null) || {};
+  return formatThemeWeightsLine(themeWeights);
 }
 
 export async function buildBusinessBrainContext(supabase: any, params: BrainLoadParams): Promise<{
@@ -153,14 +196,22 @@ export async function buildBusinessBrainContext(supabase: any, params: BrainLoad
 Use this profile as the primary operating truth for decisions.`;
 
   const learning = await loadLearningSummary(supabase, userId, brandId);
+  const themeWeightLine = await loadThemeWeightsSummary(supabase, brandId);
+  const ratingLine = (learning.insightFeedbackHelpful + learning.insightFeedbackNotHelpful) > 0
+    ? `- Recent reply ratings (thumbs): ${learning.insightFeedbackHelpful} helpful, ${learning.insightFeedbackNotHelpful} not quite aligned\n`
+    : "";
+  const weightLine = themeWeightLine
+    ? `- Aggregated theme emphasis (from dashboard + chat feedback): ${themeWeightLine}\n`
+    : "";
+
   const learningContext = learning.totalEvents > 0
     ? `
 ## Learning Signals (Personalized Memory)
 - Total recent interactions tracked: ${learning.totalEvents}
-- Most frequent recommendation types: ${learning.topRecommendationTypes.join(", ")}
-- Recent dominant themes: ${learning.recentThemes.join(", ")}
-
-Preference rule: prioritize recommendation styles that match successful recent themes unless the user explicitly changes direction.`
+- Most frequent recommendation types: ${learning.topRecommendationTypes.length ? learning.topRecommendationTypes.join(", ") : "(none in sample)"}
+- Recent dominant themes: ${learning.recentThemes.length ? learning.recentThemes.join(", ") : "(none in sample)"}
+${ratingLine}${weightLine}
+Preference rule: prioritize recommendation styles that match successful recent themes unless the user explicitly changes direction. When theme weights are negative, tread carefully on that topic unless new evidence supports it.`
     : `
 ## Learning Signals (Personalized Memory)
 No historical interaction patterns are available yet. Start collecting outcomes and adapt over time.`;
