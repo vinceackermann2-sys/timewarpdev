@@ -356,6 +356,7 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
           results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
         }
       } else {
+        if (r.status === 401 || r.status === 403) throw new Error("google_drive_permission_denied");
         console.error("[drive] list failed:", r.status, (await r.text()).slice(0, 200));
       }
     } catch (e) { console.error("Drive list error:", e); }
@@ -373,6 +374,7 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (!r.ok) {
+        if (r.status === 401 || r.status === 403) throw new Error("google_drive_permission_denied");
         console.error("[drive] search failed:", r.status, (await r.text()).slice(0, 200));
         continue;
       }
@@ -383,7 +385,10 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
         const modified = f.modifiedTime?.slice(0, 10) || "";
         results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
       }
-    } catch (e) { console.error("Drive search error:", e); }
+    } catch (e) {
+      if (e instanceof Error && e.message === "google_drive_permission_denied") throw e;
+      console.error("Drive search error:", e);
+    }
   }
   return results;
 }
