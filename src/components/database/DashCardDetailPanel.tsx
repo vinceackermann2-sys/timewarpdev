@@ -119,13 +119,22 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     return "Re-evaluate if the same theme appears again this week.";
   })();
 
-  // Tab-specific labels — Updates uses action-oriented labels (History/Context/Recommendation/Time Cost/Escalation Path)
+  // Tab-specific labels — Updates and To-Dos use action-oriented labels
   const labels = (() => {
     if (tabKind === "Updates") {
       return {
         dataPoint: "History",
         pattern: "Context",
         crossPillar: "Recommendation",
+        implication: "Time Cost",
+        watchSignal: "Escalation Path",
+      };
+    }
+    if (tabKind === "To-Dos") {
+      return {
+        dataPoint: "Value",
+        pattern: "Dependencies",
+        crossPillar: "Completion Criteria",
         implication: "Time Cost",
         watchSignal: "Escalation Path",
       };
@@ -175,12 +184,48 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
     return "If unresolved soon, momentum stalls and the request escalates.";
   })();
 
+  // To-Dos-specific personalized values
+  const todosValue = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.metadata?.dealValue) return `${card.metadata.dealValue} opportunity. Acting now preserves the upside.`;
+    if (card.leverageLabel?.includes("High Leverage")) return `${card.title} is a high-leverage move — the payoff compounds across other work.`;
+    if (card.leverageLabel?.includes("Deep Work")) return `${card.title} is deep work that protects long-term progress.`;
+    return `${card.title} moves a current objective forward and unlocks downstream work.`;
+  })();
+
+  const todosDependencies = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.relatedTodoIds?.length) return `Unblocks ${card.relatedTodoIds.length} related task${card.relatedTodoIds.length > 1 ? "s" : ""} downstream.`;
+    if (card.metadata?.scheduledDate) return `Tied to the meeting scheduled ${card.metadata.scheduledDate}.`;
+    if (card.category) return `Unblocks the next step in your ${card.category} workstream.`;
+    return "Unblocks the next step in your current workflow.";
+  })();
+
+  const todosCriteria = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.howTo) return card.howTo;
+    if (card.actionSuggestion) return card.actionSuggestion;
+    return `${card.title} completed and logged.`;
+  })();
+
+  const todosTimeCost = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.estimatedDuration) return `~${card.estimatedDuration} of focused effort.`;
+    return "~15 minutes of focused effort.";
+  })();
+
+  const todosEscalation = (() => {
+    if (tabKind !== "To-Dos") return null;
+    if (card.consequence) return card.consequence;
+    return "If skipped, the work compounds into a larger backlog and slows momentum.";
+  })();
+
   const rows: { label: string; value: string; rail: string }[] = [
-    { label: labels.dataPoint,   value: (updatesHistory ?? dataPoint) || "",        rail: "bg-[hsl(264_46%_60%)]" }, // purple
-    { label: labels.pattern,     value: (updatesContext ?? pattern) || "",          rail: "bg-[hsl(217_45%_65%)]" }, // blue
-    { label: labels.crossPillar, value: (updatesRecommendation ?? crossPillar) || "", rail: "bg-[hsl(160_42%_62%)]" }, // mint (recommendation)
-    { label: labels.implication, value: (updatesTimeCost ?? implication) || "",     rail: "bg-[hsl(42_88%_65%)]" }, // amber (time cost)
-    { label: labels.watchSignal, value: (updatesEscalation ?? watchSignal) || "",   rail: "bg-[hsl(335_55%_75%)]" }, // pink (escalation)
+    { label: labels.dataPoint,   value: (updatesHistory ?? todosValue ?? dataPoint) || "",                  rail: "bg-[hsl(264_46%_60%)]" }, // purple
+    { label: labels.pattern,     value: (updatesContext ?? todosDependencies ?? pattern) || "",             rail: "bg-[hsl(217_45%_65%)]" }, // blue
+    { label: labels.crossPillar, value: (updatesRecommendation ?? todosCriteria ?? crossPillar) || "",      rail: "bg-[hsl(160_42%_62%)]" }, // mint
+    { label: labels.implication, value: (updatesTimeCost ?? todosTimeCost ?? implication) || "",            rail: "bg-[hsl(42_88%_65%)]" }, // amber
+    { label: labels.watchSignal, value: (updatesEscalation ?? todosEscalation ?? watchSignal) || "",        rail: "bg-[hsl(335_55%_75%)]" }, // pink
   ].filter((r) => r.value && r.value.trim().length > 0);
 
   return (
@@ -210,6 +255,82 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── How-To Execution Plan — numbered steps for To-Dos, derived from card data ── */
+function ExecutionPlan({ card }: { card: DashboardCard }) {
+  const steps = (() => {
+    // 1. Try to split howTo into numbered/bulleted steps
+    const raw = (card.howTo || "").trim();
+    if (raw) {
+      // Match patterns like "1. ...", "1) ...", "- ...", or sentences split by ". "
+      const numbered = raw.match(/(?:^|\n)\s*(?:\d+[.)]|[-•])\s+([^\n]+)/g);
+      if (numbered && numbered.length >= 2) {
+        return numbered.map((s) => s.replace(/^[\s\n]*(?:\d+[.)]|[-•])\s+/, "").trim()).filter(Boolean).slice(0, 5);
+      }
+      const sentences = raw.split(/(?<=[.!?])\s+(?=[A-Z])/).map((s) => s.trim()).filter((s) => s.length > 8);
+      if (sentences.length >= 2) return sentences.slice(0, 5);
+    }
+    // 2. Fall back to source-aware default plan
+    const source = (card.source || "").toLowerCase();
+    const m = card.metadata || {};
+    if (source === "hubspot") {
+      return [
+        `Open HubSpot and review the latest activity${m.contactName ? ` with ${m.contactName}` : ""}.`,
+        `Draft your next move based on the current ${m.stage || "deal"} stage.`,
+        `Log the action and set the next follow-up reminder.`,
+      ];
+    }
+    if (["outlook", "gmail", "google_gmail"].includes(source)) {
+      return [
+        `Open the email${m.senderName ? ` from ${m.senderName}` : ""} and re-read the request.`,
+        `Draft a focused reply addressing the specific ask.`,
+        `Send and flag for follow-up if a response is expected.`,
+      ];
+    }
+    if (["zoom", "calendar", "google_calendar", "teams"].includes(source)) {
+      return [
+        `Review the meeting agenda${m.subject ? ` for "${m.subject}"` : ""}.`,
+        `Prepare the 2–3 key questions or talking points you need to cover.`,
+        `Join 2 minutes early to ensure your environment is ready.`,
+      ];
+    }
+    if (source === "slack") {
+      return [
+        `Open the ${m.channel || "Slack"} thread and read the full context.`,
+        `Reply with a clear, concise next step or decision.`,
+        `Pin or bookmark if it requires follow-up later.`,
+      ];
+    }
+    // 3. Generic fallback
+    return [
+      `Open the relevant context for "${card.title}".`,
+      `Take the focused action that moves it forward.`,
+      `Log the outcome so the next step is obvious.`,
+    ];
+  })();
+
+  if (!steps.length) return null;
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-white px-5 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground mb-4">
+        How to Execution Plan
+      </p>
+      <ol className="space-y-3.5">
+        {steps.map((step, i) => (
+          <li key={i} className="flex gap-3">
+            <div className="shrink-0 w-6 h-6 rounded-full border border-[hsl(264_46%_60%)] text-[hsl(264_46%_50%)] flex items-center justify-center text-[11px] font-semibold">
+              {i + 1}
+            </div>
+            <p className="text-[13px] leading-relaxed text-foreground/85 pt-[2px]">
+              {step}
+            </p>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -902,6 +1023,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 shadow-xl rounded-none bg-white">
           <SourceNativeBlock card={card} tabKind={tabKind} />
           <InsightsRow card={card} tabKind={tabKind} />
+          {tabKind === "To-Dos" && <ExecutionPlan card={card} />}
         </div>
 
         {/* ── Quick Note ────────────────────────────────────── */}
