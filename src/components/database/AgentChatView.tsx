@@ -350,6 +350,71 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  /* ── Stall watchdog: auto-stop if no progress for too long ── */
+  const STALL_TIMEOUT_MS = 45_000; // 45s with no content/step updates
+  const lastActivityRef = useRef<number>(0);
+  const activeAssistantIdRef = useRef<string | null>(null);
+  const stalledRef = useRef<boolean>(false);
+  const stallIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Reset activity timestamp whenever the active assistant message changes (content/steps)
+  useEffect(() => {
+    if (!isSending) return;
+    const activeId = activeAssistantIdRef.current;
+    if (!activeId) return;
+    const active = messages.find(m => m.id === activeId);
+    if (!active) return;
+    const sig = (active.content?.length || 0) + "|" + (active.taskSteps?.length || 0) + "|" + (active.taskSteps?.[active.taskSteps.length - 1]?.status || "");
+    // Touch activity on any change in content/steps
+    lastActivityRef.current = Date.now();
+    void sig;
+  }, [messages, isSending]);
+
+  // Poll for stalls while sending
+  useEffect(() => {
+    if (!isSending) {
+      if (stallIntervalRef.current) {
+        clearInterval(stallIntervalRef.current);
+        stallIntervalRef.current = null;
+      }
+      return;
+    }
+    stallIntervalRef.current = setInterval(() => {
+      if (stalledRef.current) return;
+      const elapsed = Date.now() - lastActivityRef.current;
+      if (elapsed < STALL_TIMEOUT_MS) return;
+      stalledRef.current = true;
+      const assistantId = activeAssistantIdRef.current;
+      // Abort the in-flight request
+      if (abortControllerRef.current) {
+        try { abortControllerRef.current.abort(); } catch { /* noop */ }
+        abortControllerRef.current = null;
+      }
+      // Inject a friendly stall message
+      if (assistantId) {
+        setMessages(prev => prev.map(m => {
+          if (m.id !== assistantId) return m;
+          const updatedSteps = (m.taskSteps || []).map(s =>
+            s.status === "running" ? { ...s, status: "error" as const } : s
+          );
+          updatedSteps.push({ action: "error", label: "Stopped — no progress", status: "error" as const, detail: "The request stalled. Please try again." });
+          const baseContent = (m.content && m.content.trim().length > 0)
+            ? m.content + "\n\n---\n⚠️ *This response stopped because it wasn't making progress. Please try again.*"
+            : "⚠️ This message stopped because it wasn't making progress. Please try again.";
+          return { ...m, content: baseContent, taskSteps: updatedSteps, isStreaming: false };
+        }));
+      }
+      toast.error("Message stopped — no progress. Try again.");
+      setIsSending(false);
+    }, 5000);
+    return () => {
+      if (stallIntervalRef.current) {
+        clearInterval(stallIntervalRef.current);
+        stallIntervalRef.current = null;
+      }
+    };
+  }, [isSending]);
+
   /* ── Chat history sidebar state ── */
   const isMobileChatView = useIsMobile();
   const [showHistory, setShowHistory] = useState(false);
