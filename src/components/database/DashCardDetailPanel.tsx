@@ -350,6 +350,84 @@ function ExecutionPlan({ card }: { card: DashboardCard }) {
   );
 }
 
+/* ── Objectives Breakdown — Sub-Milestones list + 3 colored callouts ── */
+function ObjectivesBreakdown({ card }: { card: DashboardCard }) {
+  const m = card.successMetric;
+
+  // Sub-milestones: derived from successMetric + timeHorizon + related work
+  const subMilestones: string[] = (() => {
+    const out: string[] = [];
+    if (m?.target) {
+      const when = card.timeHorizon ? ` by ${card.timeHorizon.split(/[-–]/)[0].trim()}` : "";
+      out.push(`Hit ${m.target}${when}`);
+    }
+    if (m?.gap) out.push(`Close the ${m.gap} gap to target`);
+    if (card.relatedTodoIds?.length) {
+      out.push(`Complete ${card.relatedTodoIds.length} linked to-do${card.relatedTodoIds.length > 1 ? "s" : ""} this cycle`);
+    }
+    if (m?.current && !out.length) out.push(`Move from ${m.current} toward ${m.target || "target"}`);
+    if (!out.length) out.push(`Define a measurable next step for "${card.title}"`);
+    return out.slice(0, 4);
+  })();
+
+  const dependencies = (() => {
+    if (card.howTo) return card.howTo;
+    if (m?.source) return `Requires ${m.source} to deliver inputs on schedule.`;
+    if (card.category) return `Requires the ${card.category} workstream to stay on cadence.`;
+    return "Requires aligned execution from supporting teams.";
+  })();
+
+  const riskFactors = (() => {
+    if (card.consequence) return card.consequence;
+    if (m?.gap) return `A ${m.gap} gap remains; slippage in the cycle could push it into the next quarter.`;
+    if (card.timeHorizon) return `Slippage inside ${card.timeHorizon} would shift the outcome to the next cycle.`;
+    return "Competing priorities or delayed inputs could push this off-track.";
+  })();
+
+  const crossImpact = (() => {
+    if (card.relatedTodoIds?.length) {
+      return `Directly drives ${card.relatedTodoIds.length} active to-do${card.relatedTodoIds.length > 1 ? "s" : ""} and downstream pillar work.`;
+    }
+    if (card.category) return `Directly funds the next ${card.category} initiative.`;
+    if (card.objectiveType) return `Strengthens your ${card.objectiveType.toLowerCase()} position across the business.`;
+    return "Strengthens the strategic position across multiple pillars.";
+  })();
+
+  const callouts = [
+    { label: "Key Dependencies", body: dependencies, rail: "bg-[hsl(42_88%_65%)]" }, // amber
+    { label: "Risk Factors",     body: riskFactors,  rail: "bg-[hsl(335_55%_75%)]" }, // pink
+    { label: "Cross-Pillar Impact", body: crossImpact, rail: "bg-[hsl(264_46%_60%)]" }, // purple
+  ];
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-white px-5 py-4 space-y-5">
+      <div>
+        <p className="text-[13px] font-semibold text-foreground mb-2">Sub-Milestones:</p>
+        <ul className="space-y-1.5 pl-1">
+          {subMilestones.map((s, i) => (
+            <li key={i} className="flex gap-2.5 text-[13px] leading-relaxed text-foreground/85">
+              <span className="text-foreground/60 leading-relaxed">•</span>
+              <span>{s}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="space-y-3">
+        {callouts.map((c) => (
+          <div key={c.label} className="flex gap-3">
+            <div className={`w-[3px] rounded-full shrink-0 ${c.rail}`} />
+            <p className="text-[13px] leading-relaxed text-foreground/85">
+              <span className="font-semibold text-foreground">{c.label}:</span>{" "}
+              {c.body}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Source classification helpers ── */
 type SourceKind = "email" | "meeting" | "message" | "file" | "note" | "deal" | "system";
 
