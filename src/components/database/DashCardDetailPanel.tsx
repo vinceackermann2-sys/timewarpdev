@@ -1117,6 +1117,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
           <SourceNativeBlock card={card} tabKind={tabKind} />
           <InsightsRow card={card} tabKind={tabKind} />
           {tabKind === "To-Dos" && <ExecutionPlan card={card} />}
+          {tabKind === "Objectives" && <ObjectivesBreakdown card={card} />}
         </div>
 
         {/* ── Quick Note ────────────────────────────────────── */}
