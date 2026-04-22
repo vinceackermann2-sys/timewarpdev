@@ -881,13 +881,13 @@ export async function searchConnectedProviders(
   // --- Google Workspace ---
   if (hasAnyGoogle) {
     const hasGmail = isAllowed("google_gmail") && connectedProviders.some((p: string) => p === "google" || p === "google_gmail");
-    const hasGDrive = isAllowed("google_drive") && connectedProviders.some((p: string) => p === "google" || p === "google_drive" || p === "google_docs" || p === "google_sheets" || p === "google_slides");
+    const hasGDrive = isAllowed("google_drive") && connectedProviders.some((p: string) => p === "google" || p === "google_drive");
     const hasGCal = isAllowed("google_calendar") && connectedProviders.some((p: string) => p === "google" || p === "google_calendar");
 
     if (hasGmail) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyGoogleToken(supabase, userId);
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_gmail");
           if (!token) { skippedProviderDetails.push({ provider: "google_gmail", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_gmail");
@@ -905,7 +905,7 @@ export async function searchConnectedProviders(
     if (hasGDrive) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyGoogleToken(supabase, userId);
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_drive");
           if (!token) { skippedProviderDetails.push({ provider: "google_drive", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_drive");
@@ -923,7 +923,7 @@ export async function searchConnectedProviders(
     if (hasGCal) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyGoogleToken(supabase, userId);
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_calendar");
           if (!token) { skippedProviderDetails.push({ provider: "google_calendar", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_calendar");
