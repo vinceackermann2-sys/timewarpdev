@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Brain } from "lucide-react";
+import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 
 export interface ActionStep {
   icon: string;
@@ -263,9 +264,8 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
 
       {/* Loading state */}
       {!content && !steps?.length && isStreaming && (
-        <div className="px-4 py-4 flex items-center gap-2.5">
-          <Loader2 className="h-4 w-4 animate-spin text-foreground" />
-          <span className="text-muted-foreground text-sm">Processing...</span>
+        <div className="px-4 py-4">
+          <ProgressiveLoader text="Processing" />
         </div>
       )}
     </div>
