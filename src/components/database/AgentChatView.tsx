@@ -1447,6 +1447,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           currentStepIndex={msg.currentStepIndex ?? -1}
                           isStreaming={msg.isStreaming}
                           startTime={msg.streamStartTime}
+                          frozenElapsed={msg.elapsedSeconds}
                         />
                       )}
                       {/* Main content */}
@@ -1505,7 +1506,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                       {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
                         <div className="flex items-center gap-3 py-2">
                           <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold" />
-                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} className="text-xs" />}
+                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} frozenElapsed={msg.elapsedSeconds} className="text-xs" />}
                         </div>
                       )}
                       {msg.isStreaming && msg.content && displayTaskSteps.length === 0 && (
