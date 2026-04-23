@@ -1,14 +1,28 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
+import { useBusinessDNA, BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
+import { AuthProvider } from "@/hooks/useAuth";
 
-export default function SuperchargeDna() {
+function SuperchargeDnaInner() {
   const navigate = useNavigate();
-  const { brands, activeBrandId, refreshBrand, isLoading } = useBusinessDNA();
-  const activeBrand = brands.find((b) => b.id === activeBrandId) || brands[0] || null;
-  const brandId = activeBrand?.id || "";
+  const { brands, refreshBrand, isLoading } = useBusinessDNA();
+
+  const [brandId, setBrandId] = useState<string>("");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("tw_active_brand_id") || "";
+    if (stored) {
+      setBrandId(stored);
+    } else if (brands.length > 0) {
+      setBrandId(brands[0].id);
+    }
+  }, [brands]);
+
+  const activeBrand = brands.find((b) => b.id === brandId) || brands[0] || null;
+  const resolvedBrandId = activeBrand?.id || "";
 
   const handleClose = () => navigate("/app");
 
@@ -28,24 +42,32 @@ export default function SuperchargeDna() {
 
         {isLoading && !activeBrand ? (
           <div className="text-sm text-muted-foreground">Loading business...</div>
-        ) : !brandId ? (
+        ) : !resolvedBrandId ? (
           <div className="text-sm text-muted-foreground">
             No business selected. Go back and pick one.
           </div>
         ) : (
           <SuperchargeDNAWizard
             embedded
-            brandId={brandId}
+            brandId={resolvedBrandId}
             brandName={activeBrand?.name}
             logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
             onCompleted={() => {
-              localStorage.setItem(`tw_supercharge_completed_${brandId}`, "1");
-              refreshBrand(brandId);
+              localStorage.setItem(`tw_supercharge_completed_${resolvedBrandId}`, "1");
+              refreshBrand(resolvedBrandId);
               navigate("/app");
             }}
           />
         )}
       </div>
     </div>
+  );
+}
+
+export default function SuperchargeDna() {
+  return (
+    <BusinessDNAProvider>
+      <SuperchargeDnaInner />
+    </BusinessDNAProvider>
   );
 }
