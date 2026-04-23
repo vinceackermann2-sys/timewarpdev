@@ -13,44 +13,34 @@ export function ProgressiveLoader({
   textClassName,
 }: ProgressiveLoaderProps) {
   const letters = Array.from(text);
+  // Total cycle = stagger * letters + duration + repeatDelay
+  const stagger = 0.09;
+  const duration = 0.7;
+  const repeatDelay = 0.8;
+  const cycle = stagger * letters.length + duration + repeatDelay;
 
   return (
     <div className={cn("flex items-center", className)}>
-      <motion.div
-        className="flex"
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: {},
-          visible: {
-            transition: {
-              staggerChildren: 0.09,
-              repeat: Infinity,
-              repeatDelay: 0.8,
-            },
-          },
-        }}
-      >
+      <div className="flex">
         {letters.map((letter, index) => (
           <motion.span
             key={index}
-            style={{ display: "inline-block" }}
-            className={cn("text-sm font-medium text-muted-foreground", textClassName)}
-            variants={{
-              hidden: { opacity: 0.2 },
-              visible: {
-                opacity: [0.2, 1, 0.2],
-                transition: {
-                  duration: 0.7,
-                  ease: "easeInOut",
-                },
-              },
+            style={{ display: "inline-block", color: "hsl(var(--muted-foreground))" }}
+            className={cn("text-sm font-medium", textClassName)}
+            initial={{ opacity: 0.25 }}
+            animate={{ opacity: [0.25, 1, 0.25] }}
+            transition={{
+              duration,
+              ease: "easeInOut",
+              repeat: Infinity,
+              repeatDelay: cycle - duration - index * stagger,
+              delay: index * stagger,
             }}
           >
             {letter === " " ? "\u00A0" : letter}
           </motion.span>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }
