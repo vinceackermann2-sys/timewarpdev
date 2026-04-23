@@ -1118,7 +1118,7 @@ export function BusinessDNAOnboarding({
                   Continue
                 </button>
               </div>
-            )}
+            ) : null}
           </motion.div>
         )}
 
