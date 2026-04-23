@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThinkingTimer } from "./ThinkingTimer";
-import { ShiningText } from "@/components/ui/shining-text";
+import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
@@ -226,9 +226,9 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
                   )}
                 </span>
 
-                {/* Label - shining animation on active steps */}
+                {/* Label - progressive letter animation on active steps */}
                 {isActive ? (
-                  <ShiningText text={step.label} className="text-[13px] truncate" />
+                  <ProgressiveLoader text={step.label} textClassName="text-[13px] text-foreground" />
                 ) : (
                   <span className={cn(
                     "truncate",

@@ -11,6 +11,7 @@ import { InlineChatAnalytics } from "./InlineChatAnalytics";
 import { InlineDocument, InlineSpreadsheet, InlineSlide } from "./InlineChatGraphics";
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
 import { ThinkingTimer } from "./ThinkingTimer";
+import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 import { SettingsView } from "@/components/database/SettingsView";
 import { AssistantSuggestions } from "./AssistantSuggestions";
 import { AssistantInsightFeedback } from "./AssistantInsightFeedback";
@@ -1503,9 +1504,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                       )}
                       {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
                         <div className="flex items-center gap-3 py-2">
-                          <span className="text-lg font-semibold text-foreground/70">
-                            Thinking<span className="inline-flex w-[1.5em] text-left"><span className="animate-pulse">...</span></span>
-                          </span>
+                          <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold text-foreground/70" />
                           {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} className="text-xs" />}
                         </div>
                       )}
