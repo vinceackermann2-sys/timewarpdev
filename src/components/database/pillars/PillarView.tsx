@@ -230,15 +230,9 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
               </div>
             </div>
             {brand && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditOpen(true)}
-                className="shrink-0 gap-2 bg-[#eef2f7]"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                Edit
-              </Button>
+              <div className="shrink-0 text-[11px] text-muted-foreground italic">
+                Click any field to edit
+              </div>
             )}
           </div>
 
@@ -255,7 +249,16 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                       <h3 className="text-sm font-semibold text-foreground tracking-tight">
                         {field.name.replace(/^\d+\.\s*/, "")}
                       </h3>
-                      <PillarFieldRenderer field={field} />
+                      {brand ? (
+                        <PillarFieldEditor
+                          field={field}
+                          baseValue={baseValues[field.id]}
+                          override={overrides[field.id]}
+                          onSave={(next) => handleSaveField(field.id, next)}
+                        />
+                      ) : (
+                        <PillarFieldRenderer field={field} />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -399,16 +402,6 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
         </aside>
       </div>
 
-      {brand && (
-        <PillarEditDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          pillar={populatedPillar}
-          currentValues={baseValues}
-          overrides={overrides}
-          onSave={handleSaveOverrides}
-        />
-      )}
     </div>
   );
 }
