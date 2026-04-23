@@ -396,6 +396,17 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
           </div>
         </aside>
       </div>
+
+      {brand && (
+        <PillarEditDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          pillar={populatedPillar}
+          currentValues={baseValues}
+          overrides={overrides}
+          onSave={handleSaveOverrides}
+        />
+      )}
     </div>
   );
 }
