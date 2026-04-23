@@ -46,7 +46,6 @@ const plans = [
     ],
     cta: "Become an OG",
     popular: false,
-    popular: false,
   },
 ];
 
