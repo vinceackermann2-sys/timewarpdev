@@ -38,7 +38,7 @@ export const extensionAgentRequestSchema = z.object({
 export type ExtensionAgentRequest = z.infer<typeof extensionAgentRequestSchema>;
 
 export const assistantInsightFeedbackRequestSchema = z.object({
-  businessId: z.string().uuid(),
+  businessId: z.string().min(1),
   workspaceId: z.string().uuid().nullable().optional(),
   sentiment: z.enum(["helpful", "not_helpful"]),
   note: z.string().max(500).optional().nullable(),
