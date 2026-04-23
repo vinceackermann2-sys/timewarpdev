@@ -208,12 +208,6 @@ export function SuperchargeDNAWizard({
     });
   }, []);
 
-  const body = (
-    <>
-      {step === 1 && null}
-    </>
-  );
-
   const stepsContent = (
     <>
       {step === 1 && (
