@@ -1358,8 +1358,8 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
           {tabKind === "Objectives" && <ObjectivesBreakdown card={card} />}
         </div>
 
-        {/* ── Quick Note ────────────────────────────────────── */}
-        <QuickNotes cardId={card.id} />
+        {/* ── Sticky Notes (collaborative, workspace-shared) ─── */}
+        <StickyNotes cardId={card.id} />
 
         {/* ── Sticky bottom — single personalized action button ─────── */}
         <div className="shrink-0 px-6 pb-5 pt-2 bg-[#fcfcfd] shadow-xl">
