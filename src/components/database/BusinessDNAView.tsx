@@ -21,6 +21,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { PillarView } from "@/components/database/pillars/PillarView";
 import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import superchargeIllustration from "@/assets/supercharge-dna-illustration.svg";
 
 const PILLAR_IDS = new Set(["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"]);
 
