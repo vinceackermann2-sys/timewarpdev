@@ -654,18 +654,18 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
             >
               Not now
             </Button>
-            <SuperchargeDNAWizard
-              brandId={activeBrandId}
-              brandName={activeBrand?.name}
-              logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
-              onCompleted={() => {
+            <Button
+              className="rounded-full"
+              onClick={() => {
                 if (activeBrandId) {
-                  localStorage.setItem(`tw_supercharge_completed_${activeBrandId}`, "1");
+                  localStorage.setItem("tw_active_brand_id", activeBrandId);
                 }
                 setShowSuperchargePopup(false);
-                refreshBrand(activeBrandId);
+                navigate("/supercharge-dna");
               }}
-            />
+            >
+              Supercharge DNA
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
