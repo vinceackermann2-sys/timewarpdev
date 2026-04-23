@@ -6,10 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 
 const ACTION_LIMITS: Record<string, number> = {
   co_founder: 100,
-  aristotle: 1000,
+  aristotle: 500,
   timewarp_og: Infinity,
 };
-const FREE_LIMIT = 0;
+const FREE_LIMIT = 10;
 
 interface ActionGateContextType {
   remaining: number;
