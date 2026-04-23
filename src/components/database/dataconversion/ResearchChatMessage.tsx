@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Brain } from "lucide-react";
+import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 
 export interface InsightCard {
   icon: string;
@@ -244,8 +245,8 @@ export function ResearchChatMessage({ role, content, insightCards, isStreaming }
 
       {/* Loading state */}
       {!content && !insightCards?.length && isStreaming && (
-        <div className="px-4 py-4 flex items-center gap-2.5">
-          <span className="text-muted-foreground text-sm">Analyzing your data...</span>
+        <div className="px-4 py-4">
+          <ProgressiveLoader text="Analyzing your data" />
         </div>
       )}
     </div>

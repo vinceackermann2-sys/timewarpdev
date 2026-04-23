@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { extractSuggestions } from "@/lib/parseSuggestions";
 import { Brain } from "lucide-react";
+import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 
 export interface InsightCard {
   icon: string;
@@ -203,8 +204,8 @@ export function DatabaseChatMessage({ role, content, insightCards, isStreaming }
 
       {/* Loading state */}
       {!content && !insightCards?.length && isStreaming && (
-        <div className="px-4 py-4 flex items-center gap-2">
-          <span className="text-muted-foreground">Analyzing your data...</span>
+        <div className="px-4 py-4">
+          <ProgressiveLoader text="Analyzing your data" />
         </div>
       )}
     </div>
