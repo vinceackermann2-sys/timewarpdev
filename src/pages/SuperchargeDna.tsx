@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBusinessDNA, BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
-import { AuthProvider } from "@/hooks/useAuth";
+
 
 function SuperchargeDnaInner() {
   const navigate = useNavigate();
