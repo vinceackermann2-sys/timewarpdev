@@ -39,13 +39,17 @@ export function SuperchargeDNAWizard({
   brandName,
   logoUrl,
   onCompleted,
+  embedded = false,
+  triggerLabel = "Supercharge DNA",
 }: {
   brandId: string;
   brandName?: string;
   logoUrl?: string;
   onCompleted?: () => void;
+  embedded?: boolean;
+  triggerLabel?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [step, setStep] = useState<SuperchargeStep>(1);
   const [connected, setConnected] = useState<ConnectedProvider[]>([]);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
@@ -204,6 +208,126 @@ export function SuperchargeDNAWizard({
     });
   }, []);
 
+  const stepsContent = (
+    <>
+      {step === 1 && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">Connect data sources around your business profile.</p>
+          <div className="relative mx-auto h-[360px] w-[360px] rounded-2xl border border-border/50 bg-muted/20 overflow-hidden">
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 360 360">
+              {nodeLayout.map((n) => (
+                <line
+                  key={`line-${n.id}`}
+                  x1={180}
+                  y1={180}
+                  x2={n.x}
+                  y2={n.y}
+                  stroke="currentColor"
+                  className="text-border"
+                  strokeWidth="1.5"
+                />
+              ))}
+            </svg>
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 rounded-full border bg-card shadow flex items-center justify-center overflow-hidden">
+              {logoUrl ? <img src={logoUrl} alt={brandName || "Business"} className="h-full w-full object-contain p-2" /> : <div className="text-xs font-semibold">{brandName || "Business"}</div>}
+            </div>
+            {nodeLayout.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => void connectProvider(n.id)}
+                disabled={connectingProvider === n.id}
+                className="absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-card px-2 py-1 text-xs flex items-center gap-1 hover:bg-muted disabled:opacity-60"
+                style={{ left: n.x, top: n.y }}
+                title={n.label}
+              >
+                <img src={n.logo} alt={n.label} className="h-4 w-4 object-contain" />
+                <span>{isConnected(n.id) ? "Connected" : n.label}</span>
+                {isConnected(n.id) && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                {connectingProvider === n.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setStep(2)}>
+              Continue
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">Add extra context from files and URLs.</p>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2 rounded-lg border p-3">
+              <label className="text-sm font-medium">Upload files</label>
+              <Input type="file" multiple onChange={(e) => void onFilesPicked(e.target.files)} />
+              <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground space-y-1">
+                {artifacts.map((a, i) => <div key={`${a.name}-${i}`}>- {a.name}</div>)}
+                {artifacts.length === 0 && <div>No files yet</div>}
+              </div>
+            </div>
+            <div className="space-y-2 rounded-lg border p-3">
+              <label className="text-sm font-medium">Add URLs</label>
+              <div className="flex gap-2">
+                <Input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://example.com/report" />
+                <Button variant="outline" onClick={addUrl}><Link2 className="h-4 w-4" /></Button>
+              </div>
+              <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground space-y-1">
+                {urls.map((u) => <div key={u} className="truncate">- {u}</div>)}
+                {urls.length === 0 && <div>No URLs yet</div>}
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            <Button onClick={() => setStep(3)}>
+              Continue
+              <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">Running verified enrichment with integrations, files, URLs, and web evidence for gap fields (e.g. TAM/SAM/SOM).</p>
+          <div className="rounded-lg border bg-foreground text-background font-mono text-xs p-3 max-h-64 overflow-y-auto space-y-1">
+            {logs.map((line, i) => <div key={`${line}-${i}`}>{line}</div>)}
+            {logs.length === 0 && <div>Ready to start...</div>}
+          </div>
+          <div className="flex items-center justify-between">
+            <Button variant="outline" onClick={() => setStep(2)} disabled={running}>Back</Button>
+            <div className="flex items-center gap-2">
+              {!embedded && (
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={running}>Close</Button>
+              )}
+              <Button onClick={() => void runSupercharge()} disabled={running}>
+                {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileUp className="h-4 w-4 mr-2" />}
+                {running ? "Running..." : "Run Supercharge"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="w-full max-w-4xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Supercharge DNA</h1>
+          <p className="text-sm text-muted-foreground">
+            Step {step} of 3 - verified enrichment only (no made-up data).
+          </p>
+        </div>
+        {stepsContent}
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={(next) => {
       setOpen(next);
@@ -212,117 +336,19 @@ export function SuperchargeDNAWizard({
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Filter className="h-4 w-4" />
-          Supercharge DNA
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl w-[95vw]">
         <DialogHeader>
           <DialogTitle>Supercharge DNA</DialogTitle>
           <DialogDescription>
-            Step {step} of 3 — verified enrichment only (no made-up data).
+            Step {step} of 3 - verified enrichment only (no made-up data).
           </DialogDescription>
         </DialogHeader>
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Connect data sources around your business profile.</p>
-            <div className="relative mx-auto h-[360px] w-[360px] rounded-2xl border border-border/50 bg-muted/20 overflow-hidden">
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 360 360">
-                {nodeLayout.map((n) => (
-                  <line
-                    key={`line-${n.id}`}
-                    x1={180}
-                    y1={180}
-                    x2={n.x}
-                    y2={n.y}
-                    stroke="currentColor"
-                    className="text-border"
-                    strokeWidth="1.5"
-                  />
-                ))}
-              </svg>
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 rounded-full border bg-card shadow flex items-center justify-center overflow-hidden">
-                {logoUrl ? <img src={logoUrl} alt={brandName || "Business"} className="h-full w-full object-contain p-2" /> : <div className="text-xs font-semibold">{brandName || "Business"}</div>}
-              </div>
-              {nodeLayout.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => void connectProvider(n.id)}
-                  disabled={connectingProvider === n.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-card px-2 py-1 text-xs flex items-center gap-1 hover:bg-muted disabled:opacity-60"
-                  style={{ left: n.x, top: n.y }}
-                  title={n.label}
-                >
-                  <img src={n.logo} alt={n.label} className="h-4 w-4 object-contain" />
-                  <span>{isConnected(n.id) ? "Connected" : n.label}</span>
-                  {isConnected(n.id) && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
-                  {connectingProvider === n.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setStep(2)}>
-                Continue
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Add extra context from files and URLs.</p>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2 rounded-lg border p-3">
-                <label className="text-sm font-medium">Upload files</label>
-                <Input type="file" multiple onChange={(e) => void onFilesPicked(e.target.files)} />
-                <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground space-y-1">
-                  {artifacts.map((a, i) => <div key={`${a.name}-${i}`}>• {a.name}</div>)}
-                  {artifacts.length === 0 && <div>No files yet</div>}
-                </div>
-              </div>
-              <div className="space-y-2 rounded-lg border p-3">
-                <label className="text-sm font-medium">Add URLs</label>
-                <div className="flex gap-2">
-                  <Input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} placeholder="https://example.com/report" />
-                  <Button variant="outline" onClick={addUrl}><Link2 className="h-4 w-4" /></Button>
-                </div>
-                <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground space-y-1">
-                  {urls.map((u) => <div key={u} className="truncate">• {u}</div>)}
-                  {urls.length === 0 && <div>No URLs yet</div>}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-              <Button onClick={() => setStep(3)}>
-                Continue
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Running verified enrichment with integrations, files, URLs, and web evidence for gap fields (e.g. TAM/SAM/SOM).</p>
-            <div className="rounded-lg border bg-black text-green-400 font-mono text-xs p-3 max-h-64 overflow-y-auto space-y-1">
-              {logs.map((line, i) => <div key={`${line}-${i}`}>{line}</div>)}
-              {logs.length === 0 && <div>Ready to start...</div>}
-            </div>
-            <div className="flex items-center justify-between">
-              <Button variant="outline" onClick={() => setStep(2)} disabled={running}>Back</Button>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={running}>Close</Button>
-                <Button onClick={() => void runSupercharge()} disabled={running}>
-                  {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileUp className="h-4 w-4 mr-2" />}
-                  {running ? "Running..." : "Run Supercharge"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        {stepsContent}
       </DialogContent>
     </Dialog>
   );
 }
+

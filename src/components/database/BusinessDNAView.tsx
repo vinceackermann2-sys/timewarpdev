@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { PillarView } from "@/components/database/pillars/PillarView";
-import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import superchargeIllustration from "@/assets/supercharge-dna-illustration.svg";
 import superchargePortalLeft from "@/assets/supercharge-portal-left.svg";
@@ -343,6 +343,12 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   const [activeSegment, setActiveSegment] = useState<string | null>(activePillar || "brand");
   const [extendedPillarData, setExtendedPillarData] = useState<Record<string, any>>({});
   const [showSuperchargePopup, setShowSuperchargePopup] = useState(false);
+  const navigate = useNavigate();
+
+  // Persist active brandId so standalone routes (e.g. /supercharge-dna) can resolve it
+  useEffect(() => {
+    if (activeBrandId) localStorage.setItem("tw_active_brand_id", activeBrandId);
+  }, [activeBrandId]);
 
   // Auto-show Supercharge popup once per session, suppressed after user has supercharged
   useEffect(() => {
@@ -654,18 +660,18 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
             >
               Not now
             </Button>
-            <SuperchargeDNAWizard
-              brandId={activeBrandId}
-              brandName={activeBrand?.name}
-              logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
-              onCompleted={() => {
+            <Button
+              className="rounded-full"
+              onClick={() => {
                 if (activeBrandId) {
-                  localStorage.setItem(`tw_supercharge_completed_${activeBrandId}`, "1");
+                  localStorage.setItem("tw_active_brand_id", activeBrandId);
                 }
                 setShowSuperchargePopup(false);
-                refreshBrand(activeBrandId);
+                navigate("/supercharge-dna");
               }}
-            />
+            >
+              Supercharge DNA
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
