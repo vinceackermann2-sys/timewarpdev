@@ -96,10 +96,11 @@ export function DatabaseChatMessage({ role, content, insightCards, isStreaming }
         <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center">
           <Brain className="h-7 w-7 text-foreground" />
         </div>
-        <span className={cn(
-          "text-[10px] font-semibold text-primary/60 uppercase tracking-widest",
-          isStreaming && !content && "shimmer-text"
-        )}>TimeWarp AI</span>
+        {isStreaming && !content ? (
+          <ProgressiveLoader text="Thinking" textClassName="text-[10px] font-semibold text-primary/60 uppercase tracking-widest" />
+        ) : (
+          <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-widest">TimeWarp AI</span>
+        )}
       </div>
       {/* Insight Cards Grid */}
       {insightCards && insightCards.length > 0 && (
