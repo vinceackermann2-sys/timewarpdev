@@ -101,6 +101,8 @@ serve(async (req) => {
         sentiment,
         theme_key: themeKey,
         source: "assistant_insight_feedback",
+        outcome: sentiment === "helpful" ? "positive" : "negative",
+        outcome_score: sentiment === "helpful" ? 0.9 : -0.9,
         user_context_snippet: (userContextSnippet || "").slice(0, 500),
       },
     });

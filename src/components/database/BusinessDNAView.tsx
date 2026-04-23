@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { PillarView } from "@/components/database/pillars/PillarView";
+import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
 
 const PILLAR_IDS = new Set(["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"]);
 
@@ -565,6 +566,26 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
               <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight truncate">{activeBrand?.name || "Your Business"}</h1>
               <AgentNameEditor brand={activeBrand} onRename={handleRenameAgent} isBrainLearning={isBrainLearning} />
             </div>
+            <div className="ml-auto hidden md:block">
+              <SuperchargeDNAWizard
+                brandId={activeBrandId}
+                brandName={activeBrand?.name}
+                logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
+                onCompleted={() => {
+                  refreshBrand(activeBrandId);
+                }}
+              />
+            </div>
+          </div>
+          <div className="md:hidden">
+            <SuperchargeDNAWizard
+              brandId={activeBrandId}
+              brandName={activeBrand?.name}
+              logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
+              onCompleted={() => {
+                refreshBrand(activeBrandId);
+              }}
+            />
           </div>
 
           {/* Segment Tabs */}

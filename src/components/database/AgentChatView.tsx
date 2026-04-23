@@ -44,10 +44,13 @@ import adEvoIcon from "@/assets/ad-evo-icon.svg";
 import type { AIEmployee } from "./EmployeesView";
 
 /* ─── Task Report Viewer (popup dialog) ─── */
-function TaskReportViewer({ content, onSaveToDb, savedToDb }: {
+function TaskReportViewer({ content, onSaveToDb, savedToDb, triggerLabel, dialogTitle, onOpened }: {
   content: string;
   onSaveToDb?: (updatedContent: string) => Promise<void>;
   savedToDb?: boolean;
+  triggerLabel?: string;
+  dialogTitle?: string;
+  onOpened?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [editContent, setEditContent] = useState(content);
@@ -80,11 +83,14 @@ function TaskReportViewer({ content, onSaveToDb, savedToDb }: {
     <>
       {/* Trigger button */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          onOpened?.();
+        }}
         className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all text-sm font-medium text-foreground group"
       >
         <FileText className="w-4 h-4 text-primary" />
-        View Task Results
+        {triggerLabel || "View Task Results"}
         {saved && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto group-hover:translate-x-0.5 transition-transform" />
       </button>
@@ -99,7 +105,7 @@ function TaskReportViewer({ content, onSaveToDb, savedToDb }: {
             {/* Header */}
             <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
               <FileText className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground flex-1">Task Results</span>
+              <span className="text-sm font-semibold text-foreground flex-1">{dialogTitle || "Task Results"}</span>
               {saved && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
               <button
                 onClick={() => setIsEditing(!isEditing)}
@@ -215,12 +221,20 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
   /* ── Chat state ── */
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
+  const [resumingTask, setResumingTask] = useState(false);
+  const [resumableTask, setResumableTask] = useState<null | {
+    continuationKey: string;
+    phase: string;
+    progress: number;
+    continuationIndex: number;
+    lastUserMessage?: string;
+  }>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   /* ── Stall watchdog: auto-stop if no progress for too long ── */
-  const STALL_TIMEOUT_MS = 45_000; // 45s with no content/step updates
+  const STALL_TIMEOUT_MS = 90_000; // 90s with no content/step updates
   const lastActivityRef = useRef<number>(0);
   const activeAssistantIdRef = useRef<string | null>(null);
   const stalledRef = useRef<boolean>(false);
@@ -421,6 +435,77 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
 
   const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
   const resolvedBrandId = activeBrandId || activeBrandForConnections?.id || null;
+
+  const fetchResumableTask = useCallback(async () => {
+    if (!user || isSending) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/long-task-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => ({}));
+      const run = data?.run;
+      if (!run || !["queued", "in_progress"].includes(run.status)) {
+        setResumableTask(null);
+        return;
+      }
+      const cp = data?.checkpoint || {};
+      setResumableTask({
+        continuationKey: run.continuation_key,
+        phase: run.phase || "running",
+        progress: Number(run.progress || 0),
+        continuationIndex: Number(cp.continuation_index || 0),
+        lastUserMessage: typeof cp?.metadata?.lastUserMessage === "string" ? cp.metadata.lastUserMessage : undefined,
+      });
+    } catch {
+      // best effort
+    }
+  }, [user, isSending]);
+
+  useEffect(() => {
+    if (!user) return;
+    void fetchResumableTask();
+    const t = setInterval(() => {
+      void fetchResumableTask();
+    }, 8000);
+    return () => clearInterval(t);
+  }, [user, fetchResumableTask]);
+
+  const logPlanLearningEvent = useCallback(async (eventType: "opened" | "completed", metadata?: Record<string, unknown>) => {
+    if (!resolvedBrandId) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-learning-event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          businessId: resolvedBrandId,
+          workspaceId: activeWorkspaceId || undefined,
+          cardId: "chat.strategic_plan",
+          tab: "chat",
+          eventType,
+          source: "chat_strategic_plan",
+          category: "planning",
+          metadata: { theme: "strategic_plan", ...(metadata || {}) },
+        }),
+      });
+    } catch {
+      // Best effort only.
+    }
+  }, [resolvedBrandId, activeWorkspaceId]);
 
   // Check connections at user level (not brand-scoped)
   const checkConnection = useCallback(async () => {
@@ -891,7 +976,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
   };
 
   /* ── Fetch with timeout and cancellation support ── */
-  const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 120000): Promise<Response> => {
+  const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 180000): Promise<Response> => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -909,6 +994,56 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+    }
+  };
+
+  const handleResumeLongTask = async () => {
+    if (!resumableTask || isSending || resumingTask) return;
+    const resumeEmployee =
+      selectedChatEmployees[0] ||
+      [...messages].reverse().find((m) => m.employees && m.employees.length > 0)?.employees?.[0];
+    if (!resumeEmployee) {
+      toast.error("Select an employee to resume this task.");
+      return;
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Please log in first");
+      return;
+    }
+    setResumingTask(true);
+    setIsSending(true);
+    const resumePrompt = resumableTask.lastUserMessage
+      ? `Continue exactly where you left off and finish this task:\n${resumableTask.lastUserMessage}`
+      : "Continue exactly where you left off from the last checkpoint.";
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: resumePrompt,
+      employees: [resumeEmployee],
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => {
+      const existing = prev.find((m) => m.id === resumableTask.continuationKey);
+      if (existing) {
+        return prev.map((m) => (m.id === resumableTask.continuationKey
+          ? { ...m, isStreaming: true, streamStartTime: Date.now(), content: m.content || "" }
+          : m));
+      }
+      return [...prev, { id: resumableTask.continuationKey, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }];
+    });
+    activeAssistantIdRef.current = resumableTask.continuationKey;
+    stalledRef.current = false;
+    lastActivityRef.current = Date.now();
+    try {
+      await runEmployeeChat(session, userMsg, resumableTask.continuationKey);
+      setResumableTask(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to resume task");
+    } finally {
+      setIsSending(false);
+      setResumingTask(false);
+      void fetchResumableTask();
     }
   };
 
@@ -1412,6 +1547,21 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
       {/* Central area: Orb when no messages, chat when messages exist */}
       <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-[#fcfcfd]">
+        {resumableTask && !isSending && (
+          <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-4">
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">Long task available to resume</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Phase: {resumableTask.phase} · Progress: {Math.max(0, Math.min(100, Math.round(resumableTask.progress)))}% · Checkpoint #{resumableTask.continuationIndex}
+                </p>
+              </div>
+              <Button size="sm" onClick={handleResumeLongTask} disabled={resumingTask}>
+                {resumingTask ? "Resuming..." : "Resume Long Task"}
+              </Button>
+            </div>
+          </div>
+        )}
         {!hasMessages ? (
           /* ── Empty state with centered orb ── */
           <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#fcfcfd]">
@@ -1547,6 +1697,41 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                               content: updatedContent,
                               is_analyzed: true,
                             });
+                          }}
+                        />
+                      )}
+                      {msg.planContent && !msg.isStreaming && (
+                        <TaskReportViewer
+                          content={msg.planContent}
+                          triggerLabel="Open Strategic Plan"
+                          dialogTitle="Strategic Plan"
+                          savedToDb={msg.planSavedToDb}
+                          onOpened={() => {
+                            void logPlanLearningEvent("opened", { confidence: msg.planConfidence || "unknown" });
+                          }}
+                          onSaveToDb={async (updatedContent) => {
+                            await supabase.from("user_business_data").insert({
+                              user_id: user!.id,
+                              workspace_id: activeWorkspaceId || undefined,
+                              data_type: "document",
+                              source: "strategic-plan",
+                              title: `Strategic Plan — ${new Date().toLocaleDateString()}`,
+                              content: updatedContent,
+                              is_analyzed: true,
+                              metadata: {
+                                plan_type: "strategic_plan",
+                                confidence: msg.planConfidence || "unknown",
+                                evidence_sources: msg.planEvidenceSources || [],
+                                business_id: resolvedBrandId,
+                              },
+                            } as any);
+                            await logPlanLearningEvent("completed", {
+                              confidence: msg.planConfidence || "unknown",
+                              evidenceCount: (msg.planEvidenceSources || []).length,
+                            });
+                            setMessages((prev) =>
+                              prev.map((m) => (m.id === msg.id ? { ...m, planSavedToDb: true } : m)),
+                            );
                           }}
                         />
                       )}

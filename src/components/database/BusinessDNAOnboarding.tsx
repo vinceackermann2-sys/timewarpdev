@@ -16,6 +16,8 @@ import { useBusinessDNA, BrandEntry, ProductEntry, AudienceEntry } from "./Busin
 import { DEFAULT_PRODUCT } from "./ProductDetailView";
 import { DEFAULT_AUDIENCE } from "./AudienceDetailView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 const URL_EXAMPLES = [
   "tesla.com",
@@ -157,6 +159,8 @@ export function BusinessDNAOnboarding({
 
   // Product selection (step 2)
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [productSelectTab, setProductSelectTab] = useState<"products" | "otherUrl">("products");
+  const [alternateUrlInput, setAlternateUrlInput] = useState("");
   // Image picker (step 3)
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
   const [selectedImages, setSelectedImages] = useState<Record<number, number>>({});
@@ -330,11 +334,11 @@ export function BusinessDNAOnboarding({
     })();
     return () => { cancelled = true; };
   }, [activeUrl, step]);
-  // Smooth progress animation — ease to 80% in 2.5s, then real backend milestones 80-100%
+  // Smooth progress animation — keep UX feedback but avoid artificial waits.
   useEffect(() => {
     if (step !== 1) return;
     const startTime = Date.now();
-    const FAST_PHASE_MS = 4500; // 4.5 seconds to reach 80%
+    const FAST_PHASE_MS = 1400; // 1.4 seconds to reach 80%
     const FAST_PHASE_TARGET = 80;
 
     const interval = setInterval(() => {
@@ -741,6 +745,28 @@ export function BusinessDNAOnboarding({
     setStep(1);
   }, []);
 
+  const startDiscovery = useCallback((nextUrlRaw: string) => {
+    const nextUrl = nextUrlRaw.trim();
+    if (!nextUrl) return;
+    setActiveUrl(nextUrl);
+    setScrapeComplete(false);
+    setScrapeError(false);
+    setDiscoveredProducts([]);
+    setSelectedProducts([]);
+    setSelectedImages({});
+    setProgress(0);
+    progressRef.current = 0;
+    progressDisplayRef.current = 0;
+    progressTargetRef.current = 0;
+    scrapeResult.current = null;
+    setProductSelectTab("products");
+    setStep(1);
+  }, []);
+
+  useEffect(() => {
+    if (step === 2) setProductSelectTab("products");
+  }, [step]);
+
   // ── Helpers ──────────────────────────────────────────────
   // For steps 2-3: use discoveredProducts (lightweight). For steps 4+: use scrapeResult (full extraction).
   const extractedProducts = discoveredProducts;
@@ -857,10 +883,7 @@ export function BusinessDNAOnboarding({
                       onBlur={() => setIsUrlFocused(false)}
                       onChange={(e) => setUrlInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && urlInput.trim()) {
-                          setActiveUrl(urlInput.trim());
-                          setStep(1);
-                        }
+                        if (e.key === "Enter" && urlInput.trim()) startDiscovery(urlInput);
                       }}
                       className="flex-1 min-w-0 bg-transparent border-none outline-none text-[#1a1f36] text-[16px] sm:text-[15px]"
                       placeholder={`e.g. ${placeholderText}|`}
@@ -869,10 +892,7 @@ export function BusinessDNAOnboarding({
                   </div>
                   <button
                     onClick={() => {
-                      if (urlInput.trim()) {
-                        setActiveUrl(urlInput.trim());
-                        setStep(1);
-                      }
+                      if (urlInput.trim()) startDiscovery(urlInput);
                     }}
                     disabled={!urlInput.trim()}
                     className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
@@ -974,8 +994,57 @@ export function BusinessDNAOnboarding({
               </button>
             </div>
 
+            <div className="w-full max-w-[900px] mb-4">
+              <div className="inline-flex rounded-xl border border-border/60 bg-[#f4f3ee] p-1">
+                <button
+                  onClick={() => setProductSelectTab("products")}
+                  className={cn(
+                    "px-3 py-1.5 text-sm rounded-lg transition-colors",
+                    productSelectTab === "products" ? "bg-white text-[#1a1f36] shadow-sm" : "text-[#697386] hover:text-[#1a1f36]",
+                  )}
+                >
+                  Choose Product
+                </button>
+                <button
+                  onClick={() => setProductSelectTab("otherUrl")}
+                  className={cn(
+                    "px-3 py-1.5 text-sm rounded-lg transition-colors",
+                    productSelectTab === "otherUrl" ? "bg-white text-[#1a1f36] shadow-sm" : "text-[#697386] hover:text-[#1a1f36]",
+                  )}
+                >
+                  Try Another URL
+                </button>
+              </div>
+            </div>
+
+            {productSelectTab === "otherUrl" && (
+              <div className="w-full max-w-[900px] mb-6 rounded-2xl border border-[#4a86ff]/30 bg-[#eef2f7] p-4">
+                <p className="text-sm text-[#697386] mb-3">Not satisfied with these options? Paste another product or business URL and re-scan.</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    value={alternateUrlInput}
+                    onChange={(e) => setAlternateUrlInput(e.target.value)}
+                    placeholder="https://example.com/product"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && alternateUrlInput.trim()) {
+                        startDiscovery(alternateUrlInput);
+                      }
+                    }}
+                    className="bg-white"
+                  />
+                  <button
+                    onClick={() => startDiscovery(alternateUrlInput)}
+                    disabled={!alternateUrlInput.trim()}
+                    className="bg-[#4a86ff] disabled:opacity-50 hover:bg-[#2875ff] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
+                  >
+                    Scan URL <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Product Cards Grid */}
-            {extractedProducts.length > 0 ? (
+            {productSelectTab === "products" && extractedProducts.length > 0 ? (
               <div className="w-full max-w-[900px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {extractedProducts.slice(0, 10).map((p: any, i: number) => {
                   const isSelected = selectedProducts.includes(i);
@@ -1039,7 +1108,7 @@ export function BusinessDNAOnboarding({
                   );
                 })}
               </div>
-            ) : (
+            ) : productSelectTab === "products" ? (
               <div className="w-full max-w-[900px] bg-[#f4f3ee] rounded-2xl p-8 text-center">
                 <p className="text-[#697386] text-[15px]">No {btConfig.plural} found. We'll create your business DNA from brand data.</p>
                 <button

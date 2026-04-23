@@ -47,6 +47,21 @@ const BREVITY_BLOCK = `
 - Prefer plain language; avoid padding with generic frameworks.
 `.trim();
 
+const CLARIFYING_QUESTIONS_BLOCK = `
+## Clarifying questions (improve result quality)
+- If the user's request is ambiguous, missing key constraints, or has multiple valid interpretations, ask **1–3 precise clarifying questions** before giving a final recommendation.
+- Keep clarifying questions tightly scoped to decision-critical gaps (goal, audience, timeframe, budget, channel, constraints, definition of success).
+- If enough evidence already exists to answer well, do **not** ask unnecessary questions.
+- If you can still provide partial value safely, do both: give a short provisional answer, then ask targeted follow-ups.
+`.trim();
+
+const RESULTS_LEARNING_BLOCK = `
+## Results-based learning loop
+- If Learning Signals include patterns marked as improving outcomes, prioritize those approaches when evidence supports them.
+- If Learning Signals include degrading patterns, avoid repeating them unless the user explicitly overrides or new evidence contradicts the prior trend.
+- Treat these learning trends as directional priors, not hard truth: always re-check current Business DNA and live evidence.
+`.trim();
+
 const MULTI_STEP_MEMORY_BLOCK = `
 ## Longer work: explicit plan, steps, and conversation memory
 When the request **clearly spans multiple investigations, stakeholders, or weeks** (e.g. plan, roadmap, break down, step by step, sprint, timeline, deep dive, due diligence, "figure out why…", multi-part analysis):
@@ -56,10 +71,46 @@ When the request **clearly spans multiple investigations, stakeholders, or weeks
 If the question is quick or narrow, **skip this entire block** — do not add a plan for its own sake.
 `.trim();
 
+const STRATEGIC_PLAN_BLOCK = `
+## Advanced strategic plan mode (first principles, evidence-backed)
+Trigger this mode only for heavy strategic requests. For simple questions, stay concise and skip this structure.
+
+When active, produce a plan with these exact sections:
+1. **## Plan Overview** — the goal, scope, and decision horizon.
+2. **## First-Principles Breakdown** — decompose into root drivers and constraints; separate facts vs assumptions.
+3. **## Evidence Base** — list evidence channels used: Business DNA, dashboard/objective metrics, integrations/live connectors, user-provided context, external web/public sources.
+4. **## Strategic Options & Trade-offs** — at least 2 options with pros/cons, risks, and expected impact.
+5. **## 30/60/90 Execution Plan** — concrete actions, owners/roles, and checkpoints.
+6. **## KPI Tree** — leading + lagging metrics, baseline if known, and target movement.
+7. **## Risks, Unknowns, and Validation Tests** — what could fail and how to validate quickly.
+8. **## Confidence & Data Gaps** — confidence level and what missing data would change the recommendation.
+9. **## Openable Plan Artifact** — wrap the complete plan markdown inside:
+   [PLAN_ARTIFACT]
+   ...plan markdown...
+   [/PLAN_ARTIFACT]
+
+Authenticity requirements:
+- Never fabricate numbers or claim evidence you do not have.
+- If evidence is weak or missing, explicitly mark uncertainty and ask 1-3 targeted clarifying questions.
+- For each major recommendation, include an evidence source label.
+`.trim();
+
 /** Grounding and behavior rules appended to system prompts for assistant chat surfaces. */
 export function buildAssistantGroundingBlock(contract: AssistantReplyContract): string {
   if (contract === "live_lookup") {
-    return [BUSINESS_AUTHORITY_BLOCK, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+    return [BUSINESS_AUTHORITY_BLOCK, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
   }
-  return [BUSINESS_AUTHORITY_BLOCK, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+  if (contract === "strategic_plan") {
+    return [
+      BUSINESS_AUTHORITY_BLOCK,
+      EPISTEMIC_BLOCK,
+      LIVE_DATA_BLOCK,
+      EXECUTIVE_LIVE_INVENTORY,
+      CLARIFYING_QUESTIONS_BLOCK,
+      RESULTS_LEARNING_BLOCK,
+      STRATEGIC_PLAN_BLOCK,
+      EVIDENCE_MAP_HINT,
+    ].join("\n\n");
+  }
+  return [BUSINESS_AUTHORITY_BLOCK, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
 }

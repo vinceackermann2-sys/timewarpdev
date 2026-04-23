@@ -141,6 +141,97 @@ mechanism = how the product creates the result (1-2 sentences). value_propositio
 journey is the customer journey map. pain_architecture is 5-10 ranked pain points (most acute first). Always include checklist of 5-8 items.`,
 };
 
+const FIELD_SOURCE_POLICY = {
+  market: {
+    "definition.tam": "web_evidence_required",
+    "definition.sam": "web_evidence_required",
+    "definition.som": "web_evidence_required",
+  },
+  people: {
+    org_chart: "integration_only",
+    leadership: "integration_only",
+  },
+} as const;
+
+function compact(text: string, max = 1200): string {
+  return (text || "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+async function fetchMarketEvidence(query: string): Promise<Array<{ url: string; title: string; snippet: string }>> {
+  const out: Array<{ url: string; title: string; snippet: string }> = [];
+  try {
+    const ddg = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
+    if (ddg.ok) {
+      const data = await ddg.json();
+      const abstract = String(data?.AbstractText || "");
+      const abstractUrl = String(data?.AbstractURL || "");
+      if (abstract && abstractUrl) {
+        out.push({
+          url: abstractUrl,
+          title: String(data?.Heading || "DuckDuckGo result"),
+          snippet: compact(abstract, 450),
+        });
+      }
+      const related = Array.isArray(data?.RelatedTopics) ? data.RelatedTopics : [];
+      for (const item of related.slice(0, 3)) {
+        if (item?.FirstURL && item?.Text) {
+          out.push({
+            url: String(item.FirstURL),
+            title: "Related topic",
+            snippet: compact(String(item.Text), 320),
+          });
+        }
+      }
+    }
+  } catch {
+    // non-fatal
+  }
+  return out.slice(0, 5);
+}
+
+async function loadPeopleSignalsFromIntegrations(admin: any, userId: string, brandId: string, workspaceId?: string | null): Promise<string> {
+  let query = admin
+    .from("user_business_data")
+    .select("data_type, source, title, content, metadata")
+    .eq("user_id", userId)
+    .neq("source", "business-dna")
+    .order("created_at", { ascending: false })
+    .limit(250);
+  if (workspaceId) query = query.eq("workspace_id", workspaceId);
+
+  const { data: rows } = await query;
+  const scoped = (rows || []).filter((row: any) => {
+    const md = row.metadata || {};
+    return !md?.brandId || md.brandId === brandId;
+  });
+
+  const contacts = scoped.filter((r: any) => r.data_type === "contact").slice(0, 30);
+  const messages = scoped.filter((r: any) => r.data_type === "message").slice(0, 20);
+  const calendars = scoped.filter((r: any) => r.data_type === "calendar").slice(0, 20);
+  const integrations = scoped.filter((r: any) => r.data_type === "integration").slice(0, 20);
+
+  const lines: string[] = [];
+  if (contacts.length > 0) {
+    lines.push(`Contacts (${contacts.length}):`);
+    for (const c of contacts.slice(0, 12)) {
+      lines.push(`- ${c.title || "Unknown"} | ${compact(String(c.content || ""), 140)}`);
+    }
+  }
+  if (messages.length > 0) {
+    lines.push(`Messages (${messages.length})`);
+    for (const m of messages.slice(0, 6)) lines.push(`- ${m.title || "Message"} | ${compact(String(m.content || ""), 120)}`);
+  }
+  if (calendars.length > 0) {
+    lines.push(`Calendar signals (${calendars.length})`);
+    for (const e of calendars.slice(0, 6)) lines.push(`- ${e.title || "Event"}`);
+  }
+  if (integrations.length > 0) {
+    lines.push(`Integration channels (${integrations.length})`);
+    for (const ch of integrations.slice(0, 8)) lines.push(`- ${ch.title || "Channel"} (${ch.source || "source"})`);
+  }
+  return lines.length > 0 ? lines.join("\n") : "(no integration people signals found)";
+}
+
 async function callAi(systemPrompt: string, userPrompt: string): Promise<any> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
@@ -198,7 +289,7 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const body = await req.json().catch(() => ({}));
-    const { brandId, brandRowId, workspaceId, pillars } = body;
+    const { brandId, brandRowId, workspaceId, pillars, externalEvidence, superchargeMode } = body;
 
     if (!brandId || !brandRowId) {
       return new Response(JSON.stringify({ error: "brandId and brandRowId are required" }), {
@@ -234,6 +325,26 @@ serve(async (req) => {
     const brandContext = safe(brandRow.content);
     const productContext = productRows.map((r) => safe(r.content)).join("\n---\n").slice(0, 8000);
     const audienceContext = audienceRows.map((r) => safe(r.content)).join("\n---\n").slice(0, 8000);
+    const webEvidenceFromFunnel = Array.isArray(externalEvidence?.urls) ? externalEvidence.urls : [];
+    const fileEvidenceFromFunnel = Array.isArray(externalEvidence?.files) ? externalEvidence.files : [];
+
+    const marketSizingQuery = [
+      brandRow.title || "",
+      "market size TAM SAM SOM",
+      productRows[0]?.title || "",
+      audienceRows[0]?.title || "",
+    ].filter(Boolean).join(" ");
+    const fetchedMarketEvidence = await fetchMarketEvidence(marketSizingQuery);
+    const allMarketEvidence = [
+      ...webEvidenceFromFunnel.map((x: any) => ({
+        url: String(x?.url || ""),
+        title: "Provided URL evidence",
+        snippet: compact(String(x?.excerpt || ""), 450),
+      })),
+      ...fetchedMarketEvidence,
+    ].filter((x) => x.url && x.snippet).slice(0, 8);
+
+    const peopleSignals = await loadPeopleSignalsFromIntegrations(admin, user.id, brandId, wsId);
 
     // ---- Connection signals ----------------------------------------------------
     // When the user has connected providers (Outlook, Gmail, OneDrive, HubSpot,
@@ -286,8 +397,9 @@ CRITICAL EVIDENCE RULES — read carefully:
   - If category-level inference is reasonable → fill it but make it generic to the CATEGORY (no fake specifics) and prefix or suffix the string with "(estimated from category)".
   - If NO basis at all (e.g. internal financials, real org chart, real vendors, real KPI targets) → return an EMPTY string "" for string fields, or an EMPTY array [] for arrays. Do NOT make up placeholder names like "John Doe", "Vendor A", "Competitor X", "$1M ARR" etc.
 - Competitors: ONLY include real competitors you genuinely know exist in this category from public knowledge. If you can't name 2+ real ones with confidence, return an empty array.
-- Org chart / leadership / vendors / tech stack: unless these were in the provided context, return empty arrays — do NOT invent names.
+- Org chart / leadership are integration-only fields in this system. If integration signals are missing, return empty arrays — do NOT invent names from website content.
 - Financials (CAC, LTV, margins, revenue, funding, projections): unless explicitly stated in the context, return empty strings/arrays. NEVER invent dollar figures.
+- TAM/SAM/SOM must be evidence-backed from MARKET EVIDENCE when present. If evidence is weak or missing, use cautious ranges and clearly mark estimated assumptions.
 - The "checklist" array MUST always be filled — for each field in the pillar, mark its status as "Done" (we have real data), "In Progress" (we have partial/estimated data), or "Gap" (no data — needs user input). This is how the user sees what's missing.
 - Keep filled strings concise and decision-grade. Follow doc value formulas exactly when data exists.
 - Return valid JSON matching the schema. No prose outside JSON.
@@ -307,6 +419,19 @@ ${audienceContext || "(no audiences)"}
 
 CONNECTION SIGNALS:
 ${connectionContext}
+
+PEOPLE INTEGRATION SIGNALS (prioritize for people/org fields):
+${peopleSignals}
+
+MARKET EVIDENCE (prioritize for TAM/SAM/SOM):
+${allMarketEvidence.length > 0
+  ? allMarketEvidence.map((e) => `- ${e.title}: ${e.snippet} (source: ${e.url})`).join("\n")
+  : "(no market evidence found from web/funnel)"}
+
+FILE/URL EVIDENCE FROM FUNNEL:
+${fileEvidenceFromFunnel.length > 0
+  ? fileEvidenceFromFunnel.map((f: any) => `- ${String(f?.name || "file")}: ${compact(String(f?.excerpt || ""), 320)}`).join("\n")
+  : "(none)"}
 
 ${PILLAR_PROMPTS[pillarId]}`;
 
@@ -357,7 +482,21 @@ ${PILLAR_PROMPTS[pillarId]}`;
           data_type: storageType,
           title: `${pillarId.charAt(0).toUpperCase() + pillarId.slice(1)} DNA`,
           content: JSON.stringify(data),
-          metadata: { brandId, dna_segment: pillarId, dna_pillars: [pillarId], generated_by: "enrich-pillars", generated_at: new Date().toISOString() },
+          metadata: {
+            brandId,
+            dna_segment: pillarId,
+            dna_pillars: [pillarId],
+            generated_by: "enrich-pillars",
+            generated_at: new Date().toISOString(),
+            supercharge_mode: !!superchargeMode,
+            evidence_sources: [
+              ...allMarketEvidence.map((e) => e.url),
+              ...webEvidenceFromFunnel.map((e: any) => String(e?.url || "")),
+            ].filter(Boolean).slice(0, 15),
+            evidence_quality: allMarketEvidence.length >= 3 ? "high" : allMarketEvidence.length > 0 ? "medium" : "low",
+            integration_first_applied: pillarId === "people",
+            field_source_policy: (FIELD_SOURCE_POLICY as any)[pillarId] || {},
+          },
         };
 
         const { error } = await admin.from("user_business_data").insert(insertPayload);

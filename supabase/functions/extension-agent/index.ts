@@ -91,7 +91,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { messages, pageContext, brandId, workspaceId, browserMode, sessionMemory } = parsedBody.data;
+    const { messages, pageContext, brandId, workspaceId, browserMode, sessionMemory, taskType = "chat" } = parsedBody.data;
 
     edgeLog("extension-agent", "request", {
       user: userIdShort(user.id),
@@ -219,6 +219,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       content = runPostflightGuardrails(content, safetySettings);
       const actionBlock = validateBrowserActions(content, safetySettings);
       if (actionBlock) content = actionBlock;
+      const guardrailIntervened = !!actionBlock;
       await logBusinessLearningEvent(supabase, {
         userId: user.id,
         workspaceId,
@@ -228,7 +229,15 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
         userMessage: lastUserMsg,
         assistantResponse: content,
         profileContext,
-        metadata: { queryTopic, searchedProviders, connectionDecision },
+        metadata: {
+          queryTopic,
+          searchedProviders,
+          connectionDecision,
+          reply_contract: replyContract,
+          plan_generated: /\[PLAN_ARTIFACT\]/i.test(content),
+          guardrail_intervened: guardrailIntervened,
+          outcome: guardrailIntervened ? "negative" : "positive",
+        },
       });
       return new Response(JSON.stringify({ content, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -264,6 +273,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
         };
 
         (async () => {
+          let heartbeat: ReturnType<typeof setInterval> | null = null;
           try {
             // Short, cool sub-log labels — no echoing the user's question.
             // Use a tightly truncated topic only when it's a clean noun phrase.
@@ -344,6 +354,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             ];
             const craftLabel = craftPhrases[Math.floor(Math.random() * craftPhrases.length)];
             sendStep(craftLabel, "running", "response");
+            heartbeat = setInterval(() => {
+              send({ type: "progress", step: { label: "Still working on this task...", status: "running", action: "heartbeat", detail: `Task type: ${taskType}` } });
+            }, 8000);
             const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: {
@@ -410,13 +423,22 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               userMessage: lastUserMsg,
               assistantResponse: finalContent,
               profileContext,
-              metadata: { queryTopic: answerTopic, searchedProviders, connectionDecision },
+              metadata: {
+                queryTopic: answerTopic,
+                searchedProviders,
+                connectionDecision,
+                reply_contract: replyContract,
+                plan_generated: /\[PLAN_ARTIFACT\]/i.test(finalContent),
+                outcome: finalContent && finalContent.length > 40 ? "positive" : "negative",
+              },
             });
             send({ type: "result", content: finalContent, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic: answerTopic });
+            if (heartbeat) clearInterval(heartbeat);
             close();
           } catch (error: any) {
             edgeLog("extension-agent", "stream_error", { message: String(error?.message || error) });
             console.error("extension-agent stream error:", error?.message || error);
+            if (heartbeat) clearInterval(heartbeat);
             send({ type: "error", error: error?.message || "An internal error occurred" });
             close();
           }
@@ -652,12 +674,23 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 - Use CSS selectors when possible, fall back to descriptive text`;
 }
 
-function buildChatPrompt(identity: string, relevantContext: string, replyContract: "live_lookup" | "direct"): string {
+function buildChatPrompt(identity: string, relevantContext: string, replyContract: "live_lookup" | "direct" | "strategic_plan"): string {
   const grounding = buildAssistantGroundingBlock(replyContract);
   const responseShape = replyContract === "live_lookup"
     ? `
 ## Response shape (live data first)
 Lead with what you found (or did not find) in live connector results. Then add only the context needed from Business DNA or profile. Do not bury the answer.`.trim()
+    : replyContract === "strategic_plan"
+    ? `
+## Response shape (advanced strategic plan)
+Produce a first-principles, evidence-backed strategy plan for heavy business questions.
+- Include explicit data-source labels (Business DNA, integrations/live connectors, dashboard/objective outcomes, external/public evidence, user input).
+- Do not fabricate metrics; mark uncertainty if evidence is missing.
+- Include 30/60/90 execution, KPI tree, risks, and validation tests.
+- Wrap the full plan markdown in:
+[PLAN_ARTIFACT]
+...plan...
+[/PLAN_ARTIFACT]`.trim()
     : `
 ## Response shape (default)
 Answer the user's question in the most natural structure for that question — prose, bullets, or a small table when comparisons need it. No mandatory section template.`.trim();

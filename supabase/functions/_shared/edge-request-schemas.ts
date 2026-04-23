@@ -18,6 +18,9 @@ export const runEmployeeRequestSchema = z.object({
   continuationContent: z.string().optional().nullable(),
   connectionQuery: z.string().optional().nullable(),
   sessionMemory: z.string().optional().nullable(),
+  continuationKey: z.string().min(8).max(128).optional().nullable(),
+  continuationIndex: z.number().int().min(0).max(100).optional(),
+  taskType: z.enum(["chat", "crawl", "enrichment"]).optional(),
 });
 
 export type RunEmployeeRequest = z.infer<typeof runEmployeeRequestSchema>;
@@ -29,6 +32,7 @@ export const extensionAgentRequestSchema = z.object({
   workspaceId: z.string().optional().nullable(),
   browserMode: z.boolean().optional(),
   sessionMemory: z.string().optional().nullable(),
+  taskType: z.enum(["chat", "crawl", "enrichment"]).optional(),
 });
 
 export type ExtensionAgentRequest = z.infer<typeof extensionAgentRequestSchema>;

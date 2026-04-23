@@ -164,6 +164,16 @@ export function buildEmployeeChatPrompt(
     ? `
 ## Response shape (live data first)
 Answer from live connector results first; say plainly if nothing matched or a tool is not connected. Add Business DNA only as supporting context.`.trim()
+    : replyContract === "strategic_plan"
+    ? `
+## Response shape (advanced strategic plan)
+Use first principles and provide an evidence-backed strategic plan (not generic advice).
+- Include the sections: Plan Overview, First-Principles Breakdown, Evidence Base, Strategic Options & Trade-offs, 30/60/90 Execution Plan, KPI Tree, Risks/Unknowns, Confidence & Data Gaps.
+- Wrap the full plan markdown in:
+[PLAN_ARTIFACT]
+...plan...
+[/PLAN_ARTIFACT]
+- Never fabricate numbers. If critical evidence is missing, state gaps and ask targeted clarifying questions.`.trim()
     : `
 ## Response shape (default)
 Match structure to the question — no mandatory "## DNA Fit / Recommendation / Next 7 Days / KPI Impact" template. Be concise for short asks.`.trim();

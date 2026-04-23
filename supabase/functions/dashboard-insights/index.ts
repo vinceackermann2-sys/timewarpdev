@@ -1129,6 +1129,8 @@ Return ONLY a valid JSON object, no markdown fences.`;
       metadata: {
         normalizedEvidenceCount: normalizedEvidence.length,
         connectedProviders,
+        dashboard_health_score: healthScore,
+        outcome: healthScore >= 70 ? "positive" : healthScore <= 45 ? "negative" : "neutral",
       },
     });
 

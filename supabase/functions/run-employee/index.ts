@@ -77,7 +77,20 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { employee_id, messages, pageContext, skip_action, brandId, workspaceId, continuationContent, connectionQuery, sessionMemory } = parsedBody.data;
+    const {
+      employee_id,
+      messages,
+      pageContext,
+      skip_action,
+      brandId,
+      workspaceId,
+      continuationContent,
+      connectionQuery,
+      sessionMemory,
+      continuationKey,
+      continuationIndex = 0,
+      taskType = "chat",
+    } = parsedBody.data;
 
     edgeLog("run-employee", "request", {
       user: userIdShort(user.id),
@@ -160,8 +173,17 @@ serve(async (req) => {
 
     const effectiveWsId = workspaceId || employee.workspace_id;
     let effectiveMessages = [...(messages || [])];
-    if (continuationContent) {
-      effectiveMessages.push({ role: "assistant", content: continuationContent });
+    let restoredContinuation = continuationContent || "";
+    if (!restoredContinuation && continuationKey) {
+      const { data: cp } = await supabase
+        .from("long_task_checkpoints")
+        .select("content")
+        .eq("continuation_key", continuationKey)
+        .maybeSingle();
+      restoredContinuation = cp?.content || "";
+    }
+    if (restoredContinuation) {
+      effectiveMessages.push({ role: "assistant", content: restoredContinuation });
       effectiveMessages.push({ role: "user", content: "Continue exactly where you left off. Do not repeat what you already wrote." });
     }
 
@@ -169,6 +191,66 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const memoryBlock = formatSessionMemoryBlock(sessionMemory);
+
+    const upsertLongTaskRun = async (patch: {
+      status?: "queued" | "in_progress" | "completed" | "failed";
+      phase?: string;
+      progress?: number;
+      logLine?: string;
+      resultExcerpt?: string;
+      error?: string;
+    }) => {
+      if (!continuationKey) return;
+      const { data: existing } = await supabase
+        .from("long_task_runs")
+        .select("id, logs")
+        .eq("continuation_key", continuationKey)
+        .maybeSingle();
+      const priorLogs = Array.isArray(existing?.logs) ? existing.logs : [];
+      const nextLogs = patch.logLine
+        ? [...priorLogs.slice(-39), { at: new Date().toISOString(), phase: patch.phase || "running", message: patch.logLine }]
+        : priorLogs;
+      await supabase.from("long_task_runs").upsert({
+        id: existing?.id,
+        user_id: user.id,
+        workspace_id: (workspaceId || employee.workspace_id) || null,
+        business_id: businessId || effectiveBrandId || null,
+        continuation_key: continuationKey,
+        task_type: taskType,
+        status: patch.status || "in_progress",
+        phase: patch.phase || "running",
+        progress: typeof patch.progress === "number" ? patch.progress : undefined,
+        logs: nextLogs,
+        result_excerpt: patch.resultExcerpt || undefined,
+        error: patch.error || undefined,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "continuation_key" });
+    };
+
+    const upsertCheckpoint = async (content: string, metadata: Record<string, unknown>) => {
+      if (!continuationKey) return;
+      const { data: run } = await supabase
+        .from("long_task_runs")
+        .select("id")
+        .eq("continuation_key", continuationKey)
+        .maybeSingle();
+      if (!run?.id) return;
+      await supabase.from("long_task_checkpoints").upsert({
+        run_id: run.id,
+        continuation_key: continuationKey,
+        continuation_index: continuationIndex,
+        content: content || "",
+        metadata,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "continuation_key" });
+    };
+
+    await upsertLongTaskRun({
+      status: "in_progress",
+      phase: "discover",
+      progress: 5,
+      logLine: continuationIndex > 0 ? `Resuming continuation ${continuationIndex}` : "Started long task run",
+    });
 
     const buildAiResponse = async (
       relevantContext: string,
@@ -180,7 +262,7 @@ serve(async (req) => {
         ? buildBrowserSystemPrompt(employee, identity, fullContext, pageContext, safetySettings)
         : buildEmployeeChatPrompt(employee, identity, fullContext, safetySettings, replyContract);
 
-      const TIMEOUT_MS = 45_000;
+      const TIMEOUT_MS = taskType === "enrichment" ? 150_000 : taskType === "crawl" ? 120_000 : 90_000;
       const startTime = Date.now();
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -255,7 +337,7 @@ serve(async (req) => {
         try { reader.cancel(); } catch {}
       }
 
-      let content = (continuationContent || "") + fullContent;
+      let content = (restoredContinuation || "") + fullContent;
       content = runPostflightGuardrails(content, safetySettings);
       if (!isBrowserMode) {
         content = sanitizeAssistantAgainstLiveContext(content, connectionContext);
@@ -292,6 +374,14 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         if (actionBlock) content = actionBlock;
       }
 
+      await upsertCheckpoint(content, {
+        continuationIndex,
+        timedOut,
+        taskType,
+        mode: isBrowserMode ? "browser" : "chat",
+        employeeId: employee_id,
+        lastUserMessage: lastUserMsg,
+      });
       return { content, continuation: timedOut && content.length > 0 };
     };
 
@@ -313,7 +403,14 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         userMessage: lastUserMsg,
         assistantResponse: result.content || "",
         profileContext,
-        metadata: { queryTopic, searchedProviders, skippedProviders },
+        metadata: {
+          queryTopic,
+          searchedProviders,
+          skippedProviders,
+          reply_contract: replyContract,
+          plan_generated: /\[PLAN_ARTIFACT\]/i.test(result.content || ""),
+          outcome: result.continuation ? "negative" : "positive",
+        },
       });
       return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -335,13 +432,19 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         };
 
         (async () => {
+          let heartbeat: ReturnType<typeof setInterval> | null = null;
           try {
             const topic = extractQueryTopic(connectionLookupQuery);
+            heartbeat = setInterval(() => {
+              send({ type: "progress", step: { label: "Still working on this task...", status: "running", action: "heartbeat", detail: "Long task heartbeat" } });
+            }, 8000);
             sendStep(`Reading what you asked about ${topic}`, "running", "analysis");
+            await upsertLongTaskRun({ phase: "discover", progress: 12, logLine: `Parsed task topic: ${topic}` });
             const decision = shouldSearchConnections(connectionLookupQuery);
             sendStep(`Got it — you want help with ${topic}`, "done", "analysis", decision.reason);
 
             sendStep(`Pulling your business context on ${topic}`, "running", "context");
+            await upsertLongTaskRun({ phase: "analyze", progress: 28, logLine: "Loading context and integrations" });
             const relevantContext = await retrieveRelevantContext(supabase, {
               ...employee,
               workspace_id: effectiveWsId,
@@ -367,12 +470,20 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               sendStep(`Used verified numbers for ${topic}`, "done", "response");
             } else {
               sendStep(`Writing your answer on ${topic}`, "running", "response");
+              await upsertLongTaskRun({ phase: "synthesize", progress: 62, logLine: "Generating response" });
               result = await buildAiResponse(relevantContext, connectionContext, (delta) => {
                 send({ type: "content", delta });
               });
               sendStep(`Wrote your answer on ${topic}`, "done", "response");
             }
             if (!result.continuation) sendStep("All done — here's what I found", "done", "complete");
+            await upsertLongTaskRun({
+              status: result.continuation ? "in_progress" : "completed",
+              phase: result.continuation ? "synthesize" : "completed",
+              progress: result.continuation ? 92 : 100,
+              resultExcerpt: (result.content || "").slice(0, 1400),
+              logLine: result.continuation ? "Timed window reached, continuation required" : "Task completed",
+            });
             await logBusinessLearningEvent(supabase, {
               userId: user.id,
               workspaceId: effectiveWsId,
@@ -383,14 +494,30 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               userMessage: lastUserMsg,
               assistantResponse: result.content || "",
               profileContext,
-              metadata: { queryTopic, searchedProviders, skippedProviders, connectionDecision },
+              metadata: {
+                queryTopic,
+                searchedProviders,
+                skippedProviders,
+                connectionDecision,
+                reply_contract: replyContract,
+                plan_generated: /\[PLAN_ARTIFACT\]/i.test(result.content || ""),
+                outcome: result.continuation ? "negative" : "positive",
+              },
             });
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
+            if (heartbeat) clearInterval(heartbeat);
             close();
           } catch (error: any) {
             edgeLog("run-employee", "stream_error", { message: String(error?.message || error) });
             console.error("run-employee stream error:", error?.message || error);
+            await upsertLongTaskRun({
+              status: "failed",
+              phase: "failed",
+              error: String(error?.message || error),
+              logLine: "Task failed",
+            });
+            if (heartbeat) clearInterval(heartbeat);
             send({ type: "error", error: error?.message || "An internal error occurred" });
             close();
           }

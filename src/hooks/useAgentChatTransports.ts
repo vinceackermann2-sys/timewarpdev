@@ -5,6 +5,7 @@ import { extractSuggestions } from "@/lib/parseSuggestions";
 import { buildMultimodalContent } from "@/lib/agentChat/multimodal";
 import { buildConnectionTaskSteps, upsertChatTaskStep } from "@/lib/agentChat/connectionSteps";
 import { generateTaskReport } from "@/lib/agentChat/taskReport";
+import { extractPlanArtifact } from "@/lib/agentChat/planArtifacts";
 import type { ChatMessage } from "@/lib/agentChat/types";
 import { consumeAgentChatSseStream, consumeOpenAiStyleSseStream } from "@/lib/streamReaders";
 import type { User } from "@supabase/supabase-js";
@@ -52,6 +53,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     return ab ? (ab as BrandRow)._rowId : undefined;
   }, [brands, selectedAgent]);
 
+  const timeoutForTask = useCallback((taskType: "chat" | "crawl" | "enrichment") => {
+    if (taskType === "crawl") return 240000;
+    if (taskType === "enrichment") return 300000;
+    return 180000;
+  }, []);
+
   const runAgentChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
     const userContent = buildMultimodalContent(userMsg.content);
@@ -98,8 +105,10 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
           brandId: brandRowId,
           workspaceId: activeWorkspaceId,
           sessionMemory: sessionMemory || undefined,
+          taskType: "chat",
         }),
       },
+      timeoutForTask("chat"),
     );
 
     if (!response.ok) {
@@ -132,9 +141,22 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
 
-    const { content: cleanContent, suggestions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
-  }, [messages, setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId]);
+    const { content: sugCleanContent, suggestions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
+    setMessages(prev => prev.map(m => m.id === assistantId ? {
+      ...m,
+      content: cleanContent,
+      suggestions,
+      taskSteps: [...taskSteps],
+      isStreaming: false,
+      ...(artifact ? {
+        planContent: artifact.markdown,
+        planSavedToDb: false,
+        planEvidenceSources: artifact.evidenceSources,
+        planConfidence: artifact.confidence,
+      } : {}),
+    } : m));
+  }, [messages, setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId, timeoutForTask]);
 
   const runAgentChatWithBrowser = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const brandRowId = resolveBrandRowId();
@@ -177,8 +199,10 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
               workspaceId: activeWorkspaceId,
               browserMode: true,
               sessionMemory: sessionMemory || undefined,
+              taskType: "crawl",
             }),
           },
+          timeoutForTask("crawl"),
         );
 
         if (!response.ok) {
@@ -327,7 +351,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       updateOverlay({ visible: false });
       signalStop("agent");
     }
-  }, [setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, selectedAgent, resolveBrandRowId, getPageContext, executeAction, signalStart, signalStop, updateOverlay]);
+  }, [setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, selectedAgent, resolveBrandRowId, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask]);
 
   const runEmployeeChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const emp = userMsg.employees?.[0];
@@ -370,7 +394,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     let accumulatedContent = "";
     let continuationCount = 0;
-    const MAX_CONTINUATIONS = 5;
+    const MAX_CONTINUATIONS = 8;
     let needsContinuation = false;
 
     do {
@@ -392,9 +416,13 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
             workspaceId: activeWorkspaceId,
             skip_action: continuationCount > 0,
             sessionMemory: sessionMemory || undefined,
+              taskType: "chat",
+              continuationKey: assistantId,
+              continuationIndex: continuationCount,
             ...(accumulatedContent ? { continuationContent: accumulatedContent } : {}),
           }),
         },
+          timeoutForTask("chat"),
       );
 
       if (!response.ok) {
@@ -445,9 +473,22 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    const { content: cleanContent, suggestions } = extractSuggestions(accumulatedContent || "Task completed.");
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: cleanContent, suggestions, taskSteps: [...taskSteps], isStreaming: false } : m));
-  }, [messages, setMessages, user, supabase, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId]);
+    const { content: sugCleanContent, suggestions } = extractSuggestions(accumulatedContent || "Task completed.");
+    const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
+    setMessages(prev => prev.map(m => m.id === assistantId ? {
+      ...m,
+      content: cleanContent,
+      suggestions,
+      taskSteps: [...taskSteps],
+      isStreaming: false,
+      ...(artifact ? {
+        planContent: artifact.markdown,
+        planSavedToDb: false,
+        planEvidenceSources: artifact.evidenceSources,
+        planConfidence: artifact.confidence,
+      } : {}),
+    } : m));
+  }, [messages, setMessages, user, supabase, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId, timeoutForTask]);
 
   const runComputerMode = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const emp = userMsg.employees?.[0];
@@ -498,8 +539,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
               brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as BrandRow)._rowId : undefined; })(),
               workspaceId: activeWorkspaceId,
               sessionMemory: sessionMemory || undefined,
+              taskType: "crawl",
+              continuationKey: assistantId,
+              continuationIndex: stepCount,
             }),
           },
+          timeoutForTask("crawl"),
         );
 
         if (!response.ok) {
@@ -668,7 +713,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       updateOverlay({ visible: false });
       signalStop(emp.id);
     }
-  }, [setMessages, brands, selectedAgent, fetchWithTimeout, activeWorkspaceId, sessionMemory, user, supabase, getPageContext, executeAction, signalStart, signalStop, updateOverlay]);
+  }, [setMessages, brands, selectedAgent, fetchWithTimeout, activeWorkspaceId, sessionMemory, user, supabase, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask]);
 
   return useMemo(
     () => ({ runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode }),

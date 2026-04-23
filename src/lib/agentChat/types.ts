@@ -15,6 +15,10 @@ export interface ChatMessage {
   suggestions?: string[];
   /** User rated this assistant reply via thumbs (hidden after submit). */
   insightFeedback?: "helpful" | "not_helpful";
+  planContent?: string;
+  planSavedToDb?: boolean;
+  planEvidenceSources?: string[];
+  planConfidence?: "high" | "medium" | "low" | "unknown";
 }
 
 export type ChatTaskStep = NonNullable<ChatMessage["taskSteps"]>[number];

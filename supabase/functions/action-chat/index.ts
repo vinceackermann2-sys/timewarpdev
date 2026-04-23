@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import { searchConnectedProviders } from "../_shared/run-employee/connections.ts";
+import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
+import { buildAssistantGroundingBlock } from "../_shared/assistant-grounding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -183,11 +185,32 @@ serve(async (req) => {
       }
     }
 
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+    const replyContract = classifyAssistantReplyContract(lastUserMsg);
+    const grounding = buildAssistantGroundingBlock(replyContract);
+    const responseShape = replyContract === "strategic_plan"
+      ? `## Response shape (advanced strategic plan)
+- For heavy strategy questions, produce a first-principles plan with clear evidence sources.
+- Include 30/60/90 execution, KPI tree, risks, and confidence.
+- Wrap the full plan markdown in:
+[PLAN_ARTIFACT]
+...plan...
+[/PLAN_ARTIFACT]
+- If evidence is missing, ask targeted clarifying questions and mark assumptions.`
+      : replyContract === "live_lookup"
+      ? `## Response shape (live data first)
+Lead with live connector findings, then supporting business context.`
+      : `## Response shape (default)
+Answer naturally and concisely without forcing a template.`;
+
     const systemPrompt = `You are an elite AI CEO and executive strategist — decisive, analytical, and unafraid to challenge assumptions. You have FULL ACCESS to the user's actual business data below — this includes the complete text of emails, documents, transcriptions, analysis results, and all uploaded content. You CAN and SHOULD read, reference, and quote this data directly.
 
 ${userContext}
 ${liveConnectionsContext}
 ${frontendContext}
+
+${grounding}
+${responseShape}
 
 ## 🔒 PRIVACY & SCOPE — ABSOLUTE RULES (READ FIRST)
 - You may ONLY discuss data that belongs to THIS user / THIS workspace and that appears in the "User's Business Data" or "Live Data" sections above, plus what the user has typed in chat.
@@ -200,6 +223,12 @@ ${frontendContext}
 - Use prior conversation history ONLY for memory/context — do NOT let earlier topics override the current question.
 - If the user asks about "documents", "emails", "files", or any specific tool/data type, answer about THAT, not about products, audiences, or unrelated stored business data.
 - If the live search section above contains results from the requested provider, lead with those. If it shows no matches or the provider isn't connected, say so plainly — do NOT pivot to unrelated stored business data (products, audiences, brand info).
+
+## CLARIFYING QUESTIONS (WHEN NEEDED)
+- If the user's ask is ambiguous or missing decision-critical constraints, ask 1-3 targeted follow-up questions before finalizing recommendations.
+- Focus only on missing inputs that materially change the answer (goal, audience, timeframe, budget, channel, success metric).
+- If you can still help immediately, provide a brief provisional answer first, then ask focused follow-ups.
+- Do not ask clarifying questions when the request is already specific and answerable from evidence above.
 
 ## CRITICAL: You have the actual content
 - The "Full Content" sections above contain the REAL text of emails, documents, PDFs, transcripts, etc.

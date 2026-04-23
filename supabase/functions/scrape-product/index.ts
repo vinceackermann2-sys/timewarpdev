@@ -676,13 +676,14 @@ serve(async (req) => {
     let productPageContents: { url: string; markdown: string; extractedImages?: string[] }[] = [];
 
     const skipHomepageScrape = isCoreMode && Array.isArray(selectedProductUrls) && selectedProductUrls.length > 0;
+    const discoverWaitMs = isDiscoverMode ? 1500 : 3000;
 
     if (!skipHomepageScrape) {
       await sendProgress("Scraping homepage", 15);
       const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: baseUrl, formats: isDiscoverMode ? ["markdown", "html", "links", "branding"] : ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false, waitFor: 3000 }),
+        body: JSON.stringify({ url: baseUrl, formats: isDiscoverMode ? ["markdown", "html", "links", "branding"] : ["markdown", "html", "links", "branding", "screenshot"], onlyMainContent: false, waitFor: discoverWaitMs }),
       });
 
       if (scrapeResponse.ok) {
@@ -744,7 +745,7 @@ serve(async (req) => {
             const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
               method: "POST",
               headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ url: pUrl, formats: ["markdown", "html", "screenshot"], onlyMainContent: true, waitFor: 3000 }),
+              body: JSON.stringify({ url: pUrl, formats: ["markdown", "html", "screenshot"], onlyMainContent: true, waitFor: discoverWaitMs }),
             });
             if (res.ok) {
               const d = await res.json();
@@ -790,21 +791,22 @@ serve(async (req) => {
       try {
         console.log("Company URL — mapping site for product pages...");
         await sendProgress("Mapping site for products", 45);
+        const mapLimit = isDiscoverMode ? 80 : 200;
         const [mapRes1, mapRes2, mapRes3] = await Promise.allSettled([
           fetch("https://api.firecrawl.dev/v1/map", {
             method: "POST",
             headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ url: formattedUrl, search: "product", limit: 200 }),
+            body: JSON.stringify({ url: formattedUrl, search: "product", limit: mapLimit }),
           }),
           fetch("https://api.firecrawl.dev/v1/map", {
             method: "POST",
             headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ url: formattedUrl, search: "shop buy store", limit: 200 }),
+            body: JSON.stringify({ url: formattedUrl, search: "shop buy store", limit: mapLimit }),
           }),
           fetch("https://api.firecrawl.dev/v1/map", {
             method: "POST",
             headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ url: formattedUrl, limit: 200 }),
+            body: JSON.stringify({ url: formattedUrl, limit: mapLimit }),
           }),
         ]);
         // Merge all map results
@@ -896,7 +898,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
               const raw = pickData.choices?.[0]?.message?.content || "";
               const arrMatch = raw.match(/\[[\s\S]*?\]/);
               if (arrMatch) {
-                const maxPages = isCoreMode ? 3 : 10;
+                const maxPages = isCoreMode ? 3 : isDiscoverMode ? 6 : 10;
                 const parsedBase = new URL(baseUrl);
                 const selected: string[] = JSON.parse(arrMatch[0])
                   .filter((u: any) => typeof u === 'string')
@@ -918,7 +920,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                       const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
                         method: "POST",
                         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: false, waitFor: 2000 }),
+                        body: JSON.stringify({ url: pUrl, formats: ["markdown", "html"], onlyMainContent: false, waitFor: isDiscoverMode ? 1200 : 2000 }),
                       });
                       let md = "";
                       let pageHtml = "";

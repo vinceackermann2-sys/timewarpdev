@@ -13,6 +13,23 @@ function applyDelta(weights: Record<string, number>, key: string, delta: number)
   return { ...weights, [key]: Number(next.toFixed(3)) };
 }
 
+function computeObjectiveOutcomeBoost(currentValue: unknown, targetValue: unknown, deltaValue: unknown): number {
+  const cur = typeof currentValue === "number" ? currentValue : null;
+  const target = typeof targetValue === "number" ? targetValue : null;
+  const delta = typeof deltaValue === "number" ? deltaValue : null;
+
+  if (delta !== null) {
+    if (delta > 0) return 0.05;
+    if (delta < 0) return -0.05;
+  }
+  if (cur !== null && target !== null && Math.abs(target) > 0.00001) {
+    const ratio = cur / target;
+    if (ratio >= 1) return 0.06;
+    if (ratio < 0.7) return -0.04;
+  }
+  return 0;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -92,7 +109,8 @@ serve(async (req) => {
 
     const positive = ["opened", "clicked", "completed", "promoted"].includes(eventType);
     const negative = ["dismissed", "snoozed"].includes(eventType);
-    const delta = positive ? 0.08 : negative ? -0.06 : 0;
+    const objectiveBoost = computeObjectiveOutcomeBoost(currentValue, targetValue, deltaValue);
+    const delta = (positive ? 0.08 : negative ? -0.06 : 0) + objectiveBoost;
 
     const nextSource = source ? applyDelta(sourceWeights, source, delta) : sourceWeights;
     const nextCategory = category ? applyDelta(categoryWeights, category, delta) : categoryWeights;
