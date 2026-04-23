@@ -21,6 +21,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { PillarView } from "@/components/database/pillars/PillarView";
 import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import superchargeIllustration from "@/assets/supercharge-dna-illustration.svg";
 
 const PILLAR_IDS = new Set(["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"]);
 
@@ -338,6 +340,18 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>(activePillar || "brand");
   const [extendedPillarData, setExtendedPillarData] = useState<Record<string, any>>({});
+  const [showSuperchargePopup, setShowSuperchargePopup] = useState(false);
+
+  // Auto-show Supercharge popup once per session, suppressed after user has supercharged
+  useEffect(() => {
+    if (!activeBrandId) return;
+    const sessionKey = `tw_supercharge_popup_shown_${activeBrandId}`;
+    const supchargedKey = `tw_supercharge_completed_${activeBrandId}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+    if (localStorage.getItem(supchargedKey)) return;
+    sessionStorage.setItem(sessionKey, "1");
+    setShowSuperchargePopup(true);
+  }, [activeBrandId]);
 
   // Sync activeSegment when activePillar prop changes (from sidebar dropdown)
   useEffect(() => {
@@ -542,96 +556,6 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
 
   return (
     <div className="flex flex-col h-full items-center">
-      {!isPillarActive && (
-        <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-0 space-y-4 sm:space-y-6 border-b border-border/50 w-full max-w-5xl">
-          {/* Business Header */}
-          <div className="flex items-start gap-3 sm:gap-4">
-            {onBack && (
-              <button onClick={onBack} className="mt-1.5 p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0">
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            )}
-            <div className="h-16 w-16 sm:h-24 sm:w-24 rounded-xl bg-muted/60 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-              {activeBrand?.logoUrls && activeBrand.logoUrls.length > 0 ? (
-                <img
-                  src={activeBrand.logoUrls[activeBrand.selectedLogo ?? 0]}
-                  alt={activeBrand.name}
-                  className="h-full w-full object-contain p-2"
-                />
-              ) : (
-                <Building2 className="h-8 w-8 sm:h-11 sm:w-11 text-muted-foreground/60" />
-              )}
-            </div>
-            <div className="flex flex-col gap-1.5 sm:gap-2 pt-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight truncate">{activeBrand?.name || "Your Business"}</h1>
-              <AgentNameEditor brand={activeBrand} onRename={handleRenameAgent} isBrainLearning={isBrainLearning} />
-            </div>
-            <div className="ml-auto hidden md:block">
-              <SuperchargeDNAWizard
-                brandId={activeBrandId}
-                brandName={activeBrand?.name}
-                logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
-                onCompleted={() => {
-                  refreshBrand(activeBrandId);
-                }}
-              />
-            </div>
-          </div>
-          <div className="md:hidden">
-            <SuperchargeDNAWizard
-              brandId={activeBrandId}
-              brandName={activeBrand?.name}
-              logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
-              onCompleted={() => {
-                refreshBrand(activeBrandId);
-              }}
-            />
-          </div>
-
-          {/* Segment Tabs */}
-          <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto scrollbar-hide -mx-4 sm:-mx-6 px-4 sm:px-6">
-            {BRAIN_SEGMENTS.map((seg) => {
-              const Icon = seg.icon;
-              const count = getSegmentCount(seg.id);
-              const isActive = activeSegment === seg.id;
-              return (
-                <button
-                  key={seg.id}
-                  onClick={() => setActiveSegment(isActive ? null : seg.id)}
-                  className={cn(
-                    "relative flex items-center gap-1.5 sm:gap-2 pb-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap shrink-0",
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", isActive ? seg.color : "")} />
-                  <span>{seg.label}</span>
-                  {seg.beta && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                      Beta
-                    </span>
-                  )}
-                  {count > 0 && (
-                    <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full", seg.bgAccent, seg.color)}>
-                      {count}
-                    </span>
-                  )}
-                  {isActive && (
-                    <motion.div
-                      layoutId="segment-underline"
-                      className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
-                      style={{ background: `hsl(${seg.hslColor})` }}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <div className="flex-1 w-full overflow-hidden">
         {activeSegment && PILLAR_IDS.has(activeSegment) ? (
           <PillarView
@@ -686,6 +610,50 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
         )}
       </div>
 
+      <Dialog open={showSuperchargePopup} onOpenChange={setShowSuperchargePopup}>
+        <DialogContent className="max-w-xl bg-[#FAFAFD] border-border/60 rounded-2xl p-0 overflow-hidden">
+          <div className="px-8 pt-8 pb-2">
+            <DialogHeader className="space-y-2 text-left">
+              <DialogTitle className="text-2xl font-bold text-foreground">
+                Supercharge your Business DNA
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Connect your tools and feed {activeBrand?.agentName || "your AI CEO"} the context it needs to make sharper decisions for {activeBrand?.name || "your business"}.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="px-8 pb-2">
+            <div className="rounded-xl border border-border/60 bg-white p-4 flex items-center justify-center">
+              <img
+                src={superchargeIllustration}
+                alt="Supercharge your Business DNA"
+                className="w-full max-w-sm h-auto"
+              />
+            </div>
+          </div>
+          <div className="px-8 pb-8 pt-4 flex items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowSuperchargePopup(false)}
+              className="rounded-full"
+            >
+              Not now
+            </Button>
+            <SuperchargeDNAWizard
+              brandId={activeBrandId}
+              brandName={activeBrand?.name}
+              logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
+              onCompleted={() => {
+                if (activeBrandId) {
+                  localStorage.setItem(`tw_supercharge_completed_${activeBrandId}`, "1");
+                }
+                setShowSuperchargePopup(false);
+                refreshBrand(activeBrandId);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
