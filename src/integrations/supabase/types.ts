@@ -312,6 +312,42 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_card_notes: {
+        Row: {
+          author_email: string
+          card_id: string
+          color: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          author_email?: string
+          card_id: string
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          author_email?: string
+          card_id?: string
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       dashboard_objective_outcomes: {
         Row: {
           business_id: string | null
