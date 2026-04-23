@@ -268,7 +268,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                       <h3 className="text-sm font-semibold text-foreground tracking-tight">
                         {field.name.replace(/^\d+\.\s*/, "")}
                       </h3>
-                      {brand ? (
+                      {brand && editMode ? (
                         <PillarFieldEditor
                           field={field}
                           baseValue={baseValues[field.id]}
