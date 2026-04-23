@@ -6,6 +6,8 @@ import { buildPillarValues } from "./pillarDataMapper";
 import { PillarFieldRenderer } from "./PillarFieldRenderer";
 import { PillarFieldEditor } from "./PillarFieldEditor";
 import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
+import { Button } from "@/components/ui/button";
+import { Pencil, Check } from "lucide-react";
 
 interface PillarViewProps {
   pillarId: string;
@@ -32,6 +34,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
   const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeIdRef = useRef(activeItemId);
   const { setBrands } = useBusinessDNA();
+  const [editMode, setEditMode] = useState(false);
 
   const overrides = brand?.pillarOverrides?.[pillarId] || {};
 
@@ -231,9 +234,24 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
               </div>
             </div>
             {brand && (
-              <div className="shrink-0 text-[11px] text-muted-foreground italic">
-                Click any field to edit
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditMode((v) => !v)}
+                className="shrink-0 gap-2 bg-[#eef2f7]"
+              >
+                {editMode ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Done
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </>
+                )}
+              </Button>
             )}
           </div>
 
@@ -250,7 +268,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                       <h3 className="text-sm font-semibold text-foreground tracking-tight">
                         {field.name.replace(/^\d+\.\s*/, "")}
                       </h3>
-                      {brand ? (
+                      {brand && editMode ? (
                         <PillarFieldEditor
                           field={field}
                           baseValue={baseValues[field.id]}
