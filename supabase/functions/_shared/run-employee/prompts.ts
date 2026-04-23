@@ -235,22 +235,36 @@ Supported: "bar", "line", "area", "pie"
 For slides use \`\`\`slide, for documents use \`\`\`document, for spreadsheets use \`\`\`spreadsheet, for analytics use \`\`\`analytics code blocks. Always personalize using business data from Reference Material.
 When generating slides, you MUST include "brand_colors" from the business's Brand data in the slide JSON. Use the brand's primary color as "accent_color" and include "bg_color" (dark variant of the brand color) for the slide background. If no brand colors are available, default to accent_color "#3399ff" and bg_color "#1a1a2e".
 
-**SLIDE DESIGN RULES — CRITICAL:**
-- Slides MUST be visually rich and use MINIMAL text. Think pitch-deck quality.
-- **VARY THE LAYOUT per slide.** Do NOT reuse the same template for every slide. Pick the layout that fits the content. Supported "layout" values: "stat-callout" (big numbers), "bullets" (short list), "two-column" (use "left_column" and "right_column" string arrays), "title-only" (title + subtitle + takeaway).
-- Short punchy bullets (3-6 words), max 4 per slide. Titles 3-6 words.
-- Include "subtitle", "brand_name", and an emoji "icon" when appropriate.
+**SLIDE DESIGN — THINK LIKE A SENIOR DESIGNER, NOT A TEMPLATE:**
+Before writing any slide JSON, plan the deck. Decide the narrative arc (hook → tension → insight → proof → action), then assign ONE distinct purpose to each slide. Never default to bullets-with-icon. Bullets are the LAST resort, not the first.
+
+**Hard rules:**
+- **Text budget per slide: under 25 words total.** Titles 2-5 words. Subtitles optional, max 8 words. If you can't say it in 25 words, the slide isn't ready — split it or cut it.
+- **NO emoji icons unless the user explicitly asks.** They make slides look generic. Leave "icon" empty.
+- **Vary layouts aggressively.** A 5-slide deck must use at least 3 different layouts. Repeating the same layout twice in a row is forbidden unless the content genuinely demands it (e.g. side-by-side comparisons).
+- **Pick the layout from the content, not the other way around:**
+  - One number that matters → "stat-callout" with 1-2 stats max, huge.
+  - A contrast or trade-off → "two-column" (left vs right, before vs after).
+  - A single bold idea or quote → "title-only" with a strong takeaway, no bullets.
+  - A short prioritized list (3-4 items) → "bullets", each item ≤5 words.
+- **Bullets ≤ 4 per slide, ≤ 5 words each.** No nested bullets. No full sentences.
+- **Every slide needs a "takeaway"** — one crisp sentence (≤12 words) stating the so-what. This is the line the audience remembers.
+- Include "subtitle" and "brand_name" when they add meaning; skip them when they don't.
 
 **MULTI-SLIDE DECKS:**
-When the user asks for a deck, presentation, or multiple slides (or the topic needs more than one), output MULTIPLE separate \`\`\`slide code blocks back-to-back — one block per slide. Each slide should pick a layout that fits its content (e.g. title-only intro → stat-callout data → two-column comparison → bullets summary). Decide how many slides are appropriate (typically 3-7); do NOT default to a single slide and do NOT default to one fixed template.
+When the user asks for a deck, presentation, or multiple slides, output MULTIPLE separate \`\`\`slide code blocks back-to-back — one block per slide. Default to 4-6 slides; never pad. Structure example: title-only opener → stat-callout proof → two-column comparison → title-only insight → bullets next-steps. Mentally storyboard the whole deck before emitting JSON, so each slide earns its place.
 
-Examples:
+Examples (note the variety, restraint, and absence of icons):
 \`\`\`slide
-{"title":"Q1 Revenue","subtitle":"2026 Performance","layout":"stat-callout","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme","stats":[{"value":"$2.4M","label":"Revenue"},{"value":"+34%","label":"Growth"}],"takeaway":"Record quarter"}
+{"title":"The Quarter That Broke Pattern","subtitle":"Q1 2026","layout":"title-only","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme","takeaway":"For the first time, growth outpaced spend."}
 \`\`\`
 \`\`\`slide
-{"title":"What Drove Growth","layout":"two-column","accent_color":"#FF6B35","bg_color":"#2D1B0E","left_column":["Enterprise expansion","New EU market","Upsell motion"],"right_column":["Pricing change","Better onboarding","Referral program"]}
+{"title":"$2.4M","subtitle":"Q1 Revenue","layout":"stat-callout","accent_color":"#FF6B35","bg_color":"#2D1B0E","brand_name":"Acme","stats":[{"value":"+34%","label":"YoY growth"}],"takeaway":"Record quarter — driven by EU and enterprise."}
 \`\`\`
+\`\`\`slide
+{"title":"What Changed","layout":"two-column","accent_color":"#FF6B35","bg_color":"#2D1B0E","left_column":["Old playbook","SMB self-serve","US-only","Flat pricing"],"right_column":["New playbook","Enterprise-led","EU expansion","Tiered pricing"],"takeaway":"We stopped competing on volume and started competing on fit."}
+\`\`\`
+
 
 ## SAFETY GUARDRAILS
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
