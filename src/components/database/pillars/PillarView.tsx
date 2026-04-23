@@ -6,6 +6,8 @@ import { buildPillarValues } from "./pillarDataMapper";
 import { PillarFieldRenderer } from "./PillarFieldRenderer";
 import { PillarFieldEditor } from "./PillarFieldEditor";
 import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
+import { Button } from "@/components/ui/button";
+import { Pencil, Check } from "lucide-react";
 
 interface PillarViewProps {
   pillarId: string;
