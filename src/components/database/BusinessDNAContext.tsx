@@ -256,22 +256,48 @@ async function deleteEntityByLogicalId(logicalId: string, dataType: string, work
   }
 }
 
+/** Per-workspace cache key. Falls back to "user" scope when no workspace is set. */
+function brandCacheKey(workspaceId: string | null) {
+  return `cached_brands_v2:${workspaceId || "user"}`;
+}
+
+/** Trim brand payload to the lightweight fields needed for breadcrumb / auto-open decision.
+ *  Visual identity & pillar overrides are large; we omit them from cache to keep it tiny. */
+function compactBrandForCache(b: BrandEntry): BrandEntry {
+  return {
+    id: b.id,
+    name: b.name,
+    category: b.category,
+    lastUpdated: b.lastUpdated,
+    colors: b.colors,
+    typography: b.typography,
+    logoUrls: b.logoUrls,
+    selectedLogo: b.selectedLogo,
+    agentName: b.agentName,
+    businessType: b.businessType,
+  } as BrandEntry;
+}
+
 export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const { user, isLoading: authLoading } = useAuth();
   const [userName, setUserName] = useState("Unknown");
 
-  // Hydrate brands from localStorage cache for instant breadcrumb rendering
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
+    localStorage.getItem("preferred_workspace_id")
+  );
+
+  // Hydrate brands from per-workspace localStorage cache for instant breadcrumb rendering
   const [brands, setBrandsState] = useState<BrandEntry[]>(() => {
     try {
-      const cached = localStorage.getItem("cached_brands");
+      const cached = localStorage.getItem(brandCacheKey(activeWorkspaceId));
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
   const [products, setProductsState] = useState<ProductEntry[]>([]);
   const [audiences, setAudiencesState] = useState<AudienceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(() => {
-    // If we have cached brands, skip showing skeleton initially
-    try { return !localStorage.getItem("cached_brands"); } catch { return true; }
+    // If we have cached brands for THIS workspace, skip showing skeleton initially
+    try { return !localStorage.getItem(brandCacheKey(activeWorkspaceId)); } catch { return true; }
   });
   const [prevBrands, setPrevBrands] = useState<BrandEntry[]>([]);
   const { getBusinessLimit } = useSubscription();
@@ -279,9 +305,6 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const businessLimitReached = useMemo(() => businessLimit !== Infinity && brands.length >= businessLimit, [brands.length, businessLimit]);
   const [prevProducts, setPrevProducts] = useState<ProductEntry[]>([]);
   const [prevAudiences, setPrevAudiences] = useState<AudienceEntry[]>([]);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
-    localStorage.getItem("preferred_workspace_id")
-  );
   const loadedWorkspaceRef = useRef<string | null | undefined>(undefined);
 
   // Keep in sync with workspace changes (event-driven, no polling)
@@ -316,13 +339,23 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
 
     async function load() {
       const isWorkspaceSwitch = loadedWorkspaceRef.current !== activeWorkspaceId;
+      // Hydrate from this-workspace cache if we just switched (avoids stale brands from prior workspace)
+      let hasCached = false;
       try {
-        const hasCached = !!localStorage.getItem("cached_brands");
-        if (isWorkspaceSwitch && !hasCached) {
-          setIsLoading(true);
+        const cached = localStorage.getItem(brandCacheKey(activeWorkspaceId));
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) {
+            setBrandsState(parsed);
+            hasCached = true;
+          }
         }
-      } catch {
-        if (isWorkspaceSwitch) setIsLoading(true);
+      } catch {}
+
+      if (isWorkspaceSwitch && !hasCached) {
+        setIsLoading(true);
+        // Clear any stale brands from the previous workspace so we don't flash them
+        setBrandsState([]);
       }
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -332,7 +365,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       // between onboarding vs. DNA view. Flip isLoading off ASAP.
       const b = await loadEntities<BrandEntry>("brand", activeWorkspaceId, session);
       setBrandsState(b);
-      try { localStorage.setItem("cached_brands", JSON.stringify(b)); } catch {}
+      try {
+        localStorage.setItem(brandCacheKey(activeWorkspaceId), JSON.stringify(b.map(compactBrandForCache)));
+      } catch {}
       setPrevBrands(b);
       loadedWorkspaceRef.current = activeWorkspaceId;
       setIsLoading(false);
