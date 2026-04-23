@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { PILLAR_BY_ID } from "./pillarConstants";
 import { buildPillarValues } from "./pillarDataMapper";
+import { PillarFieldRenderer } from "./PillarFieldRenderer";
 import { PillarFieldEditor } from "./PillarFieldEditor";
 import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
 
