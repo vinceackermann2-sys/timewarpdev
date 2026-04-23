@@ -345,6 +345,11 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   const [showSuperchargePopup, setShowSuperchargePopup] = useState(false);
   const navigate = useNavigate();
 
+  // Persist active brandId so standalone routes (e.g. /supercharge-dna) can resolve it
+  useEffect(() => {
+    if (activeBrandId) localStorage.setItem("tw_active_brand_id", activeBrandId);
+  }, [activeBrandId]);
+
   // Auto-show Supercharge popup once per session, suppressed after user has supercharged
   useEffect(() => {
     if (!activeBrandId) return;
