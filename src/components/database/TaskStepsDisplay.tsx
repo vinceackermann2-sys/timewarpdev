@@ -228,7 +228,7 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
 
                 {/* Label - progressive letter animation on active steps */}
                 {isActive ? (
-                  <ProgressiveLoader text={step.label} textClassName="text-[13px] text-foreground" />
+                  <ProgressiveLoader text={step.label} textClassName="text-[13px]" />
                 ) : (
                   <span className={cn(
                     "truncate",
