@@ -411,19 +411,18 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      // PHASE 1: Load brands first — this is the only data we need to decide
-      // between onboarding vs. DNA view. Flip isLoading off ASAP.
-      const b = await loadEntities<BrandEntry>("brand", activeWorkspaceId, session);
-      setBrandsState(b);
+      // PHASE 1: Lightweight brand list — no `content`, just enough for breadcrumb
+      // and onboarding-vs-DNA decision. This avoids downloading MB-sized blobs.
+      const brandsLight = await loadBrandsLight(activeWorkspaceId, session);
+      setBrandsState(brandsLight);
       try {
-        localStorage.setItem(brandCacheKey(activeWorkspaceId), JSON.stringify(b.map(compactBrandForCache)));
+        localStorage.setItem(brandCacheKey(activeWorkspaceId), JSON.stringify(brandsLight.map(compactBrandForCache)));
       } catch {}
-      setPrevBrands(b);
+      setPrevBrands(brandsLight);
       loadedWorkspaceRef.current = activeWorkspaceId;
       setIsLoading(false);
 
-      // PHASE 2: Load products + audiences in the background — these aren't
-      // gating the initial route decision and the UI can render without them.
+      // PHASE 2: Load products + audiences in the background
       const [p, a] = await Promise.all([
         loadEntities<ProductEntry>("product", activeWorkspaceId, session),
         loadEntities<AudienceEntry>("audience", activeWorkspaceId, session),
@@ -434,7 +433,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setPrevAudiences(a);
 
       // Orphan validation — log warnings for dangling references
-      const brandIds = new Set(b.map(br => br.id));
+      const brandIds = new Set(brandsLight.map(br => br.id));
       const productIds = new Set(p.map(pr => pr.id));
       const orphanProducts = p.filter(pr => pr.brandId && !brandIds.has(pr.brandId));
       const orphanAudiences = a.filter(au => au.productIds?.some(pid => !productIds.has(pid)));
@@ -448,7 +447,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     const wsId = localStorage.getItem("preferred_workspace_id") || activeWorkspaceId;
     const [b, p, a] = await Promise.all([
-      loadEntities<BrandEntry>("brand", wsId),
+      loadBrandsLight(wsId),
       loadEntities<ProductEntry>("product", wsId),
       loadEntities<AudienceEntry>("audience", wsId),
     ]);
