@@ -13,6 +13,8 @@ interface Props {
   baseValue: any;
   /** Existing override text for this field (if any). */
   override?: string;
+  /** When true, the editor opens immediately (used by the page-level Edit toggle). */
+  autoOpen?: boolean;
   onSave: (next: string | null) => Promise<void> | void;
 }
 
