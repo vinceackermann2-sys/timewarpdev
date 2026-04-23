@@ -273,6 +273,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                           field={field}
                           baseValue={baseValues[field.id]}
                           override={overrides[field.id]}
+                          autoOpen
                           onSave={(next) => handleSaveField(field.id, next)}
                         />
                       ) : (
