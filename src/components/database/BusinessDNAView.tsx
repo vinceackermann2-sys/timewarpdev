@@ -340,6 +340,18 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   const [isLoading, setIsLoading] = useState(true);
   const [activeSegment, setActiveSegment] = useState<string | null>(activePillar || "brand");
   const [extendedPillarData, setExtendedPillarData] = useState<Record<string, any>>({});
+  const [showSuperchargePopup, setShowSuperchargePopup] = useState(false);
+
+  // Auto-show Supercharge popup once per session, suppressed after user has supercharged
+  useEffect(() => {
+    if (!activeBrandId) return;
+    const sessionKey = `tw_supercharge_popup_shown_${activeBrandId}`;
+    const supchargedKey = `tw_supercharge_completed_${activeBrandId}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+    if (localStorage.getItem(supchargedKey)) return;
+    sessionStorage.setItem(sessionKey, "1");
+    setShowSuperchargePopup(true);
+  }, [activeBrandId]);
 
   // Sync activeSegment when activePillar prop changes (from sidebar dropdown)
   useEffect(() => {
