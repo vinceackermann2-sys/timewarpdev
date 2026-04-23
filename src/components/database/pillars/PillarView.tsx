@@ -34,6 +34,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
   const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeIdRef = useRef(activeItemId);
   const { setBrands } = useBusinessDNA();
+  const [editMode, setEditMode] = useState(false);
 
   const overrides = brand?.pillarOverrides?.[pillarId] || {};
 
