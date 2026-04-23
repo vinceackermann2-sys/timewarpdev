@@ -403,7 +403,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       loadEntities<AudienceEntry>("audience", wsId),
     ]);
     setBrandsState(b);
-    try { localStorage.setItem("cached_brands", JSON.stringify(b)); } catch {}
+    try {
+      localStorage.setItem(brandCacheKey(wsId), JSON.stringify(b.map(compactBrandForCache)));
+    } catch {}
     setProductsState(p);
     setAudiencesState(a);
     setPrevBrands(b);
