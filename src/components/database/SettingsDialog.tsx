@@ -428,7 +428,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       <DialogContent className="sm:max-w-5xl h-[75vh] p-0 gap-0 bg-background border-border overflow-hidden">
         <div className="flex h-full">
           {/* Sidebar */}
-          <div className="w-60 border-r border-border p-4 flex flex-col gap-1 shrink-0">
+          <div className="w-60 border-r border-border p-4 flex flex-col gap-1 shrink-0 bg-[#fcfcfd]">
             {sidebarItems.map((section) => (
               <div key={section.section} className="mb-4">
                 <p className="text-xs font-medium text-muted-foreground mb-2 px-3">{section.section}</p>
@@ -451,7 +451,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
-            <div className="px-8 pt-8 pb-2">
+            <div className="px-8 pt-8 pb-2 bg-[#fcfcfd]">
               <h2 className="text-2xl font-bold tracking-tight">
                 {activeTab === "settings" && "Account Settings"}
                 {activeTab === "workspace" && (selectedWsId && selectedWs ? (
@@ -676,7 +676,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                           key={period}
                           onClick={() => setBilling(period)}
                           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
-                            billing === period ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                            billing === period ? "text-foreground shadow-sm bg-[#fcfcfd]" : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
                           {period}
