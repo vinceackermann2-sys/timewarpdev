@@ -82,6 +82,13 @@ function BusinessDnaArea({
   onOnboardingComplete: (agentName: string, brandId?: string) => void;
 }) {
   const { isLoading, brands } = useBusinessDNA();
+  // Track whether we've ever observed isLoading=false in this session.
+  // Until then, treat as loading even if cached brands hydrated synchronously
+  // (prevents onboarding flash when cache is empty for a fresh workspace).
+  const [hasSettled, setHasSettled] = useState(false);
+  useEffect(() => {
+    if (!isLoading) setHasSettled(true);
+  }, [isLoading]);
 
   if (showAddProduct) {
     return (
@@ -104,9 +111,10 @@ function BusinessDnaArea({
     );
   }
 
-  // Still loading brand list, OR brands exist but the auto-opener hasn't fired yet —
-  // show a skeleton instead of flashing onboarding or an empty page.
-  if (isLoading || brands.length > 0) {
+  // Still loading brand list, OR brands exist but the auto-opener hasn't fired yet,
+  // OR we haven't completed our first authoritative load yet — show a skeleton
+  // instead of flashing onboarding or an empty page.
+  if (isLoading || !hasSettled || brands.length > 0) {
     return (
       <div className="h-full w-full flex flex-col p-6 gap-6">
         <div className="space-y-2">
