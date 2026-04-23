@@ -213,7 +213,7 @@ function SegmentContent({
 
       {isAdding && (
         <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
-          <Textarea placeholder={`Add a ${segment.label.toLowerCase()} insight...`} className="text-sm min-h-[80px] resize-none bg-background" value={newText} onChange={(e) => setNewText(e.target.value)} />
+          <Textarea placeholder={`Add a ${segment.label.toLowerCase()} insight...`} className="text-sm min-h-[80px] resize-none bg-white" value={newText} onChange={(e) => setNewText(e.target.value)} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setIsAdding(false); setNewText(""); }}>Cancel</Button>
             <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={!newText.trim()}>
