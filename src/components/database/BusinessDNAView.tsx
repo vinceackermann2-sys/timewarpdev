@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { PillarView } from "@/components/database/pillars/PillarView";
-import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import superchargeIllustration from "@/assets/supercharge-dna-illustration.svg";
 import superchargePortalLeft from "@/assets/supercharge-portal-left.svg";
