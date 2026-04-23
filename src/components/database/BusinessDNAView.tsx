@@ -635,7 +635,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
             <Button
               variant="outline"
               onClick={() => setShowSuperchargePopup(false)}
-              className="rounded-full"
+              className="rounded-full bg-white hover:bg-white"
             >
               Not now
             </Button>
