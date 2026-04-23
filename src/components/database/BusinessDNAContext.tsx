@@ -193,7 +193,8 @@ async function loadBrandsLight(workspaceId?: string | null, session?: { user: { 
       category: "",
       lastUpdated: (row as any).created_at || new Date().toISOString(),
       _rowId: row.id,
-    } as BrandEntry & { _rowId: string });
+      _light: true,
+    } as BrandEntry & { _rowId: string; _light: boolean });
   }
   return out;
 }
@@ -631,7 +632,12 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     const removed = prevBrands.filter(pb => !brands.some(b => b.id === pb.id));
     const updated = brands.filter(b => {
       const prev = prevBrands.find(pb => pb.id === b.id);
-      return prev && JSON.stringify(prev) !== JSON.stringify(b);
+      if (!prev) return false;
+      // SAFETY: never resave brands that are still lightweight stubs.
+      // The full `content` hasn't been hydrated, so writing back would wipe
+      // visualIdentity / pillarOverrides / safetySettings etc.
+      if ((b as any)._light || (prev as any)._light) return false;
+      return JSON.stringify(prev) !== JSON.stringify(b);
     });
 
     added.forEach(b => { saveEntity("brand", b, undefined, activeWorkspaceId); dispatchDnaMutation(b.id); });
