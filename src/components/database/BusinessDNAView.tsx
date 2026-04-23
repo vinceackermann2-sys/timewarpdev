@@ -610,6 +610,50 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
         )}
       </div>
 
+      <Dialog open={showSuperchargePopup} onOpenChange={setShowSuperchargePopup}>
+        <DialogContent className="max-w-xl bg-[#FAFAFD] border-border/60 rounded-2xl p-0 overflow-hidden">
+          <div className="px-8 pt-8 pb-2">
+            <DialogHeader className="space-y-2 text-left">
+              <DialogTitle className="text-2xl font-bold text-foreground">
+                Supercharge your Business DNA
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Connect your tools and feed {activeBrand?.agentName || "your AI CEO"} the context it needs to make sharper decisions for {activeBrand?.name || "your business"}.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="px-8 pb-2">
+            <div className="rounded-xl border border-border/60 bg-white p-4 flex items-center justify-center">
+              <img
+                src={superchargeIllustration}
+                alt="Supercharge your Business DNA"
+                className="w-full max-w-sm h-auto"
+              />
+            </div>
+          </div>
+          <div className="px-8 pb-8 pt-4 flex items-center justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowSuperchargePopup(false)}
+              className="rounded-full"
+            >
+              Not now
+            </Button>
+            <SuperchargeDNAWizard
+              brandId={activeBrandId}
+              brandName={activeBrand?.name}
+              logoUrl={activeBrand?.logoUrls?.[activeBrand?.selectedLogo ?? 0]}
+              onCompleted={() => {
+                if (activeBrandId) {
+                  localStorage.setItem(`tw_supercharge_completed_${activeBrandId}`, "1");
+                }
+                setShowSuperchargePopup(false);
+                refreshBrand(activeBrandId);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
