@@ -58,16 +58,22 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
     };
   }, [pillar, pillarId, brand, products, audiences, pillarData, overrides]);
 
-  const handleSaveOverrides = async (next: Record<string, string>) => {
+  const handleSaveField = async (fieldId: string, nextText: string | null) => {
     if (!brand) return;
     setBrands((prev) =>
       prev.map((b) => {
         if (b.id !== brand.id) return b;
         const allOverrides = { ...(b.pillarOverrides || {}) };
-        if (Object.keys(next).length === 0) {
+        const pillarOv = { ...(allOverrides[pillarId] || {}) };
+        if (nextText === null || nextText.trim() === "") {
+          delete pillarOv[fieldId];
+        } else {
+          pillarOv[fieldId] = nextText;
+        }
+        if (Object.keys(pillarOv).length === 0) {
           delete allOverrides[pillarId];
         } else {
-          allOverrides[pillarId] = next;
+          allOverrides[pillarId] = pillarOv;
         }
         return { ...b, pillarOverrides: allOverrides, lastUpdated: new Date().toISOString() };
       }),
