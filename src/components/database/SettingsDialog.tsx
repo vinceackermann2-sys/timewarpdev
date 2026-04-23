@@ -139,15 +139,42 @@ const PRICES: Record<BillingPeriod, Record<PlanKey, number>> = {
   annually: { co_founder: 16, aristotle: 23, timewarp_og: 499 },
 };
 
-const PLAN_FEATURES: { name: string; co_founder: string | boolean; aristotle: string | boolean; timewarp_og: string | boolean }[] = [
-  { name: "Team members", co_founder: "Unlimited", aristotle: "Unlimited", timewarp_og: "Unlimited" },
-  { name: "Connected data", co_founder: "5GB", aristotle: "10GB", timewarp_og: "Unlimited" },
-  { name: "Actions / month", co_founder: "100", aristotle: "500", timewarp_og: "Unlimited" },
-  { name: "Businesses", co_founder: "3", aristotle: "10", timewarp_og: "Unlimited" },
-  { name: "Employees", co_founder: "10", aristotle: "50", timewarp_og: "Unlimited" },
-  { name: "Developer Line", co_founder: false, aristotle: true, timewarp_og: true },
-  { name: "Priority", co_founder: false, aristotle: false, timewarp_og: true },
-];
+type DisplayPlan = "free" | PlanKey;
+
+const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }> = {
+  free: {
+    tagline: "Try us out, see what lands",
+    bullets: ["10 Actions", "1 AI Employee", "1 business"],
+  },
+  co_founder: {
+    tagline: "For early-stage founders getting started",
+    bullets: [
+      "10x usage of free",
+      "Up to 10 AI employees",
+      "Smarter brain",
+    ],
+  },
+  aristotle: {
+    tagline: "For growing businesses scaling operations",
+    bullets: [
+      "Everything in Co Founder, plus:",
+      "5x usage of co founder",
+      "Up to 50 AI employees",
+      "Direct developer line",
+    ],
+  },
+  timewarp_og: {
+    tagline: "Unlimited power for serious operators",
+    bullets: [
+      "Unlimited Actions",
+      "Unlimited AI Employees",
+      "Unlimited Businesses",
+      "Unlimited connected data",
+      "Direct developer line",
+      "Priority support",
+    ],
+  },
+};
 
 const RANDOM_NAMES = [
   "Cosmic Panda", "Stellar Fox", "Neon Tiger", "Pixel Wolf", "Turbo Owl",
