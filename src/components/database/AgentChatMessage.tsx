@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { AgentStep } from "./AgentActivityLog";
 import { CheckCircle, Clock, Loader2, AlertTriangle } from "lucide-react";
+import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 
 export interface AgentChatMessageProps {
   role: "user" | "assistant";
@@ -100,9 +101,8 @@ export function AgentChatMessage({ role, content, steps, isStreaming }: AgentCha
 
         {/* Loading state */}
         {!content && !steps?.length && isStreaming && (
-          <div className="px-5 py-4 flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span className="text-sm text-muted-foreground">Processing your request...</span>
+          <div className="px-5 py-4">
+            <ProgressiveLoader text="Processing your request" />
           </div>
         )}
       </div>
