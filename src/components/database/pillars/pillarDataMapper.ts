@@ -3,6 +3,7 @@
 // Table column headers follow the TimeWarp Business DNA Model doc EXACTLY.
 
 import type { BrandEntry, ProductEntry, AudienceEntry } from "@/components/database/BusinessDNAContext";
+import { applyOverrides } from "./pillarOverrides";
 
 export type FieldValueMap = Record<string, any>;
 
@@ -14,7 +15,7 @@ function nonEmpty<T>(v: T | undefined | null | "" | []): v is T {
 
 export function buildPillarValues(
   pillarId: string,
-  ctx: { brand?: BrandEntry; products: ProductEntry[]; audiences: AudienceEntry[]; extended?: any }
+  ctx: { brand?: BrandEntry; products: ProductEntry[]; audiences: AudienceEntry[]; extended?: any; overrides?: Record<string, string> }
 ): FieldValueMap {
   const { brand, products, audiences, extended } = ctx;
   const map: FieldValueMap = {};
@@ -631,5 +632,5 @@ export function buildPillarValues(
     }
   }
 
-  return map;
+  return applyOverrides(map, ctx.overrides);
 }

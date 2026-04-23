@@ -1,6 +1,7 @@
 import { Check, Box, CheckCircle2 } from "lucide-react";
 import type { PillarField } from "./pillarTypes";
 import type { ReactNode } from "react";
+import { isOverrideValue } from "./pillarOverrides";
 
 // Detects whether a field has any meaningful data, AND validates that the
 // value shape matches what the renderer for that type expects. If the shape
@@ -9,6 +10,7 @@ import type { ReactNode } from "react";
 function isEmpty(field: PillarField): boolean {
   const v = field.value;
   if (v == null) return true;
+  if (isOverrideValue(v)) return v.__override.trim() === "";
 
   const isObj = (x: any) => x && typeof x === "object" && !Array.isArray(x);
 
@@ -59,6 +61,15 @@ function EmptyState({ label }: { label: string }) {
 export function PillarFieldRenderer({ field }: { field: PillarField }) {
   if (isEmpty(field)) {
     return <EmptyState label={field.name.replace(/^\d+\.\s*/, "").toLowerCase()} />;
+  }
+
+  // Manual user override → render as plain long-text regardless of field.type
+  if (isOverrideValue(field.value)) {
+    return (
+      <div className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+        {field.value.__override}
+      </div>
+    );
   }
 
   switch (field.type) {
