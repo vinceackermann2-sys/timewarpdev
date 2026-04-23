@@ -343,6 +343,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   const [activeSegment, setActiveSegment] = useState<string | null>(activePillar || "brand");
   const [extendedPillarData, setExtendedPillarData] = useState<Record<string, any>>({});
   const [showSuperchargePopup, setShowSuperchargePopup] = useState(false);
+  const navigate = useNavigate();
 
   // Auto-show Supercharge popup once per session, suppressed after user has supercharged
   useEffect(() => {
