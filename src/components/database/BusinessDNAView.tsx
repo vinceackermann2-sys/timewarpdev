@@ -23,6 +23,8 @@ import { PillarView } from "@/components/database/pillars/PillarView";
 import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import superchargeIllustration from "@/assets/supercharge-dna-illustration.svg";
+import superchargePortalLeft from "@/assets/supercharge-portal-left.svg";
+import superchargeBrowserRight from "@/assets/supercharge-browser-right.svg";
 
 const PILLAR_IDS = new Set(["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"]);
 
@@ -611,7 +613,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
       </div>
 
       <Dialog open={showSuperchargePopup} onOpenChange={setShowSuperchargePopup}>
-        <DialogContent className="max-w-xl bg-[#FAFAFD] border-border/60 rounded-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl bg-[#FAFAFD] border-border/60 rounded-2xl p-0 overflow-hidden">
           <div className="px-8 pt-8 pb-2">
             <DialogHeader className="space-y-2 text-left">
               <DialogTitle className="text-2xl font-bold text-foreground">
@@ -623,11 +625,24 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
             </DialogHeader>
           </div>
           <div className="px-8 pb-2">
-            <div className="rounded-xl border border-border/60 bg-white p-4 flex items-center justify-center">
+            <div className="flex items-end justify-center">
+              <img
+                src={superchargePortalLeft}
+                alt=""
+                aria-hidden="true"
+                className="w-1/3 h-auto -mr-px"
+                style={{ clipPath: "inset(0 0 0 0)" }}
+              />
               <img
                 src={superchargeIllustration}
                 alt="Supercharge your Business DNA"
-                className="w-full max-w-sm h-auto"
+                className="w-1/3 h-auto"
+              />
+              <img
+                src={superchargeBrowserRight}
+                alt=""
+                aria-hidden="true"
+                className="w-1/3 h-auto -ml-px"
               />
             </div>
           </div>
