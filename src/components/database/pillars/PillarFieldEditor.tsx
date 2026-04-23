@@ -27,14 +27,19 @@ interface Props {
  * - Save persists the override; if the text matches the baseline or is
  *   empty, the override is cleared so the structured rendering returns.
  */
-export function PillarFieldEditor({ field, baseValue, override, onSave }: Props) {
+export function PillarFieldEditor({ field, baseValue, override, autoOpen, onSave }: Props) {
   const baseline = serializeFieldToText(field, baseValue);
   const initial = override ?? baseline;
 
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(!!autoOpen);
   const [value, setValue] = useState(initial);
   const [saving, setSaving] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync open state when the parent toggles edit mode
+  useEffect(() => {
+    setEditing(!!autoOpen);
+  }, [autoOpen]);
 
   // Keep local state in sync if the underlying value changes while not editing
   useEffect(() => {
