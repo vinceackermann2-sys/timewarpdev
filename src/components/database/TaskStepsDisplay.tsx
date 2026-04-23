@@ -198,50 +198,58 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
         "overflow-hidden transition-all duration-300 ease-in-out",
         collapsed ? "max-h-0 opacity-0" : "max-h-[2000px] opacity-100"
       )}>
-        <div ref={scrollRef} className="max-h-[400px] overflow-y-auto mt-1.5 ml-3 space-y-0.5">
+        <div ref={scrollRef} className="max-h-[400px] overflow-y-auto mt-1.5 ml-3">
           {section.steps.map((step, idx) => {
             const isActive = step.status === "running" && isStreaming && isLast;
             const isDone = step.status === "done";
             const isError = step.status === "error";
             const StepIcon = getStepIcon(step.label);
+            const isLastStep = idx === section.steps.length - 1;
 
             return (
               <div
                 key={idx}
-                className="flex items-center gap-2.5 py-1 px-1 text-[13px] animate-in fade-in slide-in-from-bottom-1 duration-200"
+                className="flex items-stretch gap-2.5 text-[13px] animate-in fade-in slide-in-from-bottom-1 duration-200"
               >
-                {/* Icon - never animated */}
-                <span className="w-5 text-center shrink-0">
-                  {isError ? (
-                    <XCircle className="w-3.5 h-3.5 text-destructive mx-auto" />
-                  ) : typeof StepIcon === "string" && PROVIDER_LOGOS[StepIcon] ? (
-                    <img src={PROVIDER_LOGOS[StepIcon]} alt={StepIcon} className="w-3.5 h-3.5 mx-auto object-contain" />
-                  ) : typeof StepIcon !== "string" ? (
-                    <StepIcon className={cn(
-                      "w-3.5 h-3.5 mx-auto",
-                      isActive ? "text-muted-foreground/60" : "text-muted-foreground/50"
-                    )} />
-                  ) : (
-                    <Zap className={cn("w-3.5 h-3.5 mx-auto", isActive ? "text-muted-foreground/60" : "text-muted-foreground/50")} />
-                  )}
-                </span>
-
-                {/* Label - progressive letter animation on active steps */}
-                {isActive ? (
-                  <ProgressiveLoader text={step.label} textClassName="text-[13px]" />
-                ) : (
-                  <span className={cn(
-                    "truncate",
-                    isDone && "text-muted-foreground/70",
-                    isError && "text-destructive",
-                  )}>
-                    {step.label}
+                {/* Icon column with connector line */}
+                <div className="flex flex-col items-center shrink-0 w-5">
+                  <span className="flex items-center justify-center h-6">
+                    {isError ? (
+                      <XCircle className="w-3.5 h-3.5 text-destructive" />
+                    ) : typeof StepIcon === "string" && PROVIDER_LOGOS[StepIcon] ? (
+                      <img src={PROVIDER_LOGOS[StepIcon]} alt={StepIcon} className="w-3.5 h-3.5 object-contain" />
+                    ) : typeof StepIcon !== "string" ? (
+                      <StepIcon className={cn(
+                        "w-3.5 h-3.5",
+                        isActive ? "text-muted-foreground/60" : "text-muted-foreground/50"
+                      )} />
+                    ) : (
+                      <Zap className={cn("w-3.5 h-3.5", isActive ? "text-muted-foreground/60" : "text-muted-foreground/50")} />
+                    )}
                   </span>
-                )}
+                  {!isLastStep && (
+                    <span className="flex-1 w-px bg-border/60 min-h-[8px]" />
+                  )}
+                </div>
 
-                {step.count > 1 && (
-                  <span className="text-muted-foreground/30 text-[11px] shrink-0">({step.count}×)</span>
-                )}
+                {/* Label + bottom spacer for breathing room between rows */}
+                <div className={cn("flex items-center gap-2 min-w-0 pt-1", !isLastStep && "pb-2")}>
+                  {isActive ? (
+                    <ProgressiveLoader text={step.label} textClassName="text-[13px]" />
+                  ) : (
+                    <span className={cn(
+                      "truncate",
+                      isDone && "text-muted-foreground/70",
+                      isError && "text-destructive",
+                    )}>
+                      {step.label}
+                    </span>
+                  )}
+
+                  {step.count > 1 && (
+                    <span className="text-muted-foreground/30 text-[11px] shrink-0">({step.count}×)</span>
+                  )}
+                </div>
               </div>
             );
           })}
