@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil } from "lucide-react";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { Button } from "@/components/ui/button";
 import { PILLAR_BY_ID } from "./pillarConstants";
-import { PillarFieldRenderer } from "./PillarFieldRenderer";
 import { buildPillarValues } from "./pillarDataMapper";
-import { PillarEditDialog } from "./PillarEditDialog";
+import { PillarFieldRenderer } from "./PillarFieldRenderer";
+import { PillarFieldEditor } from "./PillarFieldEditor";
 import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
 
 interface PillarViewProps {
@@ -33,7 +31,6 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
   const isNavigatingRef = useRef(false);
   const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeIdRef = useRef(activeItemId);
-  const [editOpen, setEditOpen] = useState(false);
   const { setBrands } = useBusinessDNA();
 
   const overrides = brand?.pillarOverrides?.[pillarId] || {};
@@ -62,16 +59,22 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
     };
   }, [pillar, pillarId, brand, products, audiences, pillarData, overrides]);
 
-  const handleSaveOverrides = async (next: Record<string, string>) => {
+  const handleSaveField = async (fieldId: string, nextText: string | null) => {
     if (!brand) return;
     setBrands((prev) =>
       prev.map((b) => {
         if (b.id !== brand.id) return b;
         const allOverrides = { ...(b.pillarOverrides || {}) };
-        if (Object.keys(next).length === 0) {
+        const pillarOv = { ...(allOverrides[pillarId] || {}) };
+        if (nextText === null || nextText.trim() === "") {
+          delete pillarOv[fieldId];
+        } else {
+          pillarOv[fieldId] = nextText;
+        }
+        if (Object.keys(pillarOv).length === 0) {
           delete allOverrides[pillarId];
         } else {
-          allOverrides[pillarId] = next;
+          allOverrides[pillarId] = pillarOv;
         }
         return { ...b, pillarOverrides: allOverrides, lastUpdated: new Date().toISOString() };
       }),
@@ -228,15 +231,9 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
               </div>
             </div>
             {brand && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setEditOpen(true)}
-                className="shrink-0 gap-2 bg-[#eef2f7]"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                Edit
-              </Button>
+              <div className="shrink-0 text-[11px] text-muted-foreground italic">
+                Click any field to edit
+              </div>
             )}
           </div>
 
@@ -253,7 +250,16 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                       <h3 className="text-sm font-semibold text-foreground tracking-tight">
                         {field.name.replace(/^\d+\.\s*/, "")}
                       </h3>
-                      <PillarFieldRenderer field={field} />
+                      {brand ? (
+                        <PillarFieldEditor
+                          field={field}
+                          baseValue={baseValues[field.id]}
+                          override={overrides[field.id]}
+                          onSave={(next) => handleSaveField(field.id, next)}
+                        />
+                      ) : (
+                        <PillarFieldRenderer field={field} />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -397,16 +403,6 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
         </aside>
       </div>
 
-      {brand && (
-        <PillarEditDialog
-          open={editOpen}
-          onOpenChange={setEditOpen}
-          pillar={populatedPillar}
-          currentValues={baseValues}
-          overrides={overrides}
-          onSave={handleSaveOverrides}
-        />
-      )}
     </div>
   );
 }
