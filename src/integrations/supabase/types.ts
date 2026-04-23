@@ -450,6 +450,98 @@ export type Database = {
         }
         Relationships: []
       }
+      long_task_checkpoints: {
+        Row: {
+          content: string
+          continuation_index: number
+          continuation_key: string
+          created_at: string
+          id: string
+          metadata: Json
+          run_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          continuation_index?: number
+          continuation_key: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          run_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          continuation_index?: number
+          continuation_key?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          run_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "long_task_checkpoints_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "long_task_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      long_task_runs: {
+        Row: {
+          business_id: string | null
+          continuation_key: string
+          created_at: string
+          error: string | null
+          id: string
+          logs: Json
+          phase: string
+          progress: number
+          result_excerpt: string | null
+          status: string
+          task_type: string
+          updated_at: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          continuation_key: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          logs?: Json
+          phase?: string
+          progress?: number
+          result_excerpt?: string | null
+          status?: string
+          task_type?: string
+          updated_at?: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          continuation_key?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          logs?: Json
+          phase?: string
+          progress?: number
+          result_excerpt?: string | null
+          status?: string
+          task_type?: string
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: []
+      }
       platform_config: {
         Row: {
           key: string
