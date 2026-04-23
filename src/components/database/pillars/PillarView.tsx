@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil } from "lucide-react";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { Button } from "@/components/ui/button";
 import { PILLAR_BY_ID } from "./pillarConstants";
-import { PillarFieldRenderer } from "./PillarFieldRenderer";
 import { buildPillarValues } from "./pillarDataMapper";
-import { PillarEditDialog } from "./PillarEditDialog";
+import { PillarFieldEditor } from "./PillarFieldEditor";
 import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
 
 interface PillarViewProps {
