@@ -6,6 +6,8 @@ export interface ChatMessage {
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;
   streamStartTime?: number;
+  /** Final elapsed seconds, captured once streaming finishes. Used to display a stable timer after reload. */
+  elapsedSeconds?: number;
   taskSteps?: { action: string; label: string; status: "running" | "done" | "error"; detail?: string }[];
   currentStepIndex?: number;
   reportContent?: string;
