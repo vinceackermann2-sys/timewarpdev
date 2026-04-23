@@ -208,6 +208,51 @@ export function SuperchargeDNAWizard({
     });
   }, []);
 
+  const body = (
+    <>
+      {step === 1 && null}
+    </>
+  );
+
+  const stepsContent = (
+    <>
+      {/* placeholder replaced below */}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="w-full">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Supercharge DNA</h1>
+          <p className="text-sm text-muted-foreground">
+            Step {step} of 3 - verified enrichment only (no made-up data).
+          </p>
+        </div>
+        <WizardSteps
+          step={step}
+          setStep={setStep}
+          nodeLayout={nodeLayout}
+          brandName={brandName}
+          logoUrl={logoUrl}
+          isConnected={isConnected}
+          connectingProvider={connectingProvider}
+          connectProvider={connectProvider}
+          urlInput={urlInput}
+          setUrlInput={setUrlInput}
+          urls={urls}
+          addUrl={addUrl}
+          artifacts={artifacts}
+          onFilesPicked={onFilesPicked}
+          logs={logs}
+          running={running}
+          runSupercharge={runSupercharge}
+          onClose={() => onCompleted?.()}
+        />
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={(next) => {
       setOpen(next);
@@ -216,7 +261,7 @@ export function SuperchargeDNAWizard({
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Filter className="h-4 w-4" />
-          Supercharge DNA
+          {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl w-[95vw]">
