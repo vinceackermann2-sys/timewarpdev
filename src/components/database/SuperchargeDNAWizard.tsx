@@ -219,7 +219,7 @@ export function SuperchargeDNAWizard({
         <DialogHeader>
           <DialogTitle>Supercharge DNA</DialogTitle>
           <DialogDescription>
-            Step {step} of 3 — verified enrichment only (no made-up data).
+            Step {step} of 3 - verified enrichment only (no made-up data).
           </DialogDescription>
         </DialogHeader>
 
@@ -277,7 +277,7 @@ export function SuperchargeDNAWizard({
                 <label className="text-sm font-medium">Upload files</label>
                 <Input type="file" multiple onChange={(e) => void onFilesPicked(e.target.files)} />
                 <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground space-y-1">
-                  {artifacts.map((a, i) => <div key={`${a.name}-${i}`}>• {a.name}</div>)}
+                  {artifacts.map((a, i) => <div key={`${a.name}-${i}`}>- {a.name}</div>)}
                   {artifacts.length === 0 && <div>No files yet</div>}
                 </div>
               </div>
@@ -288,7 +288,7 @@ export function SuperchargeDNAWizard({
                   <Button variant="outline" onClick={addUrl}><Link2 className="h-4 w-4" /></Button>
                 </div>
                 <div className="max-h-32 overflow-y-auto text-xs text-muted-foreground space-y-1">
-                  {urls.map((u) => <div key={u} className="truncate">• {u}</div>)}
+                  {urls.map((u) => <div key={u} className="truncate">- {u}</div>)}
                   {urls.length === 0 && <div>No URLs yet</div>}
                 </div>
               </div>
