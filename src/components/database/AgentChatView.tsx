@@ -1504,7 +1504,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                       )}
                       {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
                         <div className="flex items-center gap-3 py-2">
-                          <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold text-foreground/70" />
+                          <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold" />
                           {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} className="text-xs" />}
                         </div>
                       )}
