@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, Check, ExternalLink,
   Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users, Inbox,
-  Copy, EyeOff, RotateCcw,
+  Copy, EyeOff, RotateCcw, Plus, Trash2, Loader2,
 } from "lucide-react";
 import {
   SOURCE_META, TAB_FRAMING, inferTabKind, type DashboardCard, type TabKind,
@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 interface Props {
   card: DashboardCard | null;
@@ -828,60 +831,286 @@ function SourceNativeBlock({ card, tabKind }: { card: DashboardCard; tabKind: Ta
   );
 }
 
-/* ── Quick Notes section — autosaved to localStorage ── */
-function QuickNotes({ cardId }: { cardId: string }) {
-  const storageKey = `dash-note:${cardId}`;
-  const [value, setValue] = useState<string>("");
-  const [saved, setSaved] = useState(false);
-  const timer = useRef<number | null>(null);
-  const savedTimer = useRef<number | null>(null);
+/* ── Sticky Notes — collaborative, persisted, workspace-shared ── */
+type StickyNoteRow = {
+  id: string;
+  card_id: string;
+  user_id: string;
+  workspace_id: string | null;
+  author_email: string;
+  content: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+};
 
-  // Load on mount / card change
+const NOTE_PALETTE: Record<string, { bg: string; border: string; tab: string }> = {
+  yellow: { bg: "bg-[#FFF8C5]", border: "border-[#F1E58A]", tab: "bg-[#F4DC6B]" },
+  pink:   { bg: "bg-[#FFE4EC]", border: "border-[#F5BCCE]", tab: "bg-[#F19BB5]" },
+  blue:   { bg: "bg-[#E3F0FF]", border: "border-[#B7D4F4]", tab: "bg-[#8FB8E5]" },
+  green:  { bg: "bg-[#E6F7E1]", border: "border-[#BFE3B0]", tab: "bg-[#A3D58E]" },
+  purple: { bg: "bg-[#F0E7FA]", border: "border-[#D4BFEE]", tab: "bg-[#B596DA]" },
+};
+
+function noteColor(c: string) {
+  return NOTE_PALETTE[c] || NOTE_PALETTE.yellow;
+}
+
+function initialsFromEmail(email: string): string {
+  const local = (email || "").split("@")[0] || "?";
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return local.slice(0, 2).toUpperCase();
+}
+
+function relativeTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(ms / 1000);
+  if (s < 30) return "just now";
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function StickyNoteCard({
+  note,
+  isOwner,
+  onChange,
+  onDelete,
+}: {
+  note: StickyNoteRow;
+  isOwner: boolean;
+  onChange: (id: string, content: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const palette = noteColor(note.color);
+  const [draft, setDraft] = useState(note.content);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const debounceRef = useRef<number | null>(null);
+  const flashRef = useRef<number | null>(null);
+
+  // Sync external updates (e.g. realtime) into draft when not focused
   useEffect(() => {
-    try {
-      const v = localStorage.getItem(storageKey) || "";
-      setValue(v);
-    } catch { /* ignore */ }
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-      if (savedTimer.current) window.clearTimeout(savedTimer.current);
-    };
-  }, [storageKey]);
+    setDraft(note.content);
+  }, [note.id, note.content]);
 
-  const onChange = (v: string) => {
-    setValue(v);
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      try { localStorage.setItem(storageKey, v); } catch { /* ignore */ }
-      setSaved(true);
-      if (savedTimer.current) window.clearTimeout(savedTimer.current);
-      savedTimer.current = window.setTimeout(() => setSaved(false), 1500);
-    }, 600);
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      if (flashRef.current) window.clearTimeout(flashRef.current);
+    };
+  }, []);
+
+  const handleChange = (v: string) => {
+    setDraft(v);
+    if (!isOwner) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      onChange(note.id, v);
+      setSavedFlash(true);
+      if (flashRef.current) window.clearTimeout(flashRef.current);
+      flashRef.current = window.setTimeout(() => setSavedFlash(false), 1200);
+    }, 500);
   };
+
+  return (
+    <div
+      className={`relative rounded-md border ${palette.border} ${palette.bg} shadow-sm transition-shadow hover:shadow-md`}
+      style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.05), 0 4px 8px -4px rgba(0,0,0,0.08)" }}
+    >
+      {/* tape strip */}
+      <div className={`absolute -top-1.5 left-3 right-3 h-1.5 rounded-sm opacity-70 ${palette.tab}`} />
+      <div className="p-2.5">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="h-5 w-5 rounded-full bg-white/70 border border-white text-[9.5px] font-bold flex items-center justify-center text-foreground/80 shrink-0">
+              {initialsFromEmail(note.author_email)}
+            </div>
+            <span className="text-[10.5px] font-medium text-foreground/70 truncate" title={note.author_email}>
+              {note.author_email || "Unknown"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[9.5px] text-foreground/50">{relativeTime(note.updated_at)}</span>
+            {isOwner && (
+              <button
+                type="button"
+                aria-label="Delete note"
+                onClick={() => onDelete(note.id)}
+                className="h-5 w-5 rounded flex items-center justify-center text-foreground/50 hover:text-destructive hover:bg-white/50 transition-colors"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        </div>
+        <textarea
+          value={draft}
+          onChange={(e) => handleChange(e.target.value)}
+          readOnly={!isOwner}
+          placeholder={isOwner ? "Write your note…" : ""}
+          className={`w-full min-h-[56px] resize-none rounded-sm bg-transparent px-1 py-0.5 text-[12px] leading-snug text-foreground placeholder:text-foreground/40 focus:outline-none ${isOwner ? "" : "cursor-default"}`}
+          style={{ fontFamily: "'Caveat', 'Patrick Hand', cursive, system-ui", fontSize: "14px" }}
+        />
+        {isOwner && (
+          <div className="h-3 mt-0.5 flex justify-end">
+            <span className={`text-[9.5px] text-[hsl(142_62%_35%)] transition-opacity ${savedFlash ? "opacity-100" : "opacity-0"}`}>
+              ✓ saved
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StickyNotes({ cardId }: { cardId: string }) {
+  const { user } = useAuth();
+  const { activeWorkspaceId } = useWorkspace();
+  const [notes, setNotes] = useState<StickyNoteRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+
+  // Load notes for this card (own + workspace)
+  const loadNotes = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    let q = supabase
+      .from("dashboard_card_notes")
+      .select("*")
+      .eq("card_id", cardId);
+    if (activeWorkspaceId) {
+      q = q.or(`workspace_id.eq.${activeWorkspaceId},user_id.eq.${user.id}`);
+    } else {
+      q = q.eq("user_id", user.id);
+    }
+    const { data, error } = await q.order("created_at", { ascending: true });
+    if (!error && data) setNotes(data as StickyNoteRow[]);
+    setLoading(false);
+  }, [cardId, user, activeWorkspaceId]);
+
+  useEffect(() => {
+    void loadNotes();
+  }, [loadNotes]);
+
+  // Realtime sync so workspace members see new/edited/deleted notes live
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`card-notes-${cardId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "dashboard_card_notes", filter: `card_id=eq.${cardId}` },
+        () => { void loadNotes(); }
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [cardId, user, loadNotes]);
+
+  const addNote = useCallback(async () => {
+    if (!user) {
+      toast({ title: "Sign in to add notes" });
+      return;
+    }
+    setCreating(true);
+    const colors = Object.keys(NOTE_PALETTE);
+    const color = colors[notes.length % colors.length];
+    const { data, error } = await supabase
+      .from("dashboard_card_notes")
+      .insert({
+        card_id: cardId,
+        user_id: user.id,
+        workspace_id: activeWorkspaceId,
+        author_email: user.email || "",
+        content: "",
+        color,
+      })
+      .select("*")
+      .single();
+    setCreating(false);
+    if (error) {
+      toast({ title: "Couldn't add note", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (data) setNotes((n) => [...n, data as StickyNoteRow]);
+  }, [user, activeWorkspaceId, cardId, notes.length]);
+
+  const updateNote = useCallback(async (id: string, content: string) => {
+    setNotes((curr) => curr.map((n) => (n.id === id ? { ...n, content, updated_at: new Date().toISOString() } : n)));
+    const { error } = await supabase
+      .from("dashboard_card_notes")
+      .update({ content })
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Couldn't save note", description: error.message, variant: "destructive" });
+    }
+  }, []);
+
+  const deleteNote = useCallback(async (id: string) => {
+    setNotes((curr) => curr.filter((n) => n.id !== id));
+    const { error } = await supabase.from("dashboard_card_notes").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Couldn't delete note", description: error.message, variant: "destructive" });
+      void loadNotes();
+    }
+  }, [loadNotes]);
 
   return (
     <div className="shrink-0 px-6 pt-4 pb-3 shadow-xl bg-white">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+          <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Quick Note
+            Sticky Notes
           </span>
+          {notes.length > 0 && (
+            <span className="text-[10px] font-medium text-muted-foreground/70 px-1.5 py-0.5 rounded-full bg-muted/60">
+              {notes.length}
+            </span>
+          )}
         </div>
-        <span
-          className={`text-[10.5px] font-medium text-[hsl(142_62%_35%)] transition-opacity duration-300 ${
-            saved ? "opacity-100" : "opacity-0"
-          }`}
+        <button
+          type="button"
+          onClick={addNote}
+          disabled={creating || !user}
+          className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-foreground/70 hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors disabled:opacity-50"
         >
-          ✓ Saved
-        </span>
+          {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+          Add note
+        </button>
       </div>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Jot down thoughts, follow-ups, or context…"
-        className="w-full min-h-[60px] resize-none rounded-lg border border-border/60 px-3 py-2 text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors bg-white"
-      />
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-3 text-[11px] text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" /> Loading notes…
+        </div>
+      ) : notes.length === 0 ? (
+        <button
+          type="button"
+          onClick={addNote}
+          disabled={creating || !user}
+          className="w-full text-left rounded-md border border-dashed border-border/70 px-3 py-3 text-[11.5px] text-muted-foreground hover:bg-muted/40 hover:border-border transition-colors disabled:opacity-50"
+        >
+          No notes yet — click <span className="font-semibold">Add note</span> to leave one for {activeWorkspaceId ? "your workspace" : "yourself"}.
+        </button>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          {notes.map((n) => (
+            <StickyNoteCard
+              key={n.id}
+              note={n}
+              isOwner={!!user && n.user_id === user.id}
+              onChange={updateNote}
+              onDelete={deleteNote}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
