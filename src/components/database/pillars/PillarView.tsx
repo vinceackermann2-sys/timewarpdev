@@ -234,9 +234,24 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
               </div>
             </div>
             {brand && (
-              <div className="shrink-0 text-[11px] text-muted-foreground italic">
-                Click any field to edit
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditMode((v) => !v)}
+                className="shrink-0 gap-2 bg-[#eef2f7]"
+              >
+                {editMode ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Done
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </>
+                )}
+              </Button>
             )}
           </div>
 
