@@ -686,54 +686,133 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                     </div>
                   </div>
 
-                  {/* Plan cards */}
-                  <div className="grid grid-cols-3 gap-4">
-                    {(["co_founder", "aristotle", "timewarp_og"] as PlanKey[]).map((planKey) => {
-                      const isActive = currentPlan === planKey;
-                      const isBest = planKey === "aristotle";
-                      const label = planKey === "co_founder" ? "Co Founder" : planKey === "aristotle" ? "Aristotle" : "TimeWarp OG";
-                      const desc = planKey === "co_founder" ? "For early-stage founders" : planKey === "aristotle" ? "For growing businesses" : "Unlimited power";
-                      const price = prices[planKey];
-                      const suffix = planKey === "timewarp_og" ? " / 3mo" : " / mo";
-                      return (
-                        <div key={planKey} className={cn("relative rounded-xl border-2 p-5 flex flex-col", isActive ? "border-green-500" : isBest ? "border-primary" : "border-border/60")}>
-                          {isActive && (
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                              <Badge className="bg-green-500 text-white border-green-500 text-[10px]">Your Plan</Badge>
-                            </div>
-                          )}
-                          {!isActive && isBest && (
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                              <Badge className="bg-primary text-primary-foreground border-primary text-[10px]">Popular</Badge>
-                            </div>
-                          )}
-                          <h4 className="text-sm font-bold mt-2">{label}</h4>
-                          <p className="text-xs text-muted-foreground mb-3">{desc}</p>
-                          <div className="mb-4">
-                            <span className="text-2xl font-bold">${price}</span>
-                            <span className="text-xs text-muted-foreground">{suffix}</span>
-                          </div>
-                          <div className="space-y-2 flex-1 mb-4">
-                            {PLAN_FEATURES.map((f) => (
-                              <div key={f.name} className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">{f.name}</span>
-                                <FeatureValue value={f[planKey]} />
+                  {/* Plan cards — Free / Co Founder / Aristotle (mirrors /pricing) */}
+                  {(() => {
+                    const isFree = !currentPlan;
+                    const periodSuffix = billing === "monthly" ? "USD / mo\nbilled monthly"
+                      : billing === "quarterly" ? "USD / mo\nbilled quarterly"
+                      : "USD / mo\nbilled annually";
+                    type CardPlan = "free" | "co_founder" | "aristotle";
+                    const cards: Array<{
+                      key: CardPlan;
+                      title: string;
+                      price: string;
+                      suffix?: string;
+                      badge?: { label: string; tone: "popular" | "active" } | null;
+                      buttonLabel: string;
+                      buttonTone: "outline" | "dark" | "primary";
+                      onClick: () => void;
+                      loading?: boolean;
+                    }> = [
+                      {
+                        key: "free",
+                        title: "Free",
+                        price: "€0",
+                        badge: isFree ? { label: "Your Plan", tone: "active" } : null,
+                        buttonLabel: isFree ? "Current Plan" : "Downgrade",
+                        buttonTone: "outline",
+                        onClick: () => { if (!isFree) handleManageSubscription(); },
+                      },
+                      {
+                        key: "co_founder",
+                        title: "Co Founder",
+                        price: `$${prices.co_founder}`,
+                        suffix: periodSuffix,
+                        badge: currentPlan === "co_founder" ? { label: "Your Plan", tone: "active" } : null,
+                        buttonLabel: getPlanButtonLabel("co_founder"),
+                        buttonTone: "dark",
+                        onClick: () => handleGetStarted("co_founder"),
+                        loading: loadingPlan === "co_founder",
+                      },
+                      {
+                        key: "aristotle",
+                        title: "Aristotle",
+                        price: `$${prices.aristotle}`,
+                        suffix: periodSuffix,
+                        badge: currentPlan === "aristotle"
+                          ? { label: "Your Plan", tone: "active" }
+                          : { label: "Most Popular", tone: "popular" },
+                        buttonLabel: getPlanButtonLabel("aristotle"),
+                        buttonTone: "primary",
+                        onClick: () => handleGetStarted("aristotle"),
+                        loading: loadingPlan === "aristotle",
+                      },
+                    ];
+
+                    return (
+                      <div className="grid grid-cols-3 gap-4 items-stretch">
+                        {cards.map((card) => {
+                          const benefits = PLAN_BENEFITS[card.key];
+                          return (
+                            <div
+                              key={card.key}
+                              className="relative rounded-2xl border border-border bg-card p-5 flex flex-col shadow-sm"
+                            >
+                              {card.badge && (
+                                <div className="absolute top-4 right-4">
+                                  <Badge
+                                    className={cn(
+                                      "px-2.5 py-0.5 text-[10px] font-medium rounded-full",
+                                      card.badge.tone === "popular" && "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/10",
+                                      card.badge.tone === "active" && "bg-green-500/10 text-green-600 border border-green-500/20 hover:bg-green-500/10"
+                                    )}
+                                  >
+                                    {card.badge.label}
+                                  </Badge>
+                                </div>
+                              )}
+
+                              <h4 className="text-base font-bold">{card.title}</h4>
+                              <p className="text-xs text-muted-foreground mb-4 min-h-[32px]">{benefits.tagline}</p>
+
+                              <div className="mb-5 flex items-end gap-2">
+                                <span className="text-3xl font-bold tracking-tight leading-none">{card.price}</span>
+                                {card.suffix && (
+                                  <div className="text-[10px] text-muted-foreground leading-tight pb-0.5">
+                                    {card.suffix.split("\n").map((l, i) => <div key={i}>{l}</div>)}
+                                  </div>
+                                )}
                               </div>
-                            ))}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={isBest && !isActive ? "default" : "outline"}
-                            className="w-full text-xs"
-                            onClick={() => handleGetStarted(planKey)}
-                            disabled={loadingPlan === planKey}
-                          >
-                            {loadingPlan === planKey ? <Loader2 className="h-3 w-3 animate-spin" /> : getPlanButtonLabel(planKey)}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
+
+                              <Button
+                                size="sm"
+                                onClick={card.onClick}
+                                disabled={card.loading}
+                                className={cn(
+                                  "w-full text-xs h-9 rounded-full font-semibold mb-4",
+                                  card.buttonTone === "outline" && "bg-[#fcfcfd] text-foreground border border-border hover:bg-accent",
+                                  card.buttonTone === "dark" && "bg-foreground text-background hover:bg-foreground/90",
+                                  card.buttonTone === "primary" && "bg-primary text-primary-foreground hover:opacity-90"
+                                )}
+                                variant="default"
+                              >
+                                {card.loading ? <Loader2 className="h-3 w-3 animate-spin" /> : card.buttonLabel}
+                              </Button>
+
+                              <ul className="space-y-2 mt-auto">
+                                {benefits.bullets.map((bullet, i) => {
+                                  const isHeader = bullet.endsWith(":");
+                                  if (isHeader) {
+                                    return (
+                                      <li key={i} className="text-xs font-semibold text-foreground pt-0.5">
+                                        {bullet}
+                                      </li>
+                                    );
+                                  }
+                                  return (
+                                    <li key={i} className="flex items-start gap-2">
+                                      <Check className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" strokeWidth={2.5} />
+                                      <span className="text-xs text-foreground/80">{bullet}</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   {currentPlan && (
                     <div className="text-center">
