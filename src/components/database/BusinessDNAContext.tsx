@@ -149,6 +149,57 @@ async function loadEntities<T>(dataType: string, workspaceId?: string | null, se
   }).filter(Boolean) as T[];
 }
 
+/**
+ * PERFORMANCE: Lightweight brand list loader.
+ * Fetches only id, title, metadata (no `content`) — enough to render the breadcrumb
+ * dropdown and decide onboarding-vs-DNA. Avoids downloading multi-MB content blobs.
+ * Dedupes by logical brand id (metadata.brandId), keeping the most recent row per brand.
+ * The full content for the active brand is hydrated lazily via `refreshBrand`.
+ */
+async function loadBrandsLight(workspaceId?: string | null, session?: { user: { id: string } } | null): Promise<BrandEntry[]> {
+  if (!session) {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  }
+  if (!session?.user) return [];
+
+  let query = supabase
+    .from("user_business_data")
+    .select("id, title, metadata, created_at")
+    .eq("data_type", "brand")
+    .eq("source", "business-dna")
+    .order("created_at", { ascending: false });
+
+  if (workspaceId) {
+    query = query.eq("workspace_id", workspaceId);
+  } else {
+    query = query.eq("user_id", session.user.id);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  // Dedupe by logical brandId (metadata.brandId), keep most recent
+  const seen = new Set<string>();
+  const out: BrandEntry[] = [];
+  for (const row of data) {
+    const meta = (row.metadata as any) || {};
+    const logicalId: string = meta.brandId || row.id;
+    if (seen.has(logicalId)) continue;
+    seen.add(logicalId);
+    out.push({
+      id: logicalId,
+      name: row.title || "Untitled",
+      category: "",
+      lastUpdated: (row as any).created_at || new Date().toISOString(),
+      _rowId: row.id,
+      _light: true,
+    } as BrandEntry & { _rowId: string; _light: boolean });
+  }
+  return out;
+}
+
+
 async function saveEntity(dataType: string, entity: any, existingRowId?: string, workspaceId?: string | null) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return;
@@ -361,19 +412,18 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      // PHASE 1: Load brands first — this is the only data we need to decide
-      // between onboarding vs. DNA view. Flip isLoading off ASAP.
-      const b = await loadEntities<BrandEntry>("brand", activeWorkspaceId, session);
-      setBrandsState(b);
+      // PHASE 1: Lightweight brand list — no `content`, just enough for breadcrumb
+      // and onboarding-vs-DNA decision. This avoids downloading MB-sized blobs.
+      const brandsLight = await loadBrandsLight(activeWorkspaceId, session);
+      setBrandsState(brandsLight);
       try {
-        localStorage.setItem(brandCacheKey(activeWorkspaceId), JSON.stringify(b.map(compactBrandForCache)));
+        localStorage.setItem(brandCacheKey(activeWorkspaceId), JSON.stringify(brandsLight.map(compactBrandForCache)));
       } catch {}
-      setPrevBrands(b);
+      setPrevBrands(brandsLight);
       loadedWorkspaceRef.current = activeWorkspaceId;
       setIsLoading(false);
 
-      // PHASE 2: Load products + audiences in the background — these aren't
-      // gating the initial route decision and the UI can render without them.
+      // PHASE 2: Load products + audiences in the background
       const [p, a] = await Promise.all([
         loadEntities<ProductEntry>("product", activeWorkspaceId, session),
         loadEntities<AudienceEntry>("audience", activeWorkspaceId, session),
@@ -384,7 +434,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setPrevAudiences(a);
 
       // Orphan validation — log warnings for dangling references
-      const brandIds = new Set(b.map(br => br.id));
+      const brandIds = new Set(brandsLight.map(br => br.id));
       const productIds = new Set(p.map(pr => pr.id));
       const orphanProducts = p.filter(pr => pr.brandId && !brandIds.has(pr.brandId));
       const orphanAudiences = a.filter(au => au.productIds?.some(pid => !productIds.has(pid)));
@@ -398,7 +448,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     const wsId = localStorage.getItem("preferred_workspace_id") || activeWorkspaceId;
     const [b, p, a] = await Promise.all([
-      loadEntities<BrandEntry>("brand", wsId),
+      loadBrandsLight(wsId),
       loadEntities<ProductEntry>("product", wsId),
       loadEntities<AudienceEntry>("audience", wsId),
     ]);
@@ -582,7 +632,12 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     const removed = prevBrands.filter(pb => !brands.some(b => b.id === pb.id));
     const updated = brands.filter(b => {
       const prev = prevBrands.find(pb => pb.id === b.id);
-      return prev && JSON.stringify(prev) !== JSON.stringify(b);
+      if (!prev) return false;
+      // SAFETY: never resave brands that are still lightweight stubs.
+      // The full `content` hasn't been hydrated, so writing back would wipe
+      // visualIdentity / pillarOverrides / safetySettings etc.
+      if ((b as any)._light || (prev as any)._light) return false;
+      return JSON.stringify(prev) !== JSON.stringify(b);
     });
 
     added.forEach(b => { saveEntity("brand", b, undefined, activeWorkspaceId); dispatchDnaMutation(b.id); });
