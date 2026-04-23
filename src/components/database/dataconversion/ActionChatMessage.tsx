@@ -161,10 +161,11 @@ export function ActionChatMessage({ role, content, steps, documentLinks, isStrea
         <div className="h-8 w-8 flex-shrink-0 flex items-center justify-center">
           <Brain className={cn("h-5 w-5 text-foreground", isStreaming && "animate-pulse")} />
         </div>
-        <span className={cn(
-          "text-[10px] font-semibold text-muted-foreground uppercase tracking-widest",
-          isStreaming && !content && "shimmer-text"
-        )}>TimeWarp AI</span>
+        {isStreaming && !content ? (
+          <ProgressiveLoader text="Thinking" textClassName="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest" />
+        ) : (
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">TimeWarp AI</span>
+        )}
       </div>
       {/* Copy button */}
       {content && !isStreaming && (
