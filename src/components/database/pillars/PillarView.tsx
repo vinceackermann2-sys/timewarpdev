@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { Pencil } from "lucide-react";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { Button } from "@/components/ui/button";
 import { PILLAR_BY_ID } from "./pillarConstants";
 import { PillarFieldRenderer } from "./PillarFieldRenderer";
 import { buildPillarValues } from "./pillarDataMapper";
-import type { BrandEntry, ProductEntry, AudienceEntry } from "@/components/database/BusinessDNAContext";
+import { PillarEditDialog } from "./PillarEditDialog";
+import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
 
 interface PillarViewProps {
   pillarId: string;
@@ -30,11 +33,26 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
   const isNavigatingRef = useRef(false);
   const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeIdRef = useRef(activeItemId);
+  const [editOpen, setEditOpen] = useState(false);
+  const { setBrands } = useBusinessDNA();
 
-  // Inject real values into the pillar fields
+  const overrides = brand?.pillarOverrides?.[pillarId] || {};
+
+  // Raw structured values (pre-override) — used by the edit dialog so users see
+  // the AI-generated content as the editable baseline.
+  const baseValues = useMemo(() => {
+    if (!pillar) return {} as Record<string, any>;
+    return buildPillarValues(pillarId, { brand, products, audiences, extended: pillarData?.[pillarId] });
+  }, [pillar, pillarId, brand, products, audiences, pillarData]);
+
+  // Inject real values + apply user overrides into the pillar fields
   const populatedPillar = useMemo(() => {
     if (!pillar) return null;
-    const values = buildPillarValues(pillarId, { brand, products, audiences, extended: pillarData?.[pillarId] });
+    const values = buildPillarValues(pillarId, {
+      brand, products, audiences,
+      extended: pillarData?.[pillarId],
+      overrides,
+    });
     return {
       ...pillar,
       sections: pillar.sections.map((s) => ({
@@ -42,7 +60,23 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
         fields: s.fields.map((f) => (values[f.id] !== undefined ? { ...f, value: values[f.id] } : f)),
       })),
     };
-  }, [pillar, pillarId, brand, products, audiences, pillarData]);
+  }, [pillar, pillarId, brand, products, audiences, pillarData, overrides]);
+
+  const handleSaveOverrides = async (next: Record<string, string>) => {
+    if (!brand) return;
+    setBrands((prev) =>
+      prev.map((b) => {
+        if (b.id !== brand.id) return b;
+        const allOverrides = { ...(b.pillarOverrides || {}) };
+        if (Object.keys(next).length === 0) {
+          delete allOverrides[pillarId];
+        } else {
+          allOverrides[pillarId] = next;
+        }
+        return { ...b, pillarOverrides: allOverrides, lastUpdated: new Date().toISOString() };
+      }),
+    );
+  };
 
   useEffect(() => {
     activeIdRef.current = activeItemId;
