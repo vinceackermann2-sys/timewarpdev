@@ -68,6 +68,19 @@ serve(async (req) => {
 
     const { businessId, workspaceId, sentiment, note, assistantExcerpt, userContextSnippet } = parsed.data;
 
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(businessId)) {
+      // Synthetic / non-UUID brand id (e.g. "product-…"): accept silently as a no-op so the UI
+      // can still record positive UX without breaking on legacy local IDs.
+      edgeLog("assistant-insight-feedback", "skipped_non_uuid", {
+        user: userIdShort(user.id),
+        businessIdSample: businessId.slice(0, 24),
+      });
+      return new Response(JSON.stringify({ ok: true, skipped: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: brandRow, error: brandErr } = await supabase
       .from("user_business_data")
       .select("id")
