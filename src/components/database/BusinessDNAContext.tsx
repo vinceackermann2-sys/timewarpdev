@@ -149,6 +149,56 @@ async function loadEntities<T>(dataType: string, workspaceId?: string | null, se
   }).filter(Boolean) as T[];
 }
 
+/**
+ * PERFORMANCE: Lightweight brand list loader.
+ * Fetches only id, title, metadata (no `content`) — enough to render the breadcrumb
+ * dropdown and decide onboarding-vs-DNA. Avoids downloading multi-MB content blobs.
+ * Dedupes by logical brand id (metadata.brandId), keeping the most recent row per brand.
+ * The full content for the active brand is hydrated lazily via `refreshBrand`.
+ */
+async function loadBrandsLight(workspaceId?: string | null, session?: { user: { id: string } } | null): Promise<BrandEntry[]> {
+  if (!session) {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  }
+  if (!session?.user) return [];
+
+  let query = supabase
+    .from("user_business_data")
+    .select("id, title, metadata, created_at")
+    .eq("data_type", "brand")
+    .eq("source", "business-dna")
+    .order("created_at", { ascending: false });
+
+  if (workspaceId) {
+    query = query.eq("workspace_id", workspaceId);
+  } else {
+    query = query.eq("user_id", session.user.id);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return [];
+
+  // Dedupe by logical brandId (metadata.brandId), keep most recent
+  const seen = new Set<string>();
+  const out: BrandEntry[] = [];
+  for (const row of data) {
+    const meta = (row.metadata as any) || {};
+    const logicalId: string = meta.brandId || row.id;
+    if (seen.has(logicalId)) continue;
+    seen.add(logicalId);
+    out.push({
+      id: logicalId,
+      name: row.title || "Untitled",
+      category: "",
+      lastUpdated: (row as any).created_at || new Date().toISOString(),
+      _rowId: row.id,
+    } as BrandEntry & { _rowId: string });
+  }
+  return out;
+}
+
+
 async function saveEntity(dataType: string, entity: any, existingRowId?: string, workspaceId?: string | null) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return;
