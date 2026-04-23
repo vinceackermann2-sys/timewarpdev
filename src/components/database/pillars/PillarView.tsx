@@ -232,7 +232,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                 variant="outline"
                 size="sm"
                 onClick={() => setEditOpen(true)}
-                className="shrink-0 gap-2"
+                className="shrink-0 gap-2 bg-[#eef2f7]"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 Edit
