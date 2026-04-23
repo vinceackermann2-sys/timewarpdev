@@ -478,7 +478,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               </h2>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-8 py-4">
+            <div className="flex-1 overflow-y-auto px-8 py-4 bg-[#fcfcfd]">
               {/* ── SETTINGS TAB ── */}
               {activeTab === "settings" && (
                 <div className="space-y-8 max-w-xl">
