@@ -39,13 +39,17 @@ export function SuperchargeDNAWizard({
   brandName,
   logoUrl,
   onCompleted,
+  embedded = false,
+  triggerLabel = "Supercharge DNA",
 }: {
   brandId: string;
   brandName?: string;
   logoUrl?: string;
   onCompleted?: () => void;
+  embedded?: boolean;
+  triggerLabel?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [step, setStep] = useState<SuperchargeStep>(1);
   const [connected, setConnected] = useState<ConnectedProvider[]>([]);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
