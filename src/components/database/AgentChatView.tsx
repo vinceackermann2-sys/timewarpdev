@@ -363,6 +363,26 @@ export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageC
     } catch (e) { console.warn("Failed to save chat session:", e); }
   }, [user, activeWorkspaceId, selectedAgent, sessionMemory]);
 
+  // Capture final elapsed seconds when a streaming message finishes — this snapshot is
+  // persisted with the chat session so the timer remains stable when the user revisits later.
+  useEffect(() => {
+    setMessages(prev => {
+      let changed = false;
+      const next = prev.map(m => {
+        if (!m.isStreaming && m.streamStartTime && typeof m.elapsedSeconds !== "number") {
+          const diff = Math.max(0, Math.floor((Date.now() - m.streamStartTime) / 1000));
+          // Sanity guard for very old loaded sessions: ignore implausible values.
+          if (diff <= 60 * 60 * 24) {
+            changed = true;
+            return { ...m, elapsedSeconds: diff };
+          }
+        }
+        return m;
+      });
+      return changed ? next : prev;
+    });
+  }, [messages]);
+
   // Debounced save when messages change
   useEffect(() => {
     if (messages.length === 0) return;
@@ -1447,6 +1467,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           currentStepIndex={msg.currentStepIndex ?? -1}
                           isStreaming={msg.isStreaming}
                           startTime={msg.streamStartTime}
+                          frozenElapsed={msg.elapsedSeconds}
                         />
                       )}
                       {/* Main content */}
@@ -1505,7 +1526,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                       {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
                         <div className="flex items-center gap-3 py-2">
                           <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold" />
-                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} className="text-xs" />}
+                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} frozenElapsed={msg.elapsedSeconds} className="text-xs" />}
                         </div>
                       )}
                       {msg.isStreaming && msg.content && displayTaskSteps.length === 0 && (

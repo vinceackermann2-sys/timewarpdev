@@ -51,6 +51,8 @@ interface Props {
   currentStepIndex: number;
   isStreaming?: boolean;
   startTime?: number;
+  /** Final elapsed seconds, set once streaming finishes — used so the timer is stable across reloads. */
+  frozenElapsed?: number;
 }
 
 /* ── Lucide icon map for step labels ── */
@@ -122,6 +124,7 @@ interface Section {
   steps: { label: string; status: TaskStep["status"]; count: number; detail?: string }[];
   startTime: number;
   isDone: boolean;
+  frozenElapsed?: number;
 }
 
 function buildSections(steps: TaskStep[], globalStartTime: number): Section[] {
@@ -185,7 +188,7 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
             </span>
           )}
           <span className="text-[11px] opacity-40">·</span>
-          <ThinkingTimer startTime={section.startTime} stopped={sectionDone} className="text-[11px] opacity-50" />
+          <ThinkingTimer startTime={section.startTime} stopped={sectionDone} frozenElapsed={section.frozenElapsed} className="text-[11px] opacity-50" />
         </div>
         <ChevronUp className={cn(
           "w-3.5 h-3.5 text-muted-foreground/30 transition-transform duration-200",
@@ -260,13 +263,13 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
 }
 
 /* ── Main Component ── */
-export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming, startTime }: Props) {
+export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming, startTime, frozenElapsed }: Props) {
   const [fallbackStartTime] = useState(() => startTime ?? Date.now());
   const effectiveStartTime = startTime ?? fallbackStartTime;
 
   if (steps.length === 0) return null;
 
-  const sections = buildSections(steps, effectiveStartTime);
+  const sections = buildSections(steps, effectiveStartTime).map(s => ({ ...s, frozenElapsed }));
 
   return (
     <div className="mb-4">
