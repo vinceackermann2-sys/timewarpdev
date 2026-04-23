@@ -76,6 +76,8 @@ export interface BrandEntry {
   agentName?: string;
   safetySettings?: SafetySettings;
   businessType?: string;
+  /** Per-pillar manual edits: pillarOverrides[pillarId][fieldId] = "user text" */
+  pillarOverrides?: Record<string, Record<string, string>>;
 }
 
 export interface ProductEntry extends ProductData {
