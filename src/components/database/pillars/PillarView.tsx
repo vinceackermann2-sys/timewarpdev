@@ -195,7 +195,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
         {/* Main column */}
         <div className="flex-1 min-w-0 w-full">
           {/* Pillar Header — business logo + name + agent line */}
-          <div className="flex items-start justify-between mb-10 pb-8 border-b border-border">
+          <div className="flex items-start justify-between mb-10 pb-8 border-b border-border gap-4">
             <div className="flex items-start gap-5">
               <div className="w-20 h-20 rounded-[20px] bg-card border border-border flex items-center justify-center shadow-md shrink-0 overflow-hidden p-2">
                 {logoUrl ? (
@@ -227,6 +227,17 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                 </div>
               </div>
             </div>
+            {brand && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditOpen(true)}
+                className="shrink-0 gap-2"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </Button>
+            )}
           </div>
 
           {/* Document flow */}
