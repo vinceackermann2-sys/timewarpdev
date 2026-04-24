@@ -625,14 +625,20 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Sync brands to DB
+  // Sync brands to DB.
+  // PERF: Use Map lookups (O(1)) instead of nested .find/.some (O(N²)).
+  // Skip stringify diff when object reference is identical (no real change).
   useEffect(() => {
     if (isLoading) return;
-    const added = brands.filter(b => !prevBrands.some(pb => pb.id === b.id));
-    const removed = prevBrands.filter(pb => !brands.some(b => b.id === pb.id));
+    const prevById = new Map(prevBrands.map(pb => [pb.id, pb] as const));
+    const currById = new Map(brands.map(b => [b.id, b] as const));
+
+    const added = brands.filter(b => !prevById.has(b.id));
+    const removed = prevBrands.filter(pb => !currById.has(pb.id));
     const updated = brands.filter(b => {
-      const prev = prevBrands.find(pb => pb.id === b.id);
+      const prev = prevById.get(b.id);
       if (!prev) return false;
+      if (prev === b) return false; // identical reference → no diff
       // SAFETY: never resave brands that are still lightweight stubs.
       // The full `content` hasn't been hydrated, so writing back would wipe
       // visualIdentity / pillarOverrides / safetySettings etc.
@@ -650,11 +656,15 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   // Sync products to DB
   useEffect(() => {
     if (isLoading) return;
-    const added = products.filter(p => !prevProducts.some(pp => pp.id === p.id));
-    const removed = prevProducts.filter(pp => !products.some(p => p.id === pp.id));
+    const prevById = new Map(prevProducts.map(pp => [pp.id, pp] as const));
+    const currById = new Map(products.map(p => [p.id, p] as const));
+
+    const added = products.filter(p => !prevById.has(p.id));
+    const removed = prevProducts.filter(pp => !currById.has(pp.id));
     const updated = products.filter(p => {
-      const prev = prevProducts.find(pp => pp.id === p.id);
-      return prev && JSON.stringify(prev) !== JSON.stringify(p);
+      const prev = prevById.get(p.id);
+      if (!prev || prev === p) return false;
+      return JSON.stringify(prev) !== JSON.stringify(p);
     });
 
     added.forEach(p => { saveEntity("product", p, undefined, activeWorkspaceId); dispatchDnaMutation(p.brandId); });
@@ -667,11 +677,15 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   // Sync audiences to DB
   useEffect(() => {
     if (isLoading) return;
-    const added = audiences.filter(a => !prevAudiences.some(pa => pa.id === a.id));
-    const removed = prevAudiences.filter(pa => !audiences.some(a => a.id === pa.id));
+    const prevById = new Map(prevAudiences.map(pa => [pa.id, pa] as const));
+    const currById = new Map(audiences.map(a => [a.id, a] as const));
+
+    const added = audiences.filter(a => !prevById.has(a.id));
+    const removed = prevAudiences.filter(pa => !currById.has(pa.id));
     const updated = audiences.filter(a => {
-      const prev = prevAudiences.find(pa => pa.id === a.id);
-      return prev && JSON.stringify(prev) !== JSON.stringify(a);
+      const prev = prevById.get(a.id);
+      if (!prev || prev === a) return false;
+      return JSON.stringify(prev) !== JSON.stringify(a);
     });
 
     added.forEach(a => { saveEntity("audience", a, undefined, activeWorkspaceId); dispatchDnaMutation(a.brandId); });

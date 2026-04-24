@@ -18,22 +18,34 @@ export async function triggerDnaReEnrich(brandId?: string): Promise<void> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    // Resolve brand row id from logical brand id (content.id may equal brandId).
-    const { data: rows } = await (supabase as any)
+    // PERF: Resolve via metadata->>brandId first (no content download).
+    // Fall back to scanning content only if no metadata match exists (legacy rows).
+    const { data: metaRows } = await (supabase as any)
       .from("user_business_data")
-      .select("id, content, metadata")
+      .select("id")
       .eq("user_id", session.user.id)
       .eq("data_type", "brand")
-      .limit(50);
+      .eq("metadata->>brandId", brandId)
+      .limit(1);
 
-    let brandRowId: string | null = null;
-    for (const r of rows || []) {
-      if (r.id === brandId) { brandRowId = r.id; break; }
-      try {
-        const c = typeof r.content === "string" ? JSON.parse(r.content) : r.content;
-        if (c?.id === brandId) { brandRowId = r.id; break; }
-      } catch { /* ignore */ }
-      if (r.metadata?.brandId === brandId) { brandRowId = r.id; break; }
+    let brandRowId: string | null = metaRows?.[0]?.id ?? null;
+
+    if (!brandRowId) {
+      // Legacy fallback: brand rows without metadata.brandId
+      const { data: rows } = await (supabase as any)
+        .from("user_business_data")
+        .select("id, content")
+        .eq("user_id", session.user.id)
+        .eq("data_type", "brand")
+        .limit(50);
+
+      for (const r of rows || []) {
+        if (r.id === brandId) { brandRowId = r.id; break; }
+        try {
+          const c = typeof r.content === "string" ? JSON.parse(r.content) : r.content;
+          if (c?.id === brandId) { brandRowId = r.id; break; }
+        } catch { /* ignore */ }
+      }
     }
     if (!brandRowId) return;
 
