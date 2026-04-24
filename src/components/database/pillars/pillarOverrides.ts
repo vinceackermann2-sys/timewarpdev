@@ -40,10 +40,13 @@ export function serializeFieldToText(field: PillarField, value: any): string {
       if (Array.isArray(value)) {
         return value
           .map((tier: any) =>
-            joinLines([
-              `${tier.name || "Tier"}: ${tier.price || ""}${tier.recommended ? " [recommended]" : ""}`.trim(),
-              ...((Array.isArray(tier.features) ? tier.features : []).map((feature: string) => `- ${feature}`)),
-            ])
+            [
+              `${tier.name || "Tier"}: ${tier.price || ""}${tier.recommended ? " [recommended]" : ""}`,
+              ...((Array.isArray(tier.features) && tier.features.length
+                ? tier.features
+                : [""]
+              ).map((feature: string) => `- ${feature}`)),
+            ].join("\n")
           )
           .join("\n\n");
       }
@@ -53,12 +56,12 @@ export function serializeFieldToText(field: PillarField, value: any): string {
       if (Array.isArray(value)) {
         return value
           .map((persona: any) =>
-            joinLines([
-              `${persona.name || "Persona"}${persona.role ? ` — ${persona.role}` : ""}`,
-              persona.quote ? `Quote: ${persona.quote}` : null,
-              Array.isArray(persona.goals) && persona.goals.length ? `Goals: ${persona.goals.join(", ")}` : null,
-              Array.isArray(persona.fears) && persona.fears.length ? `Fears: ${persona.fears.join(", ")}` : null,
-            ])
+            [
+              `${persona.name || "Persona"} — ${persona.role || ""}`,
+              `Quote: ${persona.quote || ""}`,
+              `Goals: ${(Array.isArray(persona.goals) ? persona.goals : []).join(", ")}`,
+              `Fears: ${(Array.isArray(persona.fears) ? persona.fears : []).join(", ")}`,
+            ].join("\n")
           )
           .join("\n\n");
       }
@@ -69,8 +72,8 @@ export function serializeFieldToText(field: PillarField, value: any): string {
         return value
           .map((kpi: any) => {
             const name = kpi.label || kpi.name || "Metric";
-            const meta = [kpi.trend, kpi.status].filter(Boolean).join(", ");
-            return `${name}: ${kpi.value || ""}${meta ? ` (${meta})` : ""}${kpi.context ? ` — ${kpi.context}` : ""}`.trim();
+            const meta = [kpi.trend || "", kpi.status || ""].join(", ");
+            return `${name}: ${kpi.value || ""} (${meta}) — ${kpi.context || ""}`;
           })
           .join("\n");
       }
@@ -87,7 +90,7 @@ export function serializeFieldToText(field: PillarField, value: any): string {
     case "funnel":
       if (Array.isArray(value)) {
         return value
-          .map((stage: any) => `${stage.stage || "Stage"}: ${stage.volume || ""}${stage.rate ? ` (${stage.rate})` : ""}`.trim())
+          .map((stage: any) => `${stage.stage || "Stage"}: ${stage.volume || ""} (${stage.rate || ""})`)
           .join("\n");
       }
       break;
@@ -95,23 +98,23 @@ export function serializeFieldToText(field: PillarField, value: any): string {
     case "timeline":
       if (Array.isArray(value)) {
         return value
-          .map((item: any) => `${item.date || ""} — ${item.title || ""}${item.desc ? `: ${item.desc}` : ""}`.trim())
+          .map((item: any) => `${item.date || ""} — ${item.title || ""}: ${item.desc || ""}`)
           .join("\n");
       }
       break;
 
     case "2x2-grid":
       if (value && typeof value === "object") {
-        return joinLines([
-          value.xLabel ? `X Axis: ${value.xLabel}` : null,
-          value.yLabel ? `Y Axis: ${value.yLabel}` : null,
+        return [
+          `X Axis: ${value.xLabel || ""}`,
+          `Y Axis: ${value.yLabel || ""}`,
           ...(Array.isArray(value.points)
             ? value.points.map(
                 (point: any) =>
                   `${point.name || "Point"}: x=${point.x ?? 50}, y=${point.y ?? 50}${point.isUs ? " [us]" : ""}`,
               )
             : []),
-        ]);
+        ].join("\n");
       }
       break;
 
@@ -119,7 +122,9 @@ export function serializeFieldToText(field: PillarField, value: any): string {
       const walk = (node: any, depth = 0): string[] => {
         if (!node || typeof node !== "object") return [];
         return [
-          `${"  ".repeat(depth)}- ${node.role || "Role"}${node.name ? `: ${node.name}` : ""}`,
+          // Always emit `: <name>` (empty after the colon when missing) so users
+          // can fill in the name directly in the textarea without re-formatting.
+          `${"  ".repeat(depth)}- ${node.role || "Role"}: ${node.name || ""}`,
           ...((Array.isArray(node.children) ? node.children : []).flatMap((child: any) => walk(child, depth + 1))),
         ];
       };
@@ -261,7 +266,7 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
           const header = block[0] || "";
           const recommended = /\[(recommended|featured|popular)\]/i.test(header);
           const headerClean = header.replace(/\s*\[(recommended|featured|popular)\]\s*/i, "").trim();
-          const m = headerClean.match(/^(.+?)\s*[:\-—]\s*(.+)$/);
+          const m = headerClean.match(/^(.+?)\s*[:\-—]\s*(.*)$/);
           const name = (m ? m[1] : headerClean).trim();
           const price = (m ? m[2] : "").trim();
           const features = block
@@ -307,14 +312,14 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
     case "kpi-grid": {
       const items = lines
         .map((line) => {
-          const m = line.match(/^(.+?)\s*[:\-—]\s*(.+?)(?:\s*\(([^)]*)\))?(?:\s+[—\-]\s+(.+))?$/);
+          const m = line.match(/^(.+?)\s*[:\-—]\s*([^()—-]*?)(?:\s*\(([^)]*)\))?(?:\s+[—\-]\s+(.*))?$/);
           if (!m) return null;
           const meta = (m[3] || "").split(/\s*[,;|]\s*/).filter(Boolean);
           const trend = meta[0] || "";
           const status = (meta[1] || (/good|up|positive/i.test(trend) ? "good" : "warning")).toLowerCase();
           return {
             label: m[1].trim(),
-            value: m[2].trim(),
+            value: (m[2] || "").trim(),
             trend,
             status,
             context: m[4]?.trim() || "",
@@ -341,11 +346,11 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
     case "funnel": {
       const stages = lines
         .map((line, index) => {
-          const m = line.match(/^(.+?)\s*[:\-—]\s*(.+?)(?:\s*\(([^)]*)\))?$/);
+          const m = line.match(/^(.+?)\s*[:\-—]\s*([^()]*?)(?:\s*\(([^)]*)\))?$/);
           if (!m) return null;
           return {
             stage: m[1].trim(),
-            volume: m[2].trim(),
+            volume: (m[2] || "").trim(),
             rate: m[3]?.trim() || "",
             color: funnelPalette[index % funnelPalette.length],
           };
@@ -357,9 +362,12 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
     case "timeline": {
       const items = lines
         .map((line) => {
-          const m = line.match(/^(.+?)\s+[—-]\s+(.+?)(?::\s*(.+))?$/);
+          const m = line.match(/^(.*?)\s+[—-]\s+(.*?)(?::\s*(.*))?$/);
           if (!m) return null;
-          return { date: m[1].trim(), title: m[2].trim(), desc: m[3]?.trim() || "" };
+          const date = m[1].trim();
+          const title = m[2].trim();
+          if (!date && !title) return null;
+          return { date, title, desc: m[3]?.trim() || "" };
         })
         .filter(Boolean);
       return items.length ? items : null;
