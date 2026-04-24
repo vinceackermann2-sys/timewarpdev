@@ -216,6 +216,7 @@ const Database = () => {
   const [purchasedActions, setPurchasedActions] = useState(0);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>("Briefing");
   const [dnaPillar, setDnaPillar] = useState<DnaPillar>("brand");
+  const [onboardingLocked, setOnboardingLocked] = useState(false);
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
