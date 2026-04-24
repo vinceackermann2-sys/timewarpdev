@@ -59,17 +59,23 @@ function EmptyState({ label }: { label: string }) {
 }
 
 export function PillarFieldRenderer({ field }: { field: PillarField }) {
-  if (isEmpty(field)) {
-    return <EmptyState label={field.name.replace(/^\d+\.\s*/, "").toLowerCase()} />;
-  }
-
-  // Manual user override → render as plain long-text regardless of field.type
+  // Manual user override → try to parse the edited text back into the
+  // structured shape so visuals (colors, typography, gallery, table, …)
+  // keep rendering. Falls back to plain long-text only when parsing fails.
   if (isOverrideValue(field.value)) {
+    const parsed = parseTextToFieldValue(field, field.value.__override);
+    if (parsed != null) {
+      return <PillarFieldRenderer field={{ ...field, value: parsed }} />;
+    }
     return (
       <div className="text-sm text-foreground leading-relaxed whitespace-pre-line">
         {field.value.__override}
       </div>
     );
+  }
+
+  if (isEmpty(field)) {
+    return <EmptyState label={field.name.replace(/^\d+\.\s*/, "").toLowerCase()} />;
   }
 
   switch (field.type) {
