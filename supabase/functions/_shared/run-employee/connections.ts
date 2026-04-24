@@ -1068,6 +1068,29 @@ export async function searchConnectedProviders(
     })());
   }
 
+  if (connectedProviders.includes("stripe") && isAllowed("stripe")) {
+    searchPromises.push((async () => {
+      try {
+        const token = await getValidProviderToken(supabase, userId, "stripe");
+        if (!token) {
+          skippedProviderDetails.push({ provider: "stripe", reason: "token expired or missing" });
+          return;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("stripe", t), status: "running", action: "connections" });
+        searchedProviders.push("stripe");
+        const results = await searchStripeData(token, effectiveQuery, searchTopicForApis);
+        if (results.length > 0) {
+          connectionContext += `\n\n### Live Data from Stripe\n${results.join("\n\n")}\n`;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("stripe", t), status: "done", action: "connections" });
+      } catch (e) {
+        console.error("[connections] Stripe search failed:", e);
+        skippedProviderDetails.push({ provider: "stripe", reason: "search failed" });
+        emitProgress?.({ label: getProviderSearchLabel("stripe", t), status: "error", action: "connections" });
+      }
+    })());
+  }
+
   await Promise.all(searchPromises);
   emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: decision.reason });
 
