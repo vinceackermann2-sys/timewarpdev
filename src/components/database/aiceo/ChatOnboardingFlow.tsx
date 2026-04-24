@@ -88,6 +88,7 @@ type Phase =
   | "products"     // user picking products
   | "forging"      // scrape-product core + save-onboarding running
   | "naming"       // user choosing agent name
+  | "supercharge"  // ask user whether to supercharge DNA with integrations/files
   | "done";        // navigating away
 
 interface ChatOnboardingFlowProps {
