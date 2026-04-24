@@ -709,7 +709,7 @@ export function SuperchargeDNAWizard({
 
   if (embedded) {
     return (
-      <div className="flex flex-col h-[calc(100vh-3rem)] w-full">
+      <div className="flex flex-col h-full w-full">
         {/* Top progress bar */}
         <div className="shrink-0 backdrop-blur border-b border-border bg-[#fcfcfd]">
           <div className="max-w-5xl mx-auto w-full px-6 py-3">
