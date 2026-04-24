@@ -551,7 +551,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed, forceOnboarding, o
     return (
       <ChatOnboardingFlow
         initialUrl={onboardingInitialUrl}
-        onComplete={(name, brandId) => onOnboardingComplete?.(name, brandId)}
+        onComplete={(name, brandId, supercharge) => onOnboardingComplete?.(name, brandId, supercharge)}
       />
     );
   }
