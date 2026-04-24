@@ -351,45 +351,47 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                   </p>
                 </div>
               </div>
-              {p.quote && (
-                <blockquote className="text-[13px] italic text-muted-foreground mb-4 border-l-2 border-primary/30 pl-3">
-                  "{p.quote}"
-                </blockquote>
-              )}
-              {p.goals?.length > 0 && (
-                <div className="mb-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    Goals
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {p.goals.map((g: string, idx: number) => (
+              <blockquote className="text-[13px] italic text-muted-foreground mb-4 border-l-2 border-primary/30 pl-3">
+                {p.quote ? `"${p.quote}"` : <span className="text-muted-foreground/50">"— add a quote —"</span>}
+              </blockquote>
+              <div className="mb-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Goals
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.goals?.length > 0 ? (
+                    p.goals.map((g: string, idx: number) => (
                       <span
                         key={idx}
                         className="bg-emerald-50 text-emerald-700 text-[11px] px-2 py-0.5 rounded-md"
                       >
                         {g}
                       </span>
-                    ))}
-                  </div>
+                    ))
+                  ) : (
+                    <span className="text-[11px] italic text-muted-foreground/50">— add goals —</span>
+                  )}
                 </div>
-              )}
-              {p.fears?.length > 0 && (
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    Fears
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {p.fears.map((fr: string, idx: number) => (
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Fears
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.fears?.length > 0 ? (
+                    p.fears.map((fr: string, idx: number) => (
                       <span
                         key={idx}
                         className="bg-sky-50 text-sky-700 text-[11px] px-2 py-0.5 rounded-md"
                       >
                         {fr}
                       </span>
-                    ))}
-                  </div>
+                    ))
+                  ) : (
+                    <span className="text-[11px] italic text-muted-foreground/50">— add fears —</span>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
