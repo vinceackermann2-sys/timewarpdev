@@ -752,7 +752,39 @@ async function fetchHubSpotData(accessToken: string): Promise<any> {
     ownerMap[o.id] = `${o.firstName || ""} ${o.lastName || ""}`.trim() || o.email || o.id;
   }
 
-  return { contacts, companies, deals, emails, notes, tasks, owners, ownerMap };
+}
+
+async function fetchStripeData(accessToken: string): Promise<any> {
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const sinceTs = Math.floor((Date.now() - 90 * 24 * 60 * 60 * 1000) / 1000);
+
+  const safeJson = async (url: string) => {
+    try {
+      const r = await fetch(url, { headers });
+      if (!r.ok) return { data: [] };
+      return await r.json();
+    } catch { return { data: [] }; }
+  };
+
+  const [account, customers, products, prices, subs, charges, invoices] = await Promise.all([
+    safeJson("https://api.stripe.com/v1/account"),
+    safeJson(`https://api.stripe.com/v1/customers?limit=100`),
+    safeJson(`https://api.stripe.com/v1/products?limit=100&active=true`),
+    safeJson(`https://api.stripe.com/v1/prices?limit=100&active=true`),
+    safeJson(`https://api.stripe.com/v1/subscriptions?limit=100&status=all`),
+    safeJson(`https://api.stripe.com/v1/charges?limit=100&created[gte]=${sinceTs}`),
+    safeJson(`https://api.stripe.com/v1/invoices?limit=100&created[gte]=${sinceTs}`),
+  ]);
+
+  return {
+    account: account?.id ? account : null,
+    customers: customers.data || [],
+    products: products.data || [],
+    prices: prices.data || [],
+    subscriptions: subs.data || [],
+    charges: charges.data || [],
+    invoices: invoices.data || [],
+  };
 }
 
 async function fetchWordPressData(siteUrl: string, basicAuth: string): Promise<any> {
