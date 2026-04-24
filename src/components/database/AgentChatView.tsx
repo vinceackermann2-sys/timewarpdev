@@ -474,13 +474,13 @@ export function AgentChatView({
   const resolvedBrandId = activeBrandId || activeBrandForConnections?.id || null;
 
   const fetchResumableTask = useCallback(async () => {
-    if (!user || isSending) return;
+    if (!user || isSending || document.visibilityState !== "visible") return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       let res: Response | null = null;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/long-task-status`, {
           method: "POST",
           headers: {
@@ -495,7 +495,7 @@ export function AgentChatView({
           break;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
 
       if (!res?.ok) return;
@@ -520,11 +520,29 @@ export function AgentChatView({
 
   useEffect(() => {
     if (!user) return;
-    void fetchResumableTask();
-    const t = setInterval(() => {
+
+    let cancelled = false;
+    const scheduleFetch = () => {
+      if (cancelled) return;
       void fetchResumableTask();
-    }, 8000);
-    return () => clearInterval(t);
+    };
+
+    scheduleFetch();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        scheduleFetch();
+      }
+    };
+
+    const t = window.setInterval(scheduleFetch, 15000);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [user, fetchResumableTask]);
 
   const logPlanLearningEvent = useCallback(async (eventType: "opened" | "completed", metadata?: Record<string, unknown>) => {
