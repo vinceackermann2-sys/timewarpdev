@@ -11,6 +11,7 @@ const CONNECTION_TRIGGER_PATTERNS = [
   /\b(calendar|schedule|event|appointment|invite|gcal)s?\b/i,
   /\b(customer|client|contact|deal|lead|crm|hubspot)s?\b.{0,40}\b(said|wrote|asked|mentioned|replied|responded|deal|stage|pipeline|value)s?\b/i,
   /\b(hubspot|crm)\b/i,
+  /\b(stripe|payment|charge|invoice|mrr|arr|revenue|payout|refund|subscriber|subscription|checkout)s?\b/i,
   /\b(recent|latest|new|incoming|pending|unread|last)\b.{0,30}\b(email|mail|message|file|document|doc|sheet|drive|onedrive|gmail|slack|meeting|event|note|page|ticket|deal|lead|contact|presentation|slide)s?\b/i,
   /\b(my|our|the)\s+(last|latest|recent)\s+\d*\s*(email|mail|message|file|document|doc|sheet|drive|onedrive|gmail|slack|meeting|event|note|page|ticket|deal|lead|contact|presentation|slide)s?\b/i,
   /\b(check|search|find|look\s+up|pull|show|list|get)\s+(me\s+)?(my|our|the)?\s*(email|slack|message|file|document|doc|sheet|drive|gmail|hubspot|crm|note|page|meeting|event|deal|lead|contact|presentation|slide)s?\b/i,
