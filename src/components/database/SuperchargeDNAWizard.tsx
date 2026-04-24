@@ -711,7 +711,7 @@ export function SuperchargeDNAWizard({
     return (
       <div className="flex flex-col h-[calc(100vh-3rem)] w-full">
         {/* Top progress bar */}
-        <div className="shrink-0 bg-background/95 backdrop-blur border-b border-border">
+        <div className="shrink-0 backdrop-blur border-b border-border bg-[#fcfcfd]">
           <div className="max-w-5xl mx-auto w-full px-6 py-3">
             {TopProgressBar}
           </div>
@@ -727,8 +727,8 @@ export function SuperchargeDNAWizard({
         </div>
 
         {/* Sticky bottom continue bar */}
-        <div className="shrink-0 bg-background/95 backdrop-blur border-t border-border">
-          <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center gap-3">
+        <div className="shrink-0 backdrop-blur border-t border-border bg-[#fcfcfd]">
+          <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center gap-3 bg-[#fcfcfd]">
             {FooterActions}
           </div>
         </div>
