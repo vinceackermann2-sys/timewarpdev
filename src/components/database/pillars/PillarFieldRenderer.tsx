@@ -435,7 +435,9 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
           {(field.value as any[]).map((stage, i) => (
             <div key={i} className="flex items-center gap-4">
               <div className="w-32 text-left shrink-0">
-                <div className="text-[13px] font-bold text-foreground">{stage.stage}</div>
+                <div className="text-[13px] font-bold text-foreground">
+                  {stage.stage || <span className="italic font-normal text-muted-foreground/50">— stage —</span>}
+                </div>
               </div>
               <div className="flex-1 h-12 relative flex items-center">
                 <div
@@ -446,13 +448,13 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                   }}
                 >
                   <span className="text-white font-bold text-[13px] whitespace-nowrap">
-                    {stage.volume}
+                    {stage.volume || <span className="italic font-normal opacity-70">— volume —</span>}
                   </span>
                 </div>
               </div>
               <div className="w-16 shrink-0">
                 <span className="text-xs font-black text-muted-foreground">
-                  {stage.rate}
+                  {stage.rate || <span className="italic font-normal text-muted-foreground/50">— rate —</span>}
                 </span>
               </div>
             </div>
