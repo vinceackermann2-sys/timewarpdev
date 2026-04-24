@@ -478,16 +478,27 @@ export function AgentChatView({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/long-task-status`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) return;
+
+      let res: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/long-task-status`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({}),
+        });
+
+        if (res.ok || ![502, 503, 504].includes(res.status)) {
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+      }
+
+      if (!res?.ok) return;
       const data = await res.json().catch(() => ({}));
       const run = data?.run;
       if (!run || !["queued", "in_progress"].includes(run.status)) {
