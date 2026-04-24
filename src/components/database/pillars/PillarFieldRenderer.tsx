@@ -576,11 +576,11 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
               className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col justify-between"
             >
               <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide truncate mb-2">
-                {kpi.label}
+                {kpi.label || <span className="italic font-normal text-muted-foreground/50">— label —</span>}
               </div>
               <div className="flex items-end justify-between">
                 <span className="text-2xl font-black text-foreground tracking-tight">
-                  {kpi.value}
+                  {kpi.value || <span className="italic font-normal text-base text-muted-foreground/50">— value —</span>}
                 </span>
                 <span
                   className={`text-[11px] font-bold px-1.5 py-0.5 rounded mb-1 ${
@@ -589,7 +589,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                       : "bg-amber-50 text-amber-600"
                   }`}
                 >
-                  {kpi.trend}
+                  {kpi.trend || <span className="italic font-normal opacity-70">— trend —</span>}
                 </span>
               </div>
             </div>
