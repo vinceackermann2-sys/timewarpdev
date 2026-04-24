@@ -709,14 +709,27 @@ export function SuperchargeDNAWizard({
 
   if (embedded) {
     return (
-      <div className="w-full max-w-5xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Supercharge Business DNA</h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            Step {step} of 3 — verified enrichment only (no made-up data).
-          </p>
+      <div className="flex flex-col min-h-[calc(100vh-3rem)] w-full">
+        {/* Top progress bar */}
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
+          <div className="max-w-5xl mx-auto w-full px-6 py-4">
+            {TopProgressBar}
+          </div>
         </div>
-        {stepsContent}
+
+        {/* Main content area — bigger and centered */}
+        <div className="flex-1 w-full px-6 py-10">
+          <div className="max-w-5xl mx-auto w-full">
+            {stepsContent}
+          </div>
+        </div>
+
+        {/* Sticky bottom continue bar */}
+        <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur border-t border-border">
+          <div className="max-w-5xl mx-auto w-full px-6 py-4 flex items-center gap-3">
+            {FooterActions}
+          </div>
+        </div>
       </div>
     );
   }
@@ -732,14 +745,20 @@ export function SuperchargeDNAWizard({
           {triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl w-[95vw]">
-        <DialogHeader>
-          <DialogTitle>Supercharge Business DNA</DialogTitle>
-          <DialogDescription>
-            Step {step} of 3 — verified enrichment only (no made-up data).
+      <DialogContent className="max-w-4xl w-[95vw] p-0 gap-0 max-h-[90vh] flex flex-col">
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border">
+          <DialogTitle className="sr-only">Supercharge Business DNA</DialogTitle>
+          <DialogDescription className="sr-only">
+            Verified enrichment only (no made-up data).
           </DialogDescription>
+          {TopProgressBar}
         </DialogHeader>
-        {stepsContent}
+        <div className="flex-1 overflow-y-auto px-6 py-8">
+          {stepsContent}
+        </div>
+        <div className="px-6 py-4 border-t border-border flex items-center gap-3">
+          {FooterActions}
+        </div>
       </DialogContent>
     </Dialog>
   );
