@@ -94,8 +94,8 @@ type Phase =
 interface ChatOnboardingFlowProps {
   /** Optional URL to pre-fill (from landing-page funnel ?url= param). */
   initialUrl?: string | null;
-  /** Called once the user has named their agent and a brand row was created. */
-  onComplete: (agentName: string, brandId: string) => void;
+  /** Called once the user has named their agent and chosen whether to supercharge. */
+  onComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
 }
 
 export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlowProps) {
