@@ -658,7 +658,7 @@ export function narrowProvidersByConnections(
 const ALL_TRACKED_PROVIDERS = [
   "google_gmail", "google_drive", "google_calendar",
   "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
-  "slack", "hubspot", "zoom",
+  "slack", "hubspot", "zoom", "stripe",
 ];
 
 export function buildConnectedToolsInventory(connectedProviders: string[]): string {
