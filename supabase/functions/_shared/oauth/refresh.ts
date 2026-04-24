@@ -13,7 +13,7 @@
 
 const REFRESH_BUFFER_MS = 5 * 60 * 1000; // refresh 5 minutes before expiry
 
-type ProviderFamily = "microsoft" | "google" | "hubspot" | "zoom" | "slack" | "unknown";
+type ProviderFamily = "microsoft" | "google" | "hubspot" | "zoom" | "slack" | "stripe" | "unknown";
 
 function getProviderFamily(provider: string): ProviderFamily {
   if (provider === "microsoft" || provider.startsWith("microsoft_")) return "microsoft";
@@ -21,6 +21,7 @@ function getProviderFamily(provider: string): ProviderFamily {
   if (provider === "hubspot") return "hubspot";
   if (provider === "zoom") return "zoom";
   if (provider === "slack") return "slack";
+  if (provider === "stripe") return "stripe";
   return "unknown";
 }
 
@@ -171,6 +172,8 @@ export async function getValidAccessToken(
   if (!tokenRow.refresh_token) {
     // For Slack without rotation, access_token may simply not expire — return it.
     if (provider === "slack" && !expiresAt) return tokenRow.access_token;
+    // Stripe Connect access tokens do not expire — return as-is even if expiresAt is set unexpectedly.
+    if (provider === "stripe") return tokenRow.access_token;
     await markConnectionExpired(supabaseAdmin, userId, provider, "no refresh token stored");
     return null;
   }
@@ -184,6 +187,7 @@ export async function getValidAccessToken(
       case "hubspot":   refreshed = await refreshHubSpot(tokenRow.refresh_token); break;
       case "zoom":      refreshed = await refreshZoom(tokenRow.refresh_token); break;
       case "slack":     refreshed = await refreshSlack(tokenRow.refresh_token); break;
+      case "stripe":    return tokenRow.access_token; // Stripe Connect tokens do not expire
       default:          return tokenRow.access_token; // unknown provider — return whatever we have
     }
   } catch (e) {

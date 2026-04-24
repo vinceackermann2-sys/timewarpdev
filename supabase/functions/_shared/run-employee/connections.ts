@@ -76,6 +76,7 @@ function formatProviderName(provider: string): string {
   if (provider === "google_gmail") return "Gmail";
   if (provider === "slack") return "Slack";
   if (provider === "hubspot") return "HubSpot";
+  if (provider === "stripe") return "Stripe";
   return provider;
 }
 
@@ -454,6 +455,54 @@ export async function searchHubspotData(token: string, query: string, topic?: st
   return results.slice(0, 6);
 }
 
+export async function searchStripeData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  const q = searchTerms[0] || "";
+  const headers = { Authorization: `Bearer ${token}`, "Stripe-Version": "2025-08-27.basil" };
+  try {
+    // Recent customers (top 5) — also filter by name/email if query is specific.
+    const custUrl = q
+      ? `https://api.stripe.com/v1/customers/search?query=${encodeURIComponent(`name~"${q}" OR email~"${q}"`)}&limit=5`
+      : `https://api.stripe.com/v1/customers?limit=5`;
+    const custRes = await fetch(custUrl, { headers });
+    if (custRes.ok) {
+      const data = await custRes.json();
+      for (const c of (data.data || []).slice(0, 5)) {
+        const created = c.created ? new Date(c.created * 1000).toISOString().slice(0, 10) : "";
+        results.push(`👤 **${c.name || c.email || c.id}** (${c.email || "no email"}) — created ${created}`);
+      }
+    }
+    // Recent charges
+    const chargesRes = await fetch(`https://api.stripe.com/v1/charges?limit=10`, { headers });
+    if (chargesRes.ok) {
+      const data = await chargesRes.json();
+      for (const ch of (data.data || []).slice(0, 5)) {
+        if (results.length >= 12) break;
+        const amount = ((ch.amount || 0) / 100).toFixed(2);
+        const created = ch.created ? new Date(ch.created * 1000).toISOString().slice(0, 10) : "";
+        const status = ch.status || "unknown";
+        const cust = ch.billing_details?.email || ch.receipt_email || ch.customer || "no customer";
+        results.push(`💳 **${amount} ${(ch.currency || "").toUpperCase()}** — ${status} (${cust}) — ${created}`);
+      }
+    }
+    // Active subscriptions
+    const subsRes = await fetch(`https://api.stripe.com/v1/subscriptions?status=active&limit=5`, { headers });
+    if (subsRes.ok) {
+      const data = await subsRes.json();
+      for (const s of (data.data || []).slice(0, 5)) {
+        if (results.length >= 18) break;
+        const item = s.items?.data?.[0];
+        const amount = item?.price?.unit_amount ? (item.price.unit_amount / 100).toFixed(2) : "?";
+        const interval = item?.price?.recurring?.interval || "month";
+        const cur = (item?.price?.currency || "").toUpperCase();
+        results.push(`🔁 Subscription **${amount} ${cur}/${interval}** — status ${s.status} — customer ${s.customer || "n/a"}`);
+      }
+    }
+  } catch (e) { console.error("Stripe search error:", e); }
+  return results.slice(0, 18);
+}
+
 export async function searchZoomData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
@@ -551,6 +600,7 @@ const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\bslack\b/i, providers: ["slack"] },
   { keys: /\b(hubspot|hub\s*spot|crm)\b/i, providers: ["hubspot"] },
   { keys: /\b(zoom|webinar)\b/i, providers: ["zoom"] },
+  { keys: /\b(stripe|payment\w*|charge\w*|invoice\w*|mrr|arr|revenue|subscriber\w*|subscription\w*|payout\w*|refund\w*|checkout)\b/i, providers: ["stripe"] },
   // Generic file/doc keywords without a provider name → fan out to all file/doc providers (Google Drive + OneDrive)
   { keys: /\b(documents?|docs?|files?|spreadsheets?|sheets?|slides?|presentations?)\b/i, providers: ["google_drive", "microsoft_onedrive"] },
   // Generic email keywords without a provider name → fan out to email providers
@@ -580,7 +630,7 @@ export function narrowProvidersByConnections(
 ): string[] {
   if (detectedProviders.length === 0) return [];
   // If the user explicitly named a specific provider in the query, do not narrow.
-  const explicitProviderRegex = /\b(gmail|outlook|onedrive|onenote|slack|hubspot|zoom|teams|sharepoint|gdrive|gcal|google\s*(docs?|drives?|sheets?|slides?|calendar|mail))\b/i;
+  const explicitProviderRegex = /\b(gmail|outlook|onedrive|onenote|slack|hubspot|zoom|teams|sharepoint|gdrive|gcal|stripe|google\s*(docs?|drives?|sheets?|slides?|calendar|mail))\b/i;
   if (explicitProviderRegex.test(query)) return detectedProviders;
 
   const connectedSet = new Set<string>();
@@ -608,7 +658,7 @@ export function narrowProvidersByConnections(
 const ALL_TRACKED_PROVIDERS = [
   "google_gmail", "google_drive", "google_calendar",
   "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
-  "slack", "hubspot", "zoom",
+  "slack", "hubspot", "zoom", "stripe",
 ];
 
 export function buildConnectedToolsInventory(connectedProviders: string[]): string {
@@ -684,6 +734,7 @@ export function getProviderSearchLabel(provider: string, topic?: string): string
   if (provider === "slack") return `Listening in on your Slack${suffix}`;
   if (provider === "zoom") return `Checking your Zoom meetings${suffix}`;
   if (provider === "hubspot") return `Digging through your HubSpot${suffix}`;
+  if (provider === "stripe") return `Pulling your Stripe payments${suffix}`;
   return `Searching ${formatProviderName(provider)}${suffix}`;
 }
 
@@ -701,6 +752,7 @@ export function getProviderSkipLabel(provider: string, reason: string): string {
   if (provider === "slack") return `Skipping Slack — ${r}`;
   if (provider === "zoom") return `Skipping Zoom — ${r}`;
   if (provider === "hubspot") return `Skipping HubSpot — ${r}`;
+  if (provider === "stripe") return `Skipping Stripe — ${r}`;
   if (provider.startsWith("google")) return `Skipping ${formatProviderName(provider)} — ${r}`;
   return `Skipping ${formatProviderName(provider)} — ${r}`;
 }
@@ -753,7 +805,7 @@ export async function searchConnectedProviders(
 
   if (!connections || connections.length === 0) {
     console.log("[connections] No connected providers found");
-    for (const provider of ["microsoft_outlook", "google_gmail", "slack", "zoom", "hubspot"]) {
+    for (const provider of ["microsoft_outlook", "google_gmail", "slack", "zoom", "hubspot", "stripe"]) {
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
     }
@@ -796,7 +848,7 @@ export async function searchConnectedProviders(
   const allKnownProviders = [
     "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
     "google_gmail", "google_drive", "google_calendar",
-    "slack", "zoom", "hubspot",
+    "slack", "zoom", "hubspot", "stripe",
   ];
   for (const provider of allKnownProviders) {
     if (isMicrosoftProvider(provider)) {
@@ -1012,6 +1064,29 @@ export async function searchConnectedProviders(
         console.error("[connections] Zoom search failed:", e);
         skippedProviderDetails.push({ provider: "zoom", reason: "search failed" });
         emitProgress?.({ label: getProviderSearchLabel("zoom", t), status: "error", action: "connections" });
+      }
+    })());
+  }
+
+  if (connectedProviders.includes("stripe") && isAllowed("stripe")) {
+    searchPromises.push((async () => {
+      try {
+        const token = await getValidProviderToken(supabase, userId, "stripe");
+        if (!token) {
+          skippedProviderDetails.push({ provider: "stripe", reason: "token expired or missing" });
+          return;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("stripe", t), status: "running", action: "connections" });
+        searchedProviders.push("stripe");
+        const results = await searchStripeData(token, effectiveQuery, searchTopicForApis);
+        if (results.length > 0) {
+          connectionContext += `\n\n### Live Data from Stripe\n${results.join("\n\n")}\n`;
+        }
+        emitProgress?.({ label: getProviderSearchLabel("stripe", t), status: "done", action: "connections" });
+      } catch (e) {
+        console.error("[connections] Stripe search failed:", e);
+        skippedProviderDetails.push({ provider: "stripe", reason: "search failed" });
+        emitProgress?.({ label: getProviderSearchLabel("stripe", t), status: "error", action: "connections" });
       }
     })());
   }
