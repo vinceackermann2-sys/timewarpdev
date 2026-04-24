@@ -502,6 +502,7 @@ const Database = () => {
                   initialAssistantMessage={initialAssistantMessage}
                   onInitialAssistantMessageConsumed={() => setInitialAssistantMessage(null)}
                   onboardingInitialUrl={onboardingUrl}
+                  onOnboardingActiveChange={setOnboardingLocked}
                   onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
                     setOnboardingUrl(null);
                     setActiveBrandId(newBrandId);
