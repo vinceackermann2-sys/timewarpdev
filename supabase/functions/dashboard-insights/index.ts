@@ -426,6 +426,80 @@ serve(async (req) => {
       })());
     }
 
+    if (connectedProviders.includes("stripe")) {
+      searchPromises.push((async () => {
+        try {
+          const stripeToken = await getValidProviderToken(supabase, user.id, "stripe");
+          if (!stripeToken) return;
+          const stripeHeaders = { Authorization: `Bearer ${stripeToken}` };
+          const sinceTs = Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000);
+
+          // Recent charges (last 30d, up to 100)
+          const chargesRes = await fetch(
+            `https://api.stripe.com/v1/charges?limit=100&created[gte]=${sinceTs}`,
+            { headers: stripeHeaders }
+          );
+          if (chargesRes.ok) {
+            const data = await chargesRes.json();
+            const charges = (data.data || []).slice(0, 50).map((c: any) => {
+              const amount = ((c.amount || 0) / 100).toFixed(2);
+              const date = c.created ? new Date(c.created * 1000).toISOString().slice(0, 10) : "";
+              const status = c.status || "unknown";
+              const customer = c.billing_details?.email || c.receipt_email || "anon";
+              const desc = c.description || "";
+              return `- 💳 ${amount} ${(c.currency || "usd").toUpperCase()} from ${customer} — ${status} on ${date}${desc ? ` (${desc})` : ""}`;
+            });
+            const totalRevenue = (data.data || [])
+              .filter((c: any) => c.status === "succeeded")
+              .reduce((sum: number, c: any) => sum + (c.amount || 0), 0) / 100;
+            if (charges.length > 0) {
+              integrationData += `\n### Stripe Charges (last 30d, ${charges.length} shown, succeeded total: ${totalRevenue.toFixed(2)})\n${charges.join("\n")}\n`;
+            }
+          }
+
+          // Active subscriptions (up to 100)
+          const subsRes = await fetch(
+            `https://api.stripe.com/v1/subscriptions?limit=100&status=active`,
+            { headers: stripeHeaders }
+          );
+          if (subsRes.ok) {
+            const data = await subsRes.json();
+            let mrrCents = 0;
+            const subs = (data.data || []).slice(0, 50).map((s: any) => {
+              const item = s.items?.data?.[0];
+              const unit = item?.price?.unit_amount || 0;
+              const qty = item?.quantity || 1;
+              const interval = item?.price?.recurring?.interval || "month";
+              const monthlyMultiplier = interval === "year" ? 1 / 12 : interval === "week" ? 4.33 : interval === "day" ? 30 : 1;
+              mrrCents += unit * qty * monthlyMultiplier;
+              const amount = ((unit * qty) / 100).toFixed(2);
+              const cust = s.customer || "unknown";
+              return `- 🔁 ${amount} ${(item?.price?.currency || "usd").toUpperCase()}/${interval} — customer ${cust} — status ${s.status}`;
+            });
+            if (subs.length > 0) {
+              integrationData += `\n### Stripe Active Subscriptions (${subs.length}, est. MRR: ${(mrrCents / 100).toFixed(2)})\n${subs.join("\n")}\n`;
+            }
+          }
+
+          // Recent customers (last 30d, up to 50)
+          const custRes = await fetch(
+            `https://api.stripe.com/v1/customers?limit=50&created[gte]=${sinceTs}`,
+            { headers: stripeHeaders }
+          );
+          if (custRes.ok) {
+            const data = await custRes.json();
+            const customers = (data.data || []).slice(0, 30).map((c: any) => {
+              const date = c.created ? new Date(c.created * 1000).toISOString().slice(0, 10) : "";
+              return `- 👤 ${c.name || c.email || c.id} (${c.email || "no email"}) — joined ${date}`;
+            });
+            if (customers.length > 0) {
+              integrationData += `\n### Stripe New Customers (last 30d, ${customers.length})\n${customers.join("\n")}\n`;
+            }
+          }
+        } catch (e) { console.error("Stripe search error:", e); }
+      })());
+    }
+
     // Google sub-services
     const googleProviders = ["google", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "google_gmail"];
     const getGoogleToken = async () => {
