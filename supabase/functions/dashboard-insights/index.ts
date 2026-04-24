@@ -986,12 +986,12 @@ Weights: tabBalance 25 · sourceDiversity 20 · specificity 20 · actionability 
 - "description": 2–3 sentence contextual summary referencing ≥1 Business DNA pillar
 - "detail": 3–5 sentence deep-dive with at least one quantified data point
 - "category": "Sales" | "Marketing" | "Finance" | "Operations" | "People" | "Product" | "Brand" | "Strategy" | "Market" | "Communication"
-- "source": one of "hubspot", "slack", "outlook", "gmail", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "onedrive", "onenote", "zoom", "teams". Only use "business-dna" for pure DNA-gap cards.
+- "source": one of "hubspot", "slack", "outlook", "gmail", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "onedrive", "onenote", "zoom", "teams", "stripe". Only use "business-dna" for pure DNA-gap cards.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
 - "timeAgo": accurate relative time string ("12 minutes ago" / "3 hours ago" / "2 days ago" / "Apr 8, 2026")
 - "timestamp": ISO 8601 of the original source event
 - "actionSuggestion": specific next step (verb + tool/location, completable in <15 min)
-- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize. Other fields: senderName/senderEmail (from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom/calendar; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim) for slack/teams; fileName/sharedBy for onedrive/drive; notebook for onenote.
+- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize. Other fields: senderName/senderEmail (from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom/calendar; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim) for slack/teams; fileName/sharedBy for onedrive/drive; notebook for onenote; amount/currency/customerEmail/status for stripe charges; mrr/interval/customerId for stripe subscriptions.
 
 ## CARD SCHEMA — TAB-SPECIFIC FIELDS
 - **Briefing**: "signalType" (Metric Shift | Competitive Move | Pipeline Change | Team Activity | Integration Digest | DNA Update | Opportunity Detected | Risk Surfaced)
