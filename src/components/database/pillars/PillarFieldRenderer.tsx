@@ -351,45 +351,47 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                   </p>
                 </div>
               </div>
-              {p.quote && (
-                <blockquote className="text-[13px] italic text-muted-foreground mb-4 border-l-2 border-primary/30 pl-3">
-                  "{p.quote}"
-                </blockquote>
-              )}
-              {p.goals?.length > 0 && (
-                <div className="mb-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    Goals
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {p.goals.map((g: string, idx: number) => (
+              <blockquote className="text-[13px] italic text-muted-foreground mb-4 border-l-2 border-primary/30 pl-3">
+                {p.quote ? `"${p.quote}"` : <span className="text-muted-foreground/50">"— add a quote —"</span>}
+              </blockquote>
+              <div className="mb-2">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Goals
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.goals?.length > 0 ? (
+                    p.goals.map((g: string, idx: number) => (
                       <span
                         key={idx}
                         className="bg-emerald-50 text-emerald-700 text-[11px] px-2 py-0.5 rounded-md"
                       >
                         {g}
                       </span>
-                    ))}
-                  </div>
+                    ))
+                  ) : (
+                    <span className="text-[11px] italic text-muted-foreground/50">— add goals —</span>
+                  )}
                 </div>
-              )}
-              {p.fears?.length > 0 && (
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    Fears
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {p.fears.map((fr: string, idx: number) => (
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Fears
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.fears?.length > 0 ? (
+                    p.fears.map((fr: string, idx: number) => (
                       <span
                         key={idx}
                         className="bg-sky-50 text-sky-700 text-[11px] px-2 py-0.5 rounded-md"
                       >
                         {fr}
                       </span>
-                    ))}
-                  </div>
+                    ))
+                  ) : (
+                    <span className="text-[11px] italic text-muted-foreground/50">— add fears —</span>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -399,10 +401,12 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
       const renderNode = (node: any): JSX.Element => (
         <div className="flex flex-col items-center">
           <div className="bg-card border-2 border-border shadow-sm rounded-xl p-3 flex flex-col items-center w-40 text-center">
-            <span className="text-xs font-semibold text-foreground">{node.role}</span>
-            {node.name && (
-              <span className="text-[11px] text-muted-foreground">{node.name}</span>
-            )}
+            <span className="text-xs font-semibold text-foreground">
+              {node.role || <span className="italic text-muted-foreground/60">Role</span>}
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              {node.name || <span className="italic text-muted-foreground/50">— name —</span>}
+            </span>
           </div>
           {node.children?.length > 0 && (
             <div className="flex flex-col items-center">
@@ -431,7 +435,9 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
           {(field.value as any[]).map((stage, i) => (
             <div key={i} className="flex items-center gap-4">
               <div className="w-32 text-left shrink-0">
-                <div className="text-[13px] font-bold text-foreground">{stage.stage}</div>
+                <div className="text-[13px] font-bold text-foreground">
+                  {stage.stage || <span className="italic font-normal text-muted-foreground/50">— stage —</span>}
+                </div>
               </div>
               <div className="flex-1 h-12 relative flex items-center">
                 <div
@@ -442,13 +448,13 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                   }}
                 >
                   <span className="text-white font-bold text-[13px] whitespace-nowrap">
-                    {stage.volume}
+                    {stage.volume || <span className="italic font-normal opacity-70">— volume —</span>}
                   </span>
                 </div>
               </div>
               <div className="w-16 shrink-0">
                 <span className="text-xs font-black text-muted-foreground">
-                  {stage.rate}
+                  {stage.rate || <span className="italic font-normal text-muted-foreground/50">— rate —</span>}
                 </span>
               </div>
             </div>
@@ -570,11 +576,11 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
               className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col justify-between"
             >
               <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide truncate mb-2">
-                {kpi.label}
+                {kpi.label || <span className="italic font-normal text-muted-foreground/50">— label —</span>}
               </div>
               <div className="flex items-end justify-between">
                 <span className="text-2xl font-black text-foreground tracking-tight">
-                  {kpi.value}
+                  {kpi.value || <span className="italic font-normal text-base text-muted-foreground/50">— value —</span>}
                 </span>
                 <span
                   className={`text-[11px] font-bold px-1.5 py-0.5 rounded mb-1 ${
@@ -583,7 +589,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
                       : "bg-amber-50 text-amber-600"
                   }`}
                 >
-                  {kpi.trend}
+                  {kpi.trend || <span className="italic font-normal opacity-70">— trend —</span>}
                 </span>
               </div>
             </div>
@@ -637,17 +643,19 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
               <h4
                 className={`text-base font-bold mb-1 ${tier.recommended ? "opacity-90" : "text-muted-foreground"}`}
               >
-                {tier.name}
+                {tier.name || <span className="italic font-normal opacity-60">— tier name —</span>}
               </h4>
-              <div className="text-3xl font-bold mb-6">{tier.price}</div>
+              <div className="text-3xl font-bold mb-6">
+                {tier.price || <span className="italic font-normal text-base opacity-60">— price —</span>}
+              </div>
               <div className="flex-1 space-y-3">
-                {tier.features.map((feat: string, j: number) => (
+                {(tier.features?.length ? tier.features : [""]).map((feat: string, j: number) => (
                   <div key={j} className="flex items-start gap-2.5 text-[13px] leading-tight">
                     <CheckCircle2
                       size={14}
                       className={`shrink-0 mt-0.5 ${tier.recommended ? "opacity-90" : "text-primary"}`}
                     />
-                    <span>{feat}</span>
+                    <span>{feat || <span className="italic opacity-60">— feature —</span>}</span>
                   </div>
                 ))}
               </div>
@@ -664,13 +672,13 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
             <div key={i} className="relative pl-8">
               <div className="absolute left-[-5px] top-1 w-3 h-3 rounded-full bg-primary ring-4 ring-primary/10" />
               <div className="text-[11px] font-bold text-primary uppercase tracking-widest mb-1">
-                {item.date}
+                {item.date || <span className="italic font-normal text-muted-foreground/50">— date —</span>}
               </div>
               <h4 className="text-[15px] font-semibold text-foreground mb-1">
-                {item.title}
+                {item.title || <span className="italic font-normal text-muted-foreground/50">— title —</span>}
               </h4>
               <p className="text-[13px] text-muted-foreground leading-relaxed">
-                {item.desc}
+                {item.desc || <span className="italic text-muted-foreground/50">— description —</span>}
               </p>
             </div>
           ))}
