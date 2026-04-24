@@ -228,11 +228,12 @@ export function SuperchargeDNAWizard({
     }
   };
 
-  // Radial layout — viewBox is 700×700, branches connect from center to icon center
+  // Radial layout — fixed canvas so SVG and absolutely-positioned nodes share the same center
   const CANVAS = 700;
   const CENTER = CANVAS / 2;
   const RADIUS = 260;
-  const ICON_SIZE = 72; // h/w of the icon tile
+  const ICON_SIZE = 72;
+  const CENTER_NODE_SIZE = 160;
 
   const nodeLayout = useMemo(() => {
     return INTEGRATIONS.map((integration, index) => {
