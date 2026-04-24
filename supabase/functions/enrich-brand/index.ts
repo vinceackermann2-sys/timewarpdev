@@ -1122,6 +1122,7 @@ Professional photography style, branded color palette. No text overlays, no UI c
 
   } catch (e) {
     console.error("enrich-brand error:", e);
-    return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const errMsg = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ success: false, error: errMsg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

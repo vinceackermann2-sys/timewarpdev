@@ -106,7 +106,7 @@ serve(async (req) => {
 
     if (activeSubscription) {
       try {
-        const endTs = activeSubscription.current_period_end;
+        const endTs = (activeSubscription as any).current_period_end;
         if (endTs && typeof endTs === "number" && endTs > 0) {
           subscriptionEnd = new Date(endTs * 1000).toISOString();
         }
