@@ -1680,13 +1680,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
               return (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                {msg.role === "assistant" && (
-                  <div className="flex-shrink-0 mr-2 mt-2">
-                    <BusinessBrainOrb size={16} animated={!!msg.isStreaming} />
-                  </div>
-                )}
                 <div className={cn(
-                  "max-w-[80%] rounded-2xl px-5 py-3 text-sm",
+                  "max-w-[80%] rounded-2xl px-5 py-3 text-sm flex flex-col",
                   msg.role === "user"
                     ? "bg-[#e5e7eb] text-foreground rounded-br-md"
                     : "rounded-bl-md text-foreground"
