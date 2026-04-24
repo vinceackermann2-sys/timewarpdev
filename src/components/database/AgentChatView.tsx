@@ -1864,6 +1864,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                     </>
                   )}
                 </div>
+                {msg.role === "assistant" && (
+                  <div className="mt-2 ml-2">
+                    <BusinessBrainOrb size={18} animated={!!msg.isStreaming} />
+                  </div>
+                )}
               </div>
             )})}
             <div ref={messagesEndRef} />
