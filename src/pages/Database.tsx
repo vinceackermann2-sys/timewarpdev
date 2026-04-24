@@ -218,6 +218,17 @@ const Database = () => {
   const [dnaPillar, setDnaPillar] = useState<DnaPillar>("brand");
   const [onboardingLocked, setOnboardingLocked] = useState(false);
 
+  // Warn user when navigating away mid-onboarding (refresh, close tab, back button).
+  useEffect(() => {
+    if (!onboardingLocked) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [onboardingLocked]);
+
   useEffect(() => {
     const viewParam = searchParams.get("view");
     const autostart = searchParams.get("autostart");
