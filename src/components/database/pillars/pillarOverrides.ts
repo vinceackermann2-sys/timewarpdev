@@ -266,7 +266,7 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
           const header = block[0] || "";
           const recommended = /\[(recommended|featured|popular)\]/i.test(header);
           const headerClean = header.replace(/\s*\[(recommended|featured|popular)\]\s*/i, "").trim();
-          const m = headerClean.match(/^(.+?)\s*[:\-—]\s*(.+)$/);
+          const m = headerClean.match(/^(.+?)\s*[:\-—]\s*(.*)$/);
           const name = (m ? m[1] : headerClean).trim();
           const price = (m ? m[2] : "").trim();
           const features = block
@@ -312,14 +312,14 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
     case "kpi-grid": {
       const items = lines
         .map((line) => {
-          const m = line.match(/^(.+?)\s*[:\-—]\s*(.+?)(?:\s*\(([^)]*)\))?(?:\s+[—\-]\s+(.+))?$/);
+          const m = line.match(/^(.+?)\s*[:\-—]\s*([^()—-]*?)(?:\s*\(([^)]*)\))?(?:\s+[—\-]\s+(.*))?$/);
           if (!m) return null;
           const meta = (m[3] || "").split(/\s*[,;|]\s*/).filter(Boolean);
           const trend = meta[0] || "";
           const status = (meta[1] || (/good|up|positive/i.test(trend) ? "good" : "warning")).toLowerCase();
           return {
             label: m[1].trim(),
-            value: m[2].trim(),
+            value: (m[2] || "").trim(),
             trend,
             status,
             context: m[4]?.trim() || "",
@@ -346,11 +346,11 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
     case "funnel": {
       const stages = lines
         .map((line, index) => {
-          const m = line.match(/^(.+?)\s*[:\-—]\s*(.+?)(?:\s*\(([^)]*)\))?$/);
+          const m = line.match(/^(.+?)\s*[:\-—]\s*([^()]*?)(?:\s*\(([^)]*)\))?$/);
           if (!m) return null;
           return {
             stage: m[1].trim(),
-            volume: m[2].trim(),
+            volume: (m[2] || "").trim(),
             rate: m[3]?.trim() || "",
             color: funnelPalette[index % funnelPalette.length],
           };
@@ -362,9 +362,12 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
     case "timeline": {
       const items = lines
         .map((line) => {
-          const m = line.match(/^(.+?)\s+[—-]\s+(.+?)(?::\s*(.+))?$/);
+          const m = line.match(/^(.*?)\s+[—-]\s+(.*?)(?::\s*(.*))?$/);
           if (!m) return null;
-          return { date: m[1].trim(), title: m[2].trim(), desc: m[3]?.trim() || "" };
+          const date = m[1].trim();
+          const title = m[2].trim();
+          if (!date && !title) return null;
+          return { date, title, desc: m[3]?.trim() || "" };
         })
         .filter(Boolean);
       return items.length ? items : null;
