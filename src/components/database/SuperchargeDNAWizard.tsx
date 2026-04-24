@@ -228,11 +228,12 @@ export function SuperchargeDNAWizard({
     }
   };
 
-  // Radial layout — viewBox is 700×700, branches connect from center to icon center
+  // Radial layout — fixed canvas so SVG and absolutely-positioned nodes share the same center
   const CANVAS = 700;
   const CENTER = CANVAS / 2;
   const RADIUS = 260;
-  const ICON_SIZE = 72; // h/w of the icon tile
+  const ICON_SIZE = 72;
+  const CENTER_NODE_SIZE = 160;
 
   const nodeLayout = useMemo(() => {
     return INTEGRATIONS.map((integration, index) => {
@@ -268,14 +269,7 @@ export function SuperchargeDNAWizard({
                   "radial-gradient(circle, hsl(var(--primary) / 0.06) 0%, hsl(var(--primary) / 0.02) 50%, transparent 75%)",
               }}
             />
-            {/* Faint orbit ring */}
-            <svg className="absolute inset-0 h-full w-full pointer-events-none" viewBox={`0 0 ${CANVAS} ${CANVAS}`}>
-              <defs>
-                <linearGradient id="branchActive" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="1" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.45" />
-                </linearGradient>
-              </defs>
+            <svg className="absolute inset-0 h-full w-full pointer-events-none overflow-visible" viewBox={`0 0 ${CANVAS} ${CANVAS}`}>
               <circle
                 cx={CENTER}
                 cy={CENTER}
@@ -286,19 +280,17 @@ export function SuperchargeDNAWizard({
                 strokeDasharray="2 6"
                 opacity="0.5"
               />
-              {/* Branches — from center to each icon center */}
               {nodeLayout.map((n) => {
                 const active = isConnected(n.id);
-                // shorten the line so it ends at the edge of the icon tile, not the center
                 const dx = n.x - CENTER;
                 const dy = n.y - CENTER;
-                const len = Math.sqrt(dx * dx + dy * dy);
-                const trim = ICON_SIZE / 2 + 6;
-                const endX = n.x - (dx / len) * trim;
-                const endY = n.y - (dy / len) * trim;
-                const startTrim = 76; // edge of circular center logo (144px → r=72) + small gap
+                const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                const endTrim = ICON_SIZE / 2 + 8;
+                const startTrim = CENTER_NODE_SIZE / 2;
                 const startX = CENTER + (dx / len) * startTrim;
                 const startY = CENTER + (dy / len) * startTrim;
+                const endX = n.x - (dx / len) * endTrim;
+                const endY = n.y - (dy / len) * endTrim;
                 return (
                   <line
                     key={`line-${n.id}`}
@@ -306,27 +298,26 @@ export function SuperchargeDNAWizard({
                     y1={startY}
                     x2={endX}
                     y2={endY}
-                    stroke={active ? "url(#branchActive)" : "hsl(var(--border))"}
-                    strokeWidth={active ? 2.5 : 1.5}
-                    strokeDasharray={active ? "0" : "5 5"}
+                    stroke="hsl(var(--primary))"
+                    strokeOpacity={active ? 0.7 : 0.18}
+                    strokeWidth={active ? 3 : 2}
+                    strokeDasharray={active ? undefined : "7 7"}
                     strokeLinecap="round"
                   />
                 );
               })}
             </svg>
 
-            {/* Center business logo — perfectly centered, circular */}
             <motion.div
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.4 }}
               className="absolute rounded-full border bg-card shadow-xl flex items-center justify-center overflow-hidden ring-4 ring-primary/10"
               style={{
-                left: CENTER,
-                top: CENTER,
-                width: 144,
-                height: 144,
-                transform: "translate(-50%, -50%)",
+                left: CENTER - CENTER_NODE_SIZE / 2,
+                top: CENTER - CENTER_NODE_SIZE / 2,
+                width: CENTER_NODE_SIZE,
+                height: CENTER_NODE_SIZE,
               }}
             >
               {logoUrl ? (
@@ -336,9 +327,9 @@ export function SuperchargeDNAWizard({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex flex-col items-center gap-1 text-center px-2">
+                <div className="flex flex-col items-center gap-1 text-center px-3">
                   <Building2 className="h-8 w-8 text-muted-foreground" />
-                  <div className="text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
+                  <div className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
                     {brandName || "Business"}
                   </div>
                 </div>
