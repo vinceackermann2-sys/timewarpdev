@@ -25,6 +25,7 @@ import { AgentStep } from "./AgentActivityLog";
 import { AgentChatMessage } from "./AgentChatMessage";
 import { AgentStepView } from "./AgentStepView";
 import { RemoteBrowser } from "./RemoteBrowser";
+import { ChatOnboardingFlow } from "./aiceo/ChatOnboardingFlow";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -56,6 +57,12 @@ interface TimeWarpAIViewProps {
     timeEstimate: string;
   } | null;
   onTaskConsumed?: () => void;
+  /** When true, render the chat-driven onboarding instead of the normal task UI. */
+  forceOnboarding?: boolean;
+  /** URL to pre-fill into the onboarding (from landing-page funnel ?url=). */
+  onboardingInitialUrl?: string | null;
+  /** Called once the user names their agent and a brand is created. */
+  onOnboardingComplete?: (agentName: string, brandId: string) => void;
 }
 
 const SENSITIVE_PATTERNS = {
