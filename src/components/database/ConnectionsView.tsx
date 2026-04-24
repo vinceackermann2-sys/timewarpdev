@@ -18,6 +18,7 @@ import logoGoogleDocs from "@/assets/logo-google-docs.svg";
 import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
 import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 import logoGmail from "@/assets/logo-gmail.svg";
+import logoStripe from "@/assets/logo-stripe.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
 
 interface Integration {
@@ -44,6 +45,7 @@ const integrations: Integration[] = [
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
   { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other", iconBg: "bg-blue-500" },
   { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, section: "other", iconBg: "bg-orange-100" },
+  { id: "stripe", name: "Stripe", description: "Payments, customers & revenue", logo: logoStripe, section: "other", iconBg: "bg-white" },
 ];
 
 interface ConnectedProvider {

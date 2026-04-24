@@ -16,6 +16,7 @@ import logoGoogleDocs from "@/assets/logo-google-docs.svg";
 import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
 import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 import logoGmail from "@/assets/logo-gmail.svg";
+import logoStripe from "@/assets/logo-stripe.svg";
 
 interface ConnectorDef {
   id: string;
@@ -38,6 +39,7 @@ interface ConnectorDef {
   { id: "slack", name: "Slack", description: "Messages & channels", logo: logoSlack },
   { id: "hubspot", name: "HubSpot", description: "CRM, contacts & deals", logo: logoHubspot },
   { id: "zoom", name: "Zoom", description: "Meetings & recordings", logo: logoZoom },
+  { id: "stripe", name: "Stripe", description: "Payments & customers", logo: logoStripe },
 ];
 
 interface ConnectorGridProps {
