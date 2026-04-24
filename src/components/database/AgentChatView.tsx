@@ -242,6 +242,22 @@ export function AgentChatView({
   /* ── Chat state ── */
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
+
+  /* ── Onboarding latch ──
+   * Once the chat-driven onboarding flow is shown, keep it mounted until the user
+   * finishes (names agent + makes supercharge choice) — even if `forceOnboarding`
+   * flips to false mid-flow because save-onboarding created the brand and
+   * brands.length > 0. Without this, naming/supercharge phases would never appear.
+   */
+  const [onboardingLocked, setOnboardingLocked] = useState<boolean>(!!forceOnboarding && messages.length === 0);
+  useEffect(() => {
+    if (forceOnboarding && messages.length === 0) {
+      setOnboardingLocked(true);
+    }
+  }, [forceOnboarding, messages.length]);
+  useEffect(() => {
+    onOnboardingActiveChange?.(onboardingLocked);
+  }, [onboardingLocked, onOnboardingActiveChange]);
   const [resumingTask, setResumingTask] = useState(false);
   const [resumableTask, setResumableTask] = useState<null | {
     continuationKey: string;
