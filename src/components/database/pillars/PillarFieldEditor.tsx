@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { PillarField } from "./pillarTypes";
-import { serializeFieldToText } from "./pillarOverrides";
+import { parseTextToFieldValue, serializeFieldToText } from "./pillarOverrides";
 import { PillarFieldRenderer } from "./PillarFieldRenderer";
 
 interface Props {
@@ -29,7 +29,12 @@ interface Props {
  */
 export function PillarFieldEditor({ field, baseValue, override, autoOpen, onSave }: Props) {
   const baseline = serializeFieldToText(field, baseValue);
-  const initial = override ?? baseline;
+  const normalizedOverride = (() => {
+    if (!override) return undefined;
+    const parsed = parseTextToFieldValue(field, override);
+    return parsed != null ? serializeFieldToText(field, parsed) : override;
+  })();
+  const initial = normalizedOverride ?? baseline;
 
   const [editing, setEditing] = useState(!!autoOpen);
   const [value, setValue] = useState(initial);
