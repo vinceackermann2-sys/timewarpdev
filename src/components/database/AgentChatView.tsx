@@ -1837,17 +1837,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                               prev.map((m) => (m.id === msg.id ? { ...m, insightFeedback: sentiment } : m)),
                             );
                           }}
+                        />
                       )}
                     </div>
-                  )}
-                  {msg.role === "assistant" && (
-                    <div className="mt-2 flex justify-start">
-                      <BusinessBrainOrb size={18} animated={!!msg.isStreaming} />
-                    </div>
-                  )}
-                  {/* end assistant block marker */}
-                  {false && (
-                    <div />
                   ) : (
                     <>
                       {(() => {
