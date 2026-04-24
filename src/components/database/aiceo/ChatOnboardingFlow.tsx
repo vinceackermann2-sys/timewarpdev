@@ -566,9 +566,15 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         )
       );
     } catch { /* best effort */ }
+    setIsCompleting(false);
+    setPhase("supercharge");
+  }, [agentName, createdBrandId, createdBrandRowId, setBrands]);
+
+  const handleSuperchargeChoice = useCallback((wantsSupercharge: boolean) => {
+    if (!createdBrandId) return;
     setPhase("done");
-    onComplete(trimmed, createdBrandId);
-  }, [agentName, createdBrandId, createdBrandRowId, onComplete, setBrands]);
+    onComplete(agentName.trim(), createdBrandId, wantsSupercharge);
+  }, [agentName, createdBrandId, onComplete]);
 
   // ─────────── RENDER ───────────
 
