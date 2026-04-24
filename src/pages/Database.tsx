@@ -198,7 +198,9 @@ const Database = () => {
     if (saved && ["aiceo", "businessdna", "employees", "workspaces", "manage"].includes(saved)) {
       return saved as View;
     }
-    return "aiceo";
+    // First-time users land directly in the assistant chat (which renders the
+    // chat-driven onboarding inline when no brands exist yet).
+    return "employees";
   });
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
   const [showBusinessDNA, setShowBusinessDNA] = useState(false);
@@ -219,10 +221,10 @@ const Database = () => {
     const productUrl = searchParams.get("url");
     const onboarding = searchParams.get("onboarding");
 
-    // Legacy: any /app?onboarding=business-dna links land directly on the AI CEO chat
+    // Legacy: any /app?onboarding=business-dna links land directly on the assistant chat
     if (onboarding === "business-dna") {
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
+      setCurrentView("employees");
+      localStorage.setItem("tw_current_view", "employees");
       if (productUrl) setOnboardingUrl(productUrl);
       return;
     }
@@ -236,9 +238,10 @@ const Database = () => {
       }
     }
 
-    if (viewParam === "aiceo") {
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
+    // Legacy ?view=aiceo from older links → assistant chat (where onboarding now lives)
+    if (viewParam === "aiceo" || viewParam === "employees") {
+      setCurrentView("employees");
+      localStorage.setItem("tw_current_view", "employees");
       if (productUrl) setOnboardingUrl(productUrl);
     }
 
@@ -256,7 +259,7 @@ const Database = () => {
     }
   }, [searchParams, navigate]);
 
-  // New users land on AI CEO chat (which renders chat onboarding when no brands exist)
+  // New users land on the assistant chat (which renders chat onboarding when no brands exist)
   useEffect(() => {
     if (!user) return;
     const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
@@ -264,8 +267,8 @@ const Database = () => {
     const createdAt = new Date(user.created_at).getTime();
     if (Date.now() - createdAt < 30000) {
       sessionStorage.setItem("tw_onboarding_shown", "true");
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
+      setCurrentView("employees");
+      localStorage.setItem("tw_current_view", "employees");
     }
   }, [user]);
 
