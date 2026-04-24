@@ -1360,6 +1360,140 @@ serve(async (req) => {
       }
     }
 
+    // Stripe account → brand pillar
+    if (providerData.account) {
+      const a = providerData.account;
+      dataItems.push({
+        user_id: user.id,
+        data_type: "integration",
+        source: provider,
+        title: `Stripe Account: ${a.business_profile?.name || a.settings?.dashboard?.display_name || a.id}`,
+        content: [
+          a.business_profile?.name ? `Business: ${a.business_profile.name}` : null,
+          a.country ? `Country: ${a.country}` : null,
+          a.default_currency ? `Default currency: ${(a.default_currency as string).toUpperCase()}` : null,
+          a.business_profile?.support_email ? `Support email: ${a.business_profile.support_email}` : null,
+          a.business_profile?.url ? `Website: ${a.business_profile.url}` : null,
+          a.charges_enabled !== undefined ? `Charges enabled: ${a.charges_enabled}` : null,
+        ].filter(Boolean).join("\n") || null,
+        metadata: { stripeAccountId: a.id, country: a.country, currency: a.default_currency },
+        is_analyzed: false,
+      });
+    }
+
+    // Stripe products → product pillar
+    if (providerData.products?.length) {
+      const priceByProduct: Record<string, any[]> = {};
+      for (const pr of (providerData.prices || [])) {
+        const pid = typeof pr.product === "string" ? pr.product : pr.product?.id;
+        if (!pid) continue;
+        (priceByProduct[pid] ||= []).push(pr);
+      }
+      for (const p of providerData.products) {
+        const productPrices = priceByProduct[p.id] || [];
+        const priceLines = productPrices.slice(0, 5).map((pr: any) => {
+          const amt = ((pr.unit_amount || 0) / 100).toFixed(2);
+          const cur = (pr.currency || "usd").toUpperCase();
+          const interval = pr.recurring?.interval ? `/${pr.recurring.interval}` : " (one-time)";
+          return `- ${amt} ${cur}${interval}`;
+        });
+        dataItems.push({
+          user_id: user.id,
+          data_type: "product",
+          source: provider,
+          title: p.name || "Unnamed Product",
+          content: [
+            p.description ? p.description : null,
+            priceLines.length ? `Prices:\n${priceLines.join("\n")}` : null,
+          ].filter(Boolean).join("\n\n") || null,
+          metadata: { stripeProductId: p.id, prices: productPrices.map((pr: any) => ({ id: pr.id, amount: pr.unit_amount, currency: pr.currency, interval: pr.recurring?.interval })) },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // Stripe customers → audience pillar (real paying customers)
+    if (providerData.customers?.length) {
+      for (const c of providerData.customers.slice(0, 100)) {
+        dataItems.push({
+          user_id: user.id,
+          data_type: "contact",
+          source: provider,
+          title: c.name || c.email || c.id,
+          content: [
+            c.email ? `Email: ${c.email}` : null,
+            c.phone ? `Phone: ${c.phone}` : null,
+            c.description ? `Notes: ${c.description}` : null,
+            c.address?.country ? `Country: ${c.address.country}` : null,
+            c.created ? `Customer since: ${new Date(c.created * 1000).toISOString().slice(0, 10)}` : null,
+          ].filter(Boolean).join("\n") || null,
+          metadata: { stripeCustomerId: c.id, email: c.email, country: c.address?.country, created: c.created },
+          is_analyzed: false,
+        });
+      }
+    }
+
+    // Stripe subscriptions → revenue/business model pillar
+    if (providerData.subscriptions?.length) {
+      let mrrCents = 0;
+      let activeCount = 0;
+      const productById: Record<string, any> = {};
+      for (const p of (providerData.products || [])) productById[p.id] = p;
+      for (const s of providerData.subscriptions) {
+        const item = s.items?.data?.[0];
+        const unit = item?.price?.unit_amount || 0;
+        const qty = item?.quantity || 1;
+        const interval = item?.price?.recurring?.interval || "month";
+        const intervalCount = item?.price?.recurring?.interval_count || 1;
+        const monthlyMultiplier =
+          interval === "year" ? 1 / (12 * intervalCount) :
+          interval === "week" ? 4.33 / intervalCount :
+          interval === "day" ? 30 / intervalCount :
+          1 / intervalCount;
+        if (s.status === "active" || s.status === "trialing") {
+          mrrCents += unit * qty * monthlyMultiplier;
+          activeCount++;
+        }
+      }
+      const totalMrr = (mrrCents / 100).toFixed(2);
+      dataItems.push({
+        user_id: user.id,
+        data_type: "integration",
+        source: provider,
+        title: `Stripe Revenue Snapshot — MRR ${totalMrr}`,
+        content: [
+          `Active/trialing subscriptions: ${activeCount}`,
+          `Estimated MRR: ${totalMrr}`,
+          `Total subscriptions tracked: ${providerData.subscriptions.length}`,
+          `ARR estimate: ${(parseFloat(totalMrr) * 12).toFixed(2)}`,
+        ].join("\n"),
+        metadata: { type: "revenue_snapshot", mrr: parseFloat(totalMrr), activeSubscriptions: activeCount, totalSubscriptions: providerData.subscriptions.length },
+        is_analyzed: false,
+      });
+    }
+
+    // Stripe charges last 90d → revenue history
+    if (providerData.charges?.length) {
+      const succeeded = providerData.charges.filter((c: any) => c.status === "succeeded");
+      const totalRevenue = succeeded.reduce((s: number, c: any) => s + (c.amount || 0), 0) / 100;
+      const refundedTotal = providerData.charges.reduce((s: number, c: any) => s + (c.amount_refunded || 0), 0) / 100;
+      const currency = succeeded[0]?.currency?.toUpperCase() || "USD";
+      dataItems.push({
+        user_id: user.id,
+        data_type: "integration",
+        source: provider,
+        title: `Stripe Revenue (last 90d): ${totalRevenue.toFixed(2)} ${currency}`,
+        content: [
+          `Successful charges: ${succeeded.length}`,
+          `Total revenue: ${totalRevenue.toFixed(2)} ${currency}`,
+          `Refunds: ${refundedTotal.toFixed(2)} ${currency}`,
+          `Average order value: ${succeeded.length ? (totalRevenue / succeeded.length).toFixed(2) : "0.00"} ${currency}`,
+        ].join("\n"),
+        metadata: { type: "revenue_history", days: 90, totalRevenue, refundedTotal, count: succeeded.length, currency },
+        is_analyzed: false,
+      });
+    }
+
     for (const item of dataItems) {
       if (brandId) {
         item.metadata = { ...item.metadata, brandId };
