@@ -28,7 +28,7 @@ function SuperchargeDnaInner() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFD]">
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
           <Button
             variant="ghost"
