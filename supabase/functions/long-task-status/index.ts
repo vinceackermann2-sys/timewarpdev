@@ -10,10 +10,20 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-  global: { headers: { "X-Client-Info": "long-task-status" } },
-});
+// Lazy client init to avoid boot-time crashes if env vars are temporarily unavailable
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Server configuration is missing");
+  }
+  if (!_supabase) {
+    _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false },
+      global: { headers: { "X-Client-Info": "long-task-status" } },
+    });
+  }
+  return _supabase;
+}
 
 const RUN_SELECT = "id, continuation_key, task_type, status, phase, progress, logs, result_excerpt, error, updated_at, created_at";
 const CHECKPOINT_SELECT = "continuation_index, content, metadata, updated_at";
@@ -34,6 +44,7 @@ serve(async (req) => {
     const token = authHeader.slice("Bearer ".length).trim();
     if (!token) throw new Error("Missing authorization header");
 
+    const supabase = getSupabase();
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData?.user) throw new Error("Unauthorized");
 
