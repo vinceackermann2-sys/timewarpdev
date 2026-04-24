@@ -456,26 +456,9 @@ const Database = () => {
             />
             <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-[#d1d5db] bg-background">
               {currentView === "aiceo" && user && (
-                <AiCeoArea
+                <TimeWarpAIView
                   initialTask={pendingTask}
                   onTaskConsumed={() => setPendingTask(null)}
-                  onboardingInitialUrl={onboardingUrl}
-                  onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
-                    setOnboardingUrl(null);
-                    setActiveBrandId(newBrandId);
-                    setShowBusinessDNA(true);
-                    if (supercharge) {
-                      // Persist active brand for the standalone supercharge route
-                      localStorage.setItem("tw_active_brand_id", newBrandId);
-                      // Suppress the auto-popup since the user already opted in
-                      sessionStorage.setItem(`tw_supercharge_popup_shown_${newBrandId}`, "1");
-                      navigate("/supercharge-dna");
-                    } else {
-                      // Skip → land on Business DNA view
-                      setCurrentView("businessdna");
-                      localStorage.setItem("tw_current_view", "businessdna");
-                    }
-                  }}
                 />
               )}
               {currentView === "businessdna" && user && (
@@ -501,10 +484,21 @@ const Database = () => {
                 />
               )}
               {currentView === "employees" && user && (
-                <AgentChatView
+                <EmployeesArea
                   activeBrandId={activeBrandId}
-                  initialMessage={initialAssistantMessage}
-                  onInitialMessageConsumed={() => setInitialAssistantMessage(null)}
+                  initialAssistantMessage={initialAssistantMessage}
+                  onInitialAssistantMessageConsumed={() => setInitialAssistantMessage(null)}
+                  onboardingInitialUrl={onboardingUrl}
+                  onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
+                    setOnboardingUrl(null);
+                    setActiveBrandId(newBrandId);
+                    if (supercharge) {
+                      localStorage.setItem("tw_active_brand_id", newBrandId);
+                      sessionStorage.setItem(`tw_supercharge_popup_shown_${newBrandId}`, "1");
+                      navigate("/supercharge-dna");
+                    }
+                    // Otherwise stay on employees — the seeded transcript is now the chat.
+                  }}
                 />
               )}
               {currentView === "workspaces" && user && (
