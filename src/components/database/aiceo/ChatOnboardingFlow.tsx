@@ -88,13 +88,14 @@ type Phase =
   | "products"     // user picking products
   | "forging"      // scrape-product core + save-onboarding running
   | "naming"       // user choosing agent name
+  | "supercharge"  // ask user whether to supercharge DNA with integrations/files
   | "done";        // navigating away
 
 interface ChatOnboardingFlowProps {
   /** Optional URL to pre-fill (from landing-page funnel ?url= param). */
   initialUrl?: string | null;
-  /** Called once the user has named their agent and a brand row was created. */
-  onComplete: (agentName: string, brandId: string) => void;
+  /** Called once the user has named their agent and chosen whether to supercharge. */
+  onComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
 }
 
 export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlowProps) {
@@ -565,9 +566,15 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         )
       );
     } catch { /* best effort */ }
+    setIsCompleting(false);
+    setPhase("supercharge");
+  }, [agentName, createdBrandId, createdBrandRowId, setBrands]);
+
+  const handleSuperchargeChoice = useCallback((wantsSupercharge: boolean) => {
+    if (!createdBrandId) return;
     setPhase("done");
-    onComplete(trimmed, createdBrandId);
-  }, [agentName, createdBrandId, createdBrandRowId, onComplete, setBrands]);
+    onComplete(agentName.trim(), createdBrandId, wantsSupercharge);
+  }, [agentName, createdBrandId, onComplete]);
 
   // ─────────── RENDER ───────────
 
@@ -857,7 +864,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                         disabled={!agentName.trim()}
                         className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:bg-[#4a86ff]/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                       >
-                        Take me to {agentName.trim() || "agent"}
+                        Continue
                         <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -869,10 +876,50 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                     animate={{ opacity: 1 }}
                     className="flex items-center gap-2 text-[#4a86ff] text-sm py-2"
                   >
-                    <Loader2 className="w-4 h-4 animate-spin" /> Setting up {agentName.trim()}…
+                    <Loader2 className="w-4 h-4 animate-spin" /> Saving {agentName.trim()}…
                   </motion.div>
                 )}
               </AnimatePresence>
+            </UserActionCard>
+          </>
+        )}
+
+        {/* Echo agent name once supercharge prompt is up */}
+        {phase === "supercharge" && agentName.trim() && (
+          <UserBubble>
+            <span className="font-medium">{agentName.trim()}</span>
+          </UserBubble>
+        )}
+
+        {/* Supercharge prompt */}
+        {phase === "supercharge" && (
+          <>
+            <AssistantBubble>
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="w-5 h-5 text-[#4a86ff] shrink-0" />
+                <p className="text-[15px] font-semibold text-[#1a1f36]">
+                  Want to supercharge your DNA?
+                </p>
+              </div>
+              <p className="text-[14px] text-[#1a1f36] leading-relaxed">
+                Connect your tools (Gmail, Drive, HubSpot, Slack…) or upload files and URLs so I can fill in the gaps with verified, real evidence — no made-up data. You can also do this later from Business DNA.
+              </p>
+            </AssistantBubble>
+            <UserActionCard>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => handleSuperchargeChoice(true)}
+                  className="bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                >
+                  <Sparkles className="w-4 h-4" /> Yes, supercharge
+                </button>
+                <button
+                  onClick={() => handleSuperchargeChoice(false)}
+                  className="bg-white border border-[#e5e7eb] hover:bg-[#f4f3ee] transition-colors text-[#1a1f36] px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                >
+                  Skip for now <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </UserActionCard>
           </>
         )}

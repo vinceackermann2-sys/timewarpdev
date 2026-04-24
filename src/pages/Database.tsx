@@ -138,6 +138,40 @@ function BusinessDnaArea({
   return <BusinessDNAOnboarding onComplete={onOnboardingComplete} />;
 }
 
+// Wraps TimeWarpAIView and decides whether to force chat onboarding.
+// Brand-less users (no brands after first authoritative load) get the chat onboarding.
+function AiCeoArea({
+  initialTask,
+  onTaskConsumed,
+  onboardingInitialUrl,
+  onOnboardingComplete,
+}: {
+  initialTask: PendingTask | null;
+  onTaskConsumed: () => void;
+  onboardingInitialUrl: string | null;
+  onOnboardingComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
+}) {
+  const { brands, isLoading } = useBusinessDNA();
+  const [hasSettled, setHasSettled] = useState(false);
+  useEffect(() => {
+    if (!isLoading) setHasSettled(true);
+  }, [isLoading]);
+
+  // While we don't yet know whether brands exist, render the standard view (no flash).
+  // Once settled, force onboarding only when we're sure the user has zero brands.
+  const forceOnboarding = hasSettled && brands.length === 0;
+
+  return (
+    <TimeWarpAIView
+      initialTask={initialTask}
+      onTaskConsumed={onTaskConsumed}
+      forceOnboarding={forceOnboarding}
+      onboardingInitialUrl={onboardingInitialUrl}
+      onOnboardingComplete={onOnboardingComplete}
+    />
+  );
+}
+
 import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
 
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
@@ -413,9 +447,26 @@ const Database = () => {
             />
             <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-[#d1d5db] bg-background">
               {currentView === "aiceo" && user && (
-                <TimeWarpAIView
+                <AiCeoArea
                   initialTask={pendingTask}
                   onTaskConsumed={() => setPendingTask(null)}
+                  onboardingInitialUrl={onboardingUrl}
+                  onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
+                    setOnboardingUrl(null);
+                    setActiveBrandId(newBrandId);
+                    setShowBusinessDNA(true);
+                    if (supercharge) {
+                      // Persist active brand for the standalone supercharge route
+                      localStorage.setItem("tw_active_brand_id", newBrandId);
+                      // Suppress the auto-popup since the user already opted in
+                      sessionStorage.setItem(`tw_supercharge_popup_shown_${newBrandId}`, "1");
+                      navigate("/supercharge-dna");
+                    } else {
+                      // Skip → land on Business DNA view
+                      setCurrentView("businessdna");
+                      localStorage.setItem("tw_current_view", "businessdna");
+                    }
+                  }}
                 />
               )}
               {currentView === "businessdna" && user && (

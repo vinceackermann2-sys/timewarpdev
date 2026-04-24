@@ -17,7 +17,6 @@ import InviteAccept from "./pages/InviteAccept";
 import PricingPage from "./pages/PricingPage";
 import Support from "./pages/Support";
 import DataDeletion from "./pages/DataDeletion";
-import Onboarding from "./pages/Onboarding";
 import SuperchargeDna from "./pages/SuperchargeDna";
 
 const queryClient = new QueryClient();
@@ -36,7 +35,6 @@ const App = () => {
                   <Route path="/" element={<AiCeo />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/app" element={<Database />} />
-                  <Route path="/onboarding" element={<Onboarding />} />
                   <Route path="/supercharge-dna" element={<SuperchargeDna />} />
                   <Route path="/timewarp-og" element={<TimewarpOG />} />
                   <Route path="/invite" element={<InviteAccept />} />
