@@ -9,22 +9,57 @@ const corsHeaders = {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const jsonResponse = (payload: unknown, status = 200) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+function getRequiredEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) {
+    throw new Error(`${name} is not configured`);
+  }
+  return value;
+}
+
+function createAdminClient() {
+  const supabaseUrl = getRequiredEnv("SUPABASE_URL");
+  const serviceRoleKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  return {
+    supabaseUrl,
+    serviceRoleKey,
+    client: createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    }),
+  };
+}
+
+async function parseRequestBody(req: Request) {
+  try {
+    return await req.json();
+  } catch {
+    throw new Error("Invalid JSON body");
+  }
+}
+
 // Microsoft sub-service scopes — each gets only what it needs
 const MICROSOFT_SERVICES: Record<string, { scopes: string; label: string }> = {
-  microsoft_outlook:  { scopes: "openid profile email offline_access User.Read Mail.Read Calendars.Read", label: "Outlook" },
+  microsoft_outlook: { scopes: "openid profile email offline_access User.Read Mail.Read Calendars.Read", label: "Outlook" },
   microsoft_onedrive: { scopes: "openid profile email offline_access User.Read Files.Read.All", label: "OneDrive" },
-  microsoft_onenote:  { scopes: "openid profile email offline_access User.Read Notes.Read", label: "OneNote" },
-  microsoft_teams:    { scopes: "openid profile offline_access User.Read Team.ReadBasic.All OnlineMeetings.Read", label: "Teams" },
+  microsoft_onenote: { scopes: "openid profile email offline_access User.Read Notes.Read", label: "OneNote" },
+  microsoft_teams: { scopes: "openid profile offline_access User.Read Team.ReadBasic.All OnlineMeetings.Read", label: "Teams" },
 };
 
 // Google sub-service scopes — each gets only what it needs
 const GOOGLE_SERVICES: Record<string, { scopes: string; label: string }> = {
   google_calendar: { scopes: "openid email profile https://www.googleapis.com/auth/calendar.readonly", label: "Google Calendar" },
-  google_drive:    { scopes: "openid email profile https://www.googleapis.com/auth/drive.readonly", label: "Google Drive" },
-  google_docs:     { scopes: "openid email profile https://www.googleapis.com/auth/documents.readonly", label: "Google Docs" },
-  google_sheets:   { scopes: "openid email profile https://www.googleapis.com/auth/spreadsheets.readonly", label: "Google Sheets" },
-  google_slides:   { scopes: "openid email profile https://www.googleapis.com/auth/presentations.readonly", label: "Google Slides" },
-  google_gmail:    { scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly", label: "Gmail" },
+  google_drive: { scopes: "openid email profile https://www.googleapis.com/auth/drive.readonly", label: "Google Drive" },
+  google_docs: { scopes: "openid email profile https://www.googleapis.com/auth/documents.readonly", label: "Google Docs" },
+  google_sheets: { scopes: "openid email profile https://www.googleapis.com/auth/spreadsheets.readonly", label: "Google Sheets" },
+  google_slides: { scopes: "openid email profile https://www.googleapis.com/auth/presentations.readonly", label: "Google Slides" },
+  google_gmail: { scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly", label: "Gmail" },
 };
 
 function isMicrosoftSubService(provider: string): boolean {
@@ -66,100 +101,99 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const body = await req.json();
-    const { provider, action, brandId } = body;
-
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const body = await parseRequestBody(req);
+    const provider = typeof body.provider === "string" ? body.provider : "";
+    const action = typeof body.action === "string" ? body.action : "";
+    const brandId = typeof body.brandId === "string" ? body.brandId : null;
 
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ error: "Not authenticated" }, 401);
     }
 
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-    });
+    const { supabaseUrl, serviceRoleKey, client: supabaseAdmin } = createAdminClient();
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    const token = authHeader.slice("Bearer ".length);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAdmin.auth.getUser(token);
+
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Invalid token" }, 401);
     }
 
-    const requestedBrandId = typeof brandId === "string" && brandId.trim() ? brandId : null;
+    const requestedBrandId = brandId && brandId.trim() ? brandId.trim() : null;
     const resolvedBrandId = requestedBrandId
       ? await resolveBrandRowId(supabaseAdmin, user.id, requestedBrandId)
       : null;
 
-    // Action: check-status
     if (action === "check-status") {
-      const { data: connections } = await supabaseAdmin
-        .from("user_connections")
-        .select("provider, status, brand_id")
-        .eq("user_id", user.id)
-        .eq("status", "connected");
+      const [connectionsResult, tokensResult] = await Promise.all([
+        supabaseAdmin
+          .from("user_connections")
+          .select("provider, status, brand_id")
+          .eq("user_id", user.id)
+          .eq("status", "connected"),
+        supabaseAdmin
+          .from("user_oauth_tokens")
+          .select("provider, provider_email")
+          .eq("user_id", user.id),
+      ]);
 
-      const { data: tokens } = await supabaseAdmin
-        .from("user_oauth_tokens")
-        .select("provider, provider_email")
-        .eq("user_id", user.id);
+      if (connectionsResult.error) {
+        console.error("connect-provider check-status connections error", connectionsResult.error);
+        return jsonResponse({ error: "Failed to load connection status" }, 500);
+      }
 
-      const tokenProviders = (tokens || []).map((t: any) => t.provider);
-      const connected = (connections || [])
-        .filter((c: any) => tokenProviders.includes(c.provider))
-        .map((c: any) => ({
-          provider: c.provider,
-          email: tokens?.find((t: any) => t.provider === c.provider)?.provider_email,
-        }));
+      if (tokensResult.error) {
+        console.error("connect-provider check-status tokens error", tokensResult.error);
+        return jsonResponse({ error: "Failed to load token status" }, 500);
+      }
 
-      const deduped = new Map<string, any>();
-      for (const c of connected) {
-        if (!deduped.has(c.provider)) {
-          deduped.set(c.provider, c);
+      const tokenEmailByProvider = new Map<string, string | null>();
+      for (const tokenRow of tokensResult.data ?? []) {
+        if (!tokenEmailByProvider.has(tokenRow.provider)) {
+          tokenEmailByProvider.set(tokenRow.provider, tokenRow.provider_email ?? null);
         }
       }
 
-      return new Response(JSON.stringify({ connected: Array.from(deduped.values()) }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Action: get-auth-url
-    if (action === "get-auth-url") {
-      if (requestedBrandId && !resolvedBrandId) {
-        return new Response(JSON.stringify({ error: "Business not found" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const deduped = new Map<string, { provider: string; email?: string | null }>();
+      for (const connection of connectionsResult.data ?? []) {
+        if (!tokenEmailByProvider.has(connection.provider) || deduped.has(connection.provider)) continue;
+        deduped.set(connection.provider, {
+          provider: connection.provider,
+          email: tokenEmailByProvider.get(connection.provider) ?? undefined,
         });
       }
 
-      const redirectBase = `${SUPABASE_URL}/functions/v1`;
-      const returnPath = body.returnPath || "/";
-      const origin = body.origin || "";
+      return jsonResponse({ connected: Array.from(deduped.values()) });
+    }
+
+    if (action === "get-auth-url") {
+      if (!provider) {
+        return jsonResponse({ error: "Provider is required" }, 400);
+      }
+
+      if (requestedBrandId && !resolvedBrandId) {
+        return jsonResponse({ error: "Business not found" }, 400);
+      }
+
+      const redirectBase = `${supabaseUrl}/functions/v1`;
+      const returnPath = typeof body.returnPath === "string" && body.returnPath ? body.returnPath : "/";
+      const origin = typeof body.origin === "string" ? body.origin : "";
       let authUrl = "";
 
-      // Generate HMAC nonce
       const nonce = crypto.randomUUID();
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
         "raw",
-        encoder.encode(SUPABASE_SERVICE_ROLE_KEY),
+        encoder.encode(serviceRoleKey),
         { name: "HMAC", hash: "SHA-256" },
         false,
         ["sign"],
       );
-      const signatureBuffer = await crypto.subtle.sign(
-        "HMAC",
-        key,
-        encoder.encode(nonce + user.id),
-      );
+      const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(nonce + user.id));
       const hmac = Array.from(new Uint8Array(signatureBuffer))
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
@@ -173,27 +207,22 @@ serve(async (req) => {
         logicalBrandId: requestedBrandId,
       };
 
-      // Handle Microsoft sub-services
       if (isMicrosoftSubService(provider)) {
-        const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
-        if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
+        const clientId = getRequiredEnv("MICROSOFT_CLIENT_ID");
         const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
         const service = MICROSOFT_SERVICES[provider];
         const state = btoa(JSON.stringify({ ...stateBase, origin, subProvider: provider }));
         authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(service.scopes)}&state=${state}&response_mode=query`;
       } else if (isGoogleSubService(provider)) {
-        const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
-        if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
+        const clientId = getRequiredEnv("GOOGLE_CLIENT_ID");
         const redirectUri = `${redirectBase}/google-oauth-callback`;
         const service = GOOGLE_SERVICES[provider];
         const state = btoa(JSON.stringify({ ...stateBase, subProvider: provider }));
         authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(service.scopes)}&state=${state}&access_type=offline&prompt=consent`;
       } else {
         switch (provider) {
-          // Legacy "microsoft" still supported for backwards compat
           case "microsoft": {
-            const clientId = Deno.env.get("MICROSOFT_CLIENT_ID");
-            if (!clientId) throw new Error("MICROSOFT_CLIENT_ID not configured");
+            const clientId = getRequiredEnv("MICROSOFT_CLIENT_ID");
             const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
             const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read Contacts.Read Notes.Read Tasks.Read";
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
@@ -201,8 +230,7 @@ serve(async (req) => {
             break;
           }
           case "google": {
-            const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
-            if (!clientId) throw new Error("GOOGLE_CLIENT_ID not configured");
+            const clientId = getRequiredEnv("GOOGLE_CLIENT_ID");
             const redirectUri = `${redirectBase}/google-oauth-callback`;
             const scopes = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
             const state = btoa(JSON.stringify(stateBase));
@@ -210,8 +238,7 @@ serve(async (req) => {
             break;
           }
           case "slack": {
-            const clientId = Deno.env.get("SLACK_CLIENT_ID");
-            if (!clientId) throw new Error("SLACK_CLIENT_ID not configured");
+            const clientId = getRequiredEnv("SLACK_CLIENT_ID");
             const redirectUri = `${redirectBase}/slack-oauth-callback`;
             const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
@@ -219,13 +246,14 @@ serve(async (req) => {
             break;
           }
           case "zoom": {
+            const clientId = getRequiredEnv("ZOOM_CLIENT_ID");
+            const redirectUri = `${redirectBase}/zoom-oauth-callback`;
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
-            authUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=V6FwCE1HRAuBgiP6eE_V0A&redirect_uri=https://ohvxqlxugqlzzbmfypiy.supabase.co/functions/v1/zoom-oauth-callback&state=${state}`;
+            authUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
             break;
           }
           case "hubspot": {
-            const clientId = Deno.env.get("HUBSPOT_CLIENT_ID");
-            if (!clientId) throw new Error("HUBSPOT_CLIENT_ID not configured");
+            const clientId = getRequiredEnv("HUBSPOT_CLIENT_ID");
             const redirectUri = `${redirectBase}/hubspot-oauth-callback`;
             const requiredScopes = "oauth";
             const optionalScopes = "crm.objects.contacts.read crm.objects.companies.read crm.objects.deals.read crm.objects.owners.read sales-email-read";
@@ -234,52 +262,36 @@ serve(async (req) => {
             break;
           }
           default:
-            return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            return jsonResponse({ error: `Unsupported provider: ${provider}` }, 400);
         }
       }
 
-      return new Response(JSON.stringify({ authUrl }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ authUrl });
     }
 
-    // Action: save-credentials (for WordPress)
     if (action === "save-credentials" && provider === "wordpress") {
       if (requestedBrandId && !resolvedBrandId) {
-        return new Response(JSON.stringify({ error: "Business not found" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ error: "Business not found" }, 400);
       }
 
       if (!body.siteUrl || !body.username || !body.appPassword) {
-        return new Response(JSON.stringify({ error: "Missing siteUrl, username, or appPassword" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ error: "Missing siteUrl, username, or appPassword" }, 400);
       }
 
-      const normalizedUrl = body.siteUrl.replace(/\/+$/, "");
+      const normalizedUrl = String(body.siteUrl).replace(/\/+$/, "");
       const basicAuth = btoa(`${body.username}:${body.appPassword}`);
       const testRes = await fetch(`${normalizedUrl}/wp-json/wp/v2/users/me`, {
         headers: { Authorization: `Basic ${basicAuth}` },
       });
 
       if (!testRes.ok) {
-        return new Response(JSON.stringify({ error: "Invalid WordPress credentials. Check your site URL, username, and application password." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResponse({ error: "Invalid WordPress credentials. Check your site URL, username, and application password." }, 400);
       }
 
       const wpUser = await testRes.json();
 
-      await supabaseAdmin
-        .from("user_oauth_tokens")
-        .upsert({
+      const oauthUpsert = await supabaseAdmin.from("user_oauth_tokens").upsert(
+        {
           user_id: user.id,
           provider: "wordpress",
           access_token: basicAuth,
@@ -287,55 +299,68 @@ serve(async (req) => {
           scopes: "posts,pages,media",
           provider_user_id: String(wpUser.id),
           provider_email: wpUser.email || body.username,
-        }, { onConflict: "user_id,provider" });
+        },
+        { onConflict: "user_id,provider" },
+      );
 
-      await supabaseAdmin
-        .from("user_connections")
-        .upsert({
+      if (oauthUpsert.error) {
+        console.error("connect-provider wordpress oauth upsert error", oauthUpsert.error);
+        return jsonResponse({ error: "Failed to save WordPress credentials" }, 500);
+      }
+
+      const connectionUpsert = await supabaseAdmin.from("user_connections").upsert(
+        {
           user_id: user.id,
           provider: "wordpress",
           status: "connected",
           brand_id: resolvedBrandId,
           metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
-        }, { onConflict: "user_id,provider" });
+        },
+        { onConflict: "user_id,provider" },
+      );
 
-      return new Response(JSON.stringify({ success: true, displayName: wpUser.name }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (connectionUpsert.error) {
+        console.error("connect-provider wordpress connection upsert error", connectionUpsert.error);
+        return jsonResponse({ error: "Failed to save WordPress connection" }, 500);
+      }
+
+      return jsonResponse({ success: true, displayName: wpUser.name });
     }
 
-    // Action: disconnect
     if (action === "disconnect") {
-      await supabaseAdmin
+      if (!provider) {
+        return jsonResponse({ error: "Provider is required" }, 400);
+      }
+
+      const connectionUpdate = await supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      await supabaseAdmin
+      if (connectionUpdate.error) {
+        console.error("connect-provider disconnect connection error", connectionUpdate.error);
+        return jsonResponse({ error: "Failed to disconnect provider" }, 500);
+      }
+
+      const tokenDelete = await supabaseAdmin
         .from("user_oauth_tokens")
         .delete()
         .eq("user_id", user.id)
         .eq("provider", provider);
 
-      // Note: We intentionally do NOT delete user_business_data here.
-      // Synced business data (brands, products, audiences) should persist
-      // even after disconnecting the integration source.
+      if (tokenDelete.error) {
+        console.error("connect-provider disconnect token error", tokenDelete.error);
+        return jsonResponse({ error: "Failed to remove stored credentials" }, 500);
+      }
 
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true });
     }
 
-    return new Response(JSON.stringify({ error: "Invalid action" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Invalid action" }, 400);
   } catch (e) {
-    console.error("connect-provider error occurred");
-    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const errorMessage = e instanceof Error ? e.message : "Unknown error";
+    console.error("connect-provider error occurred", errorMessage);
+    return jsonResponse({ error: errorMessage }, 500);
   }
 });
