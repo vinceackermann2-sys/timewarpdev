@@ -149,12 +149,14 @@ function EmployeesArea({
   onInitialAssistantMessageConsumed,
   onboardingInitialUrl,
   onOnboardingComplete,
+  onOnboardingActiveChange,
 }: {
   activeBrandId: string | null;
   initialAssistantMessage: string | null;
   onInitialAssistantMessageConsumed: () => void;
   onboardingInitialUrl: string | null;
   onOnboardingComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
+  onOnboardingActiveChange: (active: boolean) => void;
 }) {
   const { brands, isLoading } = useBusinessDNA();
   const [hasSettled, setHasSettled] = useState(false);
@@ -174,6 +176,7 @@ function EmployeesArea({
       forceOnboarding={forceOnboarding}
       onboardingInitialUrl={onboardingInitialUrl}
       onOnboardingComplete={onOnboardingComplete}
+      onOnboardingActiveChange={onOnboardingActiveChange}
     />
   );
 }
@@ -213,6 +216,18 @@ const Database = () => {
   const [purchasedActions, setPurchasedActions] = useState(0);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>("Briefing");
   const [dnaPillar, setDnaPillar] = useState<DnaPillar>("brand");
+  const [onboardingLocked, setOnboardingLocked] = useState(false);
+
+  // Warn user when navigating away mid-onboarding (refresh, close tab, back button).
+  useEffect(() => {
+    if (!onboardingLocked) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [onboardingLocked]);
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
@@ -418,6 +433,11 @@ const Database = () => {
       navigate("/auth?redirect=/app");
       return;
     }
+    // Lock navigation while chat-driven onboarding is in progress.
+    if (onboardingLocked && view !== "employees") {
+      toast.info("Finish setting up your business first.");
+      return;
+    }
     setCurrentView(view);
     localStorage.setItem("tw_current_view", view);
   };
@@ -434,26 +454,30 @@ const Database = () => {
       />
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">
-          <DatabaseSidebar
-            currentView={currentView}
-            onViewChange={handleViewChange}
-            userEmail={user?.email || ""}
-            activeDashboardTab={dashboardTab}
-            onDashboardTabChange={setDashboardTab}
-            activeDnaPillar={dnaPillar}
-            onDnaPillarChange={setDnaPillar}
-          />
+          <div className={onboardingLocked ? "contents pointer-events-none opacity-60" : "contents"}>
+            <DatabaseSidebar
+              currentView={currentView}
+              onViewChange={handleViewChange}
+              userEmail={user?.email || ""}
+              activeDashboardTab={dashboardTab}
+              onDashboardTabChange={setDashboardTab}
+              activeDnaPillar={dnaPillar}
+              onDnaPillarChange={setDnaPillar}
+            />
+          </div>
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
             <MobileHeader />
-            <TopBreadcrumb
-              currentView={currentView}
-              activeBrandId={activeBrandId}
-              activeDnaPillar={currentView === "businessdna" ? dnaPillar : undefined}
-              onSelectBrand={(brandId) => {
-                setActiveBrandId(brandId);
-                setShowBusinessDNA(true);
-              }}
-            />
+            <div className={onboardingLocked ? "pointer-events-none opacity-60" : ""}>
+              <TopBreadcrumb
+                currentView={currentView}
+                activeBrandId={activeBrandId}
+                activeDnaPillar={currentView === "businessdna" ? dnaPillar : undefined}
+                onSelectBrand={(brandId) => {
+                  setActiveBrandId(brandId);
+                  setShowBusinessDNA(true);
+                }}
+              />
+            </div>
             <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-[#d1d5db] bg-background">
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
@@ -489,6 +513,7 @@ const Database = () => {
                   initialAssistantMessage={initialAssistantMessage}
                   onInitialAssistantMessageConsumed={() => setInitialAssistantMessage(null)}
                   onboardingInitialUrl={onboardingUrl}
+                  onOnboardingActiveChange={setOnboardingLocked}
                   onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
                     setOnboardingUrl(null);
                     setActiveBrandId(newBrandId);

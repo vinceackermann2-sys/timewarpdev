@@ -185,6 +185,7 @@ export function AgentChatView({
   forceOnboarding,
   onboardingInitialUrl,
   onOnboardingComplete,
+  onOnboardingActiveChange,
 }: {
   activeBrandId?: string | null;
   initialMessage?: string | null;
@@ -195,6 +196,8 @@ export function AgentChatView({
   onboardingInitialUrl?: string | null;
   /** Called once the user has named their agent and chosen whether to supercharge. */
   onOnboardingComplete?: (agentName: string, brandId: string, supercharge: boolean) => void;
+  /** Notifies parent when the inline onboarding flow is active so it can lock navigation. */
+  onOnboardingActiveChange?: (active: boolean) => void;
 }) {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
@@ -239,6 +242,22 @@ export function AgentChatView({
   /* ── Chat state ── */
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
+
+  /* ── Onboarding latch ──
+   * Once the chat-driven onboarding flow is shown, keep it mounted until the user
+   * finishes (names agent + makes supercharge choice) — even if `forceOnboarding`
+   * flips to false mid-flow because save-onboarding created the brand and
+   * brands.length > 0. Without this, naming/supercharge phases would never appear.
+   */
+  const [onboardingLocked, setOnboardingLocked] = useState<boolean>(!!forceOnboarding && messages.length === 0);
+  useEffect(() => {
+    if (forceOnboarding && messages.length === 0) {
+      setOnboardingLocked(true);
+    }
+  }, [forceOnboarding, messages.length]);
+  useEffect(() => {
+    onOnboardingActiveChange?.(onboardingLocked);
+  }, [onboardingLocked, onOnboardingActiveChange]);
   const [resumingTask, setResumingTask] = useState(false);
   const [resumableTask, setResumableTask] = useState<null | {
     continuationKey: string;
@@ -1580,7 +1599,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             </div>
           </div>
         )}
-        {!hasMessages && forceOnboarding ? (
+        {!hasMessages && (forceOnboarding || onboardingLocked) ? (
           /* ── Chat-driven onboarding (first-time users) ── */
           <ChatOnboardingFlow
             initialUrl={onboardingInitialUrl}
@@ -1595,6 +1614,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
               }));
               setMessages(seeded);
               if (agentName) setSelectedAgent(agentName);
+              setOnboardingLocked(false);
               onOnboardingComplete?.(agentName, brandId, supercharge);
             }}
           />
