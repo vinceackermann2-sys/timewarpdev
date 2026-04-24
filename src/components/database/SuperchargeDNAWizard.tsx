@@ -305,7 +305,7 @@ export function SuperchargeDNAWizard({
       )}
       {step === 2 && (
         <>
-          <Button variant="outline" onClick={() => setStep(1)} size="lg">Back</Button>
+          <Button variant="outline" onClick={() => setStep(1)} size="lg" className="bg-white hover:bg-white">Back</Button>
           <div className="flex-1" />
           <Button onClick={() => setStep(3)} size="lg">
             Continue <ArrowRight className="h-4 w-4 ml-1.5" />
@@ -314,7 +314,7 @@ export function SuperchargeDNAWizard({
       )}
       {step === 3 && (
         <>
-          <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg">
+          <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg" className="bg-white hover:bg-white">
             Back
           </Button>
           <div className="flex-1" />
