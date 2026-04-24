@@ -1679,7 +1679,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 : [];
 
               return (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+              <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                 <div className={cn(
                   "max-w-[80%] rounded-2xl px-5 py-3 text-sm flex flex-col",
                   msg.role === "user"
