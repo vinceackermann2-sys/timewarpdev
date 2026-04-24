@@ -177,7 +177,24 @@ function TaskReportViewer({ content, onSaveToDb, savedToDb, triggerLabel, dialog
 }
 
 /* ─── Main view ─── */
-export function AgentChatView({ activeBrandId, initialMessage, onInitialMessageConsumed }: { activeBrandId?: string | null; initialMessage?: string | null; onInitialMessageConsumed?: () => void }) {
+export function AgentChatView({
+  activeBrandId,
+  initialMessage,
+  onInitialMessageConsumed,
+  forceOnboarding,
+  onboardingInitialUrl,
+  onOnboardingComplete,
+}: {
+  activeBrandId?: string | null;
+  initialMessage?: string | null;
+  onInitialMessageConsumed?: () => void;
+  /** When true and the chat is empty, render the chat-driven onboarding flow inline. */
+  forceOnboarding?: boolean;
+  /** URL to pre-fill into the onboarding (from landing-page funnel ?url=). */
+  onboardingInitialUrl?: string | null;
+  /** Called once the user has named their agent and chosen whether to supercharge. */
+  onOnboardingComplete?: (agentName: string, brandId: string, supercharge: boolean) => void;
+}) {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
