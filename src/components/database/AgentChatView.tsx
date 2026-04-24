@@ -1580,7 +1580,25 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             </div>
           </div>
         )}
-        {!hasMessages ? (
+        {!hasMessages && forceOnboarding ? (
+          /* ── Chat-driven onboarding (first-time users) ── */
+          <ChatOnboardingFlow
+            initialUrl={onboardingInitialUrl}
+            onComplete={(agentName, brandId, supercharge, transcript) => {
+              // Seed the chat with the onboarding transcript so it auto-saves
+              // to agent_chat_sessions and the resulting business chat shows
+              // the conversation that created it.
+              const seeded: ChatMessage[] = transcript.map((m, i) => ({
+                id: `onb-${Date.now()}-${i}`,
+                role: m.role,
+                content: m.content,
+              }));
+              setMessages(seeded);
+              if (agentName) setSelectedAgent(agentName);
+              onOnboardingComplete?.(agentName, brandId, supercharge);
+            }}
+          />
+        ) : !hasMessages ? (
           /* ── Empty state with centered orb ── */
           <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#fcfcfd]">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
