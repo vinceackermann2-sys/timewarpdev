@@ -660,10 +660,10 @@ export function SuperchargeDNAWizard({
 
   if (embedded) {
     return (
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Supercharge Business DNA</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Supercharge Business DNA</h1>
+          <p className="text-sm text-muted-foreground mt-2">
             Step {step} of 3 — verified enrichment only (no made-up data).
           </p>
         </div>
