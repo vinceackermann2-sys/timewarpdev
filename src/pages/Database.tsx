@@ -422,6 +422,11 @@ const Database = () => {
       navigate("/auth?redirect=/app");
       return;
     }
+    // Lock navigation while chat-driven onboarding is in progress.
+    if (onboardingLocked && view !== "employees") {
+      toast.info("Finish setting up your business first.");
+      return;
+    }
     setCurrentView(view);
     localStorage.setItem("tw_current_view", view);
   };
