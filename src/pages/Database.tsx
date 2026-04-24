@@ -443,15 +443,17 @@ const Database = () => {
       />
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">
-          <DatabaseSidebar
-            currentView={currentView}
-            onViewChange={handleViewChange}
-            userEmail={user?.email || ""}
-            activeDashboardTab={dashboardTab}
-            onDashboardTabChange={setDashboardTab}
-            activeDnaPillar={dnaPillar}
-            onDnaPillarChange={setDnaPillar}
-          />
+          <div className={onboardingLocked ? "contents pointer-events-none opacity-60" : "contents"}>
+            <DatabaseSidebar
+              currentView={currentView}
+              onViewChange={handleViewChange}
+              userEmail={user?.email || ""}
+              activeDashboardTab={dashboardTab}
+              onDashboardTabChange={setDashboardTab}
+              activeDnaPillar={dnaPillar}
+              onDnaPillarChange={setDnaPillar}
+            />
+          </div>
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
             <MobileHeader />
             <TopBreadcrumb
