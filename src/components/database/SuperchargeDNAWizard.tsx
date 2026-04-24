@@ -229,11 +229,11 @@ export function SuperchargeDNAWizard({
   };
 
   // Radial layout — fixed canvas so SVG and absolutely-positioned nodes share the same center
-  const CANVAS = 700;
+  const CANVAS = 520;
   const CENTER = CANVAS / 2;
-  const RADIUS = 260;
-  const ICON_SIZE = 72;
-  const CENTER_NODE_SIZE = 160;
+  const RADIUS = 195;
+  const ICON_SIZE = 60;
+  const CENTER_NODE_SIZE = 128;
 
   const nodeLayout = useMemo(() => {
     return INTEGRATIONS.map((integration, index) => {
