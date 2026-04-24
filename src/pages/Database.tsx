@@ -138,6 +138,40 @@ function BusinessDnaArea({
   return <BusinessDNAOnboarding onComplete={onOnboardingComplete} />;
 }
 
+// Wraps TimeWarpAIView and decides whether to force chat onboarding.
+// Brand-less users (no brands after first authoritative load) get the chat onboarding.
+function AiCeoArea({
+  initialTask,
+  onTaskConsumed,
+  onboardingInitialUrl,
+  onOnboardingComplete,
+}: {
+  initialTask: PendingTask | null;
+  onTaskConsumed: () => void;
+  onboardingInitialUrl: string | null;
+  onOnboardingComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
+}) {
+  const { brands, isLoading } = useBusinessDNA();
+  const [hasSettled, setHasSettled] = useState(false);
+  useEffect(() => {
+    if (!isLoading) setHasSettled(true);
+  }, [isLoading]);
+
+  // While we don't yet know whether brands exist, render the standard view (no flash).
+  // Once settled, force onboarding only when we're sure the user has zero brands.
+  const forceOnboarding = hasSettled && brands.length === 0;
+
+  return (
+    <TimeWarpAIView
+      initialTask={initialTask}
+      onTaskConsumed={onTaskConsumed}
+      forceOnboarding={forceOnboarding}
+      onboardingInitialUrl={onboardingInitialUrl}
+      onOnboardingComplete={onOnboardingComplete}
+    />
+  );
+}
+
 import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
 
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
