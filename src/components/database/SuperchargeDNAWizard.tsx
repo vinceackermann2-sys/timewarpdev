@@ -256,7 +256,7 @@ export function SuperchargeDNAWizard({
 
           <div
             className="relative mx-auto"
-            style={{ height: CANVAS, width: CANVAS, maxWidth: "100%" }}
+            style={{ height: CANVAS, width: CANVAS }}
           >
             {/* Soft radial backdrop */}
             <div
