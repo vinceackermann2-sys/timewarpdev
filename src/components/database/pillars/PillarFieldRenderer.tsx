@@ -78,6 +78,62 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
     return <EmptyState label={field.name.replace(/^\d+\.\s*/, "").toLowerCase()} />;
   }
 
+  if (
+    field.id === "b6" &&
+    field.value &&
+    typeof field.value === "object" &&
+    Array.isArray((field.value as { rows?: string[][] }).rows)
+  ) {
+    const rows = (field.value as { rows: string[][] }).rows;
+    const colors = rows
+      .filter((row) => /palette|background|text/i.test(String(row[0] ?? "")))
+      .map((row) => ({ label: String(row[0] ?? ""), hex: String(row[1] ?? "") }))
+      .filter((row) => row.hex.trim());
+    const typographyRow = rows.find((row) => /typography/i.test(String(row[0] ?? "")));
+    const typographyValue = String(typographyRow?.[1] ?? "");
+    const [family = "", weight = ""] = typographyValue.split("·").map((part) => part.trim());
+
+    return (
+      <div className="space-y-6">
+        {colors.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {colors.map((c) => (
+              <div key={c.label}>
+                <div
+                  className="w-full aspect-video rounded-xl shadow-inner border border-border mb-3"
+                  style={{ backgroundColor: c.hex }}
+                />
+                <div className="font-bold text-[13px] text-foreground mb-0.5">{c.label}</div>
+                <div className="font-mono text-[11px] text-muted-foreground">{c.hex}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {typographyValue && (
+          <div className="space-y-4">
+            <div
+              className="text-4xl text-foreground"
+              style={{ fontFamily: family.split(",")[0] || undefined }}
+            >
+              Aa
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[11px] font-bold text-muted-foreground/60 w-16">FAMILY</span>
+                <span className="text-[13px] font-mono bg-muted px-2 py-0.5 rounded">{family}</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[11px] font-bold text-muted-foreground/60 w-16">WEIGHTS</span>
+                <span className="text-[13px]">{weight}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   switch (field.type) {
     case "long-text":
     case "text":
