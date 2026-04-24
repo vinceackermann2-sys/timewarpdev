@@ -734,6 +734,7 @@ export function getProviderSearchLabel(provider: string, topic?: string): string
   if (provider === "slack") return `Listening in on your Slack${suffix}`;
   if (provider === "zoom") return `Checking your Zoom meetings${suffix}`;
   if (provider === "hubspot") return `Digging through your HubSpot${suffix}`;
+  if (provider === "stripe") return `Pulling your Stripe payments${suffix}`;
   return `Searching ${formatProviderName(provider)}${suffix}`;
 }
 
