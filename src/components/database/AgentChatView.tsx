@@ -185,6 +185,7 @@ export function AgentChatView({
   forceOnboarding,
   onboardingInitialUrl,
   onOnboardingComplete,
+  onOnboardingActiveChange,
 }: {
   activeBrandId?: string | null;
   initialMessage?: string | null;
@@ -195,6 +196,8 @@ export function AgentChatView({
   onboardingInitialUrl?: string | null;
   /** Called once the user has named their agent and chosen whether to supercharge. */
   onOnboardingComplete?: (agentName: string, brandId: string, supercharge: boolean) => void;
+  /** Notifies parent when the inline onboarding flow is active so it can lock navigation. */
+  onOnboardingActiveChange?: (active: boolean) => void;
 }) {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
