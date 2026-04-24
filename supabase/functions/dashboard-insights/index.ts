@@ -426,6 +426,80 @@ serve(async (req) => {
       })());
     }
 
+    if (connectedProviders.includes("stripe")) {
+      searchPromises.push((async () => {
+        try {
+          const stripeToken = await getValidProviderToken(supabase, user.id, "stripe");
+          if (!stripeToken) return;
+          const stripeHeaders = { Authorization: `Bearer ${stripeToken}` };
+          const sinceTs = Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000);
+
+          // Recent charges (last 30d, up to 100)
+          const chargesRes = await fetch(
+            `https://api.stripe.com/v1/charges?limit=100&created[gte]=${sinceTs}`,
+            { headers: stripeHeaders }
+          );
+          if (chargesRes.ok) {
+            const data = await chargesRes.json();
+            const charges = (data.data || []).slice(0, 50).map((c: any) => {
+              const amount = ((c.amount || 0) / 100).toFixed(2);
+              const date = c.created ? new Date(c.created * 1000).toISOString().slice(0, 10) : "";
+              const status = c.status || "unknown";
+              const customer = c.billing_details?.email || c.receipt_email || "anon";
+              const desc = c.description || "";
+              return `- 💳 ${amount} ${(c.currency || "usd").toUpperCase()} from ${customer} — ${status} on ${date}${desc ? ` (${desc})` : ""}`;
+            });
+            const totalRevenue = (data.data || [])
+              .filter((c: any) => c.status === "succeeded")
+              .reduce((sum: number, c: any) => sum + (c.amount || 0), 0) / 100;
+            if (charges.length > 0) {
+              integrationData += `\n### Stripe Charges (last 30d, ${charges.length} shown, succeeded total: ${totalRevenue.toFixed(2)})\n${charges.join("\n")}\n`;
+            }
+          }
+
+          // Active subscriptions (up to 100)
+          const subsRes = await fetch(
+            `https://api.stripe.com/v1/subscriptions?limit=100&status=active`,
+            { headers: stripeHeaders }
+          );
+          if (subsRes.ok) {
+            const data = await subsRes.json();
+            let mrrCents = 0;
+            const subs = (data.data || []).slice(0, 50).map((s: any) => {
+              const item = s.items?.data?.[0];
+              const unit = item?.price?.unit_amount || 0;
+              const qty = item?.quantity || 1;
+              const interval = item?.price?.recurring?.interval || "month";
+              const monthlyMultiplier = interval === "year" ? 1 / 12 : interval === "week" ? 4.33 : interval === "day" ? 30 : 1;
+              mrrCents += unit * qty * monthlyMultiplier;
+              const amount = ((unit * qty) / 100).toFixed(2);
+              const cust = s.customer || "unknown";
+              return `- 🔁 ${amount} ${(item?.price?.currency || "usd").toUpperCase()}/${interval} — customer ${cust} — status ${s.status}`;
+            });
+            if (subs.length > 0) {
+              integrationData += `\n### Stripe Active Subscriptions (${subs.length}, est. MRR: ${(mrrCents / 100).toFixed(2)})\n${subs.join("\n")}\n`;
+            }
+          }
+
+          // Recent customers (last 30d, up to 50)
+          const custRes = await fetch(
+            `https://api.stripe.com/v1/customers?limit=50&created[gte]=${sinceTs}`,
+            { headers: stripeHeaders }
+          );
+          if (custRes.ok) {
+            const data = await custRes.json();
+            const customers = (data.data || []).slice(0, 30).map((c: any) => {
+              const date = c.created ? new Date(c.created * 1000).toISOString().slice(0, 10) : "";
+              return `- 👤 ${c.name || c.email || c.id} (${c.email || "no email"}) — joined ${date}`;
+            });
+            if (customers.length > 0) {
+              integrationData += `\n### Stripe New Customers (last 30d, ${customers.length})\n${customers.join("\n")}\n`;
+            }
+          }
+        } catch (e) { console.error("Stripe search error:", e); }
+      })());
+    }
+
     // Google sub-services
     const googleProviders = ["google", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "google_gmail"];
     const getGoogleToken = async () => {
@@ -683,7 +757,7 @@ serve(async (req) => {
         ownerRequired: /\bwaiting|reply|follow.?up|decision|overdue\b/i.test(line) ? 4 : 2,
         dnaAudienceFit: /audience|customer|icp|buyer/i.test(line) ? 4 : 3,
         dnaOfferFit: /offer|plan|pricing|proposal|product/i.test(line) ? 4 : 3,
-        dnaChannelFit: /slack|gmail|outlook|calendar|drive|zoom|teams/i.test(line) ? 4 : 3,
+        dnaChannelFit: /slack|gmail|outlook|calendar|drive|zoom|teams|stripe/i.test(line) ? 4 : 3,
         objectiveFit: /target|kpi|goal|revenue|growth|pipeline/i.test(line) ? 4 : 3,
         learningWeight,
         detail: line,
@@ -912,12 +986,12 @@ Weights: tabBalance 25 · sourceDiversity 20 · specificity 20 · actionability 
 - "description": 2–3 sentence contextual summary referencing ≥1 Business DNA pillar
 - "detail": 3–5 sentence deep-dive with at least one quantified data point
 - "category": "Sales" | "Marketing" | "Finance" | "Operations" | "People" | "Product" | "Brand" | "Strategy" | "Market" | "Communication"
-- "source": one of "hubspot", "slack", "outlook", "gmail", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "onedrive", "onenote", "zoom", "teams". Only use "business-dna" for pure DNA-gap cards.
+- "source": one of "hubspot", "slack", "outlook", "gmail", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "onedrive", "onenote", "zoom", "teams", "stripe". Only use "business-dna" for pure DNA-gap cards.
 - "icon": one of "building", "trending-up", "users", "plug", "mail", "shopping-bag", "palette", "bot", "target", "lightbulb", "alert", "refresh-cw", "award", "image"
 - "timeAgo": accurate relative time string ("12 minutes ago" / "3 hours ago" / "2 days ago" / "Apr 8, 2026")
 - "timestamp": ISO 8601 of the original source event
 - "actionSuggestion": specific next step (verb + tool/location, completable in <15 min)
-- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize. Other fields: senderName/senderEmail (from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom/calendar; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim) for slack/teams; fileName/sharedBy for onedrive/drive; notebook for onenote.
+- "metadata": source-specific context. **CRITICAL for emails (outlook/gmail)**: when integration data contains "SUBJECT: ..." and "BODY: ...", you MUST copy them VERBATIM into metadata.subject and metadata.bodyPreview — never paraphrase or summarize. Other fields: senderName/senderEmail (from FROM), receivedAt (from DATE) for outlook/gmail; scheduledDate/duration/attendees for zoom/calendar; contactName/dealValue/stage for hubspot; channel/author/messageText (verbatim) for slack/teams; fileName/sharedBy for onedrive/drive; notebook for onenote; amount/currency/customerEmail/status for stripe charges; mrr/interval/customerId for stripe subscriptions.
 
 ## CARD SCHEMA — TAB-SPECIFIC FIELDS
 - **Briefing**: "signalType" (Metric Shift | Competitive Move | Pipeline Change | Team Activity | Integration Digest | DNA Update | Opportunity Detected | Risk Surfaced)
