@@ -143,7 +143,7 @@ serve(async (req) => {
       workspaceId: workspaceId || employee.workspace_id,
     });
 
-    const lastUserMsg = extractLastUserMessage(messages);
+    const lastUserMsg = extractLastUserMessage(messages ?? []);
     const replyContract = classifyAssistantReplyContract(lastUserMsg);
     const connectionLookupQuery = typeof connectionQuery === "string" && connectionQuery.trim().length > 0
       ? connectionQuery.trim()

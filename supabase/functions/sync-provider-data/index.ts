@@ -21,7 +21,7 @@ async function extractPdfText(pdfBytes: Uint8Array, fileName: string): Promise<s
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return "";
 
-  const b64 = base64Encode(pdfBytes);
+  const b64 = base64Encode(pdfBytes as unknown as ArrayBuffer);
   const dataUrl = `data:application/pdf;base64,${b64}`;
 
   try {
@@ -61,7 +61,7 @@ async function extractVideoContent(videoBytes: Uint8Array, fileName: string, mim
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return "";
 
-  const b64 = base64Encode(videoBytes);
+  const b64 = base64Encode(videoBytes as unknown as ArrayBuffer);
   const mime = mimeType || "video/mp4";
   const dataUrl = `data:${mime};base64,${b64}`;
 
@@ -129,13 +129,13 @@ async function fetchAllMicrosoftEmails(accessToken: string): Promise<any[]> {
   let url: string | null = `https://graph.microsoft.com/v1.0/me/messages?$top=500&$orderby=receivedDateTime desc`;
 
   while (url) {
-    const res = await fetch(url, { headers });
+    const res: Response = await fetch(url, { headers });
     if (!res.ok) {
       const errText = await res.text().catch(() => "");
       console.error(`Microsoft mail pagination failed (${res.status}): ${errText.slice(0, 500)}`);
       break;
     }
-    const data = await res.json();
+    const data: any = await res.json();
     const items = data.value || [];
     allEmails.push(...items);
     console.log(`Microsoft mail page: ${items.length} items, total so far: ${allEmails.length}`);
@@ -160,9 +160,9 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
     const allEvents: any[] = [];
     let evUrl: string | null = `https://graph.microsoft.com/v1.0/me/events?$top=500&$select=subject,start,end,organizer,attendees&$orderby=start/dateTime desc`;
     while (evUrl) {
-      const r = await fetch(evUrl, { headers });
+      const r: Response = await fetch(evUrl, { headers });
       if (!r.ok) break;
-      const d = await r.json();
+      const d: any = await r.json();
       allEvents.push(...(d.value || []));
       evUrl = d["@odata.nextLink"] || null;
       if (allEvents.length >= 5000) break;
@@ -176,9 +176,9 @@ async function fetchMicrosoftData(accessToken: string, categories?: SyncCategori
     const allFiles: any[] = [];
     let fUrl: string | null = `https://graph.microsoft.com/v1.0/me/drive/root/children?$top=500`;
     while (fUrl) {
-      const r = await fetch(fUrl, { headers });
+      const r: Response = await fetch(fUrl, { headers });
       if (!r.ok) break;
-      const d = await r.json();
+      const d: any = await r.json();
       allFiles.push(...(d.value || []));
       fUrl = d["@odata.nextLink"] || null;
       if (allFiles.length >= 5000) break;

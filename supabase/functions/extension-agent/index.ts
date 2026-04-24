@@ -91,7 +91,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { messages, pageContext, brandId, workspaceId, browserMode, sessionMemory, taskType = "chat" } = parsedBody.data;
+    const { messages: rawMessages, pageContext, brandId: rawBrandId, workspaceId: rawWorkspaceId, browserMode, sessionMemory, taskType = "chat" } = parsedBody.data;
+    const messages = rawMessages ?? [];
+    const brandId = rawBrandId ?? undefined;
+    const workspaceId = rawWorkspaceId ?? undefined;
 
     edgeLog("extension-agent", "request", {
       user: userIdShort(user.id),
