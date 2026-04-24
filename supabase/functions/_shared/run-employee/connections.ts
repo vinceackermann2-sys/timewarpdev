@@ -455,6 +455,54 @@ export async function searchHubspotData(token: string, query: string, topic?: st
   return results.slice(0, 6);
 }
 
+export async function searchStripeData(token: string, query: string, topic?: string): Promise<string[]> {
+  const results: string[] = [];
+  const searchTerms = buildSearchTerms(query, topic);
+  const q = searchTerms[0] || "";
+  const headers = { Authorization: `Bearer ${token}`, "Stripe-Version": "2025-08-27.basil" };
+  try {
+    // Recent customers (top 5) — also filter by name/email if query is specific.
+    const custUrl = q
+      ? `https://api.stripe.com/v1/customers/search?query=${encodeURIComponent(`name~"${q}" OR email~"${q}"`)}&limit=5`
+      : `https://api.stripe.com/v1/customers?limit=5`;
+    const custRes = await fetch(custUrl, { headers });
+    if (custRes.ok) {
+      const data = await custRes.json();
+      for (const c of (data.data || []).slice(0, 5)) {
+        const created = c.created ? new Date(c.created * 1000).toISOString().slice(0, 10) : "";
+        results.push(`👤 **${c.name || c.email || c.id}** (${c.email || "no email"}) — created ${created}`);
+      }
+    }
+    // Recent charges
+    const chargesRes = await fetch(`https://api.stripe.com/v1/charges?limit=10`, { headers });
+    if (chargesRes.ok) {
+      const data = await chargesRes.json();
+      for (const ch of (data.data || []).slice(0, 5)) {
+        if (results.length >= 12) break;
+        const amount = ((ch.amount || 0) / 100).toFixed(2);
+        const created = ch.created ? new Date(ch.created * 1000).toISOString().slice(0, 10) : "";
+        const status = ch.status || "unknown";
+        const cust = ch.billing_details?.email || ch.receipt_email || ch.customer || "no customer";
+        results.push(`💳 **${amount} ${(ch.currency || "").toUpperCase()}** — ${status} (${cust}) — ${created}`);
+      }
+    }
+    // Active subscriptions
+    const subsRes = await fetch(`https://api.stripe.com/v1/subscriptions?status=active&limit=5`, { headers });
+    if (subsRes.ok) {
+      const data = await subsRes.json();
+      for (const s of (data.data || []).slice(0, 5)) {
+        if (results.length >= 18) break;
+        const item = s.items?.data?.[0];
+        const amount = item?.price?.unit_amount ? (item.price.unit_amount / 100).toFixed(2) : "?";
+        const interval = item?.price?.recurring?.interval || "month";
+        const cur = (item?.price?.currency || "").toUpperCase();
+        results.push(`🔁 Subscription **${amount} ${cur}/${interval}** — status ${s.status} — customer ${s.customer || "n/a"}`);
+      }
+    }
+  } catch (e) { console.error("Stripe search error:", e); }
+  return results.slice(0, 18);
+}
+
 export async function searchZoomData(token: string, query: string, topic?: string): Promise<string[]> {
   const results: string[] = [];
   const searchTerms = buildSearchTerms(query, topic);
