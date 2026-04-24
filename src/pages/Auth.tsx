@@ -214,7 +214,7 @@ const Auth = () => {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+          options: { emailRedirectTo: `${window.location.origin}/app?view=aiceo` },
         });
         if (error) {
           if (error.message.includes("already registered")) {
