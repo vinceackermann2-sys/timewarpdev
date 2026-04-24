@@ -752,6 +752,7 @@ export function getProviderSkipLabel(provider: string, reason: string): string {
   if (provider === "slack") return `Skipping Slack — ${r}`;
   if (provider === "zoom") return `Skipping Zoom — ${r}`;
   if (provider === "hubspot") return `Skipping HubSpot — ${r}`;
+  if (provider === "stripe") return `Skipping Stripe — ${r}`;
   if (provider.startsWith("google")) return `Skipping ${formatProviderName(provider)} — ${r}`;
   return `Skipping ${formatProviderName(provider)} — ${r}`;
 }
