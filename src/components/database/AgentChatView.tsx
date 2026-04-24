@@ -1599,7 +1599,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             </div>
           </div>
         )}
-        {!hasMessages && forceOnboarding ? (
+        {!hasMessages && (forceOnboarding || onboardingLocked) ? (
           /* ── Chat-driven onboarding (first-time users) ── */
           <ChatOnboardingFlow
             initialUrl={onboardingInitialUrl}
@@ -1614,6 +1614,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
               }));
               setMessages(seeded);
               if (agentName) setSelectedAgent(agentName);
+              setOnboardingLocked(false);
               onOnboardingComplete?.(agentName, brandId, supercharge);
             }}
           />
