@@ -202,12 +202,9 @@ export function DatabaseView() {
 
     const workspaceId = localStorage.getItem("preferred_workspace_id");
 
-    // PERF: Only request the columns we actually use, and project tiny content
-    // slices via Postgres `substring` — avoids streaming multi-KB blobs over the
-    // wire just to slice client-side.
     let query = (supabase as any)
       .from('user_business_data')
-      .select('data_type, title, content_preview:content, analysis_preview:analyzed_content, metadata, is_analyzed')
+      .select('data_type, title, content, analyzed_content, metadata, is_analyzed')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -229,8 +226,8 @@ export function DatabaseView() {
           items: bizData.map((item: any) => ({
             type: item.data_type,
             title: item.title,
-            content: item.content_preview?.slice(0, 500),
-            analysis: item.analysis_preview?.slice(0, 500),
+            content: item.content?.slice(0, 500),
+            analysis: item.analyzed_content?.slice(0, 500),
           })),
         }
       }];
