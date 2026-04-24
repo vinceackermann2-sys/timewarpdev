@@ -1009,6 +1009,9 @@ serve(async (req) => {
       case "hubspot":
         providerData = await fetchHubSpotData(accessToken);
         break;
+      case "stripe":
+        providerData = await fetchStripeData(accessToken);
+        break;
       default:
         return new Response(JSON.stringify({ error: `Unsupported provider: ${provider}` }), {
           status: 400,
