@@ -3,9 +3,9 @@
 //   brand.pillarOverrides[pillarId][fieldId] = "user text"
 //
 // At render time, the mapper replaces the structured value with a special
-// override marker { __override: string } which the renderer renders as
-// long-text. This lets users overwrite ANY field type with free text without
-// needing custom editors per shape.
+// override marker { __override: string } which the renderer parses back into
+// the appropriate structured shape so visuals (colors, typography, gallery,
+// tables, …) keep rendering correctly.
 
 import type { PillarField } from "./pillarTypes";
 
@@ -80,6 +80,82 @@ export function serializeFieldToText(field: PillarField, value: any): string {
     return JSON.stringify(value, null, 2);
   } catch {
     return String(value);
+  }
+}
+
+/**
+ * Parse the user's edited plain-text back into the structured shape that
+ * the field's renderer expects. Mirrors `serializeFieldToText`. Returns
+ * `null` when the input doesn't fit (caller falls back to plain text).
+ */
+export function parseTextToFieldValue(field: PillarField, text: string): any {
+  const raw = (text ?? "").trim();
+  if (!raw) return null;
+
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+  switch (field.type) {
+    case "text":
+    case "long-text":
+      return text;
+
+    case "tags":
+    case "list":
+      return lines;
+
+    case "gallery":
+      return lines.filter((l) => /^https?:\/\//i.test(l) || l.startsWith("data:") || l.startsWith("/"));
+
+    case "colors": {
+      const swatches = lines
+        .map((l) => {
+          const m = l.match(/^(.+?)\s*[:\-—]\s*(#?[0-9A-Fa-f]{3,8})\b(?:\s*[•·,]\s*(?:RGB\s*)?(.+))?$/i);
+          if (m) {
+            const hex = m[2].startsWith("#") ? m[2] : `#${m[2]}`;
+            return { label: m[1].trim(), hex, rgb: m[3]?.trim() || undefined };
+          }
+          const hexOnly = l.match(/(#[0-9A-Fa-f]{3,8})/);
+          if (hexOnly) return { label: l.replace(hexOnly[0], "").trim() || hexOnly[0], hex: hexOnly[0] };
+          return null;
+        })
+        .filter(Boolean) as { label: string; hex: string; rgb?: string }[];
+      return swatches.length ? swatches : null;
+    }
+
+    case "typography": {
+      const obj: { family?: string; weight?: string } = {};
+      for (const l of lines) {
+        const m = l.match(/^(family|weight|weights)\s*[:\-—]\s*(.+)$/i);
+        if (m) {
+          const k = m[1].toLowerCase().startsWith("weight") ? "weight" : "family";
+          obj[k] = m[2].trim();
+        }
+      }
+      return obj.family || obj.weight ? { family: obj.family || "", weight: obj.weight || "" } : null;
+    }
+
+    case "table": {
+      const split = (s: string) => s.split("|").map((c) => c.trim());
+      if (lines.length < 1) return null;
+      const columns = split(lines[0]);
+      const rows = lines.slice(1).map(split);
+      return columns.length ? { columns, rows } : null;
+    }
+
+    case "tam-sam-som": {
+      const out: any = {};
+      for (const l of lines) {
+        const m = l.match(/^(TAM|SAM|SOM)\s*[:\-—]\s*(.+?)(?:\s+[—\-]\s+(.+))?$/i);
+        if (m) {
+          const key = m[1].toLowerCase();
+          out[key] = { value: m[2].trim(), scope: m[3]?.trim() || "", label: key.toUpperCase() };
+        }
+      }
+      return Object.keys(out).length ? out : null;
+    }
+
+    default:
+      return null;
   }
 }
 
