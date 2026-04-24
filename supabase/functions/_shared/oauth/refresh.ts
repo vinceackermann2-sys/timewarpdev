@@ -13,7 +13,7 @@
 
 const REFRESH_BUFFER_MS = 5 * 60 * 1000; // refresh 5 minutes before expiry
 
-type ProviderFamily = "microsoft" | "google" | "hubspot" | "zoom" | "slack" | "unknown";
+type ProviderFamily = "microsoft" | "google" | "hubspot" | "zoom" | "slack" | "stripe" | "unknown";
 
 function getProviderFamily(provider: string): ProviderFamily {
   if (provider === "microsoft" || provider.startsWith("microsoft_")) return "microsoft";
@@ -21,6 +21,7 @@ function getProviderFamily(provider: string): ProviderFamily {
   if (provider === "hubspot") return "hubspot";
   if (provider === "zoom") return "zoom";
   if (provider === "slack") return "slack";
+  if (provider === "stripe") return "stripe";
   return "unknown";
 }
 
