@@ -513,14 +513,14 @@ export function SuperchargeDNAWizard({
 
             <label
               htmlFor="supercharge-files"
-              className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-16 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
+              className="group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-8 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
             >
-              <div className="h-16 w-16 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
-                <Upload className="h-7 w-7 text-primary" />
+              <div className="h-12 w-12 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
+                <Upload className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-base font-semibold text-foreground">Drop files or click to upload</p>
-                <p className="text-xs text-muted-foreground mt-1">PDFs, docs, sheets, text · Up to 12 files</p>
+                <p className="text-sm font-semibold text-foreground">Drop files or click to upload</p>
+                <p className="text-xs text-muted-foreground mt-0.5">PDFs, docs, sheets, text · Up to 12 files</p>
               </div>
               <Input
                 id="supercharge-files"
