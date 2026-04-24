@@ -125,7 +125,7 @@ const DEFAULT_SUGGESTIONS: SuggestionCard[] = [
   }
 ];
 
-export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewProps) {
+export function TimeWarpAIView({ initialTask, onTaskConsumed, forceOnboarding, onboardingInitialUrl, onOnboardingComplete }: TimeWarpAIViewProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isWatchLive, setIsWatchLive] = useState(false);
@@ -545,6 +545,16 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       setCarouselIndex(Math.min(maxIndex, carouselIndex + 1));
     }
   };
+
+  // Onboarding mode — replace the idle UI with the chat-driven onboarding flow.
+  if (forceOnboarding && !isTaskActive) {
+    return (
+      <ChatOnboardingFlow
+        initialUrl={onboardingInitialUrl}
+        onComplete={(name, brandId) => onOnboardingComplete?.(name, brandId)}
+      />
+    );
+  }
 
   // Idle state - show floating chat and carousel
   if (!isTaskActive) {
