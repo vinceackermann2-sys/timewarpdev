@@ -805,7 +805,7 @@ export async function searchConnectedProviders(
 
   if (!connections || connections.length === 0) {
     console.log("[connections] No connected providers found");
-    for (const provider of ["microsoft_outlook", "google_gmail", "slack", "zoom", "hubspot"]) {
+    for (const provider of ["microsoft_outlook", "google_gmail", "slack", "zoom", "hubspot", "stripe"]) {
       skippedProviders.push(provider);
       skippedProviderDetails.push({ provider, reason: "not connected" });
     }
@@ -848,7 +848,7 @@ export async function searchConnectedProviders(
   const allKnownProviders = [
     "microsoft_outlook", "microsoft_onedrive", "microsoft_onenote",
     "google_gmail", "google_drive", "google_calendar",
-    "slack", "zoom", "hubspot",
+    "slack", "zoom", "hubspot", "stripe",
   ];
   for (const provider of allKnownProviders) {
     if (isMicrosoftProvider(provider)) {
