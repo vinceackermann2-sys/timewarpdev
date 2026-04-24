@@ -271,7 +271,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                       {brand && editMode ? (
                         <PillarFieldEditor
                           field={field}
-                          baseValue={baseValues[field.id]}
+                          baseValue={baseValues[field.id] ?? field.value}
                           override={overrides[field.id]}
                           autoOpen
                           onSave={(next) => handleSaveField(field.id, next)}
