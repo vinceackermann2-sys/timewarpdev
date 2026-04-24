@@ -643,17 +643,19 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
               <h4
                 className={`text-base font-bold mb-1 ${tier.recommended ? "opacity-90" : "text-muted-foreground"}`}
               >
-                {tier.name}
+                {tier.name || <span className="italic font-normal opacity-60">— tier name —</span>}
               </h4>
-              <div className="text-3xl font-bold mb-6">{tier.price}</div>
+              <div className="text-3xl font-bold mb-6">
+                {tier.price || <span className="italic font-normal text-base opacity-60">— price —</span>}
+              </div>
               <div className="flex-1 space-y-3">
-                {tier.features.map((feat: string, j: number) => (
+                {(tier.features?.length ? tier.features : [""]).map((feat: string, j: number) => (
                   <div key={j} className="flex items-start gap-2.5 text-[13px] leading-tight">
                     <CheckCircle2
                       size={14}
                       className={`shrink-0 mt-0.5 ${tier.recommended ? "opacity-90" : "text-primary"}`}
                     />
-                    <span>{feat}</span>
+                    <span>{feat || <span className="italic opacity-60">— feature —</span>}</span>
                   </div>
                 ))}
               </div>
