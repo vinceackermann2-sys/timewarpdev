@@ -1081,6 +1081,11 @@ export async function searchConnectedProviders(
         const results = await searchStripeData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Stripe\n${results.join("\n\n")}\n`;
+        } else {
+          // Stripe IS connected and the API call succeeded — there are simply no charges,
+          // customers, or active subscriptions yet. Make this explicit so the assistant
+          // doesn't incorrectly tell the user "Stripe isn't connected".
+          connectionContext += `\n\n### Live Data from Stripe\n✅ Stripe account is connected, but no recent charges, customers, or active subscriptions were returned by the Stripe API. The account appears to have no sales activity yet (or none in the most recent records).\n`;
         }
         emitProgress?.({ label: getProviderSearchLabel("stripe", t), status: "done", action: "connections" });
       } catch (e) {
