@@ -94,8 +94,18 @@ type Phase =
 interface ChatOnboardingFlowProps {
   /** Optional URL to pre-fill (from landing-page funnel ?url= param). */
   initialUrl?: string | null;
-  /** Called once the user has named their agent and chosen whether to supercharge. */
-  onComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
+  /**
+   * Called once the user has named their agent and chosen whether to supercharge.
+   * `transcript` is a flat list of chat-style messages summarising the onboarding
+   * conversation so the host (AgentChatView) can persist it to the new business's
+   * chat session.
+   */
+  onComplete: (
+    agentName: string,
+    brandId: string,
+    supercharge: boolean,
+    transcript: { role: "user" | "assistant"; content: string }[],
+  ) => void;
 }
 
 export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlowProps) {
@@ -573,8 +583,53 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
   const handleSuperchargeChoice = useCallback((wantsSupercharge: boolean) => {
     if (!createdBrandId) return;
     setPhase("done");
-    onComplete(agentName.trim(), createdBrandId, wantsSupercharge);
-  }, [agentName, createdBrandId, onComplete]);
+    const trimmedAgent = agentName.trim();
+    const selectedProductName =
+      selectedProductIdx != null ? discoveredProducts[selectedProductIdx]?.name : undefined;
+    const transcript: { role: "user" | "assistant"; content: string }[] = [
+      {
+        role: "assistant",
+        content:
+          "Welcome 👋 Let's set up your business so I can act as your CEO.\n\nWhat's your company website?",
+      },
+      ...(activeUrl ? [{ role: "user" as const, content: activeUrl }] : []),
+      {
+        role: "assistant",
+        content: activeUrl
+          ? `Analyzed **${activeUrl}** and discovered ${discoveredProducts.length} ${businessTypePlural}.`
+          : "Analyzed your business.",
+      },
+      ...(selectedProductName
+        ? [{ role: "user" as const, content: selectedProductName }]
+        : []),
+      {
+        role: "assistant",
+        content:
+          "Forging your Business DNA — confirming offerings, forging DNA, confirming data, saving.",
+      },
+      {
+        role: "assistant",
+        content: "Your DNA is forged. What should I call your AI agent?",
+      },
+      ...(trimmedAgent ? [{ role: "user" as const, content: trimmedAgent }] : []),
+      {
+        role: "assistant",
+        content:
+          "Want to supercharge your DNA by connecting your tools or uploading files? You can also do this later from Business DNA.",
+      },
+      {
+        role: "user",
+        content: wantsSupercharge ? "Yes, supercharge" : "Skip for now",
+      },
+      {
+        role: "assistant",
+        content: wantsSupercharge
+          ? `Great — let's supercharge ${trimmedAgent || "your agent"}. Taking you to the supercharge flow.`
+          : `All set. ${trimmedAgent || "Your agent"} is ready to help. What do you want to work on first?`,
+      },
+    ];
+    onComplete(trimmedAgent, createdBrandId, wantsSupercharge, transcript);
+  }, [agentName, createdBrandId, onComplete, activeUrl, discoveredProducts, businessTypePlural, selectedProductIdx]);
 
   // ─────────── RENDER ───────────
 

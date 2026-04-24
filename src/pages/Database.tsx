@@ -138,16 +138,21 @@ function BusinessDnaArea({
   return <BusinessDNAOnboarding onComplete={onOnboardingComplete} />;
 }
 
-// Wraps TimeWarpAIView and decides whether to force chat onboarding.
-// Brand-less users (no brands after first authoritative load) get the chat onboarding.
-function AiCeoArea({
-  initialTask,
-  onTaskConsumed,
+// Wraps AgentChatView (the actual assistant chat) and decides whether to force
+// chat onboarding. Brand-less users (no brands after first authoritative load)
+// see the chat-driven onboarding inline inside the assistant chat surface, and
+// the resulting transcript is persisted as the first chat session of the new
+// business via AgentChatView's normal auto-save pipeline.
+function EmployeesArea({
+  activeBrandId,
+  initialAssistantMessage,
+  onInitialAssistantMessageConsumed,
   onboardingInitialUrl,
   onOnboardingComplete,
 }: {
-  initialTask: PendingTask | null;
-  onTaskConsumed: () => void;
+  activeBrandId: string | null;
+  initialAssistantMessage: string | null;
+  onInitialAssistantMessageConsumed: () => void;
   onboardingInitialUrl: string | null;
   onOnboardingComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
 }) {
@@ -157,14 +162,15 @@ function AiCeoArea({
     if (!isLoading) setHasSettled(true);
   }, [isLoading]);
 
-  // While we don't yet know whether brands exist, render the standard view (no flash).
+  // While we don't yet know whether brands exist, render the standard chat (no flash).
   // Once settled, force onboarding only when we're sure the user has zero brands.
   const forceOnboarding = hasSettled && brands.length === 0;
 
   return (
-    <TimeWarpAIView
-      initialTask={initialTask}
-      onTaskConsumed={onTaskConsumed}
+    <AgentChatView
+      activeBrandId={activeBrandId}
+      initialMessage={initialAssistantMessage}
+      onInitialMessageConsumed={onInitialAssistantMessageConsumed}
       forceOnboarding={forceOnboarding}
       onboardingInitialUrl={onboardingInitialUrl}
       onOnboardingComplete={onOnboardingComplete}
@@ -192,7 +198,9 @@ const Database = () => {
     if (saved && ["aiceo", "businessdna", "employees", "workspaces", "manage"].includes(saved)) {
       return saved as View;
     }
-    return "aiceo";
+    // First-time users land directly in the assistant chat (which renders the
+    // chat-driven onboarding inline when no brands exist yet).
+    return "employees";
   });
   const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
   const [showBusinessDNA, setShowBusinessDNA] = useState(false);
@@ -213,10 +221,10 @@ const Database = () => {
     const productUrl = searchParams.get("url");
     const onboarding = searchParams.get("onboarding");
 
-    // Legacy: any /app?onboarding=business-dna links land directly on the AI CEO chat
+    // Legacy: any /app?onboarding=business-dna links land directly on the assistant chat
     if (onboarding === "business-dna") {
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
+      setCurrentView("employees");
+      localStorage.setItem("tw_current_view", "employees");
       if (productUrl) setOnboardingUrl(productUrl);
       return;
     }
@@ -230,9 +238,10 @@ const Database = () => {
       }
     }
 
-    if (viewParam === "aiceo") {
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
+    // Legacy ?view=aiceo from older links → assistant chat (where onboarding now lives)
+    if (viewParam === "aiceo" || viewParam === "employees") {
+      setCurrentView("employees");
+      localStorage.setItem("tw_current_view", "employees");
       if (productUrl) setOnboardingUrl(productUrl);
     }
 
@@ -250,7 +259,7 @@ const Database = () => {
     }
   }, [searchParams, navigate]);
 
-  // New users land on AI CEO chat (which renders chat onboarding when no brands exist)
+  // New users land on the assistant chat (which renders chat onboarding when no brands exist)
   useEffect(() => {
     if (!user) return;
     const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
@@ -258,8 +267,8 @@ const Database = () => {
     const createdAt = new Date(user.created_at).getTime();
     if (Date.now() - createdAt < 30000) {
       sessionStorage.setItem("tw_onboarding_shown", "true");
-      setCurrentView("aiceo");
-      localStorage.setItem("tw_current_view", "aiceo");
+      setCurrentView("employees");
+      localStorage.setItem("tw_current_view", "employees");
     }
   }, [user]);
 
@@ -447,26 +456,9 @@ const Database = () => {
             />
             <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-[#d1d5db] bg-background">
               {currentView === "aiceo" && user && (
-                <AiCeoArea
+                <TimeWarpAIView
                   initialTask={pendingTask}
                   onTaskConsumed={() => setPendingTask(null)}
-                  onboardingInitialUrl={onboardingUrl}
-                  onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
-                    setOnboardingUrl(null);
-                    setActiveBrandId(newBrandId);
-                    setShowBusinessDNA(true);
-                    if (supercharge) {
-                      // Persist active brand for the standalone supercharge route
-                      localStorage.setItem("tw_active_brand_id", newBrandId);
-                      // Suppress the auto-popup since the user already opted in
-                      sessionStorage.setItem(`tw_supercharge_popup_shown_${newBrandId}`, "1");
-                      navigate("/supercharge-dna");
-                    } else {
-                      // Skip → land on Business DNA view
-                      setCurrentView("businessdna");
-                      localStorage.setItem("tw_current_view", "businessdna");
-                    }
-                  }}
                 />
               )}
               {currentView === "businessdna" && user && (
@@ -492,10 +484,21 @@ const Database = () => {
                 />
               )}
               {currentView === "employees" && user && (
-                <AgentChatView
+                <EmployeesArea
                   activeBrandId={activeBrandId}
-                  initialMessage={initialAssistantMessage}
-                  onInitialMessageConsumed={() => setInitialAssistantMessage(null)}
+                  initialAssistantMessage={initialAssistantMessage}
+                  onInitialAssistantMessageConsumed={() => setInitialAssistantMessage(null)}
+                  onboardingInitialUrl={onboardingUrl}
+                  onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
+                    setOnboardingUrl(null);
+                    setActiveBrandId(newBrandId);
+                    if (supercharge) {
+                      localStorage.setItem("tw_active_brand_id", newBrandId);
+                      sessionStorage.setItem(`tw_supercharge_popup_shown_${newBrandId}`, "1");
+                      navigate("/supercharge-dna");
+                    }
+                    // Otherwise stay on employees — the seeded transcript is now the chat.
+                  }}
                 />
               )}
               {currentView === "workspaces" && user && (

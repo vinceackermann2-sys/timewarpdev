@@ -25,7 +25,6 @@ import { AgentStep } from "./AgentActivityLog";
 import { AgentChatMessage } from "./AgentChatMessage";
 import { AgentStepView } from "./AgentStepView";
 import { RemoteBrowser } from "./RemoteBrowser";
-import { ChatOnboardingFlow } from "./aiceo/ChatOnboardingFlow";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -57,12 +56,6 @@ interface TimeWarpAIViewProps {
     timeEstimate: string;
   } | null;
   onTaskConsumed?: () => void;
-  /** When true, render the chat-driven onboarding instead of the normal task UI. */
-  forceOnboarding?: boolean;
-  /** URL to pre-fill into the onboarding (from landing-page funnel ?url=). */
-  onboardingInitialUrl?: string | null;
-  /** Called once the user names their agent and chooses whether to supercharge. */
-  onOnboardingComplete?: (agentName: string, brandId: string, supercharge: boolean) => void;
 }
 
 const SENSITIVE_PATTERNS = {
@@ -125,7 +118,7 @@ const DEFAULT_SUGGESTIONS: SuggestionCard[] = [
   }
 ];
 
-export function TimeWarpAIView({ initialTask, onTaskConsumed, forceOnboarding, onboardingInitialUrl, onOnboardingComplete }: TimeWarpAIViewProps) {
+export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isWatchLive, setIsWatchLive] = useState(false);
@@ -545,16 +538,6 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed, forceOnboarding, o
       setCarouselIndex(Math.min(maxIndex, carouselIndex + 1));
     }
   };
-
-  // Onboarding mode — replace the idle UI with the chat-driven onboarding flow.
-  if (forceOnboarding && !isTaskActive) {
-    return (
-      <ChatOnboardingFlow
-        initialUrl={onboardingInitialUrl}
-        onComplete={(name, brandId, supercharge) => onOnboardingComplete?.(name, brandId, supercharge)}
-      />
-    );
-  }
 
   // Idle state - show floating chat and carousel
   if (!isTaskActive) {
