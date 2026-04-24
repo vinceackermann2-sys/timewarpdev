@@ -44,6 +44,7 @@ serve(async (req) => {
     const token = authHeader.slice("Bearer ".length).trim();
     if (!token) throw new Error("Missing authorization header");
 
+    const supabase = getSupabase();
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !authData?.user) throw new Error("Unauthorized");
 
