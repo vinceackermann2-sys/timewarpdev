@@ -27,7 +27,7 @@ function SuperchargeDnaInner() {
   const handleClose = () => navigate("/app");
 
   return (
-    <div className="h-screen flex flex-col bg-[#FAFAFD] overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden bg-[#fcfcfd]">
       <div className="shrink-0 px-6 pt-4 pb-2 max-w-6xl mx-auto w-full">
         <Button
           variant="ghost"
