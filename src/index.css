@@ -456,8 +456,11 @@
                 transparent 34%,
                 transparent 100%
               ) border-box;
-  animation: edge-rotate-seamless 12s linear infinite;
+  animation: edge-rotate-seamless 18s linear infinite;
   border-radius: 49% 51% 50% 50% / 51% 49% 51% 49%;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .silver-connector-2 {
@@ -475,8 +478,11 @@
                 transparent 34%,
                 transparent 100%
               ) border-box;
-  animation: edge-rotate-seamless 12s linear infinite;
+  animation: edge-rotate-seamless 18s linear infinite;
   border-radius: 51% 49% 49% 51% / 49% 51% 50% 50%;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Portals Design System - Cosmic Purple Theme */
