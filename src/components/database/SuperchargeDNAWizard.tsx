@@ -296,7 +296,7 @@ export function SuperchargeDNAWizard({
                 const trim = ICON_SIZE / 2 + 6;
                 const endX = n.x - (dx / len) * trim;
                 const endY = n.y - (dy / len) * trim;
-                const startTrim = 64; // edge of center logo (logo is 128px → r=64)
+                const startTrim = 76; // edge of circular center logo (144px → r=72) + small gap
                 const startX = CENTER + (dx / len) * startTrim;
                 const startY = CENTER + (dy / len) * startTrim;
                 return (
