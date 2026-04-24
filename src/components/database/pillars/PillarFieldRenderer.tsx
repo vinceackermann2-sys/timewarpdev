@@ -672,13 +672,13 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
             <div key={i} className="relative pl-8">
               <div className="absolute left-[-5px] top-1 w-3 h-3 rounded-full bg-primary ring-4 ring-primary/10" />
               <div className="text-[11px] font-bold text-primary uppercase tracking-widest mb-1">
-                {item.date}
+                {item.date || <span className="italic font-normal text-muted-foreground/50">— date —</span>}
               </div>
               <h4 className="text-[15px] font-semibold text-foreground mb-1">
-                {item.title}
+                {item.title || <span className="italic font-normal text-muted-foreground/50">— title —</span>}
               </h4>
               <p className="text-[13px] text-muted-foreground leading-relaxed">
-                {item.desc}
+                {item.desc || <span className="italic text-muted-foreground/50">— description —</span>}
               </p>
             </div>
           ))}
