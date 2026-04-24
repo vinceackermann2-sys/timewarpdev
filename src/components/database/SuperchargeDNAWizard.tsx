@@ -709,24 +709,26 @@ export function SuperchargeDNAWizard({
 
   if (embedded) {
     return (
-      <div className="flex flex-col min-h-[calc(100vh-3rem)] w-full">
+      <div className="flex flex-col h-[calc(100vh-3rem)] w-full">
         {/* Top progress bar */}
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-          <div className="max-w-5xl mx-auto w-full px-6 py-4">
+        <div className="shrink-0 bg-background/95 backdrop-blur border-b border-border">
+          <div className="max-w-5xl mx-auto w-full px-6 py-3">
             {TopProgressBar}
           </div>
         </div>
 
-        {/* Main content area — bigger and centered */}
-        <div className="flex-1 w-full px-6 py-10">
-          <div className="max-w-5xl mx-auto w-full">
-            {stepsContent}
+        {/* Main content area — fills remaining space */}
+        <div className="flex-1 min-h-0 w-full overflow-y-auto px-6 py-4">
+          <div className="max-w-5xl mx-auto w-full h-full flex items-center justify-center">
+            <div className="w-full">
+              {stepsContent}
+            </div>
           </div>
         </div>
 
         {/* Sticky bottom continue bar */}
-        <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur border-t border-border">
-          <div className="max-w-5xl mx-auto w-full px-6 py-4 flex items-center gap-3">
+        <div className="shrink-0 bg-background/95 backdrop-blur border-t border-border">
+          <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center gap-3">
             {FooterActions}
           </div>
         </div>
