@@ -399,10 +399,12 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
       const renderNode = (node: any): JSX.Element => (
         <div className="flex flex-col items-center">
           <div className="bg-card border-2 border-border shadow-sm rounded-xl p-3 flex flex-col items-center w-40 text-center">
-            <span className="text-xs font-semibold text-foreground">{node.role}</span>
-            {node.name && (
-              <span className="text-[11px] text-muted-foreground">{node.name}</span>
-            )}
+            <span className="text-xs font-semibold text-foreground">
+              {node.role || <span className="italic text-muted-foreground/60">Role</span>}
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              {node.name || <span className="italic text-muted-foreground/50">— name —</span>}
+            </span>
           </div>
           {node.children?.length > 0 && (
             <div className="flex flex-col items-center">
