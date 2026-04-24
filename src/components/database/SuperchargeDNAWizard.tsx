@@ -228,14 +228,17 @@ export function SuperchargeDNAWizard({
     }
   };
 
-  // Radial layout for integrations around the center logo
+  // Radial layout — viewBox is 700×700, branches connect from center to icon center
+  const CANVAS = 700;
+  const CENTER = CANVAS / 2;
+  const RADIUS = 260;
+  const ICON_SIZE = 72; // h/w of the icon tile
+
   const nodeLayout = useMemo(() => {
-    const radius = 175;
-    const center = 230;
     return INTEGRATIONS.map((integration, index) => {
       const angle = (Math.PI * 2 * index) / INTEGRATIONS.length - Math.PI / 2;
-      const x = center + Math.cos(angle) * radius;
-      const y = center + Math.sin(angle) * radius;
+      const x = CENTER + Math.cos(angle) * RADIUS;
+      const y = CENTER + Math.sin(angle) * RADIUS;
       return { ...integration, x, y, angle };
     });
   }, []);
@@ -251,104 +254,153 @@ export function SuperchargeDNAWizard({
             </p>
           </div>
 
-          <div className="relative mx-auto h-[460px] w-[460px] max-w-full">
-            {/* SVG branches */}
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 460 460">
+          <div
+            className="relative mx-auto"
+            style={{ height: CANVAS, width: CANVAS, maxWidth: "100%" }}
+          >
+            {/* Soft radial backdrop */}
+            <div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+              style={{
+                width: RADIUS * 2 + ICON_SIZE,
+                height: RADIUS * 2 + ICON_SIZE,
+                background:
+                  "radial-gradient(circle, hsl(var(--primary) / 0.06) 0%, hsl(var(--primary) / 0.02) 50%, transparent 75%)",
+              }}
+            />
+            {/* Faint orbit ring */}
+            <svg className="absolute inset-0 h-full w-full pointer-events-none" viewBox={`0 0 ${CANVAS} ${CANVAS}`}>
               <defs>
                 <linearGradient id="branchActive" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="1" />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.45" />
                 </linearGradient>
               </defs>
+              <circle
+                cx={CENTER}
+                cy={CENTER}
+                r={RADIUS}
+                fill="none"
+                stroke="hsl(var(--border))"
+                strokeWidth="1"
+                strokeDasharray="2 6"
+                opacity="0.5"
+              />
+              {/* Branches — from center to each icon center */}
               {nodeLayout.map((n) => {
                 const active = isConnected(n.id);
+                // shorten the line so it ends at the edge of the icon tile, not the center
+                const dx = n.x - CENTER;
+                const dy = n.y - CENTER;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const trim = ICON_SIZE / 2 + 6;
+                const endX = n.x - (dx / len) * trim;
+                const endY = n.y - (dy / len) * trim;
+                const startTrim = 64; // edge of center logo (logo is 128px → r=64)
+                const startX = CENTER + (dx / len) * startTrim;
+                const startY = CENTER + (dy / len) * startTrim;
                 return (
                   <line
                     key={`line-${n.id}`}
-                    x1={230}
-                    y1={230}
-                    x2={n.x}
-                    y2={n.y}
+                    x1={startX}
+                    y1={startY}
+                    x2={endX}
+                    y2={endY}
                     stroke={active ? "url(#branchActive)" : "hsl(var(--border))"}
-                    strokeWidth={active ? 2 : 1.25}
-                    strokeDasharray={active ? "0" : "4 4"}
-                    className={active ? "animate-pulse" : ""}
+                    strokeWidth={active ? 2.5 : 1.5}
+                    strokeDasharray={active ? "0" : "5 5"}
+                    strokeLinecap="round"
                   />
                 );
               })}
             </svg>
 
-            {/* Center business logo */}
+            {/* Center business logo — perfectly centered */}
             <motion.div
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-28 w-28 rounded-2xl border bg-card shadow-lg flex items-center justify-center overflow-hidden"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-32 w-32 rounded-3xl border bg-card shadow-xl flex items-center justify-center overflow-hidden ring-4 ring-primary/10"
             >
               {logoUrl ? (
-                <img src={logoUrl} alt={brandName || "Business"} className="h-full w-full object-contain p-3" />
+                <img
+                  src={logoUrl}
+                  alt={brandName || "Business"}
+                  className="h-full w-full object-contain p-3"
+                />
               ) : (
                 <div className="flex flex-col items-center gap-1 text-center px-2">
-                  <Building2 className="h-7 w-7 text-muted-foreground" />
-                  <div className="text-[10px] font-semibold text-foreground line-clamp-2">{brandName || "Business"}</div>
+                  <Building2 className="h-8 w-8 text-muted-foreground" />
+                  <div className="text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
+                    {brandName || "Business"}
+                  </div>
                 </div>
               )}
             </motion.div>
 
-            {/* Integration nodes */}
+            {/* Integration nodes — icon tile centered exactly on (n.x, n.y), label rendered separately so it doesn't shift the center */}
             {nodeLayout.map((n, i) => {
               const connected_ = isConnected(n.id);
               const isLoading = connectingProvider === n.id;
               return (
-                <motion.button
+                <div
                   key={n.id}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1 + i * 0.05, type: "spring", stiffness: 200 }}
-                  onClick={() => !connected_ && void connectProvider(n.id)}
-                  disabled={isLoading || connected_}
-                  className={cn(
-                    "absolute -translate-x-1/2 -translate-y-1/2 group flex flex-col items-center gap-1.5 focus:outline-none",
-                    !connected_ && "cursor-pointer"
-                  )}
-                  style={{ left: n.x, top: n.y }}
-                  title={connected_ ? `${n.label} connected` : `Connect ${n.label}`}
+                  className="absolute"
+                  style={{ left: n.x, top: n.y, transform: "translate(-50%, -50%)" }}
                 >
-                  <div
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1 + i * 0.05, type: "spring", stiffness: 200 }}
+                    onClick={() => !connected_ && void connectProvider(n.id)}
+                    disabled={isLoading || connected_}
+                    title={connected_ ? `${n.label} connected` : `Connect ${n.label}`}
                     className={cn(
-                      "relative h-14 w-14 rounded-2xl border bg-card flex items-center justify-center transition-all shadow-sm",
+                      "relative flex items-center justify-center rounded-2xl border bg-card shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-primary/40",
                       connected_
-                        ? "border-primary/60 bg-primary/5 ring-2 ring-primary/30"
-                        : "border-border group-hover:border-primary/50 group-hover:scale-105"
+                        ? "border-primary/60 bg-primary/5 ring-2 ring-primary/30 cursor-default"
+                        : "border-border hover:border-primary/50 hover:scale-110 hover:shadow-lg cursor-pointer"
                     )}
+                    style={{ height: ICON_SIZE, width: ICON_SIZE }}
                   >
-                    <img src={n.logo} alt={n.label} className="h-7 w-7 object-contain" />
+                    <img src={n.logo} alt={n.label} className="h-9 w-9 object-contain" />
                     {connected_ && (
-                      <div className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow">
+                      <div className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </div>
                     )}
                     {isLoading && (
                       <div className="absolute inset-0 rounded-2xl bg-background/70 flex items-center justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
                       </div>
                     )}
+                  </motion.button>
+                  {/* Label sits below the tile but is absolutely positioned so it doesn't affect tile centering */}
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none"
+                    style={{ top: ICON_SIZE / 2 + 8 }}
+                  >
+                    <span
+                      className={cn(
+                        "text-xs font-medium",
+                        connected_ ? "text-primary" : "text-muted-foreground"
+                      )}
+                    >
+                      {n.label}
+                    </span>
                   </div>
-                  <span className={cn("text-[11px] font-medium", connected_ ? "text-primary" : "text-muted-foreground")}>
-                    {n.label}
-                  </span>
-                </motion.button>
+                </div>
               );
             })}
           </div>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-2 max-w-2xl mx-auto">
             <p className="text-xs text-muted-foreground">
               {connected.length === 0
                 ? "Skip if you'd rather just upload files in the next step."
                 : `${connected.length} integration${connected.length === 1 ? "" : "s"} connected`}
             </p>
-            <Button onClick={() => setStep(2)}>
+            <Button onClick={() => setStep(2)} size="lg">
               Continue <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
           </div>
@@ -357,25 +409,39 @@ export function SuperchargeDNAWizard({
 
       {/* ───────────── STEP 2 — Files + URLs ───────────── */}
       {step === 2 && (
-        <div className="space-y-5">
+        <div className="space-y-8 max-w-3xl mx-auto w-full">
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
               Add files and URLs that hold business context — pitch decks, reports, market research.
             </p>
           </div>
 
-          {/* Centered file uploader */}
-          <div>
+          {/* Files section */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileUp className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Files</h3>
+              </div>
+              {artifacts.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {artifacts.length} of 12
+                </span>
+              )}
+            </div>
+
             <label
               htmlFor="supercharge-files"
-              className="mx-auto flex max-w-2xl cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors hover:border-primary/50 hover:bg-muted/50"
+              className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-12 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
             >
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-14 w-14 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
                 <Upload className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Drop files or click to upload</p>
-                <p className="text-xs text-muted-foreground mt-1">Up to 12 files · PDFs, docs, sheets, text</p>
+                <p className="text-sm font-semibold text-foreground">Drop files or click to upload</p>
+                <p className="text-xs text-muted-foreground mt-1">PDFs, docs, sheets, text · Up to 12 files</p>
               </div>
               <Input
                 id="supercharge-files"
@@ -386,17 +452,16 @@ export function SuperchargeDNAWizard({
               />
             </label>
 
-            {/* File sorter list */}
             {artifacts.length > 0 && (
-              <div className="mx-auto mt-4 max-w-2xl space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground px-1">
-                  {artifacts.length} file{artifacts.length === 1 ? "" : "s"} added
-                </p>
-                <div className="rounded-xl border bg-card divide-y max-h-48 overflow-y-auto">
+              <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
+                <div className="divide-y divide-border max-h-56 overflow-y-auto">
                   {artifacts.map((a, i) => (
-                    <div key={`${a.name}-${i}`} className="flex items-center gap-3 px-3 py-2">
-                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <FileUp className="h-4 w-4 text-muted-foreground" />
+                    <div
+                      key={`${a.name}-${i}`}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileUp className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{a.name}</p>
@@ -404,7 +469,8 @@ export function SuperchargeDNAWizard({
                       </div>
                       <button
                         onClick={() => removeArtifact(i)}
-                        className="h-7 w-7 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center text-muted-foreground transition-colors"
+                        aria-label="Remove file"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -413,13 +479,25 @@ export function SuperchargeDNAWizard({
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* URL adder */}
-          <div className="mx-auto max-w-2xl">
+          {/* URLs section */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Link2 className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">URLs</h3>
+              </div>
+              {urls.length > 0 && (
+                <span className="text-xs text-muted-foreground">{urls.length} added</span>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
@@ -430,27 +508,30 @@ export function SuperchargeDNAWizard({
                     }
                   }}
                   placeholder="https://example.com/report"
-                  className="pl-9"
+                  className="pl-10 h-11 rounded-xl"
                 />
               </div>
-              <Button variant="outline" onClick={addUrl} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Add URL
+              <Button onClick={addUrl} className="gap-1.5 h-11 rounded-xl">
+                <Plus className="h-4 w-4" /> Add
               </Button>
             </div>
 
             {urls.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground px-1">
-                  {urls.length} URL{urls.length === 1 ? "" : "s"} added
-                </p>
-                <div className="rounded-xl border bg-card divide-y max-h-40 overflow-y-auto">
+              <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
+                <div className="divide-y divide-border max-h-48 overflow-y-auto">
                   {urls.map((u) => (
-                    <div key={u} className="flex items-center gap-3 px-3 py-2">
-                      <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div
+                      key={u}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Link2 className="h-4 w-4 text-primary" />
+                      </div>
                       <span className="text-sm text-foreground truncate flex-1">{u}</span>
                       <button
                         onClick={() => removeUrl(u)}
-                        className="h-7 w-7 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center text-muted-foreground transition-colors"
+                        aria-label="Remove URL"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -459,11 +540,11 @@ export function SuperchargeDNAWizard({
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
           <div className="flex items-center justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button onClick={() => setStep(3)}>
+            <Button variant="outline" onClick={() => setStep(1)} size="lg">Back</Button>
+            <Button onClick={() => setStep(3)} size="lg">
               Continue <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
           </div>
@@ -479,26 +560,54 @@ export function SuperchargeDNAWizard({
             </p>
           </div>
 
-          <div className="mx-auto max-w-xl">
-            <div className="rounded-2xl border border-black/5 bg-[#eef2f7] p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-4 h-4 text-[#4a86ff]" />
-                <p className="text-[14px] font-semibold text-[#1a1f36]">Supercharging your Business DNA</p>
+          <div className="mx-auto max-w-2xl">
+            <div className="rounded-3xl border border-black/5 bg-gradient-to-b from-[#f1f5fc] to-[#e8eef9] p-7 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="h-8 w-8 rounded-xl bg-[#4a86ff]/10 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-[#4a86ff]" />
+                </div>
+                <div>
+                  <p className="text-[15px] font-semibold text-[#1a1f36] leading-tight">
+                    Supercharging your Business DNA
+                  </p>
+                  <p className="text-[12px] text-[#697386]">
+                    Verified enrichment in progress
+                  </p>
+                </div>
               </div>
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {forgingTodos.map((t, idx) => {
                   const previousDone = idx === 0 || forgingTodos[idx - 1].done;
                   const isActive = running && !t.done && previousDone;
                   return (
-                    <li key={t.label} className="flex items-center gap-2.5 text-[13.5px]">
-                      {t.done ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#4a86ff] shrink-0" />
-                      ) : isActive ? (
-                        <Loader2 className="w-4 h-4 text-[#4a86ff] shrink-0 animate-spin" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border border-[#cbd5e1] shrink-0" />
+                    <li
+                      key={t.label}
+                      className={cn(
+                        "flex items-center gap-3 text-[14px] rounded-xl px-3 py-2 transition-all",
+                        isActive && "bg-white/60",
+                        t.done && "opacity-90"
                       )}
-                      <span className={cn(t.done ? "text-[#1a1f36] font-medium" : "text-[#697386]")}>
+                    >
+                      {t.done ? (
+                        <div className="h-6 w-6 rounded-full bg-[#4a86ff] flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      ) : isActive ? (
+                        <div className="h-6 w-6 rounded-full bg-[#4a86ff]/15 flex items-center justify-center shrink-0">
+                          <Loader2 className="w-3.5 h-3.5 text-[#4a86ff] animate-spin" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full border-2 border-[#cbd5e1] shrink-0" />
+                      )}
+                      <span
+                        className={cn(
+                          t.done
+                            ? "text-[#1a1f36] font-medium"
+                            : isActive
+                            ? "text-[#1a1f36] font-medium"
+                            : "text-[#697386]"
+                        )}
+                      >
                         {t.label}
                       </span>
                     </li>
@@ -507,10 +616,15 @@ export function SuperchargeDNAWizard({
               </ul>
 
               {logs.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-black/5">
+                <div className="mt-5 pt-5 border-t border-black/5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#697386] mb-2">
+                    Activity
+                  </p>
                   <div className="font-mono text-[11px] text-[#697386] space-y-0.5 max-h-32 overflow-y-auto">
                     {logs.slice(-6).map((line, i) => (
-                      <div key={`${line}-${i}`} className="truncate">› {line}</div>
+                      <div key={`${line}-${i}`} className="truncate">
+                        › {line}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -518,13 +632,22 @@ export function SuperchargeDNAWizard({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(2)} disabled={running}>Back</Button>
+          <div className="flex items-center justify-between pt-2 max-w-2xl mx-auto">
+            <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg">
+              Back
+            </Button>
             <div className="flex items-center gap-2">
               {!embedded && (
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={running}>Close</Button>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={running} size="lg">
+                  Close
+                </Button>
               )}
-              <Button onClick={() => void runSupercharge()} disabled={running} className="gap-2">
+              <Button
+                onClick={() => void runSupercharge()}
+                disabled={running}
+                size="lg"
+                className="gap-2"
+              >
                 {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {running ? "Supercharging..." : "Run Supercharge"}
               </Button>
@@ -537,10 +660,10 @@ export function SuperchargeDNAWizard({
 
   if (embedded) {
     return (
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Supercharge Business DNA</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Supercharge Business DNA</h1>
+          <p className="text-sm text-muted-foreground mt-2">
             Step {step} of 3 — verified enrichment only (no made-up data).
           </p>
         </div>
