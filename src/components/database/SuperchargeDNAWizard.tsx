@@ -487,10 +487,10 @@ export function SuperchargeDNAWizard({
 
       {/* ───────────── STEP 2 — Files + URLs ───────────── */}
       {step === 2 && (
-        <div className="space-y-10 max-w-4xl mx-auto w-full">
+        <div className="space-y-6 max-w-4xl mx-auto w-full">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-foreground tracking-tight">Add business context</h2>
-            <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-xl mx-auto">
               Add files and URLs that hold business context — pitch decks, reports, market research.
             </p>
           </div>
