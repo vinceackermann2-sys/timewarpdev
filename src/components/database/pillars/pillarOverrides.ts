@@ -40,10 +40,13 @@ export function serializeFieldToText(field: PillarField, value: any): string {
       if (Array.isArray(value)) {
         return value
           .map((tier: any) =>
-            joinLines([
-              `${tier.name || "Tier"}: ${tier.price || ""}${tier.recommended ? " [recommended]" : ""}`.trim(),
-              ...((Array.isArray(tier.features) ? tier.features : []).map((feature: string) => `- ${feature}`)),
-            ])
+            [
+              `${tier.name || "Tier"}: ${tier.price || ""}${tier.recommended ? " [recommended]" : ""}`,
+              ...((Array.isArray(tier.features) && tier.features.length
+                ? tier.features
+                : [""]
+              ).map((feature: string) => `- ${feature}`)),
+            ].join("\n")
           )
           .join("\n\n");
       }
@@ -53,12 +56,12 @@ export function serializeFieldToText(field: PillarField, value: any): string {
       if (Array.isArray(value)) {
         return value
           .map((persona: any) =>
-            joinLines([
-              `${persona.name || "Persona"}${persona.role ? ` — ${persona.role}` : ""}`,
-              persona.quote ? `Quote: ${persona.quote}` : null,
-              Array.isArray(persona.goals) && persona.goals.length ? `Goals: ${persona.goals.join(", ")}` : null,
-              Array.isArray(persona.fears) && persona.fears.length ? `Fears: ${persona.fears.join(", ")}` : null,
-            ])
+            [
+              `${persona.name || "Persona"} — ${persona.role || ""}`,
+              `Quote: ${persona.quote || ""}`,
+              `Goals: ${(Array.isArray(persona.goals) ? persona.goals : []).join(", ")}`,
+              `Fears: ${(Array.isArray(persona.fears) ? persona.fears : []).join(", ")}`,
+            ].join("\n")
           )
           .join("\n\n");
       }
@@ -69,8 +72,8 @@ export function serializeFieldToText(field: PillarField, value: any): string {
         return value
           .map((kpi: any) => {
             const name = kpi.label || kpi.name || "Metric";
-            const meta = [kpi.trend, kpi.status].filter(Boolean).join(", ");
-            return `${name}: ${kpi.value || ""}${meta ? ` (${meta})` : ""}${kpi.context ? ` — ${kpi.context}` : ""}`.trim();
+            const meta = [kpi.trend || "", kpi.status || ""].join(", ");
+            return `${name}: ${kpi.value || ""} (${meta}) — ${kpi.context || ""}`;
           })
           .join("\n");
       }
@@ -87,7 +90,7 @@ export function serializeFieldToText(field: PillarField, value: any): string {
     case "funnel":
       if (Array.isArray(value)) {
         return value
-          .map((stage: any) => `${stage.stage || "Stage"}: ${stage.volume || ""}${stage.rate ? ` (${stage.rate})` : ""}`.trim())
+          .map((stage: any) => `${stage.stage || "Stage"}: ${stage.volume || ""} (${stage.rate || ""})`)
           .join("\n");
       }
       break;
@@ -95,23 +98,23 @@ export function serializeFieldToText(field: PillarField, value: any): string {
     case "timeline":
       if (Array.isArray(value)) {
         return value
-          .map((item: any) => `${item.date || ""} — ${item.title || ""}${item.desc ? `: ${item.desc}` : ""}`.trim())
+          .map((item: any) => `${item.date || ""} — ${item.title || ""}: ${item.desc || ""}`)
           .join("\n");
       }
       break;
 
     case "2x2-grid":
       if (value && typeof value === "object") {
-        return joinLines([
-          value.xLabel ? `X Axis: ${value.xLabel}` : null,
-          value.yLabel ? `Y Axis: ${value.yLabel}` : null,
+        return [
+          `X Axis: ${value.xLabel || ""}`,
+          `Y Axis: ${value.yLabel || ""}`,
           ...(Array.isArray(value.points)
             ? value.points.map(
                 (point: any) =>
                   `${point.name || "Point"}: x=${point.x ?? 50}, y=${point.y ?? 50}${point.isUs ? " [us]" : ""}`,
               )
             : []),
-        ]);
+        ].join("\n");
       }
       break;
 
