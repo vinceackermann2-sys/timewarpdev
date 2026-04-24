@@ -32,6 +32,101 @@ export function serializeFieldToText(field: PillarField, value: any): string {
   // Strings → as-is
   if (typeof value === "string") return value;
 
+  const joinLines = (parts: Array<string | null | undefined>) =>
+    parts.filter((part): part is string => typeof part === "string" && part.trim() !== "").join("\n");
+
+  switch (field.type) {
+    case "pricing-tiers":
+      if (Array.isArray(value)) {
+        return value
+          .map((tier: any) =>
+            joinLines([
+              `${tier.name || "Tier"}: ${tier.price || ""}${tier.recommended ? " [recommended]" : ""}`.trim(),
+              ...((Array.isArray(tier.features) ? tier.features : []).map((feature: string) => `- ${feature}`)),
+            ])
+          )
+          .join("\n\n");
+      }
+      break;
+
+    case "personas":
+      if (Array.isArray(value)) {
+        return value
+          .map((persona: any) =>
+            joinLines([
+              `${persona.name || "Persona"}${persona.role ? ` — ${persona.role}` : ""}`,
+              persona.quote ? `Quote: ${persona.quote}` : null,
+              Array.isArray(persona.goals) && persona.goals.length ? `Goals: ${persona.goals.join(", ")}` : null,
+              Array.isArray(persona.fears) && persona.fears.length ? `Fears: ${persona.fears.join(", ")}` : null,
+            ])
+          )
+          .join("\n\n");
+      }
+      break;
+
+    case "kpi-grid":
+      if (Array.isArray(value)) {
+        return value
+          .map((kpi: any) => {
+            const name = kpi.label || kpi.name || "Metric";
+            const meta = [kpi.trend, kpi.status].filter(Boolean).join(", ");
+            return `${name}: ${kpi.value || ""}${meta ? ` (${meta})` : ""}${kpi.context ? ` — ${kpi.context}` : ""}`.trim();
+          })
+          .join("\n");
+      }
+      break;
+
+    case "tech-stack":
+      if (Array.isArray(value)) {
+        return value
+          .map((item: any) => `${item.category || "General"}: ${(Array.isArray(item.tools) ? item.tools : []).join(", ")}`)
+          .join("\n");
+      }
+      break;
+
+    case "funnel":
+      if (Array.isArray(value)) {
+        return value
+          .map((stage: any) => `${stage.stage || "Stage"}: ${stage.volume || ""}${stage.rate ? ` (${stage.rate})` : ""}`.trim())
+          .join("\n");
+      }
+      break;
+
+    case "timeline":
+      if (Array.isArray(value)) {
+        return value
+          .map((item: any) => `${item.date || ""} — ${item.title || ""}${item.desc ? `: ${item.desc}` : ""}`.trim())
+          .join("\n");
+      }
+      break;
+
+    case "2x2-grid":
+      if (value && typeof value === "object") {
+        return joinLines([
+          value.xLabel ? `X Axis: ${value.xLabel}` : null,
+          value.yLabel ? `Y Axis: ${value.yLabel}` : null,
+          ...(Array.isArray(value.points)
+            ? value.points.map(
+                (point: any) =>
+                  `${point.name || "Point"}: x=${point.x ?? 50}, y=${point.y ?? 50}${point.isUs ? " [us]" : ""}`,
+              )
+            : []),
+        ]);
+      }
+      break;
+
+    case "org-chart": {
+      const walk = (node: any, depth = 0): string[] => {
+        if (!node || typeof node !== "object") return [];
+        return [
+          `${"  ".repeat(depth)}- ${node.role || "Role"}${node.name ? `: ${node.name}` : ""}`,
+          ...((Array.isArray(node.children) ? node.children : []).flatMap((child: any) => walk(child, depth + 1))),
+        ];
+      };
+      return walk(value).join("\n");
+    }
+  }
+
   // Arrays of strings → newline-separated bullet text
   if (Array.isArray(value) && value.every((v) => typeof v === "string")) {
     return value.join("\n");
@@ -92,7 +187,13 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
   const raw = (text ?? "").trim();
   if (!raw) return null;
 
-  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const rawLines = raw.split(/\r?\n/).filter((l) => l.trim() !== "");
+  const lines = rawLines.map((l) => l.trim()).filter(Boolean);
+  const blocks = raw
+    .split(/\r?\n\s*\r?\n/)
+    .map((block) => block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean))
+    .filter((block) => block.length > 0);
+  const funnelPalette = ["#4a86ff", "#5b8df4", "#6c95e9", "#7e9cdd", "#90a3d2", "#a2acc7"];
 
   switch (field.type) {
     case "text":
@@ -152,6 +253,167 @@ export function parseTextToFieldValue(field: PillarField, text: string): any {
         }
       }
       return Object.keys(out).length ? out : null;
+    }
+
+    case "pricing-tiers": {
+      const tiers = blocks
+        .map((block) => {
+          const header = block[0] || "";
+          const recommended = /\[(recommended|featured|popular)\]/i.test(header);
+          const headerClean = header.replace(/\s*\[(recommended|featured|popular)\]\s*/i, "").trim();
+          const m = headerClean.match(/^(.+?)\s*[:\-—]\s*(.+)$/);
+          const name = (m ? m[1] : headerClean).trim();
+          const price = (m ? m[2] : "").trim();
+          const features = block
+            .slice(1)
+            .map((line) => line.replace(/^[-•]\s*/, "").trim())
+            .filter(Boolean);
+          if (!name) return null;
+          return { name, price, features, recommended };
+        })
+        .filter(Boolean);
+      return tiers.length ? tiers : null;
+    }
+
+    case "personas": {
+      const personas = blocks
+        .map((block) => {
+          const header = block[0] || "";
+          const headerMatch = header.match(/^(.+?)(?:\s+[—-]\s+(.+))?$/);
+          const goalsLine = block.find((line) => /^goals\s*[:\-—]/i.test(line));
+          const fearsLine = block.find((line) => /^fears\s*[:\-—]/i.test(line));
+          const quoteLine = block.find((line) => /^quote\s*[:\-—]/i.test(line));
+          const splitCsv = (line?: string) =>
+            (line || "")
+              .replace(/^[^:\-—]+\s*[:\-—]\s*/i, "")
+              .split(/\s*,\s*/)
+              .map((item) => item.trim())
+              .filter(Boolean);
+          const name = (headerMatch?.[1] || "").trim();
+          const role = (headerMatch?.[2] || "").trim();
+          if (!name) return null;
+          return {
+            name,
+            role,
+            quote: quoteLine?.replace(/^quote\s*[:\-—]\s*/i, "").trim() || undefined,
+            goals: splitCsv(goalsLine),
+            fears: splitCsv(fearsLine),
+          };
+        })
+        .filter(Boolean);
+      return personas.length ? personas : null;
+    }
+
+    case "kpi-grid": {
+      const items = lines
+        .map((line) => {
+          const m = line.match(/^(.+?)\s*[:\-—]\s*(.+?)(?:\s*\(([^)]*)\))?(?:\s+[—\-]\s+(.+))?$/);
+          if (!m) return null;
+          const meta = (m[3] || "").split(/\s*[,;|]\s*/).filter(Boolean);
+          const trend = meta[0] || "";
+          const status = (meta[1] || (/good|up|positive/i.test(trend) ? "good" : "warning")).toLowerCase();
+          return {
+            label: m[1].trim(),
+            value: m[2].trim(),
+            trend,
+            status,
+            context: m[4]?.trim() || "",
+          };
+        })
+        .filter(Boolean);
+      return items.length ? items : null;
+    }
+
+    case "tech-stack": {
+      const stack = lines
+        .map((line) => {
+          const m = line.match(/^(.+?)\s*[:\-—]\s*(.+)$/);
+          if (!m) return null;
+          return {
+            category: m[1].trim(),
+            tools: m[2].split(/\s*,\s*/).map((tool) => tool.trim()).filter(Boolean),
+          };
+        })
+        .filter(Boolean);
+      return stack.length ? stack : null;
+    }
+
+    case "funnel": {
+      const stages = lines
+        .map((line, index) => {
+          const m = line.match(/^(.+?)\s*[:\-—]\s*(.+?)(?:\s*\(([^)]*)\))?$/);
+          if (!m) return null;
+          return {
+            stage: m[1].trim(),
+            volume: m[2].trim(),
+            rate: m[3]?.trim() || "",
+            color: funnelPalette[index % funnelPalette.length],
+          };
+        })
+        .filter(Boolean);
+      return stages.length ? stages : null;
+    }
+
+    case "timeline": {
+      const items = lines
+        .map((line) => {
+          const m = line.match(/^(.+?)\s+[—-]\s+(.+?)(?::\s*(.+))?$/);
+          if (!m) return null;
+          return { date: m[1].trim(), title: m[2].trim(), desc: m[3]?.trim() || "" };
+        })
+        .filter(Boolean);
+      return items.length ? items : null;
+    }
+
+    case "2x2-grid": {
+      let xLabel = "";
+      let yLabel = "";
+      const points = lines
+        .map((line) => {
+          if (/^x axis\s*[:\-—]/i.test(line)) {
+            xLabel = line.replace(/^x axis\s*[:\-—]\s*/i, "").trim();
+            return null;
+          }
+          if (/^y axis\s*[:\-—]/i.test(line)) {
+            yLabel = line.replace(/^y axis\s*[:\-—]\s*/i, "").trim();
+            return null;
+          }
+          const m = line.match(/^(.+?)\s*:\s*x\s*=\s*(-?\d+(?:\.\d+)?)\s*,\s*y\s*=\s*(-?\d+(?:\.\d+)?)(?:\s*\[(us)\])?$/i);
+          if (!m) return null;
+          const isUs = Boolean(m[4]);
+          return {
+            name: m[1].trim(),
+            x: Number(m[2]),
+            y: Number(m[3]),
+            isUs,
+            color: isUs ? "hsl(217 100% 65%)" : "#94a3b8",
+          };
+        })
+        .filter(Boolean);
+      return xLabel || yLabel || points.length ? { xLabel, yLabel, points } : null;
+    }
+
+    case "org-chart": {
+      const stack: Array<{ depth: number; node: any }> = [];
+      let root: any = null;
+      for (const rawLine of rawLines) {
+        const match = rawLine.match(/^(\s*)-\s*(.+?)(?:\s*:\s*(.+))?$/);
+        if (!match) continue;
+        const depth = Math.floor(match[1].length / 2);
+        const node = {
+          role: match[2].trim(),
+          name: match[3]?.trim() || "",
+          children: [] as any[],
+        };
+        while (stack.length && stack[stack.length - 1].depth >= depth) stack.pop();
+        if (stack.length === 0) {
+          root = node;
+        } else {
+          stack[stack.length - 1].node.children.push(node);
+        }
+        stack.push({ depth, node });
+      }
+      return root;
     }
 
     default:
