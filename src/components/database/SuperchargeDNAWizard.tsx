@@ -228,14 +228,17 @@ export function SuperchargeDNAWizard({
     }
   };
 
-  // Radial layout for integrations around the center logo
+  // Radial layout — viewBox is 700×700, branches connect from center to icon center
+  const CANVAS = 700;
+  const CENTER = CANVAS / 2;
+  const RADIUS = 260;
+  const ICON_SIZE = 72; // h/w of the icon tile
+
   const nodeLayout = useMemo(() => {
-    const radius = 175;
-    const center = 230;
     return INTEGRATIONS.map((integration, index) => {
       const angle = (Math.PI * 2 * index) / INTEGRATIONS.length - Math.PI / 2;
-      const x = center + Math.cos(angle) * radius;
-      const y = center + Math.sin(angle) * radius;
+      const x = CENTER + Math.cos(angle) * RADIUS;
+      const y = CENTER + Math.sin(angle) * RADIUS;
       return { ...integration, x, y, angle };
     });
   }, []);
@@ -251,104 +254,153 @@ export function SuperchargeDNAWizard({
             </p>
           </div>
 
-          <div className="relative mx-auto h-[460px] w-[460px] max-w-full">
-            {/* SVG branches */}
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 460 460">
+          <div
+            className="relative mx-auto"
+            style={{ height: CANVAS, width: CANVAS, maxWidth: "100%" }}
+          >
+            {/* Soft radial backdrop */}
+            <div
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+              style={{
+                width: RADIUS * 2 + ICON_SIZE,
+                height: RADIUS * 2 + ICON_SIZE,
+                background:
+                  "radial-gradient(circle, hsl(var(--primary) / 0.06) 0%, hsl(var(--primary) / 0.02) 50%, transparent 75%)",
+              }}
+            />
+            {/* Faint orbit ring */}
+            <svg className="absolute inset-0 h-full w-full pointer-events-none" viewBox={`0 0 ${CANVAS} ${CANVAS}`}>
               <defs>
                 <linearGradient id="branchActive" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="1" />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.45" />
                 </linearGradient>
               </defs>
+              <circle
+                cx={CENTER}
+                cy={CENTER}
+                r={RADIUS}
+                fill="none"
+                stroke="hsl(var(--border))"
+                strokeWidth="1"
+                strokeDasharray="2 6"
+                opacity="0.5"
+              />
+              {/* Branches — from center to each icon center */}
               {nodeLayout.map((n) => {
                 const active = isConnected(n.id);
+                // shorten the line so it ends at the edge of the icon tile, not the center
+                const dx = n.x - CENTER;
+                const dy = n.y - CENTER;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                const trim = ICON_SIZE / 2 + 6;
+                const endX = n.x - (dx / len) * trim;
+                const endY = n.y - (dy / len) * trim;
+                const startTrim = 64; // edge of center logo (logo is 128px → r=64)
+                const startX = CENTER + (dx / len) * startTrim;
+                const startY = CENTER + (dy / len) * startTrim;
                 return (
                   <line
                     key={`line-${n.id}`}
-                    x1={230}
-                    y1={230}
-                    x2={n.x}
-                    y2={n.y}
+                    x1={startX}
+                    y1={startY}
+                    x2={endX}
+                    y2={endY}
                     stroke={active ? "url(#branchActive)" : "hsl(var(--border))"}
-                    strokeWidth={active ? 2 : 1.25}
-                    strokeDasharray={active ? "0" : "4 4"}
-                    className={active ? "animate-pulse" : ""}
+                    strokeWidth={active ? 2.5 : 1.5}
+                    strokeDasharray={active ? "0" : "5 5"}
+                    strokeLinecap="round"
                   />
                 );
               })}
             </svg>
 
-            {/* Center business logo */}
+            {/* Center business logo — perfectly centered */}
             <motion.div
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-28 w-28 rounded-2xl border bg-card shadow-lg flex items-center justify-center overflow-hidden"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-32 w-32 rounded-3xl border bg-card shadow-xl flex items-center justify-center overflow-hidden ring-4 ring-primary/10"
             >
               {logoUrl ? (
-                <img src={logoUrl} alt={brandName || "Business"} className="h-full w-full object-contain p-3" />
+                <img
+                  src={logoUrl}
+                  alt={brandName || "Business"}
+                  className="h-full w-full object-contain p-3"
+                />
               ) : (
                 <div className="flex flex-col items-center gap-1 text-center px-2">
-                  <Building2 className="h-7 w-7 text-muted-foreground" />
-                  <div className="text-[10px] font-semibold text-foreground line-clamp-2">{brandName || "Business"}</div>
+                  <Building2 className="h-8 w-8 text-muted-foreground" />
+                  <div className="text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
+                    {brandName || "Business"}
+                  </div>
                 </div>
               )}
             </motion.div>
 
-            {/* Integration nodes */}
+            {/* Integration nodes — icon tile centered exactly on (n.x, n.y), label rendered separately so it doesn't shift the center */}
             {nodeLayout.map((n, i) => {
               const connected_ = isConnected(n.id);
               const isLoading = connectingProvider === n.id;
               return (
-                <motion.button
+                <div
                   key={n.id}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1 + i * 0.05, type: "spring", stiffness: 200 }}
-                  onClick={() => !connected_ && void connectProvider(n.id)}
-                  disabled={isLoading || connected_}
-                  className={cn(
-                    "absolute -translate-x-1/2 -translate-y-1/2 group flex flex-col items-center gap-1.5 focus:outline-none",
-                    !connected_ && "cursor-pointer"
-                  )}
-                  style={{ left: n.x, top: n.y }}
-                  title={connected_ ? `${n.label} connected` : `Connect ${n.label}`}
+                  className="absolute"
+                  style={{ left: n.x, top: n.y, transform: "translate(-50%, -50%)" }}
                 >
-                  <div
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1 + i * 0.05, type: "spring", stiffness: 200 }}
+                    onClick={() => !connected_ && void connectProvider(n.id)}
+                    disabled={isLoading || connected_}
+                    title={connected_ ? `${n.label} connected` : `Connect ${n.label}`}
                     className={cn(
-                      "relative h-14 w-14 rounded-2xl border bg-card flex items-center justify-center transition-all shadow-sm",
+                      "relative flex items-center justify-center rounded-2xl border bg-card shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-primary/40",
                       connected_
-                        ? "border-primary/60 bg-primary/5 ring-2 ring-primary/30"
-                        : "border-border group-hover:border-primary/50 group-hover:scale-105"
+                        ? "border-primary/60 bg-primary/5 ring-2 ring-primary/30 cursor-default"
+                        : "border-border hover:border-primary/50 hover:scale-110 hover:shadow-lg cursor-pointer"
                     )}
+                    style={{ height: ICON_SIZE, width: ICON_SIZE }}
                   >
-                    <img src={n.logo} alt={n.label} className="h-7 w-7 object-contain" />
+                    <img src={n.logo} alt={n.label} className="h-9 w-9 object-contain" />
                     {connected_ && (
-                      <div className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow">
+                      <div className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </div>
                     )}
                     {isLoading && (
                       <div className="absolute inset-0 rounded-2xl bg-background/70 flex items-center justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
                       </div>
                     )}
+                  </motion.button>
+                  {/* Label sits below the tile but is absolutely positioned so it doesn't affect tile centering */}
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none"
+                    style={{ top: ICON_SIZE / 2 + 8 }}
+                  >
+                    <span
+                      className={cn(
+                        "text-xs font-medium",
+                        connected_ ? "text-primary" : "text-muted-foreground"
+                      )}
+                    >
+                      {n.label}
+                    </span>
                   </div>
-                  <span className={cn("text-[11px] font-medium", connected_ ? "text-primary" : "text-muted-foreground")}>
-                    {n.label}
-                  </span>
-                </motion.button>
+                </div>
               );
             })}
           </div>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-2 max-w-2xl mx-auto">
             <p className="text-xs text-muted-foreground">
               {connected.length === 0
                 ? "Skip if you'd rather just upload files in the next step."
                 : `${connected.length} integration${connected.length === 1 ? "" : "s"} connected`}
             </p>
-            <Button onClick={() => setStep(2)}>
+            <Button onClick={() => setStep(2)} size="lg">
               Continue <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
           </div>
