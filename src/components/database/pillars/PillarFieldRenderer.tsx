@@ -1,7 +1,7 @@
 import { Check, Box, CheckCircle2 } from "lucide-react";
 import type { PillarField } from "./pillarTypes";
 import type { ReactNode } from "react";
-import { isOverrideValue } from "./pillarOverrides";
+import { isOverrideValue, parseTextToFieldValue } from "./pillarOverrides";
 
 // Detects whether a field has any meaningful data, AND validates that the
 // value shape matches what the renderer for that type expects. If the shape
