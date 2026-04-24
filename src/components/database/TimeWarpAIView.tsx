@@ -61,8 +61,8 @@ interface TimeWarpAIViewProps {
   forceOnboarding?: boolean;
   /** URL to pre-fill into the onboarding (from landing-page funnel ?url=). */
   onboardingInitialUrl?: string | null;
-  /** Called once the user names their agent and a brand is created. */
-  onOnboardingComplete?: (agentName: string, brandId: string) => void;
+  /** Called once the user names their agent and chooses whether to supercharge. */
+  onOnboardingComplete?: (agentName: string, brandId: string, supercharge: boolean) => void;
 }
 
 const SENSITIVE_PATTERNS = {
