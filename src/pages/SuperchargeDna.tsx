@@ -27,19 +27,19 @@ function SuperchargeDnaInner() {
   const handleClose = () => navigate("/app");
 
   return (
-    <div className="min-h-screen bg-[#FAFAFD]">
-      <div className="mx-auto max-w-6xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={handleClose}
-            className="gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Business DNA
-          </Button>
-        </div>
+    <div className="h-screen flex flex-col bg-[#FAFAFD] overflow-hidden">
+      <div className="shrink-0 px-6 pt-4 pb-2 max-w-6xl mx-auto w-full">
+        <Button
+          variant="ghost"
+          onClick={handleClose}
+          className="gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Business DNA
+        </Button>
+      </div>
 
+      <div className="flex-1 min-h-0 mx-auto max-w-6xl w-full px-6 pb-2">
         {isLoading && !activeBrand ? (
           <div className="text-sm text-muted-foreground">Loading business...</div>
         ) : !resolvedBrandId ? (

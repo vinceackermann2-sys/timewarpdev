@@ -229,11 +229,11 @@ export function SuperchargeDNAWizard({
   };
 
   // Radial layout — fixed canvas so SVG and absolutely-positioned nodes share the same center
-  const CANVAS = 700;
+  const CANVAS = 520;
   const CENTER = CANVAS / 2;
-  const RADIUS = 260;
-  const ICON_SIZE = 72;
-  const CENTER_NODE_SIZE = 160;
+  const RADIUS = 195;
+  const ICON_SIZE = 60;
+  const CENTER_NODE_SIZE = 128;
 
   const nodeLayout = useMemo(() => {
     return INTEGRATIONS.map((integration, index) => {
@@ -487,10 +487,10 @@ export function SuperchargeDNAWizard({
 
       {/* ───────────── STEP 2 — Files + URLs ───────────── */}
       {step === 2 && (
-        <div className="space-y-10 max-w-4xl mx-auto w-full">
+        <div className="space-y-6 max-w-4xl mx-auto w-full">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-foreground tracking-tight">Add business context</h2>
-            <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+            <p className="text-sm text-muted-foreground mt-1.5 max-w-xl mx-auto">
               Add files and URLs that hold business context — pitch decks, reports, market research.
             </p>
           </div>
@@ -513,14 +513,14 @@ export function SuperchargeDNAWizard({
 
             <label
               htmlFor="supercharge-files"
-              className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-16 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
+              className="group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-8 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
             >
-              <div className="h-16 w-16 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
-                <Upload className="h-7 w-7 text-primary" />
+              <div className="h-12 w-12 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
+                <Upload className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-base font-semibold text-foreground">Drop files or click to upload</p>
-                <p className="text-xs text-muted-foreground mt-1">PDFs, docs, sheets, text · Up to 12 files</p>
+                <p className="text-sm font-semibold text-foreground">Drop files or click to upload</p>
+                <p className="text-xs text-muted-foreground mt-0.5">PDFs, docs, sheets, text · Up to 12 files</p>
               </div>
               <Input
                 id="supercharge-files"
@@ -709,24 +709,26 @@ export function SuperchargeDNAWizard({
 
   if (embedded) {
     return (
-      <div className="flex flex-col min-h-[calc(100vh-3rem)] w-full">
+      <div className="flex flex-col h-[calc(100vh-3rem)] w-full">
         {/* Top progress bar */}
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-          <div className="max-w-5xl mx-auto w-full px-6 py-4">
+        <div className="shrink-0 bg-background/95 backdrop-blur border-b border-border">
+          <div className="max-w-5xl mx-auto w-full px-6 py-3">
             {TopProgressBar}
           </div>
         </div>
 
-        {/* Main content area — bigger and centered */}
-        <div className="flex-1 w-full px-6 py-10">
-          <div className="max-w-5xl mx-auto w-full">
-            {stepsContent}
+        {/* Main content area — fills remaining space */}
+        <div className="flex-1 min-h-0 w-full overflow-y-auto px-6 py-4">
+          <div className="max-w-5xl mx-auto w-full h-full flex items-center justify-center">
+            <div className="w-full">
+              {stepsContent}
+            </div>
           </div>
         </div>
 
         {/* Sticky bottom continue bar */}
-        <div className="sticky bottom-0 z-10 bg-background/95 backdrop-blur border-t border-border">
-          <div className="max-w-5xl mx-auto w-full px-6 py-4 flex items-center gap-3">
+        <div className="shrink-0 bg-background/95 backdrop-blur border-t border-border">
+          <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center gap-3">
             {FooterActions}
           </div>
         </div>
