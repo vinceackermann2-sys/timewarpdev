@@ -21,7 +21,7 @@ async function extractPdfText(pdfBytes: Uint8Array, fileName: string): Promise<s
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return "";
 
-  const b64 = base64Encode(pdfBytes);
+  const b64 = base64Encode(pdfBytes as unknown as ArrayBuffer);
   const dataUrl = `data:application/pdf;base64,${b64}`;
 
   try {
@@ -61,7 +61,7 @@ async function extractVideoContent(videoBytes: Uint8Array, fileName: string, mim
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return "";
 
-  const b64 = base64Encode(videoBytes);
+  const b64 = base64Encode(videoBytes as unknown as ArrayBuffer);
   const mime = mimeType || "video/mp4";
   const dataUrl = `data:${mime};base64,${b64}`;
 
