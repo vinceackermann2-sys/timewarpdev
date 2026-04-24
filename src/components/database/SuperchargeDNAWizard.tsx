@@ -315,18 +315,25 @@ export function SuperchargeDNAWizard({
               })}
             </svg>
 
-            {/* Center business logo — perfectly centered */}
+            {/* Center business logo — perfectly centered, circular */}
             <motion.div
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-32 w-32 rounded-3xl border bg-card shadow-xl flex items-center justify-center overflow-hidden ring-4 ring-primary/10"
+              className="absolute rounded-full border bg-card shadow-xl flex items-center justify-center overflow-hidden ring-4 ring-primary/10"
+              style={{
+                left: CENTER,
+                top: CENTER,
+                width: 144,
+                height: 144,
+                transform: "translate(-50%, -50%)",
+              }}
             >
               {logoUrl ? (
                 <img
                   src={logoUrl}
                   alt={brandName || "Business"}
-                  className="h-full w-full object-contain p-3"
+                  className="h-full w-full object-cover"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-1 text-center px-2">
