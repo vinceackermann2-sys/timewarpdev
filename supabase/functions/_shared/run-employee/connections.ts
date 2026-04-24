@@ -76,6 +76,7 @@ function formatProviderName(provider: string): string {
   if (provider === "google_gmail") return "Gmail";
   if (provider === "slack") return "Slack";
   if (provider === "hubspot") return "HubSpot";
+  if (provider === "stripe") return "Stripe";
   return provider;
 }
 
