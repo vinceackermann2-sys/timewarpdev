@@ -42,6 +42,7 @@ import logoHubspot from "@/assets/logo-hubspot.svg";
 import logoFortknox from "@/assets/logo-fortknox.png";
 import adEvoIcon from "@/assets/ad-evo-icon.svg";
 import type { AIEmployee } from "./EmployeesView";
+import { ChatOnboardingFlow } from "./aiceo/ChatOnboardingFlow";
 
 /* ─── Task Report Viewer (popup dialog) ─── */
 function TaskReportViewer({ content, onSaveToDb, savedToDb, triggerLabel, dialogTitle, onOpened }: {
