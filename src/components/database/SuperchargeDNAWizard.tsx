@@ -409,25 +409,39 @@ export function SuperchargeDNAWizard({
 
       {/* ───────────── STEP 2 — Files + URLs ───────────── */}
       {step === 2 && (
-        <div className="space-y-5">
+        <div className="space-y-8 max-w-3xl mx-auto w-full">
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
               Add files and URLs that hold business context — pitch decks, reports, market research.
             </p>
           </div>
 
-          {/* Centered file uploader */}
-          <div>
+          {/* Files section */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileUp className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Files</h3>
+              </div>
+              {artifacts.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {artifacts.length} of 12
+                </span>
+              )}
+            </div>
+
             <label
               htmlFor="supercharge-files"
-              className="mx-auto flex max-w-2xl cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors hover:border-primary/50 hover:bg-muted/50"
+              className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-12 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
             >
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-14 w-14 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
                 <Upload className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Drop files or click to upload</p>
-                <p className="text-xs text-muted-foreground mt-1">Up to 12 files · PDFs, docs, sheets, text</p>
+                <p className="text-sm font-semibold text-foreground">Drop files or click to upload</p>
+                <p className="text-xs text-muted-foreground mt-1">PDFs, docs, sheets, text · Up to 12 files</p>
               </div>
               <Input
                 id="supercharge-files"
@@ -438,17 +452,16 @@ export function SuperchargeDNAWizard({
               />
             </label>
 
-            {/* File sorter list */}
             {artifacts.length > 0 && (
-              <div className="mx-auto mt-4 max-w-2xl space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground px-1">
-                  {artifacts.length} file{artifacts.length === 1 ? "" : "s"} added
-                </p>
-                <div className="rounded-xl border bg-card divide-y max-h-48 overflow-y-auto">
+              <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
+                <div className="divide-y divide-border max-h-56 overflow-y-auto">
                   {artifacts.map((a, i) => (
-                    <div key={`${a.name}-${i}`} className="flex items-center gap-3 px-3 py-2">
-                      <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <FileUp className="h-4 w-4 text-muted-foreground" />
+                    <div
+                      key={`${a.name}-${i}`}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileUp className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{a.name}</p>
@@ -456,7 +469,8 @@ export function SuperchargeDNAWizard({
                       </div>
                       <button
                         onClick={() => removeArtifact(i)}
-                        className="h-7 w-7 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center text-muted-foreground transition-colors"
+                        aria-label="Remove file"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -465,13 +479,25 @@ export function SuperchargeDNAWizard({
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* URL adder */}
-          <div className="mx-auto max-w-2xl">
+          {/* URLs section */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Link2 className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">URLs</h3>
+              </div>
+              {urls.length > 0 && (
+                <span className="text-xs text-muted-foreground">{urls.length} added</span>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
@@ -482,27 +508,30 @@ export function SuperchargeDNAWizard({
                     }
                   }}
                   placeholder="https://example.com/report"
-                  className="pl-9"
+                  className="pl-10 h-11 rounded-xl"
                 />
               </div>
-              <Button variant="outline" onClick={addUrl} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Add URL
+              <Button onClick={addUrl} className="gap-1.5 h-11 rounded-xl">
+                <Plus className="h-4 w-4" /> Add
               </Button>
             </div>
 
             {urls.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground px-1">
-                  {urls.length} URL{urls.length === 1 ? "" : "s"} added
-                </p>
-                <div className="rounded-xl border bg-card divide-y max-h-40 overflow-y-auto">
+              <div className="rounded-2xl border bg-card overflow-hidden shadow-sm">
+                <div className="divide-y divide-border max-h-48 overflow-y-auto">
                   {urls.map((u) => (
-                    <div key={u} className="flex items-center gap-3 px-3 py-2">
-                      <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div
+                      key={u}
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Link2 className="h-4 w-4 text-primary" />
+                      </div>
                       <span className="text-sm text-foreground truncate flex-1">{u}</span>
                       <button
                         onClick={() => removeUrl(u)}
-                        className="h-7 w-7 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center text-muted-foreground transition-colors"
+                        aria-label="Remove URL"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -511,11 +540,11 @@ export function SuperchargeDNAWizard({
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
           <div className="flex items-center justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button onClick={() => setStep(3)}>
+            <Button variant="outline" onClick={() => setStep(1)} size="lg">Back</Button>
+            <Button onClick={() => setStep(3)} size="lg">
               Continue <ArrowRight className="h-4 w-4 ml-1.5" />
             </Button>
           </div>
