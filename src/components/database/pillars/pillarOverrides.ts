@@ -119,7 +119,9 @@ export function serializeFieldToText(field: PillarField, value: any): string {
       const walk = (node: any, depth = 0): string[] => {
         if (!node || typeof node !== "object") return [];
         return [
-          `${"  ".repeat(depth)}- ${node.role || "Role"}${node.name ? `: ${node.name}` : ""}`,
+          // Always emit `: <name>` (empty after the colon when missing) so users
+          // can fill in the name directly in the textarea without re-formatting.
+          `${"  ".repeat(depth)}- ${node.role || "Role"}: ${node.name || ""}`,
           ...((Array.isArray(node.children) ? node.children : []).flatMap((child: any) => walk(child, depth + 1))),
         ];
       };
