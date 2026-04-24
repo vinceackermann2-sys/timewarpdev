@@ -244,6 +244,99 @@ export function SuperchargeDNAWizard({
     });
   }, []);
 
+  const STEP_LABELS = ["Connect", "Add context", "Supercharge"];
+
+  const TopProgressBar = (
+    <div className="w-full">
+      <div className="flex items-center gap-3">
+        {STEP_LABELS.map((label, idx) => {
+          const stepNum = (idx + 1) as SuperchargeStep;
+          const isActive = step === stepNum;
+          const isComplete = step > stepNum;
+          return (
+            <div key={label} className="flex items-center gap-2 flex-1">
+              <div
+                className={cn(
+                  "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-all",
+                  isComplete && "bg-primary text-primary-foreground",
+                  isActive && "bg-primary text-primary-foreground ring-4 ring-primary/15",
+                  !isActive && !isComplete && "bg-muted text-muted-foreground"
+                )}
+              >
+                {isComplete ? <CheckCircle2 className="h-3.5 w-3.5" /> : idx + 1}
+              </div>
+              <span
+                className={cn(
+                  "text-sm font-medium hidden sm:inline",
+                  (isActive || isComplete) ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                {label}
+              </span>
+              {idx < STEP_LABELS.length - 1 && (
+                <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden mx-1">
+                  <div
+                    className="h-full bg-primary transition-all duration-500"
+                    style={{ width: isComplete ? "100%" : isActive ? "50%" : "0%" }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const FooterActions = (
+    <>
+      {step === 1 && (
+        <>
+          <p className="text-xs text-muted-foreground hidden sm:block">
+            {connected.length === 0
+              ? "Skip if you'd rather just upload files in the next step."
+              : `${connected.length} integration${connected.length === 1 ? "" : "s"} connected`}
+          </p>
+          <div className="flex-1" />
+          <Button onClick={() => setStep(2)} size="lg">
+            Continue <ArrowRight className="h-4 w-4 ml-1.5" />
+          </Button>
+        </>
+      )}
+      {step === 2 && (
+        <>
+          <Button variant="outline" onClick={() => setStep(1)} size="lg">Back</Button>
+          <div className="flex-1" />
+          <Button onClick={() => setStep(3)} size="lg">
+            Continue <ArrowRight className="h-4 w-4 ml-1.5" />
+          </Button>
+        </>
+      )}
+      {step === 3 && (
+        <>
+          <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg">
+            Back
+          </Button>
+          <div className="flex-1" />
+          {!embedded && (
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={running} size="lg">
+              Close
+            </Button>
+          )}
+          <Button
+            onClick={() => void runSupercharge()}
+            disabled={running}
+            size="lg"
+            className="gap-2"
+          >
+            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {running ? "Supercharging..." : "Run Supercharge"}
+          </Button>
+        </>
+      )}
+    </>
+  );
+
   const stepsContent = (
     <>
       {/* ───────────── STEP 1 — Integrations radial ───────────── */}
@@ -336,7 +429,6 @@ export function SuperchargeDNAWizard({
               )}
             </motion.div>
 
-            {/* Integration nodes — icon tile centered exactly on (n.x, n.y), label rendered separately so it doesn't shift the center */}
             {nodeLayout.map((n, i) => {
               const connected_ = isConnected(n.id);
               const isLoading = connectingProvider === n.id;
@@ -373,7 +465,6 @@ export function SuperchargeDNAWizard({
                       </div>
                     )}
                   </motion.button>
-                  {/* Label sits below the tile but is absolutely positioned so it doesn't affect tile centering */}
                   <div
                     className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none"
                     style={{ top: ICON_SIZE / 2 + 8 }}
@@ -391,37 +482,27 @@ export function SuperchargeDNAWizard({
               );
             })}
           </div>
-
-          <div className="flex items-center justify-between pt-2 max-w-2xl mx-auto">
-            <p className="text-xs text-muted-foreground">
-              {connected.length === 0
-                ? "Skip if you'd rather just upload files in the next step."
-                : `${connected.length} integration${connected.length === 1 ? "" : "s"} connected`}
-            </p>
-            <Button onClick={() => setStep(2)} size="lg">
-              Continue <ArrowRight className="h-4 w-4 ml-1.5" />
-            </Button>
-          </div>
         </div>
       )}
 
       {/* ───────────── STEP 2 — Files + URLs ───────────── */}
       {step === 2 && (
-        <div className="space-y-8 max-w-3xl mx-auto w-full">
+        <div className="space-y-10 max-w-4xl mx-auto w-full">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Add business context</h2>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
               Add files and URLs that hold business context — pitch decks, reports, market research.
             </p>
           </div>
 
           {/* Files section */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileUp className="h-3.5 w-3.5 text-primary" />
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileUp className="h-4 w-4 text-primary" />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">Files</h3>
+                <h3 className="text-base font-semibold text-foreground">Files</h3>
               </div>
               {artifacts.length > 0 && (
                 <span className="text-xs text-muted-foreground">
@@ -432,13 +513,13 @@ export function SuperchargeDNAWizard({
 
             <label
               htmlFor="supercharge-files"
-              className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-12 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
+              className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-gradient-to-b from-muted/20 to-muted/40 px-6 py-16 text-center transition-all hover:border-primary/60 hover:from-primary/5 hover:to-primary/10"
             >
-              <div className="h-14 w-14 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
-                <Upload className="h-6 w-6 text-primary" />
+              <div className="h-16 w-16 rounded-2xl bg-card border shadow-sm flex items-center justify-center group-hover:scale-110 group-hover:border-primary/40 transition-transform">
+                <Upload className="h-7 w-7 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Drop files or click to upload</p>
+                <p className="text-base font-semibold text-foreground">Drop files or click to upload</p>
                 <p className="text-xs text-muted-foreground mt-1">PDFs, docs, sheets, text · Up to 12 files</p>
               </div>
               <Input
@@ -456,7 +537,7 @@ export function SuperchargeDNAWizard({
                   {artifacts.map((a, i) => (
                     <div
                       key={`${a.name}-${i}`}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
                     >
                       <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                         <FileUp className="h-4 w-4 text-primary" />
@@ -480,13 +561,13 @@ export function SuperchargeDNAWizard({
           </section>
 
           {/* URLs section */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Link2 className="h-3.5 w-3.5 text-primary" />
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Link2 className="h-4 w-4 text-primary" />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">URLs</h3>
+                <h3 className="text-base font-semibold text-foreground">URLs</h3>
               </div>
               {urls.length > 0 && (
                 <span className="text-xs text-muted-foreground">{urls.length} added</span>
@@ -506,10 +587,10 @@ export function SuperchargeDNAWizard({
                     }
                   }}
                   placeholder="https://example.com/report"
-                  className="pl-10 h-11 rounded-xl"
+                  className="pl-10 h-12 rounded-xl text-base"
                 />
               </div>
-              <Button onClick={addUrl} className="gap-1.5 h-11 rounded-xl">
+              <Button onClick={addUrl} className="gap-1.5 h-12 rounded-xl">
                 <Plus className="h-4 w-4" /> Add
               </Button>
             </div>
@@ -520,7 +601,7 @@ export function SuperchargeDNAWizard({
                   {urls.map((u) => (
                     <div
                       key={u}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
                     >
                       <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                         <Link2 className="h-4 w-4 text-primary" />
@@ -539,117 +620,87 @@ export function SuperchargeDNAWizard({
               </div>
             )}
           </section>
-
-          <div className="flex items-center justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(1)} size="lg">Back</Button>
-            <Button onClick={() => setStep(3)} size="lg">
-              Continue <ArrowRight className="h-4 w-4 ml-1.5" />
-            </Button>
-          </div>
         </div>
       )}
 
       {/* ───────────── STEP 3 — Forging timeline ───────────── */}
       {step === 3 && (
-        <div className="space-y-5">
+        <div className="space-y-6 max-w-3xl mx-auto w-full">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Supercharge your DNA</h2>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
               Verified enrichment — integrations, files, URLs, and web evidence for gap fields.
             </p>
           </div>
 
-          <div className="mx-auto max-w-2xl">
-            <div className="rounded-3xl border border-black/5 bg-gradient-to-b from-[#f1f5fc] to-[#e8eef9] p-7 shadow-sm">
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="h-8 w-8 rounded-xl bg-[#4a86ff]/10 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-[#4a86ff]" />
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold text-[#1a1f36] leading-tight">
-                    Supercharging your Business DNA
-                  </p>
-                  <p className="text-[12px] text-[#697386]">
-                    Verified enrichment in progress
-                  </p>
-                </div>
+          <div className="rounded-3xl border border-black/5 bg-gradient-to-b from-[#f1f5fc] to-[#e8eef9] p-9 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-10 w-10 rounded-xl bg-[#4a86ff]/10 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-[#4a86ff]" />
               </div>
-              <ul className="space-y-3">
-                {forgingTodos.map((t, idx) => {
-                  const previousDone = idx === 0 || forgingTodos[idx - 1].done;
-                  const isActive = running && !t.done && previousDone;
-                  return (
-                    <li
-                      key={t.label}
+              <div>
+                <p className="text-base font-semibold text-[#1a1f36] leading-tight">
+                  Supercharging your Business DNA
+                </p>
+                <p className="text-[12px] text-[#697386]">
+                  Verified enrichment in progress
+                </p>
+              </div>
+            </div>
+            <ul className="space-y-3">
+              {forgingTodos.map((t, idx) => {
+                const previousDone = idx === 0 || forgingTodos[idx - 1].done;
+                const isActive = running && !t.done && previousDone;
+                return (
+                  <li
+                    key={t.label}
+                    className={cn(
+                      "flex items-center gap-3 text-[15px] rounded-xl px-4 py-3 transition-all",
+                      isActive && "bg-white/60",
+                      t.done && "opacity-90"
+                    )}
+                  >
+                    {t.done ? (
+                      <div className="h-7 w-7 rounded-full bg-[#4a86ff] flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      </div>
+                    ) : isActive ? (
+                      <div className="h-7 w-7 rounded-full bg-[#4a86ff]/15 flex items-center justify-center shrink-0">
+                        <Loader2 className="w-4 h-4 text-[#4a86ff] animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="w-7 h-7 rounded-full border-2 border-[#cbd5e1] shrink-0" />
+                    )}
+                    <span
                       className={cn(
-                        "flex items-center gap-3 text-[14px] rounded-xl px-3 py-2 transition-all",
-                        isActive && "bg-white/60",
-                        t.done && "opacity-90"
+                        t.done
+                          ? "text-[#1a1f36] font-medium"
+                          : isActive
+                          ? "text-[#1a1f36] font-medium"
+                          : "text-[#697386]"
                       )}
                     >
-                      {t.done ? (
-                        <div className="h-6 w-6 rounded-full bg-[#4a86ff] flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                        </div>
-                      ) : isActive ? (
-                        <div className="h-6 w-6 rounded-full bg-[#4a86ff]/15 flex items-center justify-center shrink-0">
-                          <Loader2 className="w-3.5 h-3.5 text-[#4a86ff] animate-spin" />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full border-2 border-[#cbd5e1] shrink-0" />
-                      )}
-                      <span
-                        className={cn(
-                          t.done
-                            ? "text-[#1a1f36] font-medium"
-                            : isActive
-                            ? "text-[#1a1f36] font-medium"
-                            : "text-[#697386]"
-                        )}
-                      >
-                        {t.label}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+                      {t.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
 
-              {logs.length > 0 && (
-                <div className="mt-5 pt-5 border-t border-black/5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#697386] mb-2">
-                    Activity
-                  </p>
-                  <div className="font-mono text-[11px] text-[#697386] space-y-0.5 max-h-32 overflow-y-auto">
-                    {logs.slice(-6).map((line, i) => (
-                      <div key={`${line}-${i}`} className="truncate">
-                        › {line}
-                      </div>
-                    ))}
-                  </div>
+            {logs.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-black/5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#697386] mb-2">
+                  Activity
+                </p>
+                <div className="font-mono text-[11px] text-[#697386] space-y-0.5 max-h-32 overflow-y-auto">
+                  {logs.slice(-6).map((line, i) => (
+                    <div key={`${line}-${i}`} className="truncate">
+                      › {line}
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-2 max-w-2xl mx-auto">
-            <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg">
-              Back
-            </Button>
-            <div className="flex items-center gap-2">
-              {!embedded && (
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={running} size="lg">
-                  Close
-                </Button>
-              )}
-              <Button
-                onClick={() => void runSupercharge()}
-                disabled={running}
-                size="lg"
-                className="gap-2"
-              >
-                {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {running ? "Supercharging..." : "Run Supercharge"}
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
