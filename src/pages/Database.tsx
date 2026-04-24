@@ -158,8 +158,9 @@ const Database = () => {
     if (saved && ["aiceo", "businessdna", "employees", "workspaces", "manage"].includes(saved)) {
       return saved as View;
     }
-    return "businessdna";
+    return "aiceo";
   });
+  const [onboardingUrl, setOnboardingUrl] = useState<string | null>(null);
   const [showBusinessDNA, setShowBusinessDNA] = useState(false);
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -178,10 +179,11 @@ const Database = () => {
     const productUrl = searchParams.get("url");
     const onboarding = searchParams.get("onboarding");
 
-    // Legacy: any /app?onboarding=business-dna links now redirect to dedicated page
+    // Legacy: any /app?onboarding=business-dna links land directly on the AI CEO chat
     if (onboarding === "business-dna") {
-      const qs = productUrl ? `?url=${encodeURIComponent(productUrl)}` : "";
-      navigate(`/onboarding${qs}`, { replace: true });
+      setCurrentView("aiceo");
+      localStorage.setItem("tw_current_view", "aiceo");
+      if (productUrl) setOnboardingUrl(productUrl);
       return;
     }
 
@@ -197,6 +199,7 @@ const Database = () => {
     if (viewParam === "aiceo") {
       setCurrentView("aiceo");
       localStorage.setItem("tw_current_view", "aiceo");
+      if (productUrl) setOnboardingUrl(productUrl);
     }
 
     if (autostart === "true") {
@@ -213,8 +216,7 @@ const Database = () => {
     }
   }, [searchParams, navigate]);
 
-  // Fallback: detect brand-new user (just signed up via OAuth) and route them
-  // to the dedicated onboarding page.
+  // New users land on AI CEO chat (which renders chat onboarding when no brands exist)
   useEffect(() => {
     if (!user) return;
     const alreadyShown = sessionStorage.getItem("tw_onboarding_shown");
@@ -222,9 +224,10 @@ const Database = () => {
     const createdAt = new Date(user.created_at).getTime();
     if (Date.now() - createdAt < 30000) {
       sessionStorage.setItem("tw_onboarding_shown", "true");
-      navigate("/onboarding", { replace: true });
+      setCurrentView("aiceo");
+      localStorage.setItem("tw_current_view", "aiceo");
     }
-  }, [user, navigate]);
+  }, [user]);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
