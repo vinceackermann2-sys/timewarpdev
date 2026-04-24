@@ -39,7 +39,7 @@ function SuperchargeDnaInner() {
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 mx-auto max-w-6xl w-full px-6 pb-2">
+      <div className="flex-1 min-h-0 mx-auto max-w-6xl w-full px-6 pb-2 flex flex-col">
         {isLoading && !activeBrand ? (
           <div className="text-sm text-muted-foreground">Loading business...</div>
         ) : !resolvedBrandId ? (
