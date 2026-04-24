@@ -560,26 +560,54 @@ export function SuperchargeDNAWizard({
             </p>
           </div>
 
-          <div className="mx-auto max-w-xl">
-            <div className="rounded-2xl border border-black/5 bg-[#eef2f7] p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-4 h-4 text-[#4a86ff]" />
-                <p className="text-[14px] font-semibold text-[#1a1f36]">Supercharging your Business DNA</p>
+          <div className="mx-auto max-w-2xl">
+            <div className="rounded-3xl border border-black/5 bg-gradient-to-b from-[#f1f5fc] to-[#e8eef9] p-7 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="h-8 w-8 rounded-xl bg-[#4a86ff]/10 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-[#4a86ff]" />
+                </div>
+                <div>
+                  <p className="text-[15px] font-semibold text-[#1a1f36] leading-tight">
+                    Supercharging your Business DNA
+                  </p>
+                  <p className="text-[12px] text-[#697386]">
+                    Verified enrichment in progress
+                  </p>
+                </div>
               </div>
-              <ul className="space-y-2.5">
+              <ul className="space-y-3">
                 {forgingTodos.map((t, idx) => {
                   const previousDone = idx === 0 || forgingTodos[idx - 1].done;
                   const isActive = running && !t.done && previousDone;
                   return (
-                    <li key={t.label} className="flex items-center gap-2.5 text-[13.5px]">
-                      {t.done ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#4a86ff] shrink-0" />
-                      ) : isActive ? (
-                        <Loader2 className="w-4 h-4 text-[#4a86ff] shrink-0 animate-spin" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full border border-[#cbd5e1] shrink-0" />
+                    <li
+                      key={t.label}
+                      className={cn(
+                        "flex items-center gap-3 text-[14px] rounded-xl px-3 py-2 transition-all",
+                        isActive && "bg-white/60",
+                        t.done && "opacity-90"
                       )}
-                      <span className={cn(t.done ? "text-[#1a1f36] font-medium" : "text-[#697386]")}>
+                    >
+                      {t.done ? (
+                        <div className="h-6 w-6 rounded-full bg-[#4a86ff] flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      ) : isActive ? (
+                        <div className="h-6 w-6 rounded-full bg-[#4a86ff]/15 flex items-center justify-center shrink-0">
+                          <Loader2 className="w-3.5 h-3.5 text-[#4a86ff] animate-spin" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full border-2 border-[#cbd5e1] shrink-0" />
+                      )}
+                      <span
+                        className={cn(
+                          t.done
+                            ? "text-[#1a1f36] font-medium"
+                            : isActive
+                            ? "text-[#1a1f36] font-medium"
+                            : "text-[#697386]"
+                        )}
+                      >
                         {t.label}
                       </span>
                     </li>
@@ -588,10 +616,15 @@ export function SuperchargeDNAWizard({
               </ul>
 
               {logs.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-black/5">
+                <div className="mt-5 pt-5 border-t border-black/5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-[#697386] mb-2">
+                    Activity
+                  </p>
                   <div className="font-mono text-[11px] text-[#697386] space-y-0.5 max-h-32 overflow-y-auto">
                     {logs.slice(-6).map((line, i) => (
-                      <div key={`${line}-${i}`} className="truncate">› {line}</div>
+                      <div key={`${line}-${i}`} className="truncate">
+                        › {line}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -599,13 +632,22 @@ export function SuperchargeDNAWizard({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(2)} disabled={running}>Back</Button>
+          <div className="flex items-center justify-between pt-2 max-w-2xl mx-auto">
+            <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg">
+              Back
+            </Button>
             <div className="flex items-center gap-2">
               {!embedded && (
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={running}>Close</Button>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={running} size="lg">
+                  Close
+                </Button>
               )}
-              <Button onClick={() => void runSupercharge()} disabled={running} className="gap-2">
+              <Button
+                onClick={() => void runSupercharge()}
+                disabled={running}
+                size="lg"
+                className="gap-2"
+              >
                 {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {running ? "Supercharging..." : "Run Supercharge"}
               </Button>
