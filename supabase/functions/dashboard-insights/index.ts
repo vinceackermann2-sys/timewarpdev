@@ -757,7 +757,7 @@ serve(async (req) => {
         ownerRequired: /\bwaiting|reply|follow.?up|decision|overdue\b/i.test(line) ? 4 : 2,
         dnaAudienceFit: /audience|customer|icp|buyer/i.test(line) ? 4 : 3,
         dnaOfferFit: /offer|plan|pricing|proposal|product/i.test(line) ? 4 : 3,
-        dnaChannelFit: /slack|gmail|outlook|calendar|drive|zoom|teams/i.test(line) ? 4 : 3,
+        dnaChannelFit: /slack|gmail|outlook|calendar|drive|zoom|teams|stripe/i.test(line) ? 4 : 3,
         objectiveFit: /target|kpi|goal|revenue|growth|pipeline/i.test(line) ? 4 : 3,
         learningWeight,
         detail: line,
