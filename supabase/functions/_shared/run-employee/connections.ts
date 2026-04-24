@@ -630,7 +630,7 @@ export function narrowProvidersByConnections(
 ): string[] {
   if (detectedProviders.length === 0) return [];
   // If the user explicitly named a specific provider in the query, do not narrow.
-  const explicitProviderRegex = /\b(gmail|outlook|onedrive|onenote|slack|hubspot|zoom|teams|sharepoint|gdrive|gcal|google\s*(docs?|drives?|sheets?|slides?|calendar|mail))\b/i;
+  const explicitProviderRegex = /\b(gmail|outlook|onedrive|onenote|slack|hubspot|zoom|teams|sharepoint|gdrive|gcal|stripe|google\s*(docs?|drives?|sheets?|slides?|calendar|mail))\b/i;
   if (explicitProviderRegex.test(query)) return detectedProviders;
 
   const connectedSet = new Set<string>();
