@@ -252,6 +252,14 @@ serve(async (req) => {
             authUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
             break;
           }
+          case "stripe": {
+            // Stripe Connect OAuth (Standard accounts). client_id is the Connect platform ID (ca_...).
+            const clientId = getRequiredEnv("STRIPE_CLIENT_ID");
+            const redirectUri = `${redirectBase}/stripe-oauth-callback`;
+            const state = btoa(JSON.stringify({ ...stateBase, origin }));
+            authUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&scope=read_only&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+            break;
+          }
           case "hubspot": {
             const clientId = getRequiredEnv("HUBSPOT_CLIENT_ID");
             const redirectUri = `${redirectBase}/hubspot-oauth-callback`;
