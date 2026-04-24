@@ -455,11 +455,16 @@ const Database = () => {
                     setOnboardingUrl(null);
                     setActiveBrandId(newBrandId);
                     setShowBusinessDNA(true);
-                    setCurrentView("businessdna");
-                    localStorage.setItem("tw_current_view", "businessdna");
                     if (supercharge) {
-                      // BusinessDNAView reads this flag and auto-opens the Supercharge wizard.
-                      sessionStorage.setItem("tw_open_supercharge_for_brand", newBrandId);
+                      // Persist active brand for the standalone supercharge route
+                      localStorage.setItem("tw_active_brand_id", newBrandId);
+                      // Suppress the auto-popup since the user already opted in
+                      sessionStorage.setItem(`tw_supercharge_popup_shown_${newBrandId}`, "1");
+                      navigate("/supercharge-dna");
+                    } else {
+                      // Skip → land on Business DNA view
+                      setCurrentView("businessdna");
+                      localStorage.setItem("tw_current_view", "businessdna");
                     }
                   }}
                 />
