@@ -600,6 +600,7 @@ const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\bslack\b/i, providers: ["slack"] },
   { keys: /\b(hubspot|hub\s*spot|crm)\b/i, providers: ["hubspot"] },
   { keys: /\b(zoom|webinar)\b/i, providers: ["zoom"] },
+  { keys: /\b(stripe|payment\w*|charge\w*|invoice\w*|mrr|arr|revenue|subscriber\w*|subscription\w*|payout\w*|refund\w*|checkout)\b/i, providers: ["stripe"] },
   // Generic file/doc keywords without a provider name → fan out to all file/doc providers (Google Drive + OneDrive)
   { keys: /\b(documents?|docs?|files?|spreadsheets?|sheets?|slides?|presentations?)\b/i, providers: ["google_drive", "microsoft_onedrive"] },
   // Generic email keywords without a provider name → fan out to email providers
