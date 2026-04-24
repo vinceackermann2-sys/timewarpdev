@@ -138,16 +138,21 @@ function BusinessDnaArea({
   return <BusinessDNAOnboarding onComplete={onOnboardingComplete} />;
 }
 
-// Wraps TimeWarpAIView and decides whether to force chat onboarding.
-// Brand-less users (no brands after first authoritative load) get the chat onboarding.
-function AiCeoArea({
-  initialTask,
-  onTaskConsumed,
+// Wraps AgentChatView (the actual assistant chat) and decides whether to force
+// chat onboarding. Brand-less users (no brands after first authoritative load)
+// see the chat-driven onboarding inline inside the assistant chat surface, and
+// the resulting transcript is persisted as the first chat session of the new
+// business via AgentChatView's normal auto-save pipeline.
+function EmployeesArea({
+  activeBrandId,
+  initialAssistantMessage,
+  onInitialAssistantMessageConsumed,
   onboardingInitialUrl,
   onOnboardingComplete,
 }: {
-  initialTask: PendingTask | null;
-  onTaskConsumed: () => void;
+  activeBrandId: string | null;
+  initialAssistantMessage: string | null;
+  onInitialAssistantMessageConsumed: () => void;
   onboardingInitialUrl: string | null;
   onOnboardingComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
 }) {
@@ -157,14 +162,15 @@ function AiCeoArea({
     if (!isLoading) setHasSettled(true);
   }, [isLoading]);
 
-  // While we don't yet know whether brands exist, render the standard view (no flash).
+  // While we don't yet know whether brands exist, render the standard chat (no flash).
   // Once settled, force onboarding only when we're sure the user has zero brands.
   const forceOnboarding = hasSettled && brands.length === 0;
 
   return (
-    <TimeWarpAIView
-      initialTask={initialTask}
-      onTaskConsumed={onTaskConsumed}
+    <AgentChatView
+      activeBrandId={activeBrandId}
+      initialMessage={initialAssistantMessage}
+      onInitialMessageConsumed={onInitialAssistantMessageConsumed}
       forceOnboarding={forceOnboarding}
       onboardingInitialUrl={onboardingInitialUrl}
       onOnboardingComplete={onOnboardingComplete}
