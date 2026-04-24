@@ -257,7 +257,7 @@ serve(async (req) => {
             const clientId = getRequiredEnv("STRIPE_CLIENT_ID");
             const redirectUri = `${redirectBase}/stripe-oauth-callback`;
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
-            authUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&scope=read_only&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+            authUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(clientId)}&scope=read_write&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
             break;
           }
           case "hubspot": {
