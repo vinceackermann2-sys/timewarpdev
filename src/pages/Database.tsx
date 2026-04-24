@@ -149,12 +149,14 @@ function EmployeesArea({
   onInitialAssistantMessageConsumed,
   onboardingInitialUrl,
   onOnboardingComplete,
+  onOnboardingActiveChange,
 }: {
   activeBrandId: string | null;
   initialAssistantMessage: string | null;
   onInitialAssistantMessageConsumed: () => void;
   onboardingInitialUrl: string | null;
   onOnboardingComplete: (agentName: string, brandId: string, supercharge: boolean) => void;
+  onOnboardingActiveChange: (active: boolean) => void;
 }) {
   const { brands, isLoading } = useBusinessDNA();
   const [hasSettled, setHasSettled] = useState(false);
@@ -174,6 +176,7 @@ function EmployeesArea({
       forceOnboarding={forceOnboarding}
       onboardingInitialUrl={onboardingInitialUrl}
       onOnboardingComplete={onOnboardingComplete}
+      onOnboardingActiveChange={onOnboardingActiveChange}
     />
   );
 }
