@@ -97,7 +97,7 @@ function ConnectionCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group hover:shadow-sm border-border bg-[#eef2f7] ${
+      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group hover:shadow-sm border-border bg-[#ECEAF8] ${
         integration.comingSoon
           ? "opacity-60 cursor-default"
           : ""
@@ -277,7 +277,7 @@ export function ConnectionsView() {
 
 
   return (
-    <div className="h-full min-h-0 max-h-full overflow-y-auto bg-[#fcfcfd]">
+    <div className="h-full min-h-0 max-h-full overflow-y-auto bg-[#F8F7FF]">
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold mb-1">Connectors</h1>

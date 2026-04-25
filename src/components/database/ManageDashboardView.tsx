@@ -216,7 +216,7 @@ function PillCTA({ label, onClick }: { label: string; onClick: () => void }) {
     <Button
       size="sm"
       variant="outline"
-      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 text-foreground/80 hover:text-foreground bg-[#eef2f7] hover:bg-[#eef2f7]"
+      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 text-foreground/80 hover:text-foreground bg-[#ECEAF8] hover:bg-[#ECEAF8]"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
       {label}
@@ -404,7 +404,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       middle={
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#eef2f7]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#ECEAF8]">
           <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
           <div className="flex items-end justify-between gap-3">
             <div className="flex items-baseline gap-1.5 min-w-0">
@@ -473,7 +473,7 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
 
       {/* Objective progress block */}
       {isObjective && (
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#eef2f7]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#ECEAF8]">
           <Skeleton className="h-2.5 w-24" />
           <div className="flex items-end justify-between gap-3">
             <Skeleton className="h-6 w-20" />
@@ -735,7 +735,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   }, [activeTab, filteredCards, detailCard]);
 
   return (
-    <div className="h-full flex relative overflow-hidden bg-[#fcfcfd]">
+    <div className="h-full flex relative overflow-hidden bg-[#F8F7FF]">
       <div className="flex-1 min-w-0 flex flex-col">
       <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-white">
         <div className="flex items-start justify-between mb-4 gap-4">
@@ -748,7 +748,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 bg-[#fcfcfd] shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)] shrink-0" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 bg-[#F8F7FF] shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)] shrink-0" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Update
             </Button>

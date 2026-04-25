@@ -151,7 +151,7 @@ export function GraphicEditorDialog({
               {/* Left: AI Chat */}
               <div className="flex flex-col border-b border-border bg-card lg:border-b-0 lg:border-r overflow-hidden">
                 {/* Chat messages */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#fcfcfd]">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#F8F7FF]">
                   {chatHistory.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full text-center px-4">
                       <div className="h-9 w-9 rounded-xl flex items-center justify-center mb-3 bg-[#dae0e7]/0">
@@ -206,7 +206,7 @@ export function GraphicEditorDialog({
                 </div>
 
                 {/* Chat input bar */}
-                <div className="p-3 border-t border-border bg-[#fcfcfd]">
+                <div className="p-3 border-t border-border bg-[#F8F7FF]">
                   <div className="flex items-end border border-border rounded-2xl p-1.5 focus-within:border-primary/40 transition-colors bg-white">
                     <div
                       ref={chatInputRef}
