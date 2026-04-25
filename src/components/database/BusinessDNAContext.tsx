@@ -273,12 +273,11 @@ async function findRowIdsByLogicalIds(dataType: string, logicalIds: string[], wo
     .from("user_business_data")
     .select("id, content")
     .eq("data_type", dataType)
-    .eq("source", "business-dna");
+    .eq("source", "business-dna")
+    .eq("user_id", session.user.id);
 
   if (workspaceId) {
     query = query.eq("workspace_id", workspaceId);
-  } else {
-    query = query.eq("user_id", session.user.id);
   }
 
   const { data, error } = await query;
@@ -603,12 +602,11 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       .from("user_business_data")
       .select("id, content")
       .eq("data_type", "brand")
-      .eq("source", "business-dna");
+      .eq("source", "business-dna")
+      .eq("user_id", session.user.id);
 
     if (wsId) {
       query = query.eq("workspace_id", wsId);
-    } else {
-      query = query.eq("user_id", session.user.id);
     }
 
     const { data, error } = await query;
