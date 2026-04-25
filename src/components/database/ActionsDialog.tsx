@@ -143,7 +143,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
       <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-visible" aria-describedby={undefined}>
         <VisuallyHidden.Root><DialogTitle>Get more Actions</DialogTitle></VisuallyHidden.Root>
         {/* Header */}
-        <div className="text-center pt-8 pb-4 px-6 bg-[#F8F7FF]">
+        <div className="text-center pt-8 pb-4 px-6 bg-[#fcfcfd]">
           <div className="flex items-center justify-center gap-3 mb-3">
             <WandSparkles className="h-7 w-7 text-black" />
             <span className="text-4xl font-bold text-black">
@@ -156,7 +156,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pb-2 bg-[#F8F7FF]">
+        <div className="px-6 pb-2 bg-[#fcfcfd]">
           <div className="flex rounded-xl bg-muted/50 p-1 gap-1">
             {tabs.map((tab) => (
               <button
@@ -176,7 +176,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tab Content */}
-        <div className="px-6 pb-8 pt-4 min-h-[220px] bg-[#F8F7FF]">
+        <div className="px-6 pb-8 pt-4 min-h-[220px] bg-[#fcfcfd]">
           {/* Get more Actions */}
           {activeTab === "upgrade" && (
             <div className="space-y-5">
@@ -264,7 +264,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 <Input
                   readOnly
                   value={referralLink || "Loading..."}
-                  className="bg-[#ECEAF8] text-sm"
+                  className="bg-[#eef2f7] text-sm"
                 />
                 <Button
                   onClick={handleCopyLink}

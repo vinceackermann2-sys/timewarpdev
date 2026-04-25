@@ -720,7 +720,7 @@ const MobileTreeFlow = () => {
 
 export default function HowItWorks() {
   return (
-    <section className="pt-8 pb-32 relative z-50 overflow-hidden bg-[#F8F7FF]">
+    <section className="pt-8 pb-32 relative z-50 overflow-hidden bg-[#fcfcfd]">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-16 relative z-20">
           <h3 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">

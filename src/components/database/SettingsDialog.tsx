@@ -85,7 +85,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   const total = totalNum === Infinity ? "∞" : String(totalNum);
 
   return (
-    <div className="rounded-xl border border-border p-5 bg-[#ECEAF8]">
+    <div className="rounded-xl border border-border p-5 bg-[#eef2f7]">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
@@ -428,7 +428,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
       <DialogContent className="sm:max-w-5xl h-[75vh] p-0 gap-0 bg-background border-border overflow-hidden">
         <div className="flex h-full">
           {/* Sidebar */}
-          <div className="w-60 border-r border-border p-4 flex flex-col gap-1 shrink-0 bg-[#F8F7FF]">
+          <div className="w-60 border-r border-border p-4 flex flex-col gap-1 shrink-0 bg-[#fcfcfd]">
             {sidebarItems.map((section) => (
               <div key={section.section} className="mb-4">
                 <p className="text-xs font-medium text-muted-foreground mb-2 px-3">{section.section}</p>
@@ -451,7 +451,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
           {/* Main Content */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
-            <div className="px-8 pt-8 pb-2 bg-[#F8F7FF]">
+            <div className="px-8 pt-8 pb-2 bg-[#fcfcfd]">
               <h2 className="text-2xl font-bold tracking-tight">
                 {activeTab === "settings" && "Account Settings"}
                 {activeTab === "workspace" && (selectedWsId && selectedWs ? (
@@ -478,7 +478,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
               </h2>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-8 py-4 bg-[#F8F7FF]">
+            <div className="flex-1 overflow-y-auto px-8 py-4 bg-[#fcfcfd]">
               {/* ── SETTINGS TAB ── */}
               {activeTab === "settings" && (
                 <div className="space-y-8 max-w-xl">
@@ -492,7 +492,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium">Email</Label>
-                        <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-[#ECEAF8]">
+                        <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-[#eef2f7]">
                           <Mail className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">{userEmail}</span>
                         </div>
@@ -503,7 +503,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                   <Separator />
                   <div>
                     <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><Key className="h-4 w-4" /> Security</h3>
-                    <div className="rounded-xl border border-border p-5 space-y-4 bg-[#ECEAF8]">
+                    <div className="rounded-xl border border-border p-5 space-y-4 bg-[#eef2f7]">
                       <div>
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-1"><Key className="h-3.5 w-3.5" /> Change Password</h4>
                         <p className="text-xs text-muted-foreground mb-4">Update your password to keep your account secure.</p>
@@ -526,7 +526,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">Manage your workspaces and team members.</p>
                   <div className="rounded-xl border border-border bg-card">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-[#F8F7FF]">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-[#fcfcfd]">
                       <span className="text-sm font-medium text-muted-foreground">{workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}</span>
                       {showCreateWs ? (
                         <div className="flex items-center gap-2">
@@ -535,7 +535,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                           <Button size="sm" variant="ghost" onClick={() => { setShowCreateWs(false); setNewWsName(""); }}>Cancel</Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-[#ECEAF8]"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
+                        <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-[#eef2f7]"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
                       )}
                     </div>
                     {wsLoading ? (
@@ -555,7 +555,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                               <TableCell><Badge variant={ws.role === "owner" ? "default" : "secondary"} className="capitalize">{ws.role}</Badge></TableCell>
                               <TableCell><span className="text-sm text-muted-foreground">{ws.memberCount} member{ws.memberCount !== 1 ? "s" : ""}</span></TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground bg-[#F8F7FF]">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
+                                <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground bg-[#fcfcfd]">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -670,13 +670,13 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
                   {/* Billing toggle */}
                   <div className="flex justify-center">
-                    <div className="inline-flex items-center rounded-full p-1 gap-1 bg-[#ECEAF8]">
+                    <div className="inline-flex items-center rounded-full p-1 gap-1 bg-[#eef2f7]">
                       {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
                         <button
                           key={period}
                           onClick={() => setBilling(period)}
                           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
-                            billing === period ? "text-foreground shadow-sm bg-[#F8F7FF]" : "text-muted-foreground hover:text-foreground"
+                            billing === period ? "text-foreground shadow-sm bg-[#fcfcfd]" : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
                           {period}
@@ -780,7 +780,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                                 disabled={card.loading}
                                 className={cn(
                                   "w-full text-xs h-9 rounded-full font-semibold mb-4",
-                                  card.buttonTone === "outline" && "bg-[#F8F7FF] text-foreground border border-border hover:bg-accent",
+                                  card.buttonTone === "outline" && "bg-[#fcfcfd] text-foreground border border-border hover:bg-accent",
                                   card.buttonTone === "dark" && "bg-foreground text-background hover:bg-foreground/90",
                                   card.buttonTone === "primary" && "bg-primary text-primary-foreground hover:opacity-90"
                                 )}

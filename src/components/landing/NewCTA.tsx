@@ -14,7 +14,7 @@ export default function NewCTA({ onGetDNA }: NewCTAProps) {
   };
 
   return (
-    <section className="py-16 sm:py-24 bg-[#F8F7FF]">
+    <section className="py-16 sm:py-24 bg-[#fcfcfd]">
       <div className="max-w-lg mx-auto px-6 text-center flex flex-col items-center gap-3 sm:gap-4">
         <h3 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-1 sm:mb-2">Get levers pulled for you.</h3>
         <p className="text-[10px] sm:text-xs font-medium text-[#4a86ff] uppercase tracking-wider">Paste company url</p>

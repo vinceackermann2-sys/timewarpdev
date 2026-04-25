@@ -1588,11 +1588,11 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
   /* ─────────── Render ─────────── */
   return (
-    <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#F8F7FF]">
+    <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#fcfcfd]">
       {/* Main chat area */}
-      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#F8F7FF]">
+      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#fcfcfd]">
       {/* Sticky top agent display */}
-      <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#F8F7FF]">
+      <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#fcfcfd]">
         {/* History toggle button */}
         <button
           onClick={() => setShowHistory(!showHistory)}
@@ -1608,7 +1608,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       </header>
 
       {/* Central area: Orb when no messages, chat when messages exist */}
-      <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-[#F8F7FF]">
+      <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-[#fcfcfd]">
         {resumableTask && !isSending && (
           <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-4">
             <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -1645,7 +1645,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
           />
         ) : !hasMessages ? (
           /* ── Empty state with centered orb ── */
-          <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#F8F7FF]">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#fcfcfd]">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
             <div className="relative z-10 animate-in fade-in zoom-in duration-700">
               <BusinessBrainOrb size={window.innerWidth < 640 ? 180 : 280} />
@@ -1879,7 +1879,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       </main>
 
       {/* Chat Input */}
-      <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-[#F8F7FF]">
+      <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-[#fcfcfd]">
         <input
           type="file"
           multiple
@@ -2083,7 +2083,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 <select
                   value={selectedAgent}
                   onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-[#ECEAF8]"
+                  className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-[#eef2f7]"
                 >
                   {agents.map((agent) => (
                     <option key={agent.id} value={agent.name}>{agent.name}</option>
@@ -2115,7 +2115,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
               </div>
 
               {/* Content */}
-              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-[#F8F7FF]">
+              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-[#fcfcfd]">
                 {settingsTab === "safety" && (
                   <div className="flex-1">
                     {(() => {
@@ -2138,7 +2138,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                       <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
                       <div className="space-y-4">
                         {employees.map((emp) => (
-                          <div key={emp.id} className="border border-border p-4 rounded-xl space-y-3 bg-[#ECEAF8]">
+                          <div key={emp.id} className="border border-border p-4 rounded-xl space-y-3 bg-[#eef2f7]">
                             <div className="flex items-center justify-between">
                               <div className="flex-1 mr-4">
                                 <input

@@ -6,8 +6,8 @@ interface WorkspaceFooterProps {
 
 export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
   return (
-    <div className="w-full px-4 sm:px-6 py-8 sm:py-14 bg-[#F8F7FF] mx-auto" style={{ maxWidth: 1900 }}>
-      <div className="w-full mx-auto rounded-2xl border border-[#d1d5db] px-5 sm:px-12 py-8 sm:py-14 bg-[#ECEAF8]">
+    <div className="w-full px-4 sm:px-6 py-8 sm:py-14 bg-[#fcfcfd] mx-auto" style={{ maxWidth: 1900 }}>
+      <div className="w-full mx-auto rounded-2xl border border-[#d1d5db] px-5 sm:px-12 py-8 sm:py-14 bg-[#eef2f7]">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Left: logo + links */}
             <div className="flex flex-col gap-8 sm:flex-row sm:gap-14 flex-1">
