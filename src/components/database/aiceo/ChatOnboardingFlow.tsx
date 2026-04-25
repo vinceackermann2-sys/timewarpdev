@@ -146,6 +146,8 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const [createdBrandId, setCreatedBrandId] = useState<string | null>(null);
   const [createdBrandRowId, setCreatedBrandRowId] = useState<string | null>(null);
+  const [createdBrandLogoUrl, setCreatedBrandLogoUrl] = useState<string | null>(null);
+  const [createdBrandName, setCreatedBrandName] = useState<string | null>(null);
 
   // Naming
   const [agentName, setAgentName] = useState("");
