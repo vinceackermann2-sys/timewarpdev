@@ -28,6 +28,7 @@ import {
 import { DEFAULT_PRODUCT } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE } from "@/components/database/AudienceDetailView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import BrandOrbLogo from "@/components/ui/brand-orb-logo";
 import { cn } from "@/lib/utils";
 
 // ─── Helpers (lifted from BusinessDNAOnboarding) ──────────────────────
