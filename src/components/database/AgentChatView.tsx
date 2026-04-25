@@ -478,49 +478,36 @@ export function AgentChatView({
   const fetchResumableTask = useCallback(async () => {
     if (!user || isSending || document.visibilityState !== "visible") return;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const { data: run } = await supabase
+        .from("long_task_runs")
+        .select("id, continuation_key, task_type, status, phase, progress, logs, result_excerpt, error, updated_at, created_at")
+        .eq("user_id", user.id)
+        .in("status", ["queued", "in_progress"])
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      let res: Response | null = null;
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        try {
-          res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/long-task-status`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            },
-            body: JSON.stringify({}),
-          });
-        } catch {
-          // network blip — retry with backoff
-          await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
-          continue;
-        }
-
-        if (res.ok || ![408, 425, 429, 500, 502, 503, 504].includes(res.status)) {
-          break;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
-      }
-
-      // Silently ignore transient unavailability — this is a background poll
-      if (!res?.ok) return;
-      const data = await res.json().catch(() => ({}));
-      const run = data?.run;
       if (!run || !["queued", "in_progress"].includes(run.status)) {
         setResumableTask(null);
         return;
       }
-      const cp = data?.checkpoint || {};
+
+      const { data: cp } = await supabase
+        .from("long_task_checkpoints")
+        .select("continuation_index, content, metadata, updated_at")
+        .eq("continuation_key", run.continuation_key)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       setResumableTask({
         continuationKey: run.continuation_key,
         phase: run.phase || "running",
         progress: Number(run.progress || 0),
-        continuationIndex: Number(cp.continuation_index || 0),
-        lastUserMessage: typeof cp?.metadata?.lastUserMessage === "string" ? cp.metadata.lastUserMessage : undefined,
+        continuationIndex: Number(cp?.continuation_index || 0),
+        lastUserMessage: typeof (cp?.metadata as { lastUserMessage?: unknown } | null)?.lastUserMessage === "string"
+          ? (cp?.metadata as { lastUserMessage?: string }).lastUserMessage
+          : undefined,
       });
     } catch {
       // best effort
