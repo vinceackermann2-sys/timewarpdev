@@ -16,7 +16,7 @@ const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due"])
 
 const FREE_LIMITS = {
   dataBytes: 1 * 1024 * 1024 * 1024,
-  actionsPerMonth: 10,
+  actionsPerMonth: 100,
   devLine: false,
   priority: false,
   maxEmployees: 1,
