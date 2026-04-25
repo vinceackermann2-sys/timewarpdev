@@ -261,7 +261,7 @@ const Auth = () => {
     <div className="min-h-screen max-w-[1900px] mx-auto bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-5xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
-          <div className="p-6 sm:p-10 flex flex-col justify-center bg-[#E8F0FE]">
+          <div className="p-6 sm:p-10 flex flex-col justify-center bg-[#eef2f7]">
             <div className="hidden sm:flex items-center gap-2 mb-8">
               <img src="/favicon.png" alt="TimeWarp" className="h-9 w-9 rounded-lg object-cover" />
               <span className="font-semibold text-lg text-foreground">TimeWarp</span>
