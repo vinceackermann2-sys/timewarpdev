@@ -491,6 +491,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
 
       setCreatedBrandId(brandId);
       setCreatedBrandRowId(savedBrandRowId || reloadedBrands.find((br: any) => br.id === brandId)?._rowId || null);
+      const firstLogo = Array.isArray(newBrand.logoUrls) && newBrand.logoUrls.length > 0
+        ? newBrand.logoUrls[0]
+        : null;
+      setCreatedBrandLogoUrl(firstLogo);
+      setCreatedBrandName(newBrand.name);
 
       // Background pillar enrichment
       if (contextAvailable) {
