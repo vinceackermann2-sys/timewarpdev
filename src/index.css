@@ -487,38 +487,50 @@
 
 @layer base {
   :root {
-    /* Light theme - Blue Corp Pastel */
-    --background: 40 33% 98%;
-    --foreground: 215 25% 15%;
+    /* Brand v3 — Navy + Blue Pastel */
+    --g-text: #0F2638;
+    --g-navy: #0F2638;
+    --g-secondary: #546480;
+    --g-muted-fg: #546480;
+    --g-bg: #F0F5FF;
+    --g-sidebar: #F0F5FF;
+    --g-bg-app: #FAFBFF;
+    --g-card: #FFFFFF;
+    --g-muted: #E8F0FE;
+    --g-border: #E0E4ED;
+    --g-accent: #4D88FF;
+    --g-amber: #2DD4BF;
 
-    --card: 210 40% 99%;
-    --card-foreground: 215 25% 15%;
+    --background: 225 100% 99%;
+    --foreground: 207 60% 14%;
 
-    --popover: 210 30% 96%;
-    --popover-foreground: 215 25% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 207 60% 14%;
 
-    --primary: 217 100% 65%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 207 60% 14%;
+
+    --primary: 207 60% 14%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 40%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 20% 42%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 88%;
-    --muted-foreground: 215 15% 35%;
+    --muted: 217 89% 95%;
+    --muted-foreground: 220 20% 42%;
 
-    --accent: 217 100% 95%;
-    --accent-foreground: 217 100% 47%;
+    --accent: 217 100% 65%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
+    --border: 222 24% 91%;
+    --input: 222 24% 91%;
     --ring: 217 100% 65%;
 
     --radius: 0.625rem;
 
-    /* Status colors - light */
     --status-success: 142 76% 36%;
     --status-success-foreground: 0 0% 100%;
     --status-warning: 38 92% 50%;
@@ -528,18 +540,16 @@
     --status-info: 217 100% 65%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Portal specific tokens - light */
     --portal-accent: 217 100% 65%;
     --portal-accent-bright: 217 100% 70%;
     --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
+    --portal-bg-gradient: linear-gradient(135deg, hsl(220 100% 97%) 0%, hsl(217 89% 95%) 100%);
 
     --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
     --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
+    --shadow-glow: 0 4px 16px rgba(77,136,255,0.2);
+    --shadow-glow-lg: 0 8px 24px rgba(77,136,255,0.25);
 
-    /* Orb tokens - light */
     --orb-core-start: rgba(255, 255, 255, 1);
     --orb-core-mid1: rgba(209, 227, 255, 1);
     --orb-core-mid2: rgba(133, 176, 255, 1);
@@ -557,28 +567,27 @@
     --orb-shine-mid: rgba(255, 255, 255, 0.9);
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
-    /* Browser chrome colors - light */
-    --browser-bg: 210 30% 97%;
-    --browser-header: 210 25% 94%;
+    --browser-bg: 220 100% 97%;
+    --browser-header: 217 89% 95%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 76% 36%;
 
-    --sidebar-background: 210 40% 96%;
-    --sidebar-foreground: 215 25% 15%;
+    --sidebar-background: 220 100% 97%;
+    --sidebar-foreground: 207 60% 14%;
     --sidebar-primary: 217 100% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 40%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 210 20% 85%;
+    --sidebar-accent: 220 20% 42%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 24% 91%;
     --sidebar-ring: 217 100% 65%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --chart-1: 218 100% 93%;
-    --chart-2: 218 100% 87%;
-    --chart-3: 210 57% 78%;
-    --chart-4: 216 38% 47%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 0 0% 98%;
+    --chart-1: 217 100% 93%;
+    --chart-2: 217 100% 87%;
+    --chart-3: 217 60% 78%;
+    --chart-4: 217 38% 47%;
+    --chart-5: 207 60% 14%;
+    --sidebar: 220 100% 97%;
     --font-serif: Merriweather, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
     --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
     --shadow-2xs: none;
