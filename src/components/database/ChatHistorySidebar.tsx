@@ -41,14 +41,14 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
       let query = supabase
         .from("agent_chat_sessions")
         .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at")
-        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(50);
 
       if (activeWorkspaceId) {
+        // Inside a workspace: show all chats so members see the owner's history.
         query = query.eq("workspace_id", activeWorkspaceId);
       } else {
-        query = query.is("workspace_id", null);
+        query = query.eq("user_id", user.id).is("workspace_id", null);
       }
 
       const { data } = await query;

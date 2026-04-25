@@ -567,8 +567,10 @@ export type Database = {
           created_at: string
           id: string
           referral_code: string
+          referred_celebrated_at: string | null
           referred_email: string
           referred_user_id: string | null
+          referrer_celebrated_at: string | null
           referrer_id: string
           status: string
         }
@@ -578,8 +580,10 @@ export type Database = {
           created_at?: string
           id?: string
           referral_code?: string
+          referred_celebrated_at?: string | null
           referred_email: string
           referred_user_id?: string | null
+          referrer_celebrated_at?: string | null
           referrer_id: string
           status?: string
         }
@@ -589,8 +593,10 @@ export type Database = {
           created_at?: string
           id?: string
           referral_code?: string
+          referred_celebrated_at?: string | null
           referred_email?: string
           referred_user_id?: string | null
+          referrer_celebrated_at?: string | null
           referrer_id?: string
           status?: string
         }

@@ -82,6 +82,12 @@ const Auth = () => {
           });
           localStorage.removeItem("referral_code");
           if (data && (data as any).success) {
+            // Mark celebration as shown server-side so it never re-appears
+            await supabase
+              .from("referrals")
+              .update({ referred_celebrated_at: new Date().toISOString() })
+              .eq("referral_code", storedRef)
+              .eq("referred_user_id", userId);
             setCelebrationReason("referred");
             setShowCelebration(true);
             return true;

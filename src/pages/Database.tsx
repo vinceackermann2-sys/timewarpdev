@@ -23,6 +23,7 @@ import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 function MobileHeader() {
   const { toggleSidebar } = useSidebar();
@@ -82,6 +83,7 @@ function BusinessDnaArea({
   onOnboardingComplete: (agentName: string, brandId?: string) => void;
 }) {
   const { isLoading, brands } = useBusinessDNA();
+  const { activeWorkspace } = useWorkspace();
   // Track whether we've ever observed isLoading=false in this session.
   // Until then, treat as loading even if cached brands hydrated synchronously
   // (prevents onboarding flash when cache is empty for a fresh workspace).
@@ -90,7 +92,11 @@ function BusinessDnaArea({
     if (!isLoading) setHasSettled(true);
   }, [isLoading]);
 
-  if (showAddProduct) {
+  // Non-owner workspace members can't add or onboard businesses — they
+  // collaborate on the owner's existing business only.
+  const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
+
+  if (showAddProduct && !isWorkspaceMemberOnly) {
     return (
       <BusinessDNAOnboarding
         isAddBusiness
@@ -134,6 +140,18 @@ function BusinessDnaArea({
     );
   }
 
+  // Non-owner members in a workspace with no brand → empty state, NOT onboarding.
+  if (isWorkspaceMemberOnly) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center p-6 text-center gap-3">
+        <h2 className="text-lg font-semibold text-foreground">No business yet</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          The workspace owner hasn't set up the business DNA yet. Once they do, you'll see it here.
+        </p>
+      </div>
+    );
+  }
+
   // No brands and not loading → first-time onboarding
   return <BusinessDNAOnboarding onComplete={onOnboardingComplete} />;
 }
@@ -159,14 +177,20 @@ function EmployeesArea({
   onOnboardingActiveChange: (active: boolean) => void;
 }) {
   const { brands, isLoading } = useBusinessDNA();
+  const { activeWorkspace } = useWorkspace();
   const [hasSettled, setHasSettled] = useState(false);
   useEffect(() => {
     if (!isLoading) setHasSettled(true);
   }, [isLoading]);
 
+  // Workspace members who aren't owners must NEVER see onboarding — they
+  // collaborate on the owner's business and shouldn't create a competing one.
+  const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
+
   // While we don't yet know whether brands exist, render the standard chat (no flash).
-  // Once settled, force onboarding only when we're sure the user has zero brands.
-  const forceOnboarding = hasSettled && brands.length === 0;
+  // Once settled, force onboarding only when we're sure the user has zero brands
+  // AND they aren't a non-owner member of someone else's workspace.
+  const forceOnboarding = hasSettled && brands.length === 0 && !isWorkspaceMemberOnly;
 
   return (
     <AgentChatView
@@ -294,7 +318,8 @@ const Database = () => {
     }
   }, [isLoading, user, navigate]);
 
-  // Check referrer rewards
+  // Check referrer rewards — show celebration ONCE per completed referral
+  // (server-side flag, so it doesn't re-trigger on a different browser/device).
   useEffect(() => {
     if (!user) return;
     const checkReferrerRewards = async () => {
@@ -304,14 +329,16 @@ const Database = () => {
           .select("id")
           .eq("referrer_id", user.id)
           .eq("status", "completed")
-          .eq("actions_granted", true);
+          .eq("actions_granted", true)
+          .is("referrer_celebrated_at", null);
         if (!data || data.length === 0) return;
-        const celebrated: string[] = JSON.parse(localStorage.getItem("celebrated_referral_ids") || "[]");
-        const newIds = data.filter((r) => !celebrated.includes(r.id)).map((r) => r.id);
-        if (newIds.length > 0) {
-          setShowReferrerCelebration(true);
-          localStorage.setItem("celebrated_referral_ids", JSON.stringify([...celebrated, ...newIds]));
-        }
+        const ids = data.map((r) => r.id);
+        setShowReferrerCelebration(true);
+        // Mark all unseen completed referrals as celebrated for this referrer
+        await supabase
+          .from("referrals")
+          .update({ referrer_celebrated_at: new Date().toISOString() })
+          .in("id", ids);
       } catch {
         // ignore
       }
