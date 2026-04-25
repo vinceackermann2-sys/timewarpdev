@@ -397,33 +397,33 @@ export type Database = {
         Row: {
           brand_id: string
           cards: Json
-          tab_cards: Json | null
           created_at: string
           health_score: Json | null
           id: string
           opening_summary: string | null
+          tab_cards: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
           brand_id: string
           cards?: Json
-          tab_cards?: Json | null
           created_at?: string
           health_score?: Json | null
           id?: string
           opening_summary?: string | null
+          tab_cards?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
           brand_id?: string
           cards?: Json
-          tab_cards?: Json | null
           created_at?: string
           health_score?: Json | null
           id?: string
           opening_summary?: string | null
+          tab_cards?: Json | null
           updated_at?: string
           user_id?: string
         }
