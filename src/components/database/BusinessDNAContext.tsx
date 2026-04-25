@@ -125,16 +125,17 @@ async function loadEntities<T>(dataType: string, workspaceId?: string | null, se
   }
   if (!session?.user) return [];
 
+  // Always scope to the current user — users should only ever see their own
+  // brands/products/audiences, even if they share a workspace with others.
   let query = supabase
     .from("user_business_data")
     .select("id, content")
     .eq("data_type", dataType)
-    .eq("source", "business-dna");
+    .eq("source", "business-dna")
+    .eq("user_id", session.user.id);
 
   if (workspaceId) {
     query = query.eq("workspace_id", workspaceId);
-  } else {
-    query = query.eq("user_id", session.user.id);
   }
 
   const { data, error } = await query;
@@ -163,17 +164,18 @@ async function loadBrandsLight(workspaceId?: string | null, session?: { user: { 
   }
   if (!session?.user) return [];
 
+  // Always scope to the current user — onboarding and DNA must never show
+  // brands belonging to other workspace members.
   let query = supabase
     .from("user_business_data")
     .select("id, title, metadata, created_at")
     .eq("data_type", "brand")
     .eq("source", "business-dna")
+    .eq("user_id", session.user.id)
     .order("created_at", { ascending: false });
 
   if (workspaceId) {
     query = query.eq("workspace_id", workspaceId);
-  } else {
-    query = query.eq("user_id", session.user.id);
   }
 
   const { data, error } = await query;
@@ -271,12 +273,11 @@ async function findRowIdsByLogicalIds(dataType: string, logicalIds: string[], wo
     .from("user_business_data")
     .select("id, content")
     .eq("data_type", dataType)
-    .eq("source", "business-dna");
+    .eq("source", "business-dna")
+    .eq("user_id", session.user.id);
 
   if (workspaceId) {
     query = query.eq("workspace_id", workspaceId);
-  } else {
-    query = query.eq("user_id", session.user.id);
   }
 
   const { data, error } = await query;
@@ -601,12 +602,11 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       .from("user_business_data")
       .select("id, content")
       .eq("data_type", "brand")
-      .eq("source", "business-dna");
+      .eq("source", "business-dna")
+      .eq("user_id", session.user.id);
 
     if (wsId) {
       query = query.eq("workspace_id", wsId);
-    } else {
-      query = query.eq("user_id", session.user.id);
     }
 
     const { data, error } = await query;
