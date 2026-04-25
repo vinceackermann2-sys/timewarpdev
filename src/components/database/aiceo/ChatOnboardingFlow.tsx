@@ -891,7 +891,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
           <>
             <AssistantBubble>
               <div className="flex items-center gap-3 mb-2">
-                <BusinessBrainOrb size={36} />
+                <BrandOrbLogo logoUrl={createdBrandLogoUrl} brandName={createdBrandName} size={36} />
                 <p className="text-[14px] text-[#1a1f36]">
                   Your DNA is forged. What should I call your AI agent?
                 </p>
