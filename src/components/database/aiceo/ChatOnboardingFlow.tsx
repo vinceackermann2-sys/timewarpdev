@@ -28,6 +28,7 @@ import {
 import { DEFAULT_PRODUCT } from "@/components/database/ProductDetailView";
 import { DEFAULT_AUDIENCE } from "@/components/database/AudienceDetailView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import BrandOrbLogo from "@/components/ui/brand-orb-logo";
 import { cn } from "@/lib/utils";
 
 // ─── Helpers (lifted from BusinessDNAOnboarding) ──────────────────────
@@ -146,6 +147,8 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const [createdBrandId, setCreatedBrandId] = useState<string | null>(null);
   const [createdBrandRowId, setCreatedBrandRowId] = useState<string | null>(null);
+  const [createdBrandLogoUrl, setCreatedBrandLogoUrl] = useState<string | null>(null);
+  const [createdBrandName, setCreatedBrandName] = useState<string | null>(null);
 
   // Naming
   const [agentName, setAgentName] = useState("");
@@ -489,6 +492,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
 
       setCreatedBrandId(brandId);
       setCreatedBrandRowId(savedBrandRowId || reloadedBrands.find((br: any) => br.id === brandId)?._rowId || null);
+      const firstLogo = Array.isArray(newBrand.logoUrls) && newBrand.logoUrls.length > 0
+        ? newBrand.logoUrls[0]
+        : null;
+      setCreatedBrandLogoUrl(firstLogo);
+      setCreatedBrandName(newBrand.name);
 
       // Background pillar enrichment
       if (contextAvailable) {
@@ -883,7 +891,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
           <>
             <AssistantBubble>
               <div className="flex items-center gap-3 mb-2">
-                <BusinessBrainOrb size={36} />
+                <BrandOrbLogo logoUrl={createdBrandLogoUrl} brandName={createdBrandName} size={36} />
                 <p className="text-[14px] text-[#1a1f36]">
                   Your DNA is forged. What should I call your AI agent?
                 </p>

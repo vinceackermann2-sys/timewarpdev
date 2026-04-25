@@ -107,7 +107,30 @@ function BusinessDnaArea({
     );
   }
 
+  // Wait until the active brand actually exists in the loaded brand list
+  // before mounting BusinessDNAView — this prevents flashing onboarding or an
+  // empty pillar grid while the freshly created brand is still being fetched.
   if (showBusinessDNA && activeBrandId) {
+    const activeBrandLoaded = brands.some(b => b.id === activeBrandId);
+    if (!activeBrandLoaded) {
+      return (
+        <div className="h-full w-full flex flex-col p-6 gap-6">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="p-5 rounded-xl border border-border/60 bg-card flex flex-col gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     return (
       <BusinessDNAView
         activeBrandId={activeBrandId}
