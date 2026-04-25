@@ -475,7 +475,17 @@ export async function searchGoogleCalendarData(token: string, query: string, top
     for (const ev of (d.items || []).slice(0, 5)) {
       const start = (ev.start?.dateTime || ev.start?.date || "").slice(0, 16).replace("T", " ");
       const attendees = (ev.attendees || []).length;
-      results.push(`📅 **${ev.summary || "Untitled"}** — ${start} (${attendees} attendees)`);
+      const calLine = `📅 **${ev.summary || "Untitled"}** — ${start} (${attendees} attendees)`;
+      results.push({
+        markdown: calLine,
+        meta: {
+          provider: "google_calendar",
+          kind: "event",
+          title: ev.summary || "Untitled",
+          snippet: `${start} • ${attendees} attendees`,
+          webUrl: ev.htmlLink || null,
+        },
+      });
     }
   } catch (e) { console.error("Calendar search error:", e); }
   return results;
