@@ -158,7 +158,7 @@ export function buildPillarValues(
         map.p14 = extended.roadmap.map((r: any) => ({
           date: r.horizon || "—",
           title: r.milestone || "—",
-          desc: r.outcome || "",
+          desc: [r.outcome, r.evidence_path, r.how_determined, r.evidence].filter(Boolean).join(" · ") || "",
         }));
       }
       if (Array.isArray(extended.checklist) && extended.checklist.length) {
@@ -240,7 +240,7 @@ export function buildPillarValues(
         map.a5 = extended.journey.map((s: any) => ({
           date: s.stage || "—",
           title: s.moment || "—",
-          desc: s.thought || "",
+          desc: [s.thought, s.supporting_signal].filter(Boolean).join(" · ") || "",
         }));
       }
       if (Array.isArray(extended.decision_criteria) && extended.decision_criteria.length) {
@@ -508,14 +508,26 @@ export function buildPillarValues(
   if (pillarId === "growth" && ext) {
     if (Array.isArray(ext.growth_model) && ext.growth_model.length) {
       map.g1 = {
-        columns: ["Lever", "Channel", "Expected Impact"],
-        rows: ext.growth_model.map((g: any) => [g.lever || "—", g.channel || "—", g.expected_impact || "—"]),
+        columns: ["Lever", "Channel", "Expected impact", "Evidence path", "How determined"],
+        rows: ext.growth_model.map((g: any) => [
+          g.lever || "—",
+          g.channel || "—",
+          g.expected_impact || "—",
+          g.evidence_path || "—",
+          [g.how_determined, g.evidence].filter(Boolean).join(" ") || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.channels) && ext.channels.length) {
       map.g2 = {
-        columns: ["Channel", "Stage", "Fit", "Notes"],
-        rows: ext.channels.map((c: any) => [c.channel || "—", c.stage || "—", c.fit || "—", c.notes || "—"]),
+        columns: ["Channel", "Stage", "Fit", "Notes", "Evidence path"],
+        rows: ext.channels.map((c: any) => [
+          c.channel || "—",
+          c.stage || "—",
+          c.fit || "—",
+          c.notes || "—",
+          c.evidence_path || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.funnel) && ext.funnel.length) {
@@ -540,8 +552,14 @@ export function buildPillarValues(
     if (ext.referral) map.g8 = ext.referral;
     if (Array.isArray(ext.experiments) && ext.experiments.length) {
       map.g9 = {
-        columns: ["Hypothesis", "Channel", "Status"],
-        rows: ext.experiments.map((e: any) => [e.hypothesis || "—", e.channel || "—", e.status || "—"]),
+        columns: ["Hypothesis", "Channel", "Status", "Evidence path", "How determined"],
+        rows: ext.experiments.map((e: any) => [
+          e.hypothesis || "—",
+          e.channel || "—",
+          e.status || "—",
+          e.evidence_path || "—",
+          [e.how_determined, e.evidence].filter(Boolean).join(" ") || "—",
+        ]),
       };
     }
     if (Array.isArray(ext.checklist) && ext.checklist.length) {
@@ -557,10 +575,15 @@ export function buildPillarValues(
     if (Array.isArray(ext.objectives) && ext.objectives.length) map.s2 = ext.objectives;
     if (Array.isArray(ext.bets) && ext.bets.length) {
       map.s3 = {
-        columns: ["Bet", "Thesis", "Resources", "Success Signal", "Kill Signal"],
+        columns: ["Bet", "Thesis", "Resources", "Success signal", "Kill signal", "Evidence path", "How determined"],
         rows: ext.bets.map((b: any) => [
-          b.bet || "—", b.thesis || b.rationale || "—",
-          b.resources || "—", b.success_signal || "—", b.kill_signal || "—",
+          b.bet || "—",
+          b.thesis || b.rationale || "—",
+          b.resources || "—",
+          b.success_signal || "—",
+          b.kill_signal || "—",
+          b.evidence_path || "—",
+          [b.how_determined, b.evidence].filter(Boolean).join(" ") || "—",
         ]),
       };
     }
@@ -604,7 +627,7 @@ export function buildPillarValues(
       map.s8 = ext.milestones.map((r: any) => ({
         date: r.horizon || "—",
         title: r.milestone || "—",
-        desc: [r.outcome, r.owner ? `Owner: ${r.owner}` : ""].filter(Boolean).join(" · "),
+        desc: [r.outcome, r.owner ? `Owner: ${r.owner}` : "", r.evidence_path, r.how_determined, r.evidence].filter(Boolean).join(" · "),
       }));
     } else if (Array.isArray(ext.roadmap) && ext.roadmap.length) {
       map.s8 = ext.roadmap.map((r: any) => ({

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { extractSuggestions } from "@/lib/parseSuggestions";
+import { parseLiveSourcesHeader, type LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   DatabaseChatMessage, 
@@ -34,6 +35,7 @@ interface Message {
   steps?: ActionStep[];
   documentLinks?: DocumentLink[];
   isStreaming?: boolean;
+  liveSourceRegistry?: LiveSourceRegistry;
 }
 
 // Parse research response
@@ -252,7 +254,7 @@ export function DatabaseView() {
       if (!session) {
         setMessages(prev => [...prev, {
           role: "assistant",
-          content: "Please log in to use the AI assistant."
+          content: "Please log in to use chat."
         }]);
         setIsLoading(false);
         return;
@@ -289,6 +291,8 @@ export function DatabaseView() {
         throw new Error("Failed to get response");
       }
 
+      const liveReg = parseLiveSourcesHeader(response.headers.get("x-tw-live-sources"));
+
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response body");
 
@@ -297,6 +301,7 @@ export function DatabaseView() {
         role: "assistant",
         content: "",
         isStreaming: true,
+        ...(liveReg ? { liveSourceRegistry: liveReg } : {}),
       }]);
 
       const decoder = new TextDecoder();
@@ -325,6 +330,7 @@ export function DatabaseView() {
                       suggestions: parsed.suggestions,
                       insights: parsed.insights,
                       isStreaming: true,
+                      ...(liveReg ? { liveSourceRegistry: liveReg } : {}),
                     };
                     return newMessages;
                   });
@@ -339,6 +345,7 @@ export function DatabaseView() {
                       documentLinks: parsed.documentLinks,
                       suggestions: parsed.suggestions,
                       isStreaming: true,
+                      ...(liveReg ? { liveSourceRegistry: liveReg } : {}),
                     };
                     return newMessages;
                   });
@@ -362,6 +369,7 @@ export function DatabaseView() {
             suggestions: finalParsed.suggestions,
             insights: finalParsed.insights,
             isStreaming: false,
+            ...(liveReg ? { liveSourceRegistry: liveReg } : {}),
           };
           return newMessages;
         });
@@ -376,6 +384,7 @@ export function DatabaseView() {
             documentLinks: finalParsed.documentLinks,
             suggestions: finalParsed.suggestions,
             isStreaming: false,
+            ...(liveReg ? { liveSourceRegistry: liveReg } : {}),
           };
           return newMessages;
         });
@@ -466,6 +475,7 @@ export function DatabaseView() {
                         content={message.content}
                         insightCards={message.insights}
                         isStreaming={message.isStreaming}
+                        liveSourceRegistry={message.liveSourceRegistry}
                       />
                     ) : (
                       <ActionChatMessage
@@ -474,6 +484,7 @@ export function DatabaseView() {
                         steps={message.steps}
                         documentLinks={message.documentLinks}
                         isStreaming={message.isStreaming}
+                        liveSourceRegistry={message.liveSourceRegistry}
                       />
                     )}
                   </div>

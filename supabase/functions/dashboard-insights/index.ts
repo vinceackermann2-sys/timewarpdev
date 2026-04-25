@@ -137,18 +137,26 @@ serve(async (req) => {
     const { data: allItems } = await query.limit(500);
     const items = allItems || [];
 
-    const brandRow = items.find((item: any) => item.id === brandId);
+    let brandRow = items.find((item: any) => item.id === brandId);
+    if (!brandRow) {
+      brandRow = items.find((item: any) => {
+        if (item.data_type !== "brand") return false;
+        const c = tryParseJson(item.content);
+        return c?.id === brandId;
+      });
+    }
     const brandContent = tryParseJson(brandRow?.content);
     const brandName = brandContent?.name || brandRow?.title || "Business";
+    const resolvedBrandRowId = brandRow?.id || brandId;
     const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
       userId: user.id,
-      brandId,
+      brandId: resolvedBrandRowId,
       workspaceId,
     });
     const { data: learningStateRow } = await supabase
       .from("business_learning_state")
       .select("source_weights, category_weights, tab_weights, theme_weights")
-      .eq("business_id", businessId || brandId)
+      .eq("business_id", businessId || resolvedBrandRowId)
       .maybeSingle();
     const learningState = parseLearningStateRow(learningStateRow);
     const normalizedEvidence: NormalizedEvidence[] = [];
@@ -846,7 +854,7 @@ ${normalizedEvidence.length > 0
       .from("dashboard_snapshots")
       .select("cards")
       .eq("user_id", user.id)
-      .eq("brand_id", brandId)
+      .eq("brand_id", resolvedBrandRowId)
       .maybeSingle();
     const prevSnapshot: Record<string, { priority: string; tab: string }> =
       (prevSnapshotRow?.cards as any) || {};
@@ -1170,8 +1178,9 @@ Return ONLY a valid JSON object, no markdown fences.`;
         .upsert(
           {
             user_id: user.id,
-            brand_id: brandId,
+            brand_id: resolvedBrandRowId,
             cards: nextSnapshot,
+            tab_cards: tabsResult,
             opening_summary: openingSummary?.text || null,
             health_score: healthScore,
             updated_at: new Date().toISOString(),
@@ -1187,7 +1196,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
     await logBusinessLearningEvent(supabase, {
       userId: user.id,
       workspaceId,
-      businessId: businessId || brandId,
+      businessId: businessId || resolvedBrandRowId,
       agentSurface: "run-employee",
       mode: "chat",
       userMessage: `dashboard-insights:${brandName}`,
@@ -1215,7 +1224,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
         shownRows.push({
           user_id: user.id,
           workspace_id: workspaceId || null,
-          business_id: businessId || brandId,
+          business_id: businessId || resolvedBrandRowId,
           card_id: card.id,
           tab: tabKey,
           event_type: "shown",

@@ -22,6 +22,7 @@ import {
 } from "../_shared/guardrails.ts";
 import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
+import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -143,7 +144,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
     if (browserMode) {
       const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
-      const { connectionContext, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
+      const { connectionContext, sourceRegistry, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
         supabase,
         user.id,
         lastUserMsg,
@@ -242,7 +243,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           outcome: guardrailIntervened ? "negative" : "positive",
         },
       });
-      return new Response(JSON.stringify({ content, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic }), {
+      return new Response(JSON.stringify({ content, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic, liveSourceRegistry: sourceRegistry }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -321,18 +322,34 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
             sendStep(gatherLabel, "done", "context");
 
-            const { connectionContext, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
+            const { connectionContext, sourceRegistry, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
               supabase,
               user.id,
               lastUserMsg,
               (step) => send({ type: "progress", step }),
               topic,
             );
+            if (sourceRegistry && Object.keys(sourceRegistry).length > 0) {
+              send({ type: "live_sources", registry: sourceRegistry });
+            }
+
+            let dashboardMarkdown = "";
+            if (brandId && lastUserMsg && taskType === "chat" && !pageContext) {
+              sendStep("Dashboard snapshot", "running", "context");
+              const dash = await resolveDashboardCardsForChat(supabase, {
+                userId: user.id,
+                brandId,
+                userMessage: lastUserMsg,
+                send,
+              });
+              dashboardMarkdown = dash.markdown;
+              sendStep("Dashboard snapshot", "done", "context");
+            }
 
             const answerTopic = queryTopic || topic;
             const pageSection = buildPageSection();
             const hasBrowserContext = !!pageContext;
-            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}`;
+            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}`;
             const systemPrompt = hasBrowserContext
               ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
               : buildChatPrompt(identity, fullContext, replyContract);
@@ -435,7 +452,15 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                 outcome: finalContent && finalContent.length > 40 ? "positive" : "negative",
               },
             });
-            send({ type: "result", content: finalContent, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic: answerTopic });
+            send({
+              type: "result",
+              content: finalContent,
+              connectionDecision,
+              searchedProviders,
+              skippedProviderDetails,
+              queryTopic: answerTopic,
+              liveSourceRegistry: sourceRegistry,
+            });
             if (heartbeat) clearInterval(heartbeat);
             close();
           } catch (error: any) {
@@ -595,7 +620,7 @@ async function retrieveRelevantContext(supabase: any, userId: string, workspaceI
 // --- Prompt Builders ---
 
 function buildBrowserActionPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
-  return `You are an AI assistant executing tasks through the user's browser. You follow instructions precisely, one action at a time. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base".
+  return `You are an AI executing tasks through the user's browser. You follow instructions precisely, one action at a time. Describe yourself only as an AI if needed — never as a CEO, assistant, agent, employee, or other role title. Never mention "RAG", "knowledge files", or "knowledge base".
 
 ${identity ? `# Business Context\n${identity}` : ""}
 ${relevantContext}
@@ -698,7 +723,7 @@ Produce a first-principles, evidence-backed strategy plan for heavy business que
 ## Response shape (default)
 Answer the user's question in the most natural structure for that question — prose, bullets, or a small table when comparisons need it. No mandatory section template.`.trim();
 
-  return `You are an elite AI CEO and executive strategist — decisive, analytical, and unafraid to challenge assumptions. You help with strategy, marketing, content creation, analysis, operations, and decision-making.
+  return `You are an AI that helps with business strategy and execution — decisive, analytical, and willing to challenge weak assumptions. You help with strategy, marketing, content creation, analysis, operations, and decision-making.
 
 ${identity ? `# Business Context\n${identity}\n\n**IMPORTANT: You are currently representing ONLY this business. All your answers must be about this specific business. Do NOT reference or provide information about any other business the user may own.**` : ""}
 ${relevantContext}
@@ -721,7 +746,7 @@ ${responseShape}
 2. If the user attached files, analyze that specific content and answer their question about it.
 3. Reference material above contains verified business data. When creating any pitch, presentation, report, slide, document, graph, chart, analytics output, spreadsheet, or visual deliverable, you MUST use this data to personalize the content. For general questions, reference it when relevant.
 4. Do NOT summarize business context unprompted. Do NOT start responses with business overviews.
-5. Never refer to yourself as "CEO" or "AI CEO".
+5. Never refer to yourself as a CEO, AI CEO, executive, assistant, agent, employee, or any role title — only as an AI if you must name what you are.
 6. Never mention "RAG", "knowledge files", or "knowledge base".
 7. **NEVER fabricate or invent business data.** If the Reference Material does not contain specific numbers, do NOT make them up. Ask the user to provide them.
 8. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering.
@@ -742,7 +767,7 @@ Aim to maximize quality across these dimensions:
 - **Actionability (20%)**: Provide clear, implementable next steps
 - **Format Richness (15%)**: Use tables, blockquotes, headers, and structured formatting
 - **Specificity (15%)**: Avoid vague language — use precise terms and concrete details
-- **Personality (10%)**: Show the decisive, contrarian CEO voice — push back when warranted
+- **Personality (10%)**: Use a direct, contrarian tone when evidence supports pushback — without adopting a persona title
 - **Suggestion Quality (10%)**: End with relevant, thought-provoking follow-up questions
 
 ## FORMATTING
@@ -795,7 +820,7 @@ Supported chart types: bar, line, area, pie.
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
-  return `You are an intelligent browser automation AI assistant embedded in a browser extension. You can SEE the user's current page and perform actions on it.
+  return `You are an AI embedded in a browser extension to automate the page. You can SEE the user's current page and perform actions on it. Do not call yourself an assistant, agent, or CEO — only refer to yourself as an AI if needed.
 
 ${identity ? `# Business Context\n${identity}` : ""}
 ${relevantContext}

@@ -294,9 +294,9 @@ function IdleState({ totalInsights }: { totalInsights: number }) {
 // ── Agent Name Editor ──
 function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onRename: (name: string) => void; isBrainLearning: boolean }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(brand?.agentName || "AI CEO");
+  const [editValue, setEditValue] = useState(brand?.agentName || "AI");
 
-  useEffect(() => { setEditValue(brand?.agentName || "AI CEO"); }, [brand?.agentName]);
+  useEffect(() => { setEditValue(brand?.agentName || "AI"); }, [brand?.agentName]);
 
   if (isEditing) {
     const logoUrl = brand?.logoUrls?.[brand?.selectedLogo ?? 0];
@@ -308,7 +308,7 @@ function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onR
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={() => { if (editValue.trim()) { onRename(editValue.trim()); } setIsEditing(false); }}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } if (e.key === "Escape") { setEditValue(brand?.agentName || "AI CEO"); setIsEditing(false); } }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } if (e.key === "Escape") { setEditValue(brand?.agentName || "AI"); setIsEditing(false); } }}
           className="text-base text-foreground bg-transparent border-b border-primary outline-none py-0 px-0 font-medium"
         />
       </div>
@@ -323,7 +323,7 @@ function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onR
         onClick={() => setIsEditing(true)}
         className="text-base text-muted-foreground hover:text-foreground transition-colors group flex items-center gap-1.5"
       >
-        {brand?.agentName || "AI CEO"}
+        {brand?.agentName || "AI"}
         <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
       </button>
       <motion.span

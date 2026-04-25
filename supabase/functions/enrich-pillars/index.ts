@@ -5,6 +5,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+import { DATA_BACKED_DECISION_TRIAD } from "../_shared/data-backed-decision-triad.ts";
+import { buildPerformanceEvidenceMarkdown } from "../_shared/performance-evidence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -83,34 +85,36 @@ org_chart MUST be a recursive tree with {role, name, children}. Top node is the 
 
   growth: `Return JSON with the keys exactly:
 {
-  "growth_model": [ { "lever": string, "channel": string, "expected_impact": string } ],
-  "channels": [ { "channel": string, "stage": "Awareness"|"Consideration"|"Conversion"|"Retention", "fit": "Low"|"Medium"|"High", "notes": string } ],
+  "growth_model": [ { "lever": string, "channel": string, "expected_impact": string, "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
+  "channels": [ { "channel": string, "stage": "Awareness"|"Consideration"|"Conversion"|"Retention", "fit": "Low"|"Medium"|"High", "notes": string, "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
   "funnel": [ { "stage": "Awareness"|"Interest"|"Consideration"|"Purchase"|"Retention"|"Advocacy", "volume": string, "rate": string, "color": string } ],
   "content": [ { "format": string, "topic": string, "channel": string } ],
   "campaigns": string,
   "creative": [ string ],
   "retention": string,
   "referral": string,
-  "experiments": [ { "hypothesis": string, "channel": string, "status": "Planned"|"Running"|"Done" } ],
+  "experiments": [ { "hypothesis": string, "channel": string, "status": "Planned"|"Running"|"Done", "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-For funnel: volume is a count/range like "10,000 visits" or "~2k", rate is the conversion rate to next stage like "12%", and color is a HEX (e.g. "#4a86ff") with progressively deeper saturation per stage. Always include checklist of 5-8 items.`,
+For funnel: volume is a count/range like "10,000 visits" or "~2k", rate is the conversion rate to next stage like "12%", and color is a HEX (e.g. "#4a86ff") with progressively deeper saturation per stage. Always include checklist of 5-8 items.
+For growth_model, channels, and experiments: set evidence_path from context blocks. Use verification=null unless evidence_path is verified_external and you have a citable URL; if external pattern cannot be verified, set confidence to "unverified" and do not claim validated copycat tactics.`,
 
   strategy: `Return JSON with the keys exactly:
 {
   "vision": string,
   "objectives": [ string ],
-  "bets": [ { "bet": string, "thesis": string, "resources": string, "success_signal": string, "kill_signal": string } ],
+  "bets": [ { "bet": string, "thesis": string, "resources": string, "success_signal": string, "kill_signal": string, "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
   "stage_model": [ { "field": "Stage"|"Current Constraint"|"Next Stage Trigger"|"What to Optimize", "value": string } ],
   "resource_allocation": [ { "resource": string, "current_pct": string, "optimal_pct": string, "rebalancing_rationale": string } ],
   "decision_framework": [ { "decision_type": "Strategic (Irreversible)"|"Operational (Reversible)"|"Investment (Financial)"|"People (Hiring/Firing)"|"Crisis (Time-Pressured)", "criteria": string, "authority": string, "process": string } ],
   "risk_appetite": [ { "domain": string, "appetite": "Conservative"|"Moderate"|"Aggressive", "tolerance_threshold": string, "mitigation": string } ],
-  "milestones": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string, "owner": string } ],
+  "milestones": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string, "owner": string, "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
   "narrative": string,
   "scenarios": [ { "scenario": "Base"|"Bull"|"Bear"|"Black Swan", "probability": string, "key_assumption": string, "response": string, "early_warnings": string } ],
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-Use the doc formulas exactly. For decision_framework follow [DECISION TYPE] + [CRITERIA] + [AUTHORITY] + [PROCESS]. For risk_appetite follow [RISK DOMAIN] + [APPETITE LEVEL] + [TOLERANCE THRESHOLD] + [MITIGATION]. Always include checklist of 5-8 items.`,
+Use the doc formulas exactly. For decision_framework follow [DECISION TYPE] + [CRITERIA] + [AUTHORITY] + [PROCESS]. For risk_appetite follow [RISK DOMAIN] + [APPETITE LEVEL] + [TOLERANCE THRESHOLD] + [MITIGATION]. Always include checklist of 5-8 items.
+For bets and milestones: include evidence_path, evidence, how_determined on each row; verification only when evidence_path is verified_external and a URL exists in context; otherwise verification=null. If INTERNAL PERFORMANCE block is empty, label strategic bets that rely on inference as hypothesis in the evidence string.`,
 
   brand: `Return JSON with the keys exactly:
 {
@@ -126,19 +130,19 @@ mission/vision are 1-2 sentences. positioning follows [FOR target] + [WHO need] 
 {
   "mechanism": string,
   "value_proposition": string,
-  "roadmap": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string } ],
+  "roadmap": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string, "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-mechanism = how the product creates the result (1-2 sentences). value_proposition = the elevator-pitch promise. roadmap is 4-8 forward milestones. Always include checklist of 5-8 items.`,
+mechanism = how the product creates the result (1-2 sentences). value_proposition = the elevator-pitch promise. roadmap is 4-8 forward milestones. Each roadmap row MUST include evidence_path, evidence (short quote or pointer to which context block), and how_determined (one sentence). Use verification object only when evidence_path is verified_external and you cite a URL from COMPETITOR/BENCHMARK or MARKET/AUDIENCE evidence; otherwise verification=null. If INTERNAL PERFORMANCE is sparse, prefix evidence with "hypothesis:" for that row. Always include checklist of 5-8 items.`,
 
   audience: `Return JSON with the keys exactly:
 {
-  "journey": [ { "stage": "Awareness"|"Consideration"|"Decision"|"Onboarding"|"Retention"|"Advocacy", "moment": string, "thought": string } ],
+  "journey": [ { "stage": "Awareness"|"Consideration"|"Decision"|"Onboarding"|"Retention"|"Advocacy", "moment": string, "thought": string, "supporting_signal": string } ],
   "decision_criteria": [ { "criterion": string, "weight": "High"|"Medium"|"Low", "what_proves_it": string } ],
   "pain_architecture": [ string ],
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-journey is the customer journey map. pain_architecture is 5-10 ranked pain points (most acute first). Always include checklist of 5-8 items.`,
+journey is the customer journey map; supporting_signal briefly cites INTERNAL AUDIENCE SIGNALS or AUDIENCE/COMMUNITY evidence when used, else "inference". pain_architecture is 5-10 ranked pain points (most acute first). Always include checklist of 5-8 items.`,
 };
 
 const FIELD_SOURCE_POLICY = {
@@ -146,12 +150,239 @@ const FIELD_SOURCE_POLICY = {
     "definition.tam": "web_evidence_required",
     "definition.sam": "web_evidence_required",
     "definition.som": "web_evidence_required",
+    competitors: "internal_or_competitor_cited",
+  },
+  financial: {
+    "unit_economics": "integration_preferred",
+    "profitability": "integration_preferred",
+    "revenue_arch": "website_or_onboarding",
+    projections: "web_evidence_required",
+  },
+  growth: {
+    "growth_model": "internal_or_competitor_cited",
+    channels: "internal_or_competitor_cited",
+    experiments: "internal_or_competitor_cited",
+  },
+  strategy: {
+    bets: "internal_or_competitor_cited",
+    milestones: "internal_or_competitor_cited",
+  },
+  product: {
+    roadmap: "internal_or_competitor_cited",
+  },
+  audience: {
+    journey: "internal_or_competitor_cited",
   },
   people: {
     org_chart: "integration_only",
     leadership: "integration_only",
   },
 } as const;
+
+type EvidenceMode = "blend" | "internal" | "external" | "feedback_first";
+
+function normalizeEvidenceMode(raw: unknown): EvidenceMode {
+  const v = String(raw || "").trim().toLowerCase();
+  if (v === "internal" || v === "external" || v === "feedback_first") return v;
+  return "blend";
+}
+
+function safeParseJson(value: unknown): any | null {
+  if (!value) return null;
+  if (typeof value === "object") return value;
+  if (typeof value !== "string") return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function evidenceModeInstruction(mode: EvidenceMode): string {
+  switch (mode) {
+    case "internal":
+      return "User-selected evidence mode: INTERNAL — prioritize Path 1 (performance + learning + comms). Use competitor/benchmark snippets only to fill explicit gaps; mark external items unverified when citations are thin.";
+    case "external":
+      return "User-selected evidence mode: EXTERNAL — prioritize Path 2 (verified public benchmark + audience/community snippets). Still cite URLs; keep verification objects honest. Use internal KPI block when present as a cross-check.";
+    case "feedback_first":
+      return "User-selected evidence mode: FEEDBACK-FIRST — prioritize Path 3 plus FILE/URL EVIDENCE FROM FUNNEL above; treat user-provided excerpts as authoritative for scope they cover.";
+    default:
+      return "Evidence mode: BLEND — pick the strongest path per claim (prefer internal KPI+learning when data exists; else verified external; always honor user-provided funnel files/URLs when applicable).";
+  }
+}
+
+function extractCompetitorNames(brandParsed: any, productParsed: any): string[] {
+  const names = new Set<string>();
+  const push = (v: unknown) => {
+    const t = String(v || "").trim();
+    if (t.length > 1 && t.length < 96) names.add(t);
+  };
+  const harvest = (node: any) => {
+    if (!node) return;
+    if (Array.isArray(node.competitors)) {
+      for (const c of node.competitors) push(typeof c === "string" ? c : c?.name);
+    }
+    if (Array.isArray(node.competitorNames)) for (const c of node.competitorNames) push(c);
+    if (typeof node.mainCompetitor === "string") push(node.mainCompetitor);
+  };
+  harvest(brandParsed);
+  harvest(productParsed);
+  return [...names].slice(0, 6);
+}
+
+function summarizeThemeWeights(themeWeights: Record<string, number>): { line: string; improving: string[]; degrading: string[] } {
+  const entries = Object.entries(themeWeights).filter(([, v]) => typeof v === "number" && Number.isFinite(v));
+  const positive = entries
+    .filter(([, v]) => v > 0.2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([k, v]) => `${k} (${v > 0 ? "+" : ""}${v.toFixed(2)})`);
+  const negative = entries
+    .filter(([, v]) => v < -0.2)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, 3)
+    .map(([k, v]) => `${k} (${v.toFixed(2)})`);
+  const line = entries
+    .filter(([, v]) => Math.abs(v) > 0.12)
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, 6)
+    .map(([k, v]) => `${k}: ${v > 0 ? "+" : ""}${Number(v).toFixed(2)}`)
+    .join("; ");
+  return { line, improving: positive, degrading: negative };
+}
+
+async function loadBusinessLearningSummary(admin: any, businessId: string): Promise<string> {
+  const { data: stateRow } = await admin
+    .from("business_learning_state")
+    .select("theme_weights, source_weights, updated_at")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (!stateRow) return "(no business_learning_state row yet — Path 1 learning priors empty)";
+  const tw = (stateRow.theme_weights as Record<string, number> | null) || {};
+  const { line, improving, degrading } = summarizeThemeWeights(tw);
+  const parts: string[] = [];
+  parts.push(`business_learning_state updated_at: ${stateRow.updated_at || "unknown"}`);
+  if (line) parts.push(`Theme emphasis (results-adjusted): ${line}`);
+  if (improving.length) parts.push(`Patterns tagged improving: ${improving.join(", ")}`);
+  if (degrading.length) parts.push(`Patterns tagged degrading: ${degrading.join(", ")}`);
+  const sw = stateRow.source_weights;
+  if (sw && typeof sw === "object" && Object.keys(sw).length) {
+    parts.push(`Source weights (compact): ${JSON.stringify(sw).slice(0, 400)}`);
+  }
+  return parts.join("\n");
+}
+
+const AUDIENCE_COMMS_HINTS = /\b(feedback|review|rating|support|ticket|csat|nps|complaint|praise|reddit|twitter|x\.com|linkedin)\b/i;
+
+async function loadInternalCommsContrastPack(
+  admin: any,
+  userId: string,
+  brandId: string,
+  workspaceId?: string | null,
+): Promise<string> {
+  const now = Date.now();
+  const windowMs = 30 * 24 * 60 * 60 * 1000;
+  const currentStart = new Date(now - windowMs).toISOString();
+  const previousStart = new Date(now - windowMs * 2).toISOString();
+
+  let query = admin
+    .from("user_business_data")
+    .select("data_type, source, title, content, created_at, metadata")
+    .eq("user_id", userId)
+    .neq("source", "business-dna")
+    .in("data_type", ["message", "email"])
+    .gte("created_at", previousStart)
+    .order("created_at", { ascending: false })
+    .limit(400);
+  if (workspaceId) query = query.eq("workspace_id", workspaceId);
+
+  const { data: rows } = await query;
+  const scoped = (rows || []).filter((row: any) => {
+    const md = row.metadata || {};
+    return !md?.brandId || md.brandId === brandId;
+  });
+
+  const sample = (subset: any[], n: number) =>
+    subset.slice(0, n).map((r: any) =>
+      `- [${r.data_type}/${r.source || "?"}] ${r.title || "—"} @ ${String(r.created_at || "").slice(0, 10)}: ${compact(String(r.content || ""), 160)}`
+    );
+
+  const current = scoped.filter((r: any) => String(r.created_at) >= currentStart);
+  const previous = scoped.filter((r: any) => String(r.created_at) < currentStart);
+
+  const lines: string[] = [];
+  lines.push(`Comms volume: current 30d=${current.length}, prior 30d=${previous.length} (messages + emails).`);
+  if (current.length + previous.length === 0) {
+    lines.push("**Sparse:** no recent comms rows — Path 1 comms contrast unavailable.");
+    return lines.join("\n");
+  }
+  if (current.length < 3 || previous.length < 3) {
+    lines.push("**Sparse:** low comms sample — use qualitative language only.");
+  }
+  lines.push("Recent window samples:");
+  lines.push(...sample(current, 8));
+  if (previous.length) {
+    lines.push("Prior window samples:");
+    lines.push(...sample(previous, 6));
+  }
+
+  const audRows = scoped.filter((r: any) => AUDIENCE_COMMS_HINTS.test(`${r.title}\n${r.content}`));
+  if (audRows.length) {
+    lines.push(`Audience/support-flavored snippets (${audRows.length} hits, mixed windows):`);
+    lines.push(...sample(audRows, 6));
+  }
+
+  return lines.join("\n");
+}
+
+async function buildCompetitorBenchmarkEvidence(
+  names: string[],
+  categoryLine: string,
+  maxItems: number,
+): Promise<{ markdown: string; urls: string[] }> {
+  const header =
+    "Each bullet may support Path 2 only with a real URL. Before recommending adaptation, require what/when/where/how — if unknown from snippet, mark confidence unverified in downstream JSON.";
+  const items: Array<{ url: string; title: string; snippet: string }> = [];
+  const queries: string[] = [];
+  if (names.length) {
+    for (const n of names.slice(0, 3)) queries.push(`${n} ${categoryLine} marketing product`.trim());
+  }
+  queries.push(`${categoryLine} competitive landscape alternatives`.trim());
+  for (const q of queries) {
+    const chunk = await fetchMarketEvidence(q);
+    for (const c of chunk) {
+      if (!items.find((x) => x.url === c.url)) items.push(c);
+      if (items.length >= maxItems) break;
+    }
+    if (items.length >= maxItems) break;
+  }
+  if (!items.length) {
+    return { markdown: `${header}\n(no public competitor/benchmark snippets retrieved)`, urls: [] };
+  }
+  return {
+    markdown: `${header}\n` + items.map((e) => `- ${e.title}: ${e.snippet} (source: ${e.url})`).join("\n"),
+    urls: items.map((e) => e.url).filter(Boolean),
+  };
+}
+
+async function buildAudienceExternalEvidence(
+  label: string,
+  maxItems: number,
+): Promise<{ markdown: string; urls: string[] }> {
+  if (!label) {
+    return { markdown: "(no audience label for community search)", urls: [] };
+  }
+  const q = `${label} customer preferences pain points discussion`;
+  const items = await fetchMarketEvidence(q);
+  if (!items.length) {
+    return { markdown: "(no audience/community snippets retrieved)", urls: [] };
+  }
+  const slice = items.slice(0, maxItems);
+  return {
+    markdown: slice.map((e) => `- ${e.title}: ${e.snippet} (source: ${e.url})`).join("\n"),
+    urls: slice.map((e) => e.url).filter(Boolean),
+  };
+}
 
 function compact(text: string, max = 1200): string {
   return (text || "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -289,7 +520,8 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const body = await req.json().catch(() => ({}));
-    const { brandId, brandRowId, workspaceId, pillars, externalEvidence, superchargeMode } = body;
+    const { brandId, brandRowId, workspaceId, pillars, externalEvidence, superchargeMode, evidenceMode: rawEvidenceMode } = body;
+    const evidenceMode = normalizeEvidenceMode(rawEvidenceMode);
 
     if (!brandId || !brandRowId) {
       return new Response(JSON.stringify({ error: "brandId and brandRowId are required" }), {
@@ -345,6 +577,36 @@ serve(async (req) => {
     ].filter((x) => x.url && x.snippet).slice(0, 8);
 
     const peopleSignals = await loadPeopleSignalsFromIntegrations(admin, user.id, brandId, wsId);
+
+    const brandParsed = safeParseJson(brandRow.content) || {};
+    const firstProductParsed = safeParseJson(productRows[0]?.content) || {};
+    const competitorNames = extractCompetitorNames(brandParsed, firstProductParsed);
+    const categoryLine = [brandRow.title || "", brandParsed?.category || ""].filter(Boolean).join(" | ");
+
+    let performanceMarkdown = await buildPerformanceEvidenceMarkdown(admin, brandId, 30).catch(() =>
+      "(INTERNAL PERFORMANCE unavailable)"
+    );
+    let learningMarkdown = await loadBusinessLearningSummary(admin, brandId).catch(() => "(LEARNING SIGNALS unavailable)");
+    let commsMarkdown = await loadInternalCommsContrastPack(admin, user.id, brandId, wsId).catch(() =>
+      "(INTERNAL COMMS unavailable)"
+    );
+
+    const compLimit = evidenceMode === "internal" ? 4 : evidenceMode === "external" ? 10 : 7;
+    const competitorPack = await buildCompetitorBenchmarkEvidence(competitorNames, categoryLine, compLimit);
+    let competitorBenchmarkMarkdown = competitorPack.markdown;
+    const audienceExtLimit = evidenceMode === "internal" ? 3 : 6;
+    const audiencePack = await buildAudienceExternalEvidence(audienceRows[0]?.title || "", audienceExtLimit);
+    let audienceExternalMarkdown = audiencePack.markdown;
+
+    if (evidenceMode === "external") {
+      performanceMarkdown = performanceMarkdown.slice(0, 1200);
+      learningMarkdown = learningMarkdown.slice(0, 900);
+      commsMarkdown = commsMarkdown.slice(0, 1400);
+    }
+    if (evidenceMode === "internal") {
+      competitorBenchmarkMarkdown = competitorBenchmarkMarkdown.slice(0, 2200);
+      audienceExternalMarkdown = audienceExternalMarkdown.slice(0, 900);
+    }
 
     // ---- Connection signals ----------------------------------------------------
     // When the user has connected providers (Outlook, Gmail, OneDrive, HubSpot,
@@ -404,9 +666,28 @@ CRITICAL EVIDENCE RULES — read carefully:
 - Keep filled strings concise and decision-grade. Follow doc value formulas exactly when data exists.
 - Return valid JSON matching the schema. No prose outside JSON.
 
-Honesty over completeness. An empty field with a "Gap" checklist entry is FAR better than a fabricated one.`;
+Honesty over completeness. An empty field with a "Gap" checklist entry is FAR better than a fabricated one.
+
+${DATA_BACKED_DECISION_TRIAD}`;
 
     const buildUserPrompt = (pillarId: string) => `Pillar: ${pillarId.toUpperCase()}
+
+${evidenceModeInstruction(evidenceMode)}
+
+## INTERNAL PERFORMANCE — objective KPI windows (Path 1)
+${performanceMarkdown}
+
+## INTERNAL LEARNING STATE (Path 1)
+${learningMarkdown}
+
+## INTERNAL COMMS CONTRAST — mail/chat recent vs prior window (Path 1)
+${commsMarkdown}
+
+## COMPETITOR / BENCHMARK SNIPPETS — cite-only, requires verification before adoption (Path 2)
+${competitorBenchmarkMarkdown}
+
+## AUDIENCE / COMMUNITY SNIPPETS — cite-only (Path 2b)
+${audienceExternalMarkdown}
 
 BRAND:
 ${brandContext}
@@ -428,7 +709,7 @@ ${allMarketEvidence.length > 0
   ? allMarketEvidence.map((e) => `- ${e.title}: ${e.snippet} (source: ${e.url})`).join("\n")
   : "(no market evidence found from web/funnel)"}
 
-FILE/URL EVIDENCE FROM FUNNEL:
+FILE/URL EVIDENCE FROM FUNNEL (Path 3 / user-provided context):
 ${fileEvidenceFromFunnel.length > 0
   ? fileEvidenceFromFunnel.map((f: any) => `- ${String(f?.name || "file")}: ${compact(String(f?.excerpt || ""), 320)}`).join("\n")
   : "(none)"}
@@ -489,10 +770,13 @@ ${PILLAR_PROMPTS[pillarId]}`;
             generated_by: "enrich-pillars",
             generated_at: new Date().toISOString(),
             supercharge_mode: !!superchargeMode,
+            evidence_mode: evidenceMode,
             evidence_sources: [
               ...allMarketEvidence.map((e) => e.url),
+              ...competitorPack.urls,
+              ...audiencePack.urls,
               ...webEvidenceFromFunnel.map((e: any) => String(e?.url || "")),
-            ].filter(Boolean).slice(0, 15),
+            ].filter(Boolean).slice(0, 20),
             evidence_quality: allMarketEvidence.length >= 3 ? "high" : allMarketEvidence.length > 0 ? "medium" : "low",
             integration_first_applied: pillarId === "people",
             field_source_policy: (FIELD_SOURCE_POLICY as any)[pillarId] || {},

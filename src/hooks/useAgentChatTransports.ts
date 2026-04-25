@@ -7,6 +7,7 @@ import { buildConnectionTaskSteps, upsertChatTaskStep } from "@/lib/agentChat/co
 import { generateTaskReport } from "@/lib/agentChat/taskReport";
 import { extractPlanArtifact } from "@/lib/agentChat/planArtifacts";
 import type { ChatMessage } from "@/lib/agentChat/types";
+import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 import { consumeAgentChatSseStream, consumeOpenAiStyleSseStream } from "@/lib/streamReaders";
 import type { User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -49,7 +50,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
   } = deps;
 
   const resolveBrandRowId = useCallback(() => {
-    const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+    const ab = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
     return ab ? (ab as BrandRow)._rowId : undefined;
   }, [brands, selectedAgent]);
 
@@ -67,10 +68,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     const brandRowId = resolveBrandRowId();
 
     const taskSteps: ChatMessage["taskSteps"] = [];
+    let extensionLiveReg: LiveSourceRegistry | undefined;
     const syncTaskSteps = (content?: string) => {
       setMessages(prev => prev.map(m => m.id === assistantId ? {
         ...m,
         ...(content !== undefined ? { content } : {}),
+        ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
         taskSteps: [...(taskSteps || [])],
         currentStepIndex: (taskSteps?.length ?? 0) - 1,
         isStreaming: true,
@@ -128,8 +131,30 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
           streaming += delta;
           syncTaskSteps(streaming);
         },
+        onDashboardCards: (evt) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    dashboardCards: evt.cards || [],
+                    dashboardOpeningSummary: evt.openingSummary ?? null,
+                    dashboardHealthScore: evt.healthScore ?? null,
+                  }
+                : m,
+            ),
+          );
+        },
+        onLiveSources: (registry) => {
+          extensionLiveReg = registry;
+          syncTaskSteps(streaming);
+        },
         onResult: (evt) => {
           if (evt.content) streaming = evt.content;
+          if (evt.liveSourceRegistry && Object.keys(evt.liveSourceRegistry).length > 0) {
+            extensionLiveReg = evt.liveSourceRegistry;
+            syncTaskSteps(streaming);
+          }
         },
       });
       fullContent = streaming;
@@ -149,6 +174,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       suggestions,
       taskSteps: [...taskSteps],
       isStreaming: false,
+      ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
       ...(artifact ? {
         planContent: artifact.markdown,
         planSavedToDb: false,
@@ -359,11 +385,13 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     const startTime = new Date();
     const taskSteps: ChatMessage["taskSteps"] = [];
+    let employeeLiveReg: LiveSourceRegistry | undefined;
 
     const syncUI = (content?: string) => {
       setMessages(prev => prev.map(m => m.id === assistantId ? {
         ...m,
         ...(content !== undefined ? { content } : {}),
+        ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),
         taskSteps: [...(taskSteps || [])],
         currentStepIndex: (taskSteps?.length ?? 0) - 1,
         isStreaming: true,
@@ -442,8 +470,29 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
             acc += delta;
             syncUI(acc);
           },
+          onDashboardCards: (evt) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      ...m,
+                      dashboardCards: evt.cards || [],
+                      dashboardOpeningSummary: evt.openingSummary ?? null,
+                      dashboardHealthScore: evt.healthScore ?? null,
+                    }
+                  : m,
+              ),
+            );
+          },
+          onLiveSources: (registry) => {
+            employeeLiveReg = registry;
+            syncUI(acc);
+          },
           onResult: (evt) => {
             if (evt.content) acc = evt.content;
+            if (evt.liveSourceRegistry && Object.keys(evt.liveSourceRegistry).length > 0) {
+              employeeLiveReg = evt.liveSourceRegistry;
+            }
             if (evt.continuation) needsContinuation = true;
           },
         });
@@ -459,6 +508,9 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
           });
         }
         accumulatedContent = data.content || accumulatedContent;
+        if (data.liveSourceRegistry && typeof data.liveSourceRegistry === "object") {
+          employeeLiveReg = data.liveSourceRegistry as LiveSourceRegistry;
+        }
         syncUI(accumulatedContent);
         if (data.continuation) needsContinuation = true;
       }
@@ -481,6 +533,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       suggestions,
       taskSteps: [...taskSteps],
       isStreaming: false,
+      ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),
       ...(artifact ? {
         planContent: artifact.markdown,
         planSavedToDb: false,
@@ -536,7 +589,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
               connectionQuery: userMsg.content,
               pageContext,
               skip_action: stepCount > 0,
-              brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent); return ab ? (ab as BrandRow)._rowId : undefined; })(),
+              brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent); return ab ? (ab as BrandRow)._rowId : undefined; })(),
               workspaceId: activeWorkspaceId,
               sessionMemory: sessionMemory || undefined,
               taskType: "crawl",

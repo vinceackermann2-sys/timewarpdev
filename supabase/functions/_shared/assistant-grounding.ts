@@ -1,9 +1,18 @@
 import type { AssistantReplyContract } from "./assistant-reply-contract.ts";
+import { DATA_BACKED_DECISION_TRIAD } from "./data-backed-decision-triad.ts";
+import { LIVE_SOURCE_CITATION_INSTRUCTIONS } from "./live-source-citations.ts";
 
 const BUSINESS_AUTHORITY_BLOCK = `
 ## Business profile vs user claims
 - When a user assertion conflicts with **Business Operating Profile** or grounded data you have, say so clearly and side with the evidence.
 - Do not quietly replace recorded KPI priorities, constraints, or ICP with the user's preferred framing — explain the tradeoff instead.
+`.trim();
+
+const AI_SELF_IDENTITY_BLOCK = `
+## How you refer to yourself (user-facing)
+- If you speak in first person, describe yourself only as **an AI** helping with the task (e.g. "I'm an AI that…" or just answer without a role preamble).
+- **Never** call yourself a CEO, AI CEO, executive, copilot, chatbot, virtual assistant, agent, employee, advisor persona, or any job title at the user's company.
+- Do **not** open with "As your AI CEO…", "As your assistant…", "As your agent…", or similar. Start with the answer.
 `.trim();
 
 const EPISTEMIC_BLOCK = `
@@ -23,8 +32,10 @@ These rules override generic formatting when "Connected Sources (Live Search Res
 1. **NEVER invent live data** from connected tools (Gmail, Google Drive/Docs/Sheets/Slides, Google Calendar, Outlook, OneDrive, OneNote, Slack, HubSpot, Zoom, Teams). You may ONLY reference items that literally appear above under live/connected results (e.g. lines starting with "### Live Data" or content under "## Connected Sources (Live Search Results)").
 2. **If the lookup outcome says no matches**, say plainly that nothing matched in the searched tools. Do NOT fabricate titles, subjects, names, dates, deals, or meetings.
 3. **If a tool is skipped as not connected**, say it is not connected — do not invent results for it.
-4. **Never fabricate** file IDs, URLs, timestamps, sender names, or other identifiers for live data.
+4. **Never fabricate** file IDs, timestamps, sender names, or other identifiers for live data. The only allowed synthetic links for live rows are markdown \`twcite:twsrc_N\` citations (see below) — use **only** ids from **Citation:** lines in the live section.
 5. For "last/recent N" requests, list ONLY items shown above; if fewer than N, say so.
+
+${LIVE_SOURCE_CITATION_INSTRUCTIONS}
 `.trim();
 
 const EVIDENCE_MAP_HINT = `
@@ -98,11 +109,13 @@ Authenticity requirements:
 /** Grounding and behavior rules appended to system prompts for assistant chat surfaces. */
 export function buildAssistantGroundingBlock(contract: AssistantReplyContract): string {
   if (contract === "live_lookup") {
-    return [BUSINESS_AUTHORITY_BLOCK, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
   }
   if (contract === "strategic_plan") {
     return [
       BUSINESS_AUTHORITY_BLOCK,
+      AI_SELF_IDENTITY_BLOCK,
+      DATA_BACKED_DECISION_TRIAD,
       EPISTEMIC_BLOCK,
       LIVE_DATA_BLOCK,
       EXECUTIVE_LIVE_INVENTORY,
@@ -112,5 +125,5 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EVIDENCE_MAP_HINT,
     ].join("\n\n");
   }
-  return [BUSINESS_AUTHORITY_BLOCK, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
 }

@@ -10,6 +10,7 @@ import { useExtensionBridge } from "@/hooks/useExtensionBridge";
 import { InlineChatAnalytics } from "./InlineChatAnalytics";
 import { InlineDocument, InlineSpreadsheet, InlineSlide } from "./InlineChatGraphics";
 import { TaskStepsDisplay } from "./TaskStepsDisplay";
+import { ChatDashboardCards } from "./ChatDashboardCards";
 import { ThinkingTimer } from "./ThinkingTimer";
 import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 import { SettingsView } from "@/components/database/SettingsView";
@@ -35,6 +36,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { extractSuggestions } from "@/lib/parseSuggestions";
+import { buildLiveCitationAnchor } from "@/components/chat/liveCitationAnchor";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoGoogle from "@/assets/logo-google.png";
 import logoSlack from "@/assets/logo-slack.png";
@@ -205,7 +207,7 @@ export function AgentChatView({
   const { extensionConnected, detecting, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
 
   /* ── Agents = brands from Business DNA ── */
-  const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI CEO" }));
+  const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI" }));
 
   /* ── Employees (from DB) ── */
   const [employees, setEmployees] = useState<AIEmployee[]>([]);
@@ -470,7 +472,7 @@ export function AgentChatView({
   const [connectedProviders, setConnectedProviders] = useState<Record<string, boolean>>({});
   const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
-  const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+  const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
   const resolvedBrandId = activeBrandId || activeBrandForConnections?.id || null;
 
   const fetchResumableTask = useCallback(async () => {
@@ -640,7 +642,7 @@ export function AgentChatView({
   useEffect(() => {
     if (activeBrandId) {
       const brand = brands.find(b => b.id === activeBrandId);
-      if (brand) setSelectedAgent(brand.agentName || brand.name || "AI CEO");
+      if (brand) setSelectedAgent(brand.agentName || brand.name || "AI");
     } else if (agents.length > 0 && !selectedAgent) {
       setSelectedAgent(agents[0].name);
     }
@@ -1607,7 +1609,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         </button>
         <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground">
           <Bot className="w-4 h-4 text-muted-foreground" />
-          {selectedAgent || "AI CEO"}
+          {selectedAgent || "AI"}
         </div>
       </header>
 
@@ -1698,6 +1700,12 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           frozenElapsed={msg.elapsedSeconds}
                         />
                       )}
+                      {(!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
+                        <ChatDashboardCards
+                          cards={msg.dashboardCards || []}
+                          openingSummary={msg.dashboardOpeningSummary}
+                        />
+                      )}
                       {/* Main content */}
                       {msg.content && (
                         <ReactMarkdown
@@ -1747,7 +1755,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                             thead: ({children}) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
                             th: ({children}) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px]">{children}</th>,
                             td: ({children}) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80">{children}</td>,
-                            a: ({children, href}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">{children}</a>,
+                            a: buildLiveCitationAnchor(msg.liveSourceRegistry),
                           }}
                         >{msg.content}</ReactMarkdown>
                       )}
@@ -2117,7 +2125,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 {settingsTab === "safety" && (
                   <div className="flex-1">
                     {(() => {
-                      const activeBrand = brands.find(b => (b.agentName || b.name || "AI CEO") === selectedAgent);
+                      const activeBrand = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
                       if (activeBrand) {
                         return <SettingsView activeBrandId={activeBrand.id} />;
                       }

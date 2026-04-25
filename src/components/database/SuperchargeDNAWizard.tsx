@@ -24,6 +24,8 @@ interface ConnectedProvider {
 
 type SuperchargeStep = 1 | 2 | 3;
 
+type EvidenceModeOption = "blend" | "internal" | "external" | "feedback_first";
+
 type UploadArtifact = {
   name: string;
   text: string;
@@ -80,6 +82,7 @@ export function SuperchargeDNAWizard({
     { label: "Validating against pillars", done: false },
     { label: "Saving supercharged DNA", done: false },
   ]);
+  const [evidenceMode, setEvidenceMode] = useState<EvidenceModeOption>("blend");
 
   const reset = () => {
     setStep(1);
@@ -90,6 +93,7 @@ export function SuperchargeDNAWizard({
     setRunning(false);
     setConnectingProvider(null);
     setForgingTodos((prev) => prev.map((t) => ({ ...t, done: false })));
+    setEvidenceMode("blend");
   };
 
   const checkConnections = async () => {
@@ -207,7 +211,13 @@ export function SuperchargeDNAWizard({
       setTimeout(() => markTodo(2), 2200);
 
       const { data, error } = await supabase.functions.invoke("supercharge-dna", {
-        body: { brandId, workspaceId: null, urls, artifacts },
+        body: {
+          brandId,
+          workspaceId: null,
+          urls,
+          artifacts,
+          evidenceMode,
+        },
       });
       if (error) throw error;
       const remoteLogs = Array.isArray(data?.logs) ? data.logs.map((x: unknown) => String(x)) : [];
@@ -634,6 +644,23 @@ export function SuperchargeDNAWizard({
           </div>
 
           <div className="rounded-3xl border border-black/5 bg-gradient-to-b from-[#f1f5fc] to-[#e8eef9] p-9 shadow-sm">
+            <div className="mb-5 max-w-md">
+              <label htmlFor="supercharge-evidence-mode" className="block text-xs font-semibold uppercase tracking-wide text-[#697386] mb-1.5">
+                Evidence emphasis
+              </label>
+              <select
+                id="supercharge-evidence-mode"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={evidenceMode}
+                onChange={(e) => setEvidenceMode(e.target.value as EvidenceModeOption)}
+                disabled={running}
+              >
+                <option value="blend">Blend - KPIs, learning, comms, and cited web</option>
+                <option value="internal">Internal first - performance, learning, mail/chat</option>
+                <option value="external">External first - benchmarks and audience snippets</option>
+                <option value="feedback_first">This run first - files and URLs you added above</option>
+              </select>
+            </div>
             <div className="flex items-center gap-3 mb-6">
               <div className="h-10 w-10 rounded-xl bg-[#4a86ff]/10 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-[#4a86ff]" />

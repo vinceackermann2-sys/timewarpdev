@@ -1,9 +1,26 @@
-export type FieldSourceMode = "website_or_onboarding" | "web_evidence_required" | "integration_preferred" | "integration_only";
+export type FieldSourceMode =
+  | "website_or_onboarding"
+  | "web_evidence_required"
+  | "integration_preferred"
+  | "integration_only"
+  | "internal_or_competitor_cited";
 
 const POLICY: Record<string, FieldSourceMode> = {
   "market.definition.tam": "web_evidence_required",
   "market.definition.sam": "web_evidence_required",
   "market.definition.som": "web_evidence_required",
+  "market.competitors": "internal_or_competitor_cited",
+  "financial.unit_economics": "integration_preferred",
+  "financial.profitability": "integration_preferred",
+  "financial.revenue_arch": "website_or_onboarding",
+  "financial.projections": "web_evidence_required",
+  "growth.growth_model": "internal_or_competitor_cited",
+  "growth.channels": "internal_or_competitor_cited",
+  "growth.experiments": "internal_or_competitor_cited",
+  "strategy.bets": "internal_or_competitor_cited",
+  "strategy.milestones": "internal_or_competitor_cited",
+  "product.roadmap": "internal_or_competitor_cited",
+  "audience.journey": "internal_or_competitor_cited",
   "people.org_chart": "integration_only",
   "people.leadership": "integration_only",
 };

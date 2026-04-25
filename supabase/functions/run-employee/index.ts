@@ -33,6 +33,7 @@ import {
 } from "../_shared/guardrails.ts";
 import { runEmployeeRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
+import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -252,12 +253,14 @@ serve(async (req) => {
       logLine: continuationIndex > 0 ? `Resuming continuation ${continuationIndex}` : "Started long task run",
     });
 
+    let dashboardMarkdownAppend = "";
     const buildAiResponse = async (
       relevantContext: string,
       connectionContext: string,
       emitContent?: (delta: string) => void,
     ) => {
-      const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}`;
+      const fullContext =
+        `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdownAppend}`;
       const systemPrompt = isBrowserMode
         ? buildBrowserSystemPrompt(employee, identity, fullContext, pageContext, safetySettings)
         : buildEmployeeChatPrompt(employee, identity, fullContext, safetySettings, replyContract);
@@ -391,7 +394,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         workspace_id: effectiveWsId,
         linked_business_id: effectiveBrandId,
       }, lastUserMsg);
-      const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, connectionLookupQuery);
+      const { connectionContext, sourceRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, connectionLookupQuery);
       const result = await buildAiResponse(relevantContext, connectionContext);
       await logBusinessLearningEvent(supabase, {
         userId: user.id,
@@ -412,7 +415,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
           outcome: result.continuation ? "negative" : "positive",
         },
       });
-      return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic }), {
+      return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic, liveSourceRegistry: sourceRegistry }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -452,13 +455,29 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
             }, lastUserMsg);
             sendStep(`Loaded your business context on ${topic}`, "done", "context");
 
-            const { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
+            const { connectionContext, sourceRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
               supabase,
               user.id,
               connectionLookupQuery,
               (step) => send({ type: "progress", step }),
               topic,
             );
+            if (sourceRegistry && Object.keys(sourceRegistry).length > 0) {
+              send({ type: "live_sources", registry: sourceRegistry });
+            }
+
+            dashboardMarkdownAppend = "";
+            if (effectiveBrandId && lastUserMsg) {
+              sendStep("Dashboard snapshot", "running", "context");
+              const dash = await resolveDashboardCardsForChat(supabase, {
+                userId: user.id,
+                brandId: effectiveBrandId,
+                userMessage: lastUserMsg,
+                send,
+              });
+              dashboardMarkdownAppend = dash.markdown;
+              sendStep("Dashboard snapshot", "done", "context");
+            }
 
             let result: { content: string; continuation?: boolean };
 
@@ -505,7 +524,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               },
             });
 
-            send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic });
+            send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic, liveSourceRegistry: sourceRegistry });
             if (heartbeat) clearInterval(heartbeat);
             close();
           } catch (error: any) {

@@ -13,6 +13,12 @@ describe("dnaSupercharge helpers", () => {
     expect(getFieldSourceMode("people.leadership")).toBe("integration_only");
   });
 
+  it("routes roadmap and growth fields to internal_or_competitor_cited", () => {
+    expect(getFieldSourceMode("product.roadmap")).toBe("internal_or_competitor_cited");
+    expect(getFieldSourceMode("growth.experiments")).toBe("internal_or_competitor_cited");
+    expect(getFieldSourceMode("strategy.bets")).toBe("internal_or_competitor_cited");
+  });
+
   it("parses market evidence safely", () => {
     const parsed = parseMarketEvidenceItems([
       { url: "https://example.com/a", title: "A", excerpt: " Market growth 2026 " },

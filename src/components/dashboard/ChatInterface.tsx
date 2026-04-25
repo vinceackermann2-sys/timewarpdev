@@ -182,10 +182,10 @@ export function ChatInterface() {
             <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center mb-6">
               <Bot className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h2 className="text-2xl font-semibold mb-2">Welcome to AI CEO</h2>
+            <h2 className="text-2xl font-semibold mb-2">Welcome</h2>
             <p className="text-muted-foreground max-w-md mb-8">
-              I'm your AI executive assistant. Ask me anything about your business, 
-              and I'll help you analyze data and take action.
+              I'm an AI that can help with your business — ask questions, explore your data,
+              and get clear next steps.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
@@ -254,7 +254,7 @@ export function ChatInterface() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask AI CEO anything..."
+              placeholder="Ask anything about your business..."
               className="min-h-[52px] max-h-32 resize-none pr-12"
               disabled={isLoading}
               rows={1}
@@ -273,7 +273,7 @@ export function ChatInterface() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground text-center mt-2">
-            AI CEO can make mistakes. Verify important information.
+            AI can make mistakes. Verify important information.
           </p>
         </form>
       </div>

@@ -617,16 +617,17 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   useEffect(() => {
     if (!activeBrand) return;
     setStale(false);
-    const cached = loadCachedCards(activeBrand.id);
+    const brandRowId = (activeBrand as { _rowId?: string })._rowId || activeBrand.id;
+    const cached = loadCachedCards(brandRowId);
     const cachedHasCards = cached && Object.values(cached).some((arr) => Array.isArray(arr) && arr.length > 0);
-    const staleCache = isCacheStale(activeBrand.id);
+    const staleCache = isCacheStale(brandRowId);
     if (cachedHasCards) {
       setAllTabCards(cached!);
       // Auto-refresh in background if cache is stale (older than threshold or invalidated)
-      if (staleCache) fetchInsights(activeBrand.id);
+      if (staleCache) fetchInsights(brandRowId);
     } else {
       // Empty cache — always refetch so user sees fresh data
-      fetchInsights(activeBrand.id);
+      fetchInsights(brandRowId);
     }
   }, [activeBrand?.id]);
 
@@ -660,7 +661,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const handleRefresh = () => {
     if (!activeBrand || loading) return;
     setStale(false);
-    fetchInsights(activeBrand.id);
+    const brandRowId = (activeBrand as { _rowId?: string })._rowId || activeBrand.id;
+    fetchInsights(brandRowId);
   };
 
   const trackLearningEvent = useCallback(async (

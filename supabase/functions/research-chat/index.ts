@@ -3,11 +3,13 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import { searchConnectedProviders } from "../_shared/run-employee/connections.ts";
 import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
 import { buildAssistantGroundingBlock } from "../_shared/assistant-grounding.ts";
+import { encodeLiveSourceRegistryHeader, type LiveSourceRegistry } from "../_shared/live-source-citations.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Expose-Headers": "x-tw-live-sources",
 };
 
 async function fetchUserBusinessContext(userId: string, workspaceId?: string): Promise<string> {
@@ -130,6 +132,7 @@ serve(async (req) => {
     // Get user ID from auth token
     let userContext = "";
     let liveConnectionsContext = "";
+    let liveSourceRegistryForResponse: LiveSourceRegistry = {};
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabase.auth.getUser(token);
@@ -149,8 +152,9 @@ serve(async (req) => {
         try {
           const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
           if (lastUserMsg) {
-            const { connectionContext } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+            const { connectionContext, sourceRegistry } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
             liveConnectionsContext = connectionContext || "";
+            liveSourceRegistryForResponse = sourceRegistry || {};
           }
         } catch (e) {
           console.error("[research-chat] live connector search failed:", e);
@@ -204,7 +208,7 @@ Lead with live connector findings, then supporting business context.`
       : `## Response shape (default)
 Answer naturally and concisely without forcing a template.`;
 
-    const systemPrompt = `You are an elite AI CEO and executive strategist — decisive, analytical, and unafraid to challenge assumptions. You have FULL ACCESS to the user's actual business data below — this includes the complete text of emails, documents, transcriptions, analysis results, and all uploaded content. You CAN and SHOULD read, reference, and quote this data directly.
+    const systemPrompt = `You are an AI that helps with business strategy and execution — decisive, analytical, and willing to challenge weak assumptions. You have FULL ACCESS to the user's actual business data below — this includes the complete text of emails, documents, transcriptions, analysis results, and all uploaded content. You CAN and SHOULD read, reference, and quote this data directly. Describe yourself only as an AI if needed — never as a CEO, executive, assistant, agent, employee, or other role title.
 
 ${userContext}
 ${liveConnectionsContext}
@@ -302,8 +306,13 @@ ${responseShape}
       throw new Error("AI service unavailable");
     }
 
+    const regHeader = encodeLiveSourceRegistryHeader(liveSourceRegistryForResponse);
     return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        ...(regHeader ? { "x-tw-live-sources": regHeader } : {}),
+      },
     });
   } catch (e) {
     console.error("research-chat error occurred");

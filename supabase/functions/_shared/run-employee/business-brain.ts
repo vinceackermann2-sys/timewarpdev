@@ -1,4 +1,5 @@
 import { edgeLog, userIdShort } from "../edge-logger.ts";
+import { fetchObjectiveSignal } from "../performance-evidence.ts";
 
 type BrainLoadParams = {
   userId: string;
@@ -253,52 +254,6 @@ async function loadThemeWeightsSummary(supabase: any, businessId: string): Promi
     improving: positive,
     degrading: negative,
   };
-}
-
-async function fetchObjectiveSignal(supabase: any, businessId: string, days: number): Promise<{ score: number; count: number }> {
-  const now = Date.now();
-  const windowMs = days * 24 * 60 * 60 * 1000;
-  const currentStart = new Date(now - windowMs).toISOString();
-  const previousStart = new Date(now - (windowMs * 2)).toISOString();
-  const nowIso = new Date(now).toISOString();
-
-  const { data: rows } = await supabase
-    .from("dashboard_objective_outcomes")
-    .select("delta_value, current_value, target_value, created_at")
-    .eq("business_id", businessId)
-    .gte("created_at", previousStart)
-    .lt("created_at", nowIso)
-    .limit(400);
-
-  const allRows = rows || [];
-  const currentRows = allRows.filter((r: any) => String(r.created_at) >= currentStart);
-  const previousRows = allRows.filter((r: any) => String(r.created_at) < currentStart);
-
-  const summarize = (subset: any[]) => {
-    const deltas = subset.map((r) => Number(r.delta_value)).filter((v) => Number.isFinite(v));
-    const progress = subset
-      .map((r) => {
-        const cur = Number(r.current_value);
-        const target = Number(r.target_value);
-        if (!Number.isFinite(cur) || !Number.isFinite(target) || Math.abs(target) < 0.0001) return null;
-        return clamp(cur / target, -2, 2);
-      })
-      .filter((v) => v !== null) as number[];
-
-    return {
-      deltaAvg: average(deltas),
-      progressAvg: average(progress),
-      count: subset.length,
-    };
-  };
-
-  const curr = summarize(currentRows);
-  const prev = summarize(previousRows);
-  const deltaShift = curr.deltaAvg - prev.deltaAvg;
-  const progressShift = curr.progressAvg - prev.progressAvg;
-  const combined = normalizeSigned((deltaShift * 0.7) + (progressShift * 0.3), 1.2, 0.8);
-
-  return { score: combined, count: curr.count + prev.count };
 }
 
 async function fetchDashboardEventSignal(supabase: any, businessId: string, days: number): Promise<{ score: number; count: number }> {

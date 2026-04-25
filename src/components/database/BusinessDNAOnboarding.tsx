@@ -724,6 +724,7 @@ export function BusinessDNAOnboarding({
             brandId: finalBrandId,
             brandRowId: rowId,
             workspaceId: data.workspaceId || null,
+            evidenceMode: "blend",
           }).catch((e) => {
             console.warn("Pillar enrichment failed (non-blocking):", e);
           });

@@ -1,3 +1,4 @@
+import { useMemo, type ReactNode } from "react";
 import { 
   Sparkles, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, 
   Lightbulb, BarChart3, Users, Mail, Calendar, FileText, Loader2,
@@ -8,6 +9,8 @@ import ReactMarkdown from "react-markdown";
 import { extractSuggestions } from "@/lib/parseSuggestions";
 import { Brain } from "lucide-react";
 import { ProgressiveLoader } from "@/components/ui/progressive-loader";
+import { buildLiveCitationAnchor } from "@/components/chat/liveCitationAnchor";
+import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 
 export interface InsightCard {
   icon: string;
@@ -22,6 +25,7 @@ export interface DatabaseChatMessageProps {
   content: string;
   insightCards?: InsightCard[];
   isStreaming?: boolean;
+  liveSourceRegistry?: LiveSourceRegistry;
 }
 
 // Parse insight cards from response: [INSIGHT:icon|title|value|trend|trendValue]
@@ -50,7 +54,7 @@ export function parseSuggestions(text: string): { content: string; suggestions: 
   return extractSuggestions(text);
 }
 
-const iconMap: Record<string, React.ReactNode> = {
+const iconMap: Record<string, ReactNode> = {
   "📊": <BarChart3 className="h-4 w-4" />,
   "📈": <TrendingUp className="h-4 w-4" />,
   "📉": <TrendingDown className="h-4 w-4" />,
@@ -68,7 +72,61 @@ const iconMap: Record<string, React.ReactNode> = {
   "⚡": <Zap className="h-4 w-4" />,
 };
 
-export function DatabaseChatMessage({ role, content, insightCards, isStreaming }: DatabaseChatMessageProps) {
+export function DatabaseChatMessage({ role, content, insightCards, isStreaming, liveSourceRegistry }: DatabaseChatMessageProps) {
+  const mdComponents = useMemo(
+    () => ({
+      h1: ({ children }: { children?: ReactNode }) => (
+        <h1 className="text-lg font-bold text-foreground mt-4 mb-2 border-b border-primary/30 pb-1">{children}</h1>
+      ),
+      h2: ({ children }: { children?: ReactNode }) => (
+        <h2 className="text-base font-semibold text-foreground mt-3 mb-2">{children}</h2>
+      ),
+      h3: ({ children }: { children?: ReactNode }) => (
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mt-4 mb-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          {children}
+        </h3>
+      ),
+      strong: ({ children }: { children?: ReactNode }) => (
+        <strong className="font-semibold text-primary">{children}</strong>
+      ),
+      li: ({ children }: { children?: ReactNode }) => (
+        <li className="flex items-start gap-2 text-foreground/90 my-1">
+          <span className="text-primary text-sm mt-0.5">✦</span>
+          <span>{children}</span>
+        </li>
+      ),
+      ul: ({ children }: { children?: ReactNode }) => (
+        <ul className="my-2 space-y-1 list-none pl-0">{children}</ul>
+      ),
+      p: ({ children }: { children?: ReactNode }) => (
+        <p className="text-foreground/90 my-2 leading-relaxed">{children}</p>
+      ),
+      blockquote: ({ children }: { children?: ReactNode }) => (
+        <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-foreground/80 italic">{children}</blockquote>
+      ),
+      table: ({ children }: { children?: ReactNode }) => (
+        <div className="my-3 w-full overflow-x-auto rounded-lg border border-border">
+          <table className="w-full border-collapse text-sm">{children}</table>
+        </div>
+      ),
+      thead: ({ children }: { children?: ReactNode }) => (
+        <thead className="bg-muted/50">{children}</thead>
+      ),
+      th: ({ children }: { children?: ReactNode }) => (
+        <th className="border-b border-border px-4 py-2 text-left font-semibold text-foreground text-xs">{children}</th>
+      ),
+      tr: ({ children }: { children?: ReactNode }) => (
+        <tr className="border-b border-border/50 last:border-0">{children}</tr>
+      ),
+      td: ({ children }: { children?: ReactNode }) => (
+        <td className="px-4 py-2 text-foreground/90 text-sm">{children}</td>
+      ),
+      a: buildLiveCitationAnchor(liveSourceRegistry),
+    }),
+    [liveSourceRegistry],
+  );
+
   if (role === "user") {
     return (
       <div className="bg-primary text-primary-foreground ml-auto max-w-[75%] w-fit rounded-lg px-3 py-1.5 text-[12px] font-medium">
@@ -147,55 +205,7 @@ export function DatabaseChatMessage({ role, content, insightCards, isStreaming }
           isStreaming && "streaming-text"
         )}>
           <ReactMarkdown
-            components={{
-              h1: ({ children }) => (
-                <h1 className="text-lg font-bold text-foreground mt-4 mb-2 border-b border-primary/30 pb-1">{children}</h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-base font-semibold text-foreground mt-3 mb-2">{children}</h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mt-4 mb-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  {children}
-                </h3>
-              ),
-              strong: ({ children }) => (
-                <strong className="font-semibold text-primary">{children}</strong>
-              ),
-              li: ({ children }) => (
-                <li className="flex items-start gap-2 text-foreground/90 my-1">
-                  <span className="text-primary text-sm mt-0.5">✦</span>
-                  <span>{children}</span>
-                </li>
-              ),
-              ul: ({ children }) => (
-                <ul className="my-2 space-y-1 list-none pl-0">{children}</ul>
-              ),
-              p: ({ children }) => (
-                <p className="text-foreground/90 my-2 leading-relaxed">{children}</p>
-              ),
-              blockquote: ({ children }) => (
-                <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-foreground/80 italic">{children}</blockquote>
-              ),
-              table: ({ children }) => (
-                <div className="my-3 w-full overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full border-collapse text-sm">{children}</table>
-                </div>
-              ),
-              thead: ({ children }) => (
-                <thead className="bg-muted/50">{children}</thead>
-              ),
-              th: ({ children }) => (
-                <th className="border-b border-border px-4 py-2 text-left font-semibold text-foreground text-xs">{children}</th>
-              ),
-              tr: ({ children }) => (
-                <tr className="border-b border-border/50 last:border-0">{children}</tr>
-              ),
-              td: ({ children }) => (
-                <td className="px-4 py-2 text-foreground/90 text-sm">{children}</td>
-              ),
-            }}
+            components={mdComponents}
           >
             {content}
           </ReactMarkdown>

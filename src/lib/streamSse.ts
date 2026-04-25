@@ -3,6 +3,8 @@
  * (`data: {JSON}` lines, optional `data: [DONE]`).
  */
 
+import type { LiveSourceRegistry } from "./liveSourceRegistry";
+
 export type AgentSseProgressStep = {
   label: string;
   status: "running" | "done" | "error";
@@ -10,10 +12,19 @@ export type AgentSseProgressStep = {
   detail?: string;
 };
 
+export type DashboardCardsSsePayload = {
+  cards?: unknown[];
+  openingSummary?: string | null;
+  healthScore?: unknown;
+  tabs?: string[];
+};
+
 export type AgentSseHandlers = {
   onProgressStep?: (step: AgentSseProgressStep) => void;
   onContentDelta?: (delta: string) => void;
-  onResult?: (evt: { content?: string; continuation?: boolean }) => void;
+  onResult?: (evt: { content?: string; continuation?: boolean; liveSourceRegistry?: LiveSourceRegistry }) => void;
+  onLiveSources?: (registry: LiveSourceRegistry) => void;
+  onDashboardCards?: (evt: DashboardCardsSsePayload) => void;
   onErrorMessage?: (message: string) => void;
 };
 
@@ -44,6 +55,10 @@ export async function consumeAgentChatSseStream(
           handlers.onProgressStep(evt.step);
         } else if (evt.type === "content" && evt.delta && handlers.onContentDelta) {
           handlers.onContentDelta(evt.delta);
+        } else if (evt.type === "dashboard_cards" && handlers.onDashboardCards) {
+          handlers.onDashboardCards(evt as DashboardCardsSsePayload);
+        } else if (evt.type === "live_sources" && evt.registry && handlers.onLiveSources) {
+          handlers.onLiveSources(evt.registry as LiveSourceRegistry);
         } else if (evt.type === "result" && handlers.onResult) {
           handlers.onResult(evt);
         } else if (evt.type === "error") {

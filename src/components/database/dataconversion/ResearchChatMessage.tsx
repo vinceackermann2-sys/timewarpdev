@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { 
   Sparkles, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, 
   Lightbulb, BarChart3, Users, Mail, Calendar, FileText, Loader2,
@@ -9,6 +9,8 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Brain } from "lucide-react";
 import { ProgressiveLoader } from "@/components/ui/progressive-loader";
+import { buildLiveCitationAnchor } from "@/components/chat/liveCitationAnchor";
+import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 
 export interface InsightCard {
   icon: string;
@@ -23,6 +25,7 @@ export interface ResearchChatMessageProps {
   content: string;
   insightCards?: InsightCard[];
   isStreaming?: boolean;
+  liveSourceRegistry?: LiveSourceRegistry;
 }
 
 // Parse insight cards from response: [INSIGHT:icon|title|value|trend|trendValue]
@@ -61,7 +64,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "ℹ️": <Info className="h-4 w-4" />,
 };
 
-const markdownComponents = {
+const markdownComponentsBase = {
   h1: ({ children }: any) => (
     <h1 className="text-base font-extrabold text-foreground mt-5 mb-2.5 pb-1.5 border-b border-border/30 uppercase tracking-wide">
       {children}
@@ -139,8 +142,15 @@ const markdownComponents = {
   },
 };
 
-export function ResearchChatMessage({ role, content, insightCards, isStreaming }: ResearchChatMessageProps) {
+export function ResearchChatMessage({ role, content, insightCards, isStreaming, liveSourceRegistry }: ResearchChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const markdownComponents = useMemo(
+    () => ({
+      ...markdownComponentsBase,
+      a: buildLiveCitationAnchor(liveSourceRegistry),
+    }),
+    [liveSourceRegistry],
+  );
 
   if (role === "user") {
     return (

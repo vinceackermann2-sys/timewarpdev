@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ExternalLink, FileText, Mail, Calendar, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowRight, Table2, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Brain } from "lucide-react";
 import { ProgressiveLoader } from "@/components/ui/progressive-loader";
+import { buildLiveCitationAnchor } from "@/components/chat/liveCitationAnchor";
+import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 
 export interface ActionStep {
   icon: string;
@@ -25,9 +27,10 @@ export interface ActionChatMessageProps {
   steps?: ActionStep[];
   documentLinks?: DocumentLink[];
   isStreaming?: boolean;
+  liveSourceRegistry?: LiveSourceRegistry;
 }
 
-const markdownComponents = {
+const markdownComponentsBase = {
   h1: ({ children }: any) => (
     <h1 className="text-base font-extrabold text-foreground mt-5 mb-2.5 pb-1.5 border-b border-border/30 uppercase tracking-wide">
       {children}
@@ -105,8 +108,15 @@ const markdownComponents = {
   },
 };
 
-export function ActionChatMessage({ role, content, steps, documentLinks, isStreaming }: ActionChatMessageProps) {
+export function ActionChatMessage({ role, content, steps, documentLinks, isStreaming, liveSourceRegistry }: ActionChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const markdownComponents = useMemo(
+    () => ({
+      ...markdownComponentsBase,
+      a: buildLiveCitationAnchor(liveSourceRegistry),
+    }),
+    [liveSourceRegistry],
+  );
 
   if (role === "user") {
     return (

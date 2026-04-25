@@ -3,8 +3,11 @@
 import { getValidAccessToken, getAnyMicrosoftToken as _getAnyMicrosoftToken } from "../oauth/refresh.ts";
 import { buildConnectorSearchIntentProfile } from "../connector-search-intent.ts";
 import { shouldSearchConnections } from "../connection-search-decision.ts";
+import type { LiveContextChunk, LiveSourceRegistry } from "../live-source-citations.ts";
+import { appendLiveChunks } from "../live-source-citations.ts";
 
 export { shouldSearchConnections };
+export type { LiveContextChunk, LiveSourceRegistry } from "../live-source-citations.ts";
 
 const STOPWORDS = new Set(["this","that","with","from","have","been","were","they","their","what","about","which","when","where","will","would","could","should","there","these","those","some","other","into","more","also","than","then","just","only","very","much","such","like","over","after","before","between","under","each","every","both","most","same","does","doing","done","make","made","know","think","want","need","help","find","give","tell","show","look","come","back","take","well","still","even","here","many","while"]);
 
@@ -112,9 +115,9 @@ export async function getValidProviderToken(supabaseAdmin: any, userId: string, 
   return getValidAccessToken(supabaseAdmin, userId, provider);
 }
 
-export async function searchMicrosoftData(token: string, query: string, topic?: string, options?: { searchEmails?: boolean; searchFiles?: boolean }): Promise<{ emails: string[]; files: string[] }> {
+export async function searchMicrosoftData(token: string, query: string, topic?: string, options?: { searchEmails?: boolean; searchFiles?: boolean }): Promise<{ emails: LiveContextChunk[]; files: LiveContextChunk[] }> {
   const { searchEmails = true, searchFiles = true } = options || {};
-  const results = { emails: [] as string[], files: [] as string[] };
+  const results = { emails: [] as LiveContextChunk[], files: [] as LiveContextChunk[] };
   const seenEmails = new Set<string>();
   const seenFiles = new Set<string>();
   const searchTerms = buildSearchTerms(query, topic);
@@ -128,7 +131,7 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
     try {
       if (searchEmails && results.emails.length < 5) {
         const emailRes = await fetch(
-          `https://graph.microsoft.com/v1.0/me/messages?$search="${encodedTerm}"&$top=5&$select=subject,bodyPreview,from,receivedDateTime`,
+          `https://graph.microsoft.com/v1.0/me/messages?$search="${encodedTerm}"&$top=5&$select=id,subject,bodyPreview,from,receivedDateTime`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -146,7 +149,11 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
             const key = `${subject}|${from}|${receivedAt}`;
             if (seenEmails.has(key)) continue;
             seenEmails.add(key);
-            results.emails.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${receivedAt}\nBODY: ${preview}`);
+            const webUrl = msg.id ? `https://outlook.office.com/mail/inbox/id/${encodeURIComponent(msg.id)}` : null;
+            results.emails.push({
+              markdown: `📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${receivedAt}\nBODY: ${preview}`,
+              meta: { provider: "microsoft_outlook", kind: "email", title: subject, snippet: preview, webUrl },
+            });
             if (results.emails.length >= 5) break;
           }
         }
@@ -168,7 +175,16 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
               const fileKey = file.webUrl || `${file.name}|${file.lastModifiedDateTime || ""}`;
               if (seenFiles.has(fileKey)) continue;
               seenFiles.add(fileKey);
-              results.files.push(`📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+              results.files.push({
+                markdown: `📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""})${file.webUrl ? ` — [link](${file.webUrl})` : ""}`,
+                meta: {
+                  provider: "microsoft_onedrive",
+                  kind: "file",
+                  title: file.name || "File",
+                  snippet: `Modified ${file.lastModifiedDateTime?.slice(0, 10) || ""}`,
+                  webUrl: file.webUrl || null,
+                },
+              });
               if (results.files.length >= 5) break;
             }
           }
@@ -185,7 +201,16 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
             const fileKey = file.webUrl || `${file.name}|${file.lastModifiedDateTime || ""}`;
             if (seenFiles.has(fileKey)) continue;
             seenFiles.add(fileKey);
-            results.files.push(`📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""}) — [link](${file.webUrl || ""})`);
+            results.files.push({
+              markdown: `📄 **${file.name}** (modified: ${file.lastModifiedDateTime?.slice(0, 10) || ""})${file.webUrl ? ` — [link](${file.webUrl})` : ""}`,
+              meta: {
+                provider: "microsoft_onedrive",
+                kind: "file",
+                title: file.name || "File",
+                snippet: `Modified ${file.lastModifiedDateTime?.slice(0, 10) || ""}`,
+                webUrl: file.webUrl || null,
+              },
+            });
             if (results.files.length >= 5) break;
           }
         }
@@ -200,8 +225,8 @@ export async function searchMicrosoftData(token: string, query: string, topic?: 
   return results;
 }
 
-export async function searchOneNoteData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchOneNoteData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const seenPages = new Set<string>();
   const searchTerms = buildSearchTerms(query, topic);
   if (searchTerms.length === 0) return results;
@@ -224,7 +249,10 @@ export async function searchOneNoteData(token: string, query: string, topic?: st
           const key = `${title}|${modified}`;
           if (seenPages.has(key)) continue;
           seenPages.add(key);
-          results.push(`📝 **${title}** (modified: ${modified})${link ? ` — [link](${link})` : ""}`);
+          results.push({
+            markdown: `📝 **${title}** (modified: ${modified})${link ? ` — [link](${link})` : ""}`,
+            meta: { provider: "microsoft_onenote", kind: "note", title, snippet: modified, webUrl: link || null },
+          });
           if (results.length >= 5) break;
         }
       }
@@ -238,8 +266,8 @@ export async function searchOneNoteData(token: string, query: string, topic?: st
   return results;
 }
 
-export async function searchSlackData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchSlackData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const seenResults = new Set<string>();
   const searchTerms = buildSearchTerms(query, topic);
   if (searchTerms.length === 0) return results;
@@ -284,7 +312,16 @@ export async function searchSlackData(token: string, query: string, topic?: stri
           const key = `${channel.name}|${user}|${ts}|${preview.slice(0, 50)}`;
           if (seenResults.has(key)) continue;
           seenResults.add(key);
-          results.push(`💬 **#${channel.name}** (${user}, ${ts}): ${preview}`);
+          results.push({
+            markdown: `💬 **#${channel.name}** (${user}, ${ts}): ${preview}`,
+            meta: {
+              provider: "slack",
+              kind: "message",
+              title: `#${channel.name}`,
+              snippet: preview,
+              webUrl: null,
+            },
+          });
         }
       } catch (e) {
         console.error(`Slack channel ${channel.name} history error:`, e);
@@ -301,8 +338,8 @@ export async function searchSlackData(token: string, query: string, topic?: stri
 
 // --- Google Workspace search (query-scoped, low-usage) ---
 
-export async function searchGmailData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchGmailData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const searchTerms = buildSearchTerms(query, topic);
   // For generic "show me my recent emails" queries, list the inbox without a search term.
   // Detect a generic intent by checking if query matches recent/latest/last keywords.
@@ -334,15 +371,20 @@ export async function searchGmailData(token: string, query: string, topic?: stri
         const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
         const date = headers.find((h: any) => h.name === "Date")?.value || "";
         const snippet = (d.snippet || "").slice(0, 300);
-        results.push(`📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date}\nBODY: ${snippet}`);
+        const threadId = d.threadId || id;
+        const webUrl = threadId ? `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(threadId)}` : null;
+        results.push({
+          markdown: `📧 SUBJECT: "${subject}" | FROM: ${from} | DATE: ${date}\nBODY: ${snippet}`,
+          meta: { provider: "google_gmail", kind: "email", title: subject, snippet, webUrl },
+        });
       } catch { /* skip */ }
     }));
   } catch (e) { console.error("Gmail search error:", e); }
   return results.slice(0, 5);
 }
 
-export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchGoogleDriveData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const searchTerms = buildSearchTerms(query, topic);
   const isGenericRecent = isGenericRecentFileQuery(query) || (/\b(my\s+drive)\b/i.test(query) && !/\b(about|regarding|named|called|titled)\b/i.test(query));
 
@@ -358,7 +400,16 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
         for (const f of (d.files || []).slice(0, 5)) {
           const icon = f.mimeType?.includes("document") ? "📄" : f.mimeType?.includes("spreadsheet") ? "📊" : f.mimeType?.includes("presentation") ? "📽️" : "📁";
           const modified = f.modifiedTime?.slice(0, 10) || "";
-          results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
+          results.push({
+            markdown: `${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`,
+            meta: {
+              provider: "google_drive",
+              kind: "file",
+              title: f.name || "Drive file",
+              snippet: `Modified ${modified}`,
+              webUrl: f.webViewLink || null,
+            },
+          });
         }
       } else {
         if (r.status === 401 || r.status === 403) throw new Error("google_drive_permission_denied");
@@ -388,7 +439,16 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
         if (results.length >= 5) break;
         const icon = f.mimeType?.includes("document") ? "📄" : f.mimeType?.includes("spreadsheet") ? "📊" : f.mimeType?.includes("presentation") ? "📽️" : "📁";
         const modified = f.modifiedTime?.slice(0, 10) || "";
-        results.push(`${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`);
+        results.push({
+          markdown: `${icon} **${f.name}** (modified: ${modified})${f.webViewLink ? ` — [link](${f.webViewLink})` : ""}`,
+          meta: {
+            provider: "google_drive",
+            kind: "file",
+            title: f.name || "Drive file",
+            snippet: `Modified ${modified}`,
+            webUrl: f.webViewLink || null,
+          },
+        });
       }
     } catch (e) {
       if (e instanceof Error && e.message === "google_drive_permission_denied") throw e;
@@ -398,8 +458,8 @@ export async function searchGoogleDriveData(token: string, query: string, topic?
   return results;
 }
 
-export async function searchGoogleCalendarData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchGoogleCalendarData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const searchTerms = buildSearchTerms(query, topic);
   if (searchTerms.length === 0) return results;
   const q = searchTerms[0];
@@ -407,7 +467,7 @@ export async function searchGoogleCalendarData(token: string, query: string, top
     const now = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const future = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
     const r = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?q=${encodeURIComponent(q)}&timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(future)}&maxResults=5&singleEvents=true&orderBy=startTime`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?q=${encodeURIComponent(q)}&timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(future)}&maxResults=5&singleEvents=true&orderBy=startTime&fields=items(summary,htmlLink,start,attendees)`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
     if (!r.ok) return results;
@@ -421,8 +481,8 @@ export async function searchGoogleCalendarData(token: string, query: string, top
   return results;
 }
 
-export async function searchHubspotData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchHubspotData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const searchTerms = buildSearchTerms(query, topic);
   if (searchTerms.length === 0) return results;
   const q = searchTerms[0];
@@ -436,7 +496,12 @@ export async function searchHubspotData(token: string, query: string, topic?: st
     if (contactsRes.ok) {
       const d = await contactsRes.json();
       for (const c of (d.results || []).slice(0, 3)) {
-        results.push(`👤 ${c.properties?.firstname || ""} ${c.properties?.lastname || ""} (${c.properties?.email || "no email"}) — stage: ${c.properties?.lifecyclestage || "unknown"}`);
+        const ctitle = `${c.properties?.firstname || ""} ${c.properties?.lastname || ""}`.trim() || "Contact";
+        const line = `👤 ${ctitle} (${c.properties?.email || "no email"}) — stage: ${c.properties?.lifecyclestage || "unknown"}`;
+        results.push({
+          markdown: line,
+          meta: { provider: "hubspot", kind: "contact", title: ctitle, snippet: line, webUrl: null },
+        });
       }
     }
     // Search deals
@@ -448,15 +513,20 @@ export async function searchHubspotData(token: string, query: string, topic?: st
     if (dealsRes.ok) {
       const d = await dealsRes.json();
       for (const deal of (d.results || []).slice(0, 3)) {
-        results.push(`💼 ${deal.properties?.dealname || "Unnamed"} — $${deal.properties?.amount || "0"} (${deal.properties?.dealstage || "unknown"})`);
+        const dtitle = deal.properties?.dealname || "Unnamed";
+        const dline = `💼 ${dtitle} — $${deal.properties?.amount || "0"} (${deal.properties?.dealstage || "unknown"})`;
+        results.push({
+          markdown: dline,
+          meta: { provider: "hubspot", kind: "deal", title: dtitle, snippet: dline, webUrl: null },
+        });
       }
     }
   } catch (e) { console.error("HubSpot search error:", e); }
   return results.slice(0, 6);
 }
 
-export async function searchStripeData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchStripeData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const searchTerms = buildSearchTerms(query, topic);
   const q = searchTerms[0] || "";
   const headers = { Authorization: `Bearer ${token}`, "Stripe-Version": "2025-08-27.basil" };
@@ -470,7 +540,12 @@ export async function searchStripeData(token: string, query: string, topic?: str
       const data = await custRes.json();
       for (const c of (data.data || []).slice(0, 5)) {
         const created = c.created ? new Date(c.created * 1000).toISOString().slice(0, 10) : "";
-        results.push(`👤 **${c.name || c.email || c.id}** (${c.email || "no email"}) — created ${created}`);
+        const title = c.name || c.email || c.id || "Customer";
+        const line = `👤 **${title}** (${c.email || "no email"}) — created ${created}`;
+        results.push({
+          markdown: line,
+          meta: { provider: "stripe", kind: "customer", title, snippet: line, webUrl: null },
+        });
       }
     }
     // Recent charges
@@ -483,7 +558,11 @@ export async function searchStripeData(token: string, query: string, topic?: str
         const created = ch.created ? new Date(ch.created * 1000).toISOString().slice(0, 10) : "";
         const status = ch.status || "unknown";
         const cust = ch.billing_details?.email || ch.receipt_email || ch.customer || "no customer";
-        results.push(`💳 **${amount} ${(ch.currency || "").toUpperCase()}** — ${status} (${cust}) — ${created}`);
+        const line = `💳 **${amount} ${(ch.currency || "").toUpperCase()}** — ${status} (${cust}) — ${created}`;
+        results.push({
+          markdown: line,
+          meta: { provider: "stripe", kind: "charge", title: `${amount} ${(ch.currency || "").toUpperCase()}`, snippet: line, webUrl: null },
+        });
       }
     }
     // Active subscriptions
@@ -496,15 +575,19 @@ export async function searchStripeData(token: string, query: string, topic?: str
         const amount = item?.price?.unit_amount ? (item.price.unit_amount / 100).toFixed(2) : "?";
         const interval = item?.price?.recurring?.interval || "month";
         const cur = (item?.price?.currency || "").toUpperCase();
-        results.push(`🔁 Subscription **${amount} ${cur}/${interval}** — status ${s.status} — customer ${s.customer || "n/a"}`);
+        const line = `🔁 Subscription **${amount} ${cur}/${interval}** — status ${s.status} — customer ${s.customer || "n/a"}`;
+        results.push({
+          markdown: line,
+          meta: { provider: "stripe", kind: "subscription", title: `${amount} ${cur}/${interval}`, snippet: line, webUrl: null },
+        });
       }
     }
   } catch (e) { console.error("Stripe search error:", e); }
   return results.slice(0, 18);
 }
 
-export async function searchZoomData(token: string, query: string, topic?: string): Promise<string[]> {
-  const results: string[] = [];
+export async function searchZoomData(token: string, query: string, topic?: string): Promise<LiveContextChunk[]> {
+  const results: LiveContextChunk[] = [];
   const searchTerms = buildSearchTerms(query, topic);
   const lowerTerms = searchTerms.map((t) => t.toLowerCase());
   const matchTopic = (topic_: string) =>
@@ -522,7 +605,16 @@ export async function searchZoomData(token: string, query: string, topic?: strin
         const t_ = (m.topic || "Untitled").toString();
         if (!matchTopic(t_)) continue;
         const start = (m.start_time || "").slice(0, 16).replace("T", " ");
-        results.push(`📹 **${t_}** — ${start} (${m.duration || 0} min)${m.join_url ? ` — [join](${m.join_url})` : ""}`);
+        results.push({
+          markdown: `📹 **${t_}** — ${start} (${m.duration || 0} min)${m.join_url ? ` — [join](${m.join_url})` : ""}`,
+          meta: {
+            provider: "zoom",
+            kind: "meeting",
+            title: t_,
+            snippet: `${start} · ${m.duration || 0} min`,
+            webUrl: m.join_url || null,
+          },
+        });
       }
     }
     if (results.length < 5) {
@@ -536,7 +628,10 @@ export async function searchZoomData(token: string, query: string, topic?: strin
           const t_ = (m.topic || "Untitled").toString();
           if (!matchTopic(t_)) continue;
           const start = (m.start_time || "").slice(0, 16).replace("T", " ");
-          results.push(`📹 **${t_}** (past) — ${start}`);
+          results.push({
+            markdown: `📹 **${t_}** (past) — ${start}`,
+            meta: { provider: "zoom", kind: "meeting", title: t_, snippet: `${start} (past)`, webUrl: null },
+          });
         }
       }
     }
@@ -763,11 +858,12 @@ export async function searchConnectedProviders(
   userQuery: string,
   emitProgress?: (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => void,
   topic?: string,
-): Promise<{ connectionContext: string; searchedProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
+): Promise<{ connectionContext: string; sourceRegistry: LiveSourceRegistry; searchedProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
   const searchedProviders: string[] = [];
   const skippedProviders: string[] = [];
   const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
+  const emptyRegistry: LiveSourceRegistry = {};
   const t = topic || extractQueryTopic(userQuery);
   const intentProfile = buildConnectorSearchIntentProfile(userQuery);
   const effectiveQuery = intentProfile.augmentedQuery;
@@ -789,7 +885,7 @@ export async function searchConnectedProviders(
       const invProviders = (invConns || []).map((c: any) => c.provider);
       connectionContext = buildConnectedToolsInventory(invProviders);
     } catch (_e) { /* non-fatal */ }
-    return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
+    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   emitProgress?.({ label: connectionCheckLabel, status: "running", action: "connections", detail: decision.reason });
@@ -817,11 +913,13 @@ export async function searchConnectedProviders(
       "No connected tools are linked yet — I have nothing live to look at",
     );
     emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: "Nothing connected yet" });
-    return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
+    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   const connectedProviders = connections.map((c: any) => c.provider);
   const inventory = buildConnectedToolsInventory(connectedProviders);
+  const liveSourceRegistry: LiveSourceRegistry = {};
+  const liveChunkCounter = { n: 0 };
   const searchPromises: Promise<void>[] = [];
 
   // Per-provider intent: if user names a specific tool, search ONLY that one (saves usage).
@@ -898,8 +996,12 @@ export async function searchConnectedProviders(
             searchedProviders.push("microsoft_onedrive");
           }
           const results = await searchMicrosoftData(token, effectiveQuery, searchTopicForApis, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
-          if (results.emails.length > 0) connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${results.emails.join("\n\n")}\n`;
-          if (results.files.length > 0) connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${results.files.join("\n\n")}\n`;
+          if (results.emails.length > 0) {
+            connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${appendLiveChunks(results.emails, liveSourceRegistry, liveChunkCounter)}`;
+          }
+          if (results.files.length > 0) {
+            connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${appendLiveChunks(results.files, liveSourceRegistry, liveChunkCounter)}`;
+          }
           if (hasOutlook) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
           if (hasOnedrive) emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -922,7 +1024,7 @@ export async function searchConnectedProviders(
           searchedProviders.push("microsoft_onenote");
           const results = await searchOneNoteData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
-            connectionContext += `\n\n### Live Data from OneNote\n#### Recent Notes\n${results.join("\n\n")}\n`;
+            connectionContext += `\n\n### Live Data from OneNote\n#### Recent Notes\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
           }
           emitProgress?.({ label: `Searching OneNote pages for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -948,7 +1050,9 @@ export async function searchConnectedProviders(
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_gmail");
           const results = await searchGmailData(token, effectiveQuery, searchTopicForApis);
-          if (results.length > 0) connectionContext += `\n\n### Live Data from Gmail\n${results.join("\n\n")}\n`;
+          if (results.length > 0) {
+            connectionContext += `\n\n### Live Data from Gmail\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+          }
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "done", action: "connections" });
         } catch (e) {
           console.error("[connections] Gmail search failed:", e);
@@ -987,7 +1091,9 @@ export async function searchConnectedProviders(
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_calendar");
           const results = await searchGoogleCalendarData(token, effectiveQuery, searchTopicForApis);
-          if (results.length > 0) connectionContext += `\n\n### Live Data from Google Calendar\n${results.join("\n\n")}\n`;
+          if (results.length > 0) {
+            connectionContext += `\n\n### Live Data from Google Calendar\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+          }
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "done", action: "connections" });
         } catch (e) {
           console.error("[connections] Calendar search failed:", e);
@@ -1011,7 +1117,7 @@ export async function searchConnectedProviders(
         searchedProviders.push("slack");
         const results = await searchSlackData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
-          connectionContext += `\n\n### Live Data from Slack\n${results.join("\n\n")}\n`;
+          connectionContext += `\n\n### Live Data from Slack\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1034,7 +1140,7 @@ export async function searchConnectedProviders(
         searchedProviders.push("hubspot");
         const results = await searchHubspotData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
-          connectionContext += `\n\n### Live Data from HubSpot\n${results.join("\n\n")}\n`;
+          connectionContext += `\n\n### Live Data from HubSpot\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
         }
         emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1057,7 +1163,7 @@ export async function searchConnectedProviders(
         searchedProviders.push("zoom");
         const results = await searchZoomData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
-          connectionContext += `\n\n### Live Data from Zoom\n${results.join("\n\n")}\n`;
+          connectionContext += `\n\n### Live Data from Zoom\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
         }
         emitProgress?.({ label: getProviderSearchLabel("zoom", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1080,7 +1186,7 @@ export async function searchConnectedProviders(
         searchedProviders.push("stripe");
         const results = await searchStripeData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
-          connectionContext += `\n\n### Live Data from Stripe\n${results.join("\n\n")}\n`;
+          connectionContext += `\n\n### Live Data from Stripe\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
         } else {
           // Stripe IS connected and the API call succeeded — there are simply no charges,
           // customers, or active subscriptions yet. Make this explicit so the assistant
@@ -1118,5 +1224,13 @@ export async function searchConnectedProviders(
   }
 
   console.log("[connections] Final searchedProviders:", searchedProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);
-  return { connectionContext, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
+  return {
+    connectionContext,
+    sourceRegistry: liveSourceRegistry,
+    searchedProviders,
+    skippedProviders,
+    skippedProviderDetails,
+    connectionDecision: decision,
+    queryTopic: t,
+  };
 }

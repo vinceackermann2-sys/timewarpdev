@@ -1,7 +1,15 @@
+import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Live connector row metadata for \`twcite:twsrc_N\` links in markdown (Gmail, Drive, Calendar, etc.). */
+  liveSourceRegistry?: LiveSourceRegistry;
+  /** Populated when assistant loads CEO dashboard snapshot cards (briefing / updates / to-dos / objectives). */
+  dashboardCards?: unknown[];
+  dashboardOpeningSummary?: string | null;
+  dashboardHealthScore?: unknown;
   files?: { name: string; url?: string }[];
   employees?: { id: string; name: string; role: string }[];
   isStreaming?: boolean;

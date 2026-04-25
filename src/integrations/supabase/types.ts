@@ -397,6 +397,7 @@ export type Database = {
         Row: {
           brand_id: string
           cards: Json
+          tab_cards: Json | null
           created_at: string
           health_score: Json | null
           id: string
@@ -407,6 +408,7 @@ export type Database = {
         Insert: {
           brand_id: string
           cards?: Json
+          tab_cards?: Json | null
           created_at?: string
           health_score?: Json | null
           id?: string
@@ -417,6 +419,7 @@ export type Database = {
         Update: {
           brand_id?: string
           cards?: Json
+          tab_cards?: Json | null
           created_at?: string
           health_score?: Json | null
           id?: string

@@ -68,7 +68,7 @@ ${pageContext.links ? `\n### Key Links\n${JSON.stringify(pageContext.links.slice
 
   const stepCount = procedures.length;
 
-  return `You are an AI employee executing a Standard Operating Procedure (SOP) through the user's browser. You follow the SOP steps precisely. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base".
+  return `You are an AI executing a Standard Operating Procedure (SOP) through the user's browser. You follow the SOP steps precisely. Describe yourself only as an AI if needed — never as a CEO, assistant, agent, employee, or other role title. Never mention "RAG", "knowledge files", or "knowledge base".
 
 ${sopSection}
 ${relevantContext}
@@ -178,7 +178,7 @@ Use first principles and provide an evidence-backed strategic plan (not generic 
 ## Response shape (default)
 Match structure to the question — no mandatory "## DNA Fit / Recommendation / Next 7 Days / KPI Impact" template. Be concise for short asks.`.trim();
 
-  return `You are an AI employee helping the user directly in chat. Never refer to yourself as "CEO" or "AI CEO". Never mention "RAG", "knowledge files", or "knowledge base".
+  return `You are an AI helping the user in chat. Use the profile below only to scope expertise and tasks — do not present yourself to the user as that person by name or job title; if asked what you are, say you are an AI. Never mention "RAG", "knowledge files", or "knowledge base".
 
 ## Employee Identity
 - **Name:** ${employee.name}

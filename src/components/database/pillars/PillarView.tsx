@@ -221,7 +221,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                 <div className="flex items-center gap-2">
                   <BusinessBrainOrb size={16} />
                   <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                    <span className="text-primary">{agentName || "AI CEO"}</span>
+                    <span className="text-primary">{agentName || "AI"}</span>
                     <span>//</span>
                     <motion.span
                       animate={{ opacity: [1, 0.4, 1] }}
