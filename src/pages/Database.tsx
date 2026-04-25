@@ -318,7 +318,8 @@ const Database = () => {
     }
   }, [isLoading, user, navigate]);
 
-  // Check referrer rewards
+  // Check referrer rewards — show celebration ONCE per completed referral
+  // (server-side flag, so it doesn't re-trigger on a different browser/device).
   useEffect(() => {
     if (!user) return;
     const checkReferrerRewards = async () => {
@@ -328,14 +329,16 @@ const Database = () => {
           .select("id")
           .eq("referrer_id", user.id)
           .eq("status", "completed")
-          .eq("actions_granted", true);
+          .eq("actions_granted", true)
+          .is("referrer_celebrated_at", null);
         if (!data || data.length === 0) return;
-        const celebrated: string[] = JSON.parse(localStorage.getItem("celebrated_referral_ids") || "[]");
-        const newIds = data.filter((r) => !celebrated.includes(r.id)).map((r) => r.id);
-        if (newIds.length > 0) {
-          setShowReferrerCelebration(true);
-          localStorage.setItem("celebrated_referral_ids", JSON.stringify([...celebrated, ...newIds]));
-        }
+        const ids = data.map((r) => r.id);
+        setShowReferrerCelebration(true);
+        // Mark all unseen completed referrals as celebrated for this referrer
+        await supabase
+          .from("referrals")
+          .update({ referrer_celebrated_at: new Date().toISOString() })
+          .in("id", ids);
       } catch {
         // ignore
       }
