@@ -299,9 +299,10 @@ function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onR
   useEffect(() => { setEditValue(brand?.agentName || "AI CEO"); }, [brand?.agentName]);
 
   if (isEditing) {
+    const logoUrl = brand?.logoUrls?.[brand?.selectedLogo ?? 0];
     return (
       <div className="flex items-center gap-2">
-        <BusinessBrainOrb size={22} />
+        <BrandOrbLogo logoUrl={logoUrl} brandName={brand?.name} size={22} />
         <input
           autoFocus
           value={editValue}
@@ -314,9 +315,10 @@ function AgentNameEditor({ brand, onRename, isBrainLearning }: { brand: any; onR
     );
   }
 
+  const logoUrl = brand?.logoUrls?.[brand?.selectedLogo ?? 0];
   return (
     <div className="flex items-center gap-2.5">
-      <BusinessBrainOrb size={22} />
+      <BrandOrbLogo logoUrl={logoUrl} brandName={brand?.name} size={22} />
       <button
         onClick={() => setIsEditing(true)}
         className="text-base text-muted-foreground hover:text-foreground transition-colors group flex items-center gap-1.5"
