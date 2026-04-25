@@ -401,6 +401,7 @@ export type Database = {
           health_score: Json | null
           id: string
           opening_summary: string | null
+          tab_cards: Json | null
           updated_at: string
           user_id: string
         }
@@ -411,6 +412,7 @@ export type Database = {
           health_score?: Json | null
           id?: string
           opening_summary?: string | null
+          tab_cards?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -421,6 +423,7 @@ export type Database = {
           health_score?: Json | null
           id?: string
           opening_summary?: string | null
+          tab_cards?: Json | null
           updated_at?: string
           user_id?: string
         }
