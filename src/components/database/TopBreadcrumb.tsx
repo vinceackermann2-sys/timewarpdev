@@ -54,7 +54,7 @@ export function TopBreadcrumb({ currentView, activeBrandId, activeDnaPillar, onS
   );
 
   return (
-    <div className="hidden md:flex items-center gap-2 px-4 h-12 text-sm shrink-0 bg-slate-50">
+    <div className="hidden md:flex items-center gap-2 px-4 h-12 text-sm shrink-0 bg-[#F0F5FF]">
       {showSkeleton ? (
         <div className="flex items-center gap-2">
           <Skeleton className="h-5 w-32 rounded-md" />
