@@ -482,24 +482,31 @@ export function AgentChatView({
       if (!session) return;
 
       let res: Response | null = null;
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/long-task-status`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({}),
-        });
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        try {
+          res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/long-task-status`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({}),
+          });
+        } catch {
+          // network blip — retry with backoff
+          await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+          continue;
+        }
 
-        if (res.ok || ![502, 503, 504].includes(res.status)) {
+        if (res.ok || ![408, 425, 429, 500, 502, 503, 504].includes(res.status)) {
           break;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
       }
 
+      // Silently ignore transient unavailability — this is a background poll
       if (!res?.ok) return;
       const data = await res.json().catch(() => ({}));
       const run = data?.run;
