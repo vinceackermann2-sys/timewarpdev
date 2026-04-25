@@ -83,6 +83,7 @@ function BusinessDnaArea({
   onOnboardingComplete: (agentName: string, brandId?: string) => void;
 }) {
   const { isLoading, brands } = useBusinessDNA();
+  const { activeWorkspace } = useWorkspace();
   // Track whether we've ever observed isLoading=false in this session.
   // Until then, treat as loading even if cached brands hydrated synchronously
   // (prevents onboarding flash when cache is empty for a fresh workspace).
@@ -91,7 +92,11 @@ function BusinessDnaArea({
     if (!isLoading) setHasSettled(true);
   }, [isLoading]);
 
-  if (showAddProduct) {
+  // Non-owner workspace members can't add or onboard businesses — they
+  // collaborate on the owner's existing business only.
+  const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
+
+  if (showAddProduct && !isWorkspaceMemberOnly) {
     return (
       <BusinessDNAOnboarding
         isAddBusiness
@@ -131,6 +136,18 @@ function BusinessDnaArea({
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // Non-owner members in a workspace with no brand → empty state, NOT onboarding.
+  if (isWorkspaceMemberOnly) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center p-6 text-center gap-3">
+        <h2 className="text-lg font-semibold text-foreground">No business yet</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          The workspace owner hasn't set up the business DNA yet. Once they do, you'll see it here.
+        </p>
       </div>
     );
   }
