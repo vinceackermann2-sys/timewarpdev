@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,31 +9,62 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-// Lazy client init to avoid boot-time crashes if env vars are temporarily unavailable
-let _supabase: ReturnType<typeof createClient> | null = null;
-function getSupabase() {
+const RUN_SELECT = "id, continuation_key, task_type, status, phase, progress, logs, result_excerpt, error, updated_at, created_at";
+const CHECKPOINT_SELECT = "continuation_index, content, metadata, updated_at";
+
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
+
+function requireServerConfig() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("Server configuration is missing");
   }
-  if (!_supabase) {
-    _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false },
-      global: { headers: { "X-Client-Info": "long-task-status" } },
-    });
-  }
-  return _supabase;
 }
 
-const RUN_SELECT = "id, continuation_key, task_type, status, phase, progress, logs, result_excerpt, error, updated_at, created_at";
-const CHECKPOINT_SELECT = "continuation_index, content, metadata, updated_at";
+async function getUserIdFromToken(token: string): Promise<string> {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      "apikey": SUPABASE_SERVICE_ROLE_KEY,
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) throw new Error("Unauthorized");
+  const user = await response.json();
+  if (typeof user?.id !== "string" || !user.id) throw new Error("Unauthorized");
+  return user.id;
+}
+
+async function restSelect<T>(path: string): Promise<T[]> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      "apikey": SUPABASE_SERVICE_ROLE_KEY,
+      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Accept": "application/json",
+    },
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    try {
+      const parsed = JSON.parse(text);
+      errorMessage = parsed?.message || parsed?.error || errorMessage;
+    } catch {
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
+  }
+
+  if (!text) return [];
+  const parsed = JSON.parse(text);
+  return Array.isArray(parsed) ? parsed as T[] : [];
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Server configuration is missing");
-    }
+    requireServerConfig();
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -44,38 +74,22 @@ serve(async (req) => {
     const token = authHeader.slice("Bearer ".length).trim();
     if (!token) throw new Error("Missing authorization header");
 
-    const supabase = getSupabase();
-    const { data: authData, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !authData?.user) throw new Error("Unauthorized");
-
     const body = await req.json().catch(() => ({}));
     const continuationKey = typeof body?.continuationKey === "string" ? body.continuationKey.trim() : "";
-    const userId = authData.user.id;
+    const userId = await getUserIdFromToken(token);
 
     let run: Record<string, unknown> | null = null;
 
     if (continuationKey) {
-      const { data, error } = await supabase
-        .from("long_task_runs")
-        .select(RUN_SELECT)
-        .eq("user_id", userId)
-        .eq("continuation_key", continuationKey)
-        .maybeSingle();
-
-      if (error) throw error;
-      run = data ?? null;
+      const rows = await restSelect<Record<string, unknown>>(
+        `long_task_runs?select=${encodeURIComponent(RUN_SELECT)}&user_id=eq.${encodeURIComponent(userId)}&continuation_key=eq.${encodeURIComponent(continuationKey)}&limit=1`,
+      );
+      run = rows[0] ?? null;
     } else {
-      const { data, error } = await supabase
-        .from("long_task_runs")
-        .select(RUN_SELECT)
-        .eq("user_id", userId)
-        .in("status", ["queued", "in_progress"])
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      run = data ?? null;
+      const rows = await restSelect<Record<string, unknown>>(
+        `long_task_runs?select=${encodeURIComponent(RUN_SELECT)}&user_id=eq.${encodeURIComponent(userId)}&status=in.(queued,in_progress)&order=updated_at.desc&limit=1`,
+      );
+      run = rows[0] ?? null;
     }
 
     const keyForCheckpoint = typeof run?.continuation_key === "string"
@@ -84,27 +98,21 @@ serve(async (req) => {
 
     let checkpoint: Record<string, unknown> | null = null;
     if (keyForCheckpoint) {
-      const { data, error } = await supabase
-        .from("long_task_checkpoints")
-        .select(CHECKPOINT_SELECT)
-        .eq("continuation_key", keyForCheckpoint)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error && error.code !== "PGRST116") throw error;
-      checkpoint = data ?? null;
+      const rows = await restSelect<Record<string, unknown>>(
+        `long_task_checkpoints?select=${encodeURIComponent(CHECKPOINT_SELECT)}&continuation_key=eq.${encodeURIComponent(keyForCheckpoint)}&order=updated_at.desc&limit=1`,
+      );
+      checkpoint = rows[0] ?? null;
     }
 
     return new Response(JSON.stringify({ ok: true, run, checkpoint }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: jsonHeaders,
       status: 200,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal error";
     return new Response(JSON.stringify({ ok: false, error: message }), {
-      status: message === "Unauthorized" ? 401 : 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: message === "Unauthorized" || message === "Missing authorization header" ? 401 : 500,
+      headers: jsonHeaders,
     });
   }
 });
