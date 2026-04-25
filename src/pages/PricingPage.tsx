@@ -211,7 +211,7 @@ function PlanCard({
         className={cn(
           "w-full h-12 rounded-full font-semibold mb-8",
           buttonVariant === "primary" && !buttonGradient && "bg-foreground text-background hover:bg-foreground/90",
-          buttonVariant === "outline" && "text-foreground border border-border bg-[#fcfcfd]",
+          buttonVariant === "outline" && "text-foreground border border-border bg-[#F8F7FF]",
           buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
           buttonGradient && "bg-primary text-primary-foreground hover:opacity-90 border-0 hover:no-underline"
         )}
@@ -335,7 +335,7 @@ export default function PricingPage() {
     : "USD / month\nbilled annually";
 
   return (
-    <div className="min-h-screen bg-[#fcfcfd]">
+    <div className="min-h-screen bg-[#F8F7FF]">
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
           <ArrowLeft className="h-4 w-4" />
@@ -351,7 +351,7 @@ export default function PricingPage() {
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#eef2f7]">
+          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#ECEAF8]">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}

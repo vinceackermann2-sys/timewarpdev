@@ -68,7 +68,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-[#fcfcfd]">
+    <div className="flex flex-col h-full overflow-y-auto bg-[#F8F7FF]">
       {/* Header */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
         {onBack && (
@@ -111,7 +111,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
                 </Button>
               </div>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setShowNewInput(true)} className="bg-[#eef2f7] hover:bg-[#eef2f7]">
+              <Button size="sm" variant="outline" onClick={() => setShowNewInput(true)} className="bg-[#ECEAF8] hover:bg-[#ECEAF8]">
                 <Plus className="h-4 w-4 mr-1" />
                 New workspace
               </Button>

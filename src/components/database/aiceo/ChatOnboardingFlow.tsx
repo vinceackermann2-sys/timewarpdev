@@ -642,7 +642,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
   // ─────────── RENDER ───────────
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-[#fcfcfd]">
+    <div className="h-full w-full overflow-y-auto bg-[#F8F7FF]">
       <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12 space-y-6">
         {/* Greeting bubble */}
         <AssistantBubble>
@@ -663,7 +663,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         {/* URL input card */}
         {phase === "url" && (
           <UserActionCard>
-            <div className="border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm bg-[#eef2f7]">
+            <div className="border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm bg-[#ECEAF8]">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-2 flex-1 min-w-0 px-1">
                   <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0">
@@ -705,7 +705,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         {/* Analyzing */}
         {phase === "analyzing" && (
           <AssistantBubble>
-            <div className="rounded-xl border border-black/5 bg-[#eef2f7] p-4">
+            <div className="rounded-xl border border-black/5 bg-[#ECEAF8] p-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-[#e6f2ff] flex items-center justify-center shrink-0">
                   <Telescope className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
@@ -802,7 +802,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                               {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                             </div>
                           </div>
-                          <div className="p-3 bg-[#eef2f7]">
+                          <div className="p-3 bg-[#ECEAF8]">
                             <p className="text-[10px] font-semibold text-[#697386] tracking-wider mb-0.5 uppercase">
                               {businessTypeLabel}
                             </p>
@@ -842,7 +842,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         {/* Forging timeline */}
         {phase === "forging" && (
           <AssistantBubble>
-            <div className="rounded-xl border border-black/5 bg-[#eef2f7] p-4">
+            <div className="rounded-xl border border-black/5 bg-[#ECEAF8] p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-[#4a86ff]" />
                 <p className="text-[14px] font-semibold text-[#1a1f36]">Forging your Business DNA</p>

@@ -18,7 +18,7 @@ export function AssistantSuggestions({ suggestions, onSelect, isLoading }: Assis
           onClick={() => onSelect(suggestion)}
           className={cn(
             "group flex items-start gap-2.5 text-left px-4 py-3 rounded-xl",
-            "bg-[#eef2f7] border border-border/50 hover:border-primary/30",
+            "bg-[#ECEAF8] border border-border/50 hover:border-primary/30",
             "transition-all duration-200 cursor-pointer",
             "shadow-sm hover:shadow-md",
             "max-w-md"

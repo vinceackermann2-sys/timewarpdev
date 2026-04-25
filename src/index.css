@@ -489,34 +489,34 @@
 
 @layer base {
   :root {
-    /* Light theme - Blue Corp Pastel */
-    --background: 40 33% 98%;
-    --foreground: 215 25% 15%;
+    /* Light theme - Gro Brand v2 (canvas #FFFFFF, bg #F8F7FF, accent #2D55CC, text #0F2638) */
+    --background: 0 0% 100%;
+    --foreground: 206 58% 14%;
 
-    --card: 210 40% 99%;
-    --card-foreground: 215 25% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 206 58% 14%;
 
-    --popover: 210 30% 96%;
-    --popover-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 206 58% 14%;
 
-    --primary: 217 100% 65%;
+    --primary: 225 64% 49%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 40%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 248 100% 98%;
+    --secondary-foreground: 206 58% 14%;
 
-    --muted: 210 20% 88%;
-    --muted-foreground: 215 15% 35%;
+    --muted: 240 67% 99%;
+    --muted-foreground: 60 1% 38%;
 
-    --accent: 217 100% 95%;
-    --accent-foreground: 217 100% 47%;
+    --accent: 225 64% 96%;
+    --accent-foreground: 225 64% 49%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 217 100% 65%;
+    --border: 249 50% 95%;
+    --input: 249 50% 95%;
+    --ring: 225 64% 49%;
 
     --radius: 0.625rem;
 
@@ -527,19 +527,19 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 100% 65%;
+    --status-info: 225 64% 49%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Portal specific tokens - light */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
+    /* Portal specific tokens - light (Gro accent #2D55CC) */
+    --portal-accent: 225 64% 49%;
+    --portal-accent-bright: 225 64% 58%;
+    --portal-glow: 225 64% 49%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(248 100% 98%) 0%, hsl(225 64% 95%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(225 64% 49%), hsl(225 64% 40%));
+    --gradient-accent: linear-gradient(135deg, hsl(225 64% 58%), hsl(225 64% 49%));
+    --shadow-glow: 0 0 12px hsl(225 64% 49% / 0.08);
+    --shadow-glow-lg: 0 0 24px hsl(225 64% 49% / 0.12);
 
     /* Orb tokens - light */
     --orb-core-start: rgba(255, 255, 255, 1);
@@ -560,20 +560,20 @@
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
     /* Browser chrome colors - light */
-    --browser-bg: 210 30% 97%;
-    --browser-header: 210 25% 94%;
+    --browser-bg: 248 100% 98%;
+    --browser-header: 240 67% 99%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 76% 36%;
 
-    --sidebar-background: 210 40% 96%;
-    --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 217 100% 65%;
+    --sidebar-background: 248 100% 98%;
+    --sidebar-foreground: 206 58% 14%;
+    --sidebar-primary: 225 64% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 40%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 217 100% 65%;
+    --sidebar-accent: 225 64% 96%;
+    --sidebar-accent-foreground: 225 64% 49%;
+    --sidebar-border: 249 50% 95%;
+    --sidebar-ring: 225 64% 49%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --chart-1: 218 100% 93%;
     --chart-2: 218 100% 87%;
@@ -596,34 +596,34 @@
   }
 
   .dark {
-    /* Dark theme - Blue Corp Pastel */
-    --background: 0 0% 10%;
-    --foreground: 0 0% 98%;
+    /* Dark theme - Gro Brand v2 (canvas #13121F, bg #1C1A2E, accent #2D55CC, text #EEEEFF) */
+    --background: 245 27% 10%;
+    --foreground: 240 100% 97%;
 
-    --card: 215 20% 12%;
-    --card-foreground: 0 0% 98%;
+    --card: 246 28% 14%;
+    --card-foreground: 240 100% 97%;
 
-    --popover: 215 20% 16%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 246 28% 14%;
+    --popover-foreground: 240 100% 97%;
 
-    --primary: 217 100% 65%;
+    --primary: 225 64% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 15% 35%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 246 28% 14%;
+    --secondary-foreground: 240 100% 97%;
 
-    --muted: 215 15% 30%;
-    --muted-foreground: 210 20% 70%;
+    --muted: 246 29% 13%;
+    --muted-foreground: 244 17% 63%;
 
-    --accent: 215 50% 20%;
-    --accent-foreground: 217 100% 65%;
+    --accent: 225 64% 20%;
+    --accent-foreground: 225 64% 80%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 215 20% 25%;
-    --input: 215 20% 25%;
-    --ring: 217 100% 65%;
+    --border: 246 25% 22%;
+    --input: 246 25% 22%;
+    --ring: 225 64% 58%;
 
     /* Status colors - dark */
     --status-success: 142 70% 45%;
@@ -632,19 +632,19 @@
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 100% 65%;
+    --status-info: 225 64% 58%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Portal specific tokens - dark */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(215 25% 6%) 0%, hsl(210 40% 12%) 50%, hsl(215 50% 15%) 100%);
+    /* Portal specific tokens - dark (Gro) */
+    --portal-accent: 225 64% 58%;
+    --portal-accent-bright: 225 64% 68%;
+    --portal-glow: 225 64% 58%;
+    --portal-bg-gradient: linear-gradient(135deg, hsl(245 27% 10%) 0%, hsl(246 28% 14%) 50%, hsl(225 40% 18%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.08);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.1);
+    --gradient-primary: linear-gradient(135deg, hsl(225 64% 58%), hsl(225 64% 45%));
+    --gradient-accent: linear-gradient(135deg, hsl(225 64% 58%), hsl(225 64% 50%));
+    --shadow-glow: 0 0 12px hsl(225 64% 58% / 0.18);
+    --shadow-glow-lg: 0 0 24px hsl(225 64% 58% / 0.22);
 
     /* Orb tokens - dark (same as light to keep orb bright) */
     --orb-core-start: rgba(255, 255, 255, 1);
@@ -665,20 +665,20 @@
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
     /* Browser chrome colors - dark */
-    --browser-bg: 215 25% 8%;
-    --browser-header: 215 22% 12%;
+    --browser-bg: 245 27% 10%;
+    --browser-header: 246 28% 14%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
     --browser-dot-green: 142 70% 45%;
 
-    --sidebar-background: 215 25% 8%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 217 100% 65%;
+    --sidebar-background: 245 27% 10%;
+    --sidebar-foreground: 240 100% 97%;
+    --sidebar-primary: 225 64% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 100% 60%;
-    --sidebar-accent-foreground: 217 30% 20%;
-    --sidebar-border: 215 20% 25%;
-    --sidebar-ring: 217 100% 65%;
+    --sidebar-accent: 225 64% 20%;
+    --sidebar-accent-foreground: 225 64% 80%;
+    --sidebar-border: 246 25% 22%;
+    --sidebar-ring: 225 64% 58%;
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --radius: 0.625rem;
     --chart-1: 218 100% 93%;

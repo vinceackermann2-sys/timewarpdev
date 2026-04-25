@@ -774,7 +774,7 @@ export function BusinessDNAOnboarding({
 
   // ── RENDER ───────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-4 font-sans overflow-y-auto bg-[#fcfcfd]">
+    <div className="min-h-screen flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-4 font-sans overflow-y-auto bg-[#F8F7FF]">
       <AnimatePresence mode="wait">
         {/* ─── METHOD PICKER (add-business only) ─── */}
         {showMethodPicker && step === 0 && (
@@ -871,7 +871,7 @@ export function BusinessDNAOnboarding({
             </p>
 
             <div className="w-full max-w-[720px]">
-              <div className="border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm bg-[#eef2f7]">
+              <div className="border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm bg-[#ECEAF8]">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-2 flex-1 min-w-0 px-1">
                     <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0">
@@ -924,7 +924,7 @@ export function BusinessDNAOnboarding({
           >
             <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-8">Finding your business</h1>
 
-            <div className="w-full max-w-[720px] rounded-2xl p-6 shadow-sm border border-black/5 bg-[#eef2f7]">
+            <div className="w-full max-w-[720px] rounded-2xl p-6 shadow-sm border border-black/5 bg-[#ECEAF8]">
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-11 h-11 rounded-xl bg-[#e6f2ff] flex items-center justify-center shrink-0">
                   <Telescope className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
@@ -974,7 +974,7 @@ export function BusinessDNAOnboarding({
             <p className="text-[14px] sm:text-[15px] text-[#697386] mb-6 text-center">Select 1 {btConfig.label.toLowerCase()} to import</p>
 
             {/* URL bar with continue */}
-            <div className="w-full max-w-[900px] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#eef2f7]">
+            <div className="w-full max-w-[900px] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm mb-6 sm:mb-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#ECEAF8]">
               <div className="flex items-center gap-3 px-2 min-w-0">
                 <Globe className="w-5 h-5 text-[#4a86ff] shrink-0" strokeWidth={2} />
                 <span className="text-[#1a1f36] font-medium text-[14px] sm:text-[15px] truncate">{activeUrl}</span>
@@ -1019,7 +1019,7 @@ export function BusinessDNAOnboarding({
             </div>
 
             {productSelectTab === "otherUrl" && (
-              <div className="w-full max-w-[900px] mb-6 rounded-2xl border border-[#4a86ff]/30 bg-[#eef2f7] p-4">
+              <div className="w-full max-w-[900px] mb-6 rounded-2xl border border-[#4a86ff]/30 bg-[#ECEAF8] p-4">
                 <p className="text-sm text-[#697386] mb-3">Not satisfied with these options? Paste another product or business URL and re-scan.</p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
@@ -1098,7 +1098,7 @@ export function BusinessDNAOnboarding({
                           {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                         </div>
                       </div>
-                      <div className="p-3 sm:p-5 bg-[#eef2f7]">
+                      <div className="p-3 sm:p-5 bg-[#ECEAF8]">
                         <p className="text-[12px] font-semibold text-[#697386] tracking-wider mb-1">{btConfig.label}</p>
                         <h3 className="text-[16px] font-bold text-[#1a1f36] mb-2 leading-tight">{p.name || `${btConfig.label.charAt(0) + btConfig.label.slice(1).toLowerCase()} ${i + 1}`}</h3>
                         {p.description && (
@@ -1163,7 +1163,7 @@ export function BusinessDNAOnboarding({
             <h1 className="text-[24px] sm:text-[32px] font-bold text-[#1a1f36] mb-6 sm:mb-8">Forging your business DNA</h1>
 
             {/* Top Card with source verification carousel */}
-            <div className="w-full rounded-2xl p-4 sm:p-6 mb-6 shadow-sm bg-[#eef2f7]">
+            <div className="w-full rounded-2xl p-4 sm:p-6 mb-6 shadow-sm bg-[#ECEAF8]">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0">
@@ -1296,7 +1296,7 @@ export function BusinessDNAOnboarding({
                   className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
                     forgingTab === "found"
                       ? "bg-white border border-[#e5e4df] text-[#1a1f36] shadow-sm"
-                      : "text-[#697386] bg-[#eef2f7]"
+                      : "text-[#697386] bg-[#ECEAF8]"
                   }`}
                 >
                   Data Found
@@ -1311,7 +1311,7 @@ export function BusinessDNAOnboarding({
                   className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
                     forgingTab === "confirmed"
                       ? "bg-white border border-[#e5e4df] text-[#1a1f36] shadow-sm"
-                      : "text-[#697386] bg-[#eef2f7]"
+                      : "text-[#697386] bg-[#ECEAF8]"
                   }`}
                 >
                   Confirmed Data
@@ -1324,7 +1324,7 @@ export function BusinessDNAOnboarding({
               {forgingTab === "found" ? (
                 <div className="w-full flex flex-col gap-3">
                   {/* Brand card */}
-                  <div className="w-full rounded-xl p-4 bg-[#eef2f7]">
+                  <div className="w-full rounded-xl p-4 bg-[#ECEAF8]">
                     <div className="flex items-center gap-3 mb-2">
                       <Palette className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <span className="text-[15px] font-medium text-[#1a1f36]">
@@ -1351,7 +1351,7 @@ export function BusinessDNAOnboarding({
 
                   {/* Products */}
                   {displayProducts.map((p: any, i: number) => (
-                    <div key={i} className="w-full rounded-xl p-4 flex items-center gap-3 bg-[#eef2f7]">
+                    <div key={i} className="w-full rounded-xl p-4 flex items-center gap-3 bg-[#ECEAF8]">
                       <ShoppingBag className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] font-medium text-[#1a1f36]">{p.name || `Product ${i + 1}`}</span>
@@ -1369,7 +1369,7 @@ export function BusinessDNAOnboarding({
 
                   {/* Audiences */}
                   {audiencesRaw.filter((a: any) => a?.name).map((a: any, i: number) => (
-                    <div key={`aud-${i}`} className="w-full rounded-xl p-4 flex items-center gap-3 bg-[#eef2f7]">
+                    <div key={`aud-${i}`} className="w-full rounded-xl p-4 flex items-center gap-3 bg-[#ECEAF8]">
                       <Users className="w-4 h-4 text-[#4a86ff] shrink-0" />
                       <div className="flex-1 min-w-0">
                         <span className="text-[15px] font-medium text-[#1a1f36]">{a.name}</span>
@@ -1434,7 +1434,7 @@ export function BusinessDNAOnboarding({
                     {urls.map((url, i) => {
                       const isReddit = url.includes("reddit.com");
                       return (
-                      <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg bg-[#eef2f7]">
+                      <div key={i} className="flex items-center gap-2 text-[13px] text-[#697386] py-1 px-2 rounded-lg bg-[#ECEAF8]">
                         {verifiedSources.has(i) ? (
                           <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e] shrink-0" />
                         ) : (
