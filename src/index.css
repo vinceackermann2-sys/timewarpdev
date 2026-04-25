@@ -706,20 +706,20 @@
 }
 
 .force-light {
-  --background: 40 33% 98%;
-  --foreground: 215 25% 15%;
-  --card: 210 40% 99%;
-  --card-foreground: 215 25% 15%;
-  --primary: 217 100% 65%;
+  --background: 225 100% 99%;
+  --foreground: 207 60% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 207 60% 14%;
+  --primary: 207 60% 14%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 215 20% 40%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 210 20% 88%;
-  --muted-foreground: 215 15% 35%;
-  --accent: 217 100% 95%;
-  --accent-foreground: 217 100% 47%;
-  --border: 210 20% 85%;
-  --input: 210 20% 85%;
+  --secondary: 220 20% 42%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 217 89% 95%;
+  --muted-foreground: 220 20% 42%;
+  --accent: 217 100% 65%;
+  --accent-foreground: 0 0% 100%;
+  --border: 222 24% 91%;
+  --input: 222 24% 91%;
   --ring: 217 100% 65%;
   --destructive: 0 72% 50%;
   --destructive-foreground: 0 85% 97%;
