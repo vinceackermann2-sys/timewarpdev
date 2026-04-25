@@ -23,6 +23,7 @@ import { WorkspacesView } from "@/components/database/WorkspacesView";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 function MobileHeader() {
   const { toggleSidebar } = useSidebar();
@@ -159,14 +160,20 @@ function EmployeesArea({
   onOnboardingActiveChange: (active: boolean) => void;
 }) {
   const { brands, isLoading } = useBusinessDNA();
+  const { activeWorkspace } = useWorkspace();
   const [hasSettled, setHasSettled] = useState(false);
   useEffect(() => {
     if (!isLoading) setHasSettled(true);
   }, [isLoading]);
 
+  // Workspace members who aren't owners must NEVER see onboarding — they
+  // collaborate on the owner's business and shouldn't create a competing one.
+  const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
+
   // While we don't yet know whether brands exist, render the standard chat (no flash).
-  // Once settled, force onboarding only when we're sure the user has zero brands.
-  const forceOnboarding = hasSettled && brands.length === 0;
+  // Once settled, force onboarding only when we're sure the user has zero brands
+  // AND they aren't a non-owner member of someone else's workspace.
+  const forceOnboarding = hasSettled && brands.length === 0 && !isWorkspaceMemberOnly;
 
   return (
     <AgentChatView
