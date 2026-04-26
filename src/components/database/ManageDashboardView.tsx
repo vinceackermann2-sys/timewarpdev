@@ -809,13 +809,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           {!activeBrand ? (
             <CardSkeletons tab={activeTab} />
           ) : loading && !hasEverLoaded ? (
-            <>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Analyzing {activeBrand.name} data & integrations…
-              </div>
-              <CardSkeletons tab={activeTab} />
-            </>
+            <CardSkeletons tab={activeTab} />
           ) : error && !hasCards ? (
             <div className="text-destructive w-full py-8 text-center text-sm">
               <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
