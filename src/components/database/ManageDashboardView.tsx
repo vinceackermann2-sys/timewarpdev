@@ -216,7 +216,7 @@ function PillCTA({ label, onClick }: { label: string; onClick: () => void }) {
     <Button
       size="sm"
       variant="outline"
-      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 text-foreground/80 hover:text-foreground bg-white opacity-100"
+      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 text-foreground/80 hover:text-foreground bg-white hover:bg-white active:bg-white focus:bg-white opacity-100"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
       {label}
@@ -748,7 +748,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 shrink-0 bg-white shadow-none opacity-100 text-black" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 shrink-0 bg-white hover:bg-white active:bg-white focus:bg-white hover:text-black shadow-none opacity-100 text-black" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Update
             </Button>
