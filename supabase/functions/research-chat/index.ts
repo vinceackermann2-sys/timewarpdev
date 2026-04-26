@@ -270,7 +270,7 @@ ${responseShape}
 - Use markdown tables for comparisons, metrics, and structured data
 - Use bold headers (##, ###) to break up sections
 - Quote specific text, numbers, dates, and names from the data
-- **MANDATORY**: At the very end, include exactly one suggestion tag on its own line: [SUGGEST:Question 1?|Question 2?|Question 3?] — raw tag, no markdown wrapping.`;
+- **MANDATORY**: At the very end, include exactly one suggestion tag on its own line: [SUGGEST:Option 1|Option 2|Option 3] — raw tag, no markdown wrapping. **Bias toward clarifying questions**: when the user's goal, audience, timeframe, or success metric is ambiguous, the 3 options must be short concrete answers the user can pick (e.g. "Reach — get seen by more people" | "Sales — get more customers" | "Leads — get emails, calls, or signups"). Only fall back to follow-up research questions when the request is fully specified.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
