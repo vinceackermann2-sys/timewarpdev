@@ -227,6 +227,7 @@ export function AgentChatView({
   /* ── UI state ── */
   const [isDropupOpen, setIsDropupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [showAgents, setShowAgents] = useState(false);
   const [showEmployeesMenu, setShowEmployeesMenu] = useState(false);
@@ -1815,18 +1816,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           }}
                         />
                       )}
-                      {/* Suggested actions */}
-                      {!msg.isStreaming && msg.suggestions && msg.suggestions.length > 0 && (
-                        <AssistantSuggestions
-                          suggestions={msg.suggestions}
-                          onSelect={(suggestion) => {
-                            if (chatInputRef.current) {
-                              chatInputRef.current.innerText = suggestion;
-                              chatInputRef.current.focus();
-                            }
-                          }}
-                        />
-                      )}
+                      {/* Suggested actions are rendered as an overlay above the chat composer (see footer) */}
                       {!msg.isStreaming && resolvedBrandId && (msg.content?.trim().length ?? 0) >= 30 && !msg.reportContent && (
                         <AssistantInsightFeedback
                           businessId={resolvedBrandId}
@@ -1893,6 +1883,37 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             e.target.value = "";
           }}
         />
+
+        {/* Suggestion overlay — covers the composer until dismissed or a suggestion is picked */}
+        {(() => {
+          const lastAssistant = [...messages].reverse().find(
+            (m) => m.role === "assistant" && !m.isStreaming && m.suggestions && m.suggestions.length > 0,
+          );
+          if (!lastAssistant || dismissedSuggestionIds.has(lastAssistant.id)) return null;
+          return (
+            <div className="absolute inset-x-3 sm:inset-x-4 md:inset-x-6 bottom-3 sm:bottom-4 md:bottom-6 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <AssistantSuggestions
+                suggestions={lastAssistant.suggestions!}
+                variant="overlay"
+                title="What are you trying to get more of?"
+                onSelect={(suggestion) => {
+                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
+                  if (chatInputRef.current) {
+                    chatInputRef.current.innerText = suggestion;
+                    chatInputRef.current.focus();
+                  }
+                }}
+                onDismiss={() => {
+                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
+                }}
+                onCustom={() => {
+                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
+                  chatInputRef.current?.focus();
+                }}
+              />
+            </div>
+          );
+        })()}
 
         <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
           <div className="px-1 pb-1 border-b border-border/40 mb-1">
