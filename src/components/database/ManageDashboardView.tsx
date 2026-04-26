@@ -263,7 +263,7 @@ function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => voi
       onOpen={onOpen}
       topRight={<SourceLogo card={card} />}
       footerLeft={<PeopleAvatars />}
-      footerRight={<PillCTA label="Read briefing" onClick={onOpen} />}
+      footerRight={<PillCTA label={briefingCtaLabel(card)} onClick={onOpen} />}
     />
   );
 }
@@ -279,7 +279,7 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
       onOpen={onOpen}
       topRight={<SourceLogo card={card} />}
       footerLeft={<PeopleAvatars />}
-      footerRight={<PillCTA label="Respond" onClick={onOpen} />}
+      footerRight={<PillCTA label={updateCtaLabel(card)} onClick={onOpen} />}
     />
   );
 }
@@ -289,18 +289,56 @@ function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void })
 /* ------------------------------------------------------------------ */
 function todoCtaLabel(card: DashboardCard): string {
   const t = (card.taskType || "").toLowerCase();
-  if (t.includes("approve") || t.includes("sign")) return "Approve & Sign";
+  if (t.includes("approve") || t.includes("sign")) return "Sign";
   if (t.includes("delegate")) return "Delegate";
-  if (t.includes("template")) return "Solve via Template";
+  if (t.includes("template")) return "Use template";
   if (t.includes("review")) return "Review";
+  if (t.includes("reply") || t.includes("respond")) return "Reply";
+  if (t.includes("send")) return "Send";
+  if (t.includes("draft") || t.includes("write")) return "Draft";
+  if (t.includes("schedule") || t.includes("plan")) return "Schedule";
+  if (t.includes("call")) return "Call";
+  if (t.includes("pay") || t.includes("invoice")) return "Pay";
   // fall back to a verb pulled from the title
-  const m = card.title.match(/^(Approve|Sign|Review|Draft|Send|Finalize|Delegate|Plan|Schedule)\b/i);
+  const m = card.title.match(/^(Approve|Sign|Review|Draft|Send|Finalize|Delegate|Plan|Schedule|Reply|Call|Pay|Fix|Update|Check)\b/i);
   if (m) {
     const verb = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
-    if (verb === "Approve" || verb === "Sign") return "Approve & Sign";
+    if (verb === "Approve") return "Sign";
+    if (verb === "Finalize") return "Finish";
     return verb;
   }
-  return "Start task";
+  return "Do it";
+}
+
+/* Personal CTA labels for non-todo tabs */
+function briefingCtaLabel(card: DashboardCard): string {
+  const t = `${card.title} ${card.description || ""}`.toLowerCase();
+  if (/\brevenue|sales|mrr|arr|churn|cost|spend|cash|invoice|payment\b/.test(t)) return "See numbers";
+  if (/\bcustomer|user|signup|lead|audience\b/.test(t)) return "See who";
+  if (/\bcompetitor|market|trend\b/.test(t)) return "See market";
+  if (/\bteam|hire|employee|people\b/.test(t)) return "See team";
+  if (/\blaunch|release|ship|product\b/.test(t)) return "See launch";
+  return "Read more";
+}
+
+function updateCtaLabel(card: DashboardCard): string {
+  const req = (card.requestType || "").toLowerCase();
+  if (req.includes("approve") || req.includes("sign")) return "Approve";
+  if (req.includes("reply") || req.includes("respond")) return "Reply";
+  if (req.includes("review")) return "Review";
+  if (req.includes("decision") || req.includes("decide")) return "Decide";
+  if (card.waitingParty) return `Reply to ${card.waitingParty.split(/\s+/)[0]}`;
+  return "Reply";
+}
+
+function objectiveCtaLabel(card: DashboardCard): string {
+  const t = `${card.title}`.toLowerCase();
+  if (/\brevenue|mrr|arr|sales\b/.test(t)) return "Track revenue";
+  if (/\bchurn|retention\b/.test(t)) return "Track retention";
+  if (/\bgrowth|users|signup|acquisition\b/.test(t)) return "Track growth";
+  if (/\blaunch|ship|release\b/.test(t)) return "Track launch";
+  if (/\bhire|team|people\b/.test(t)) return "Track hiring";
+  return "Track goal";
 }
 
 function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
@@ -430,7 +468,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       footerLeft={<PeopleAvatars />}
-      footerRight={<PillCTA label="View OKRs" onClick={onOpen} />}
+      footerRight={<PillCTA label={objectiveCtaLabel(card)} onClick={onOpen} />}
     />
   );
 }
@@ -626,10 +664,51 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       // Auto-refresh in background if cache is stale (older than threshold or invalidated)
       if (staleCache) fetchInsights(brandRowId);
     } else {
-      // Empty cache — always refetch so user sees fresh data
+      // Empty localStorage cache — try the server snapshot for an instant warm render,
+      // then kick off the full AI refresh in the background.
+      hydrateFromSnapshot(brandRowId);
       fetchInsights(brandRowId);
     }
   }, [activeBrand?.id]);
+
+  // Fast path: read the persisted dashboard snapshot from the DB so cards appear
+  // instantly on first load (or after clearing localStorage), without waiting for
+  // the full AI generation in `dashboard-insights`.
+  const hydrateFromSnapshot = useCallback(async (brandId: string) => {
+    try {
+      const { data } = await supabase
+        .from("dashboard_snapshots")
+        .select("tab_cards, opening_summary, health_score")
+        .eq("brand_id", brandId)
+        .maybeSingle();
+      if (!data?.tab_cards) return;
+      const tabs = data.tab_cards as unknown as Record<string, DashboardCard[]>;
+      const result: Record<string, DashboardCard[]> = {
+        Briefing: tabs.Briefing || [],
+        Updates: tabs.Updates || [],
+        "To-Dos": tabs["To-Dos"] || [],
+        Objectives: tabs.Objectives || [],
+      };
+      const hasAny = Object.values(result).some((arr) => arr.length > 0);
+      if (!hasAny) return;
+      // Only set if we still don't have cards (avoid clobbering a fast fetchInsights)
+      setAllTabCards((prev) => {
+        const prevHas = Object.values(prev).some((arr) => arr.length > 0);
+        return prevHas ? prev : result;
+      });
+      if (data.opening_summary) {
+        setOpeningSummary((prev) => prev || ({ text: data.opening_summary } as OpeningSummary));
+      }
+      if (data.health_score) {
+        setHealthScore((prev) => prev || (data.health_score as unknown as HealthScore));
+      }
+      // Warm localStorage so subsequent loads are even faster
+      saveCachedCards(brandId, result);
+    } catch (err) {
+      console.error("Snapshot hydrate failed:", err);
+    }
+  }, []);
+
 
   const fetchInsights = useCallback(async (brandId: string) => {
     setLoading(true);
