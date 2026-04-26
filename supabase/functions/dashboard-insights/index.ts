@@ -1253,6 +1253,18 @@ Return ONLY a valid JSON object, no markdown fences.`;
   } catch (error) {
     console.error("Dashboard insights error:", error);
     const msg = error instanceof Error ? error.message : "Unknown error";
+    const isAbort = error instanceof Error && (error.name === "AbortError" || /aborted|timeout/i.test(msg));
+    if (isAbort) {
+      // Graceful degradation: AI took too long. Return empty insights so the UI doesn't blank out.
+      return new Response(
+        JSON.stringify({
+          openingSummary: null,
+          tabCards: { briefing: [], updates: [], todos: [], objectives: [] },
+          warning: "Insights are taking longer than expected. Please try again in a moment.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     return new Response(JSON.stringify({ error: msg }), {
       status: msg === "Unauthorized" ? 401 : 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
