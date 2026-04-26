@@ -58,7 +58,7 @@ export function AssistantSuggestions({
     setCustomValue("");
   };
 
-  const headerTitle = title?.trim() || "A quick question";
+  const headerTitle = title?.trim();
 
   return (
     <div
@@ -67,18 +67,29 @@ export function AssistantSuggestions({
         variant === "overlay" ? "w-full" : "max-w-md",
       )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 gap-3">
-        <p className="text-sm font-medium text-foreground truncate">{headerTitle}</p>
-        <button
-          onClick={handleDismiss}
-          className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground shrink-0"
-          aria-label="Dismiss suggestions"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
+      {/* Header — only render a header when the AI provided a real personal title */}
+      {headerTitle ? (
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 gap-3">
+          <p className="text-sm font-medium text-foreground truncate">{headerTitle}</p>
+          <button
+            onClick={handleDismiss}
+            className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground shrink-0"
+            aria-label="Dismiss suggestions"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex justify-end px-2 pt-2">
+          <button
+            onClick={handleDismiss}
+            className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground"
+            aria-label="Dismiss suggestions"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
       {/* Suggestion rows (supports 2–4 options) */}
       <div className="flex flex-col">
         {visibleSuggestions.map((suggestion, idx) => {
