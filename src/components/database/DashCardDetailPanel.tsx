@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, Check, ExternalLink,
+  Clock, Sparkles, MessageSquare, ChevronDown, ChevronLeft, ChevronRight, MoreVertical, Check, ExternalLink,
   Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users, Inbox,
   Copy, EyeOff, RotateCcw, Plus, Trash2, Loader2,
 } from "lucide-react";
