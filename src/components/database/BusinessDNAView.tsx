@@ -24,8 +24,6 @@ import { PillarView } from "@/components/database/pillars/PillarView";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import superchargeIllustration from "@/assets/supercharge-dna-illustration.svg";
-import superchargePortalLeft from "@/assets/supercharge-portal-left.svg";
-import superchargeBrowserRight from "@/assets/supercharge-browser-right.svg";
 
 const PILLAR_IDS = new Set(["brand", "product", "audience", "market", "financial", "operations", "people", "growth", "strategy"]);
 
