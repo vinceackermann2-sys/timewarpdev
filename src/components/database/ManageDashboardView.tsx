@@ -700,7 +700,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         setOpeningSummary((prev) => prev || ({ text: data.opening_summary } as OpeningSummary));
       }
       if (data.health_score) {
-        setHealthScore((prev) => prev || (data.health_score as HealthScore));
+        setHealthScore((prev) => prev || (data.health_score as unknown as HealthScore));
       }
       // Warm localStorage so subsequent loads are even faster
       saveCachedCards(brandId, result);
