@@ -14,7 +14,7 @@ const logos = [
 
 export default function NewValueComparison() {
   return (
-    <section className="py-12 sm:py-20 border-t border-slate-100 bg-[#fcfcfd]">
+    <section className="py-12 sm:py-20 border-t border-slate-100 bg-[#FAFBFF]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Logo Carousel — hidden for now */}
         {false && <div className="mb-16 sm:mb-24 overflow-hidden">
@@ -36,7 +36,7 @@ export default function NewValueComparison() {
               <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2 sm:mb-3">Co Work</h3>
               <p className="text-base sm:text-lg text-slate-600">Work alongside your AI assistant directly in your browser.</p>
             </div>
-            <div className="flex-1 relative mt-4 bg-slate-50 border-t border-slate-100 overflow-hidden">
+            <div className="flex-1 relative mt-4 bg-[#F0F5FF] border-t border-slate-100 overflow-hidden">
               <div className="absolute inset-0 p-6 flex gap-6">
                 <div className="w-1/4 h-full flex flex-col gap-4">
                   <div className="w-full h-5 bg-slate-200 rounded animate-pulse" />
@@ -58,7 +58,7 @@ export default function NewValueComparison() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="absolute right-2 sm:right-6 top-2 sm:top-6 w-48 sm:w-72 h-64 sm:h-auto sm:bottom-6 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden"
               >
-                <div className="h-12 border-b border-slate-100 flex items-center px-4 gap-2 bg-slate-50">
+                <div className="h-12 border-b border-slate-100 flex items-center px-4 gap-2 bg-[#F0F5FF]">
                   <Sparkles className="w-5 h-5 text-[#4a86ff]" />
                   <span className="text-sm font-bold text-slate-700">TimeWarp</span>
                 </div>

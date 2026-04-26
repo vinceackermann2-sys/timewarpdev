@@ -636,7 +636,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
               }`}
             >
               {tier.recommended && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-sm">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#0F2638] text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-[100px] shadow-sm">
                   Most Popular
                 </div>
               )}

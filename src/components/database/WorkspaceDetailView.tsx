@@ -131,7 +131,7 @@ export function WorkspaceDetailView({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-[#fcfcfd]">
+    <div className="flex flex-col h-full overflow-y-auto bg-[#FAFBFF]">
       {/* Header */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
         {/* ← All workspaces */}
@@ -169,7 +169,7 @@ export function WorkspaceDetailView({
         </div>
 
         {/* Tabs */}
-        <div className="inline-flex items-center p-1 rounded-lg border border-border mb-4 bg-[#eef2f7]">
+        <div className="inline-flex items-center p-1 rounded-lg border border-border mb-4 bg-[#E8F0FE]">
           <button
             onClick={() => setTab("users")}
             className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${
@@ -200,7 +200,7 @@ export function WorkspaceDetailView({
               placeholder="Filter by name or email"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="pl-9 h-9 bg-[#eef2f7]/0"
+              className="pl-9 h-9 bg-[#E8F0FE]/0"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -262,7 +262,7 @@ export function WorkspaceDetailView({
       )}
 
       {/* Content */}
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-1 bg-[#fcfcfd]">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-1 bg-[#FAFBFF]">
         <div className="rounded-xl border border-border bg-card">
           {loading ? (
             <div className="flex items-center justify-center py-16">
