@@ -2336,7 +2336,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       )}
 
       {/* Mobile: Sheet overlay */}
-      {isMobileChatView && (
+      {isMobileChatView && !isOnboardingActive && (
         <Sheet open={showHistory} onOpenChange={setShowHistory}>
           <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
             <SheetHeader className="sr-only">
