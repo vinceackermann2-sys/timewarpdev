@@ -16,7 +16,7 @@ import {
   Pencil, Trash2, Clock, X, Plus, ChevronRight, ArrowLeft, Check,
   Building2, ArrowRight, Search, MoreHorizontal, CheckCircle2,
 } from "lucide-react";
-import { useTheme } from "next-themes";
+
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.png";
@@ -199,7 +199,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialogProps) {
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  
   const [activeTab, setActiveTab] = useState<SettingsTab>("settings");
   const [displayName, setDisplayName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");

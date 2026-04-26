@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Link2, Moon, Sun, Globe, ArrowRight } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Link2, Globe, ArrowRight } from "lucide-react";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
@@ -21,8 +20,6 @@ const urls = [
 
 export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
   const navigate = useNavigate();
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
   const grainCanvasRef = useRef<HTMLCanvasElement>(null);
   const [typewriterText, setTypewriterText] = useState("");
   const [url, setUrl] = useState("");
