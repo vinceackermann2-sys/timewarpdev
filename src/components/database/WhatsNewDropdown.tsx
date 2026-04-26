@@ -63,7 +63,7 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
                   <span className="ml-1 h-2 w-2 bg-primary rounded-full inline-block" />
                 )}
               </TabsTrigger>
-              <TabsTrigger value="updates" className="text-xs gap-1.5 bg-white">
+              <TabsTrigger value="updates" className="text-xs gap-1.5 bg-[#f0f5ff]">
                 <Bell className="h-3.5 w-3.5" />
                 Updates
                 {updateItems.some(i => i.isNew) && (
