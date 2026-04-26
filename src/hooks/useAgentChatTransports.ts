@@ -167,6 +167,11 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     }
 
     const { content: sugCleanContent, suggestions, title: suggestionTitle } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    if (suggestions.length === 0) {
+      console.warn("[suggestions] No [SUGGEST:...] tag detected in assistant reply. Tail:", (fullContent || "").slice(-300));
+    } else {
+      console.log("[suggestions] parsed", { count: suggestions.length, title: suggestionTitle, suggestions });
+    }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
