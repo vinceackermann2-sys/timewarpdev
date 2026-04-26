@@ -723,6 +723,9 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     : displayCards;
 
   const hasCards = Object.values(allTabCards).some(arr => arr.length > 0);
+  const hasEverLoadedRef = useRef(false);
+  if (hasCards) hasEverLoadedRef.current = true;
+  const hasEverLoaded = hasEverLoadedRef.current;
 
   // Auto-select first card so the right-side detail panel is always populated.
   useEffect(() => {
