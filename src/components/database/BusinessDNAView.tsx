@@ -568,7 +568,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   return (
     <div className="flex h-full w-full">
       {/* Left vertical pillar menu */}
-      <aside className="w-52 shrink-0 border-r border-border/60 bg-background flex flex-col py-4 px-3 gap-0.5 overflow-y-auto">
+      <aside className="w-52 shrink-0 border-r border-border/60 flex flex-col py-4 px-3 gap-0.5 overflow-y-auto bg-[#fafbff]">
         <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Business DNA
         </div>
