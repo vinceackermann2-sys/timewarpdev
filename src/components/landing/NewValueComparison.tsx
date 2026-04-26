@@ -103,7 +103,7 @@ export default function NewValueComparison() {
                   <div className="w-2 h-2 rounded-full bg-red-400" />
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
                   <div className="w-2 h-2 rounded-full bg-green-400" />
-                  <span className="ml-1 text-[9px] text-[#F0F5FF]0 font-bold uppercase tracking-wider">Salesforce</span>
+                  <span className="ml-1 text-[9px] text-slate-500 font-bold uppercase tracking-wider">Salesforce</span>
                 </div>
                 <div className="p-3 flex flex-col gap-2.5 relative h-full">
                   <div className="w-full h-2 bg-slate-100 rounded" />
@@ -124,7 +124,7 @@ export default function NewValueComparison() {
                   <div className="w-2 h-2 rounded-full bg-red-400" />
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
                   <div className="w-2 h-2 rounded-full bg-green-400" />
-                  <span className="ml-1 text-[9px] text-[#F0F5FF]0 font-bold uppercase tracking-wider">Gmail</span>
+                  <span className="ml-1 text-[9px] text-slate-500 font-bold uppercase tracking-wider">Gmail</span>
                 </div>
                 <div className="p-3 flex flex-col gap-2.5 relative h-full">
                   <div className="w-full h-2 bg-slate-100 rounded" />

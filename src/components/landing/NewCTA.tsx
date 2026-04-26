@@ -29,12 +29,12 @@ export default function NewCTA({ onGetDNA }: NewCTAProps) {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-1 sm:mt-2">
           <div className="flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-[#F0F5FF]0" />
-            <span className="text-sm font-medium text-[#F0F5FF]0">No credit card</span>
+            <Lock className="w-3.5 h-3.5 text-slate-500" />
+            <span className="text-sm font-medium text-slate-500">No credit card</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-[#F0F5FF]0" />
-            <span className="text-sm font-medium text-[#F0F5FF]0">30 seconds</span>
+            <Zap className="w-3.5 h-3.5 text-slate-500" />
+            <span className="text-sm font-medium text-slate-500">30 seconds</span>
           </div>
         </div>
       </div>
