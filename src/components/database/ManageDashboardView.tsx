@@ -739,28 +739,33 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
 
   return (
     <div className="h-full flex relative overflow-hidden bg-[#FAFBFF]">
+      {/* Left vertical tab menu */}
+      <aside className="w-52 shrink-0 border-r border-border/60 bg-[#fafbff] flex flex-col py-4 px-3 gap-0.5">
+        <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Dashboard
+        </div>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-2.5 py-2 text-sm font-medium rounded-md transition-colors text-left ${
+                isActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{tab.label}</span>
+            </button>
+          );
+        })}
+      </aside>
       <div className="flex-1 min-w-0 flex flex-col">
       <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-[#fafbff]">
-        <div className="flex items-center gap-1 mb-4 border-b border-border/60 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 overflow-x-auto">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+
         <div className="flex items-start justify-between mb-4 gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
