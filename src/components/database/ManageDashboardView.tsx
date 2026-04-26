@@ -664,10 +664,51 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       // Auto-refresh in background if cache is stale (older than threshold or invalidated)
       if (staleCache) fetchInsights(brandRowId);
     } else {
-      // Empty cache — always refetch so user sees fresh data
+      // Empty localStorage cache — try the server snapshot for an instant warm render,
+      // then kick off the full AI refresh in the background.
+      hydrateFromSnapshot(brandRowId);
       fetchInsights(brandRowId);
     }
   }, [activeBrand?.id]);
+
+  // Fast path: read the persisted dashboard snapshot from the DB so cards appear
+  // instantly on first load (or after clearing localStorage), without waiting for
+  // the full AI generation in `dashboard-insights`.
+  const hydrateFromSnapshot = useCallback(async (brandId: string) => {
+    try {
+      const { data } = await supabase
+        .from("dashboard_snapshots")
+        .select("tab_cards, opening_summary, health_score")
+        .eq("brand_id", brandId)
+        .maybeSingle();
+      if (!data?.tab_cards) return;
+      const tabs = data.tab_cards as Record<string, DashboardCard[]>;
+      const result: Record<string, DashboardCard[]> = {
+        Briefing: tabs.Briefing || [],
+        Updates: tabs.Updates || [],
+        "To-Dos": tabs["To-Dos"] || [],
+        Objectives: tabs.Objectives || [],
+      };
+      const hasAny = Object.values(result).some((arr) => arr.length > 0);
+      if (!hasAny) return;
+      // Only set if we still don't have cards (avoid clobbering a fast fetchInsights)
+      setAllTabCards((prev) => {
+        const prevHas = Object.values(prev).some((arr) => arr.length > 0);
+        return prevHas ? prev : result;
+      });
+      if (data.opening_summary) {
+        setOpeningSummary((prev) => prev || ({ text: data.opening_summary } as OpeningSummary));
+      }
+      if (data.health_score) {
+        setHealthScore((prev) => prev || (data.health_score as HealthScore));
+      }
+      // Warm localStorage so subsequent loads are even faster
+      saveCachedCards(brandId, result);
+    } catch (err) {
+      console.error("Snapshot hydrate failed:", err);
+    }
+  }, []);
+
 
   const fetchInsights = useCallback(async (brandId: string) => {
     setLoading(true);
