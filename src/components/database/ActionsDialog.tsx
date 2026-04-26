@@ -264,7 +264,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 <Input
                   readOnly
                   value={referralLink || "Loading..."}
-                  className="bg-[#E8F0FE] text-sm"
+                  className="bg-white text-sm"
                 />
                 <Button
                   onClick={handleCopyLink}
