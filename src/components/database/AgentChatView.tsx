@@ -2325,7 +2325,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
       {/* Chat History Sidebar — hidden on mobile */}
       {/* Desktop: inline sidebar */}
-      {showHistory && !isMobileChatView && (
+      {showHistory && !isMobileChatView && !isOnboardingActive && (
         <div className="hidden md:block shrink-0 h-[calc(100%-16px)] my-2 mr-2">
           <ChatHistorySidebar
             activeChatId={activeChatId}
