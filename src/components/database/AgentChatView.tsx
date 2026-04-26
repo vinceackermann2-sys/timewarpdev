@@ -2083,7 +2083,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 <select
                   value={selectedAgent}
                   onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-[#E8F0FE]"
+                  className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-white"
                 >
                   {agents.map((agent) => (
                     <option key={agent.id} value={agent.name}>{agent.name}</option>
