@@ -783,7 +783,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           {!activeBrand ? (
             <CardSkeletons tab={activeTab} />
-          ) : loading && !hasCards ? (
+          ) : loading && !hasEverLoaded ? (
             <>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -799,12 +799,6 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             </div>
           ) : (
             <>
-              {loading && hasCards && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Updating insights — current cards shown until refresh completes…
-                </div>
-              )}
               <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredCards.map((card) =>
                 activeTab === "Briefing" ? (
