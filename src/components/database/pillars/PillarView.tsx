@@ -238,7 +238,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                 variant="outline"
                 size="sm"
                 onClick={() => setEditMode((v) => !v)}
-                className="shrink-0 gap-2 bg-[#E8F0FE]"
+                className="shrink-0 gap-2 bg-white hover:text-accent-foreground"
               >
                 {editMode ? (
                   <>
