@@ -71,10 +71,6 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const brandId = String(body?.brandId || "").trim();
     const workspaceId = typeof body?.workspaceId === "string" ? body.workspaceId : null;
-    const evidenceModeRaw = String(body?.evidenceMode || "").trim().toLowerCase();
-    const evidenceMode = ["internal", "external", "feedback_first", "blend"].includes(evidenceModeRaw)
-      ? evidenceModeRaw
-      : "blend";
     const urls = Array.isArray(body?.urls) ? body.urls.map((u: unknown) => String(u || "").trim()).filter(Boolean).slice(0, 12) : [];
     const artifacts: Artifact[] = Array.isArray(body?.artifacts)
       ? body.artifacts.map((a: any) => ({ name: String(a?.name || "file"), text: clip(String(a?.text || ""), 15000) })).slice(0, 12)
@@ -142,7 +138,6 @@ serve(async (req) => {
         brandRowId,
         workspaceId,
         superchargeMode: true,
-        evidenceMode,
         externalEvidence: {
           urls: urlEvidence.map((e) => ({ url: e.url, excerpt: clip(e.text, 2000) })),
           files: artifacts.map((a) => ({ name: a.name, excerpt: clip(a.text, 2000) })),

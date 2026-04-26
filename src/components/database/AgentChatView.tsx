@@ -1,185 +1,48 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Plus, Settings, ArrowUp, FileUp, Users, X, Globe, ChevronRight,
-  Monitor, Search, Shield, Link, User, FileText, Bot, ChevronDown, StickyNote,
-  Plug, Unplug, Loader2, Sparkles, ExternalLink, Download, PanelRightOpen, PanelRightClose, Square,
-  Palette, BarChart3, PieChart, Table2, Presentation, CheckCircle2
+  BarChart3,
+  Bot,
+  FileText,
+  PanelRightClose,
+  PanelRightOpen,
+  PieChart,
+  Presentation,
+  Search,
+  Settings,
+  Table2,
+  Users,
+  X,
 } from "lucide-react";
-import { ChatHistorySidebar, type ChatSession } from "./ChatHistorySidebar";
+import { ChatHistorySidebar } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
-import { InlineChatAnalytics } from "./InlineChatAnalytics";
-import { InlineDocument, InlineSpreadsheet, InlineSlide } from "./InlineChatGraphics";
-import { TaskStepsDisplay } from "./TaskStepsDisplay";
-import { ChatDashboardCards } from "./ChatDashboardCards";
-import { ThinkingTimer } from "./ThinkingTimer";
-import { ProgressiveLoader } from "@/components/ui/progressive-loader";
-import { SettingsView } from "@/components/database/SettingsView";
-import { AssistantSuggestions } from "./AssistantSuggestions";
-import { AssistantInsightFeedback } from "./AssistantInsightFeedback";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
-import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
-import { ConnectionsView } from "@/components/database/ConnectionsView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/agentChat/types";
 import { isExplicitEmployeeComputerRequest } from "@/lib/agentChat/computerModePatterns";
-import { buildMultimodalContent } from "@/lib/agentChat/multimodal";
 import { useAgentChatTransports } from "@/hooks/useAgentChatTransports";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { extractSuggestions } from "@/lib/parseSuggestions";
-import { buildLiveCitationAnchor } from "@/components/chat/liveCitationAnchor";
-import logoMicrosoft from "@/assets/logo-microsoft.png";
-import logoGoogle from "@/assets/logo-google.png";
-import logoSlack from "@/assets/logo-slack.png";
-import logoHubspot from "@/assets/logo-hubspot.svg";
-import logoFortknox from "@/assets/logo-fortknox.png";
-import adEvoIcon from "@/assets/ad-evo-icon.svg";
-import type { AIEmployee } from "./EmployeesView";
+import { useProviderConnections } from "@/hooks/useProviderConnections";
+import { useEmployeeManagement } from "@/hooks/useEmployeeManagement";
+import { useChatPersistence } from "@/hooks/useChatPersistence";
+import { processFiles, type UploadedFileChip } from "@/lib/agentChat/fileProcessing";
+import { appendGraphicInstructionsToUserContent } from "@/lib/agentChat/graphicInstructions";
+import { createFetchWithTimeout } from "@/lib/agentChat/fetchWithTimeout";
+import { insertReferenceIntoChatInput } from "@/lib/agentChat/mentionHelpers";
+import type { MentionState } from "@/lib/agentChat/mentionHelpers";
+import { AssistantSuggestions } from "./AssistantSuggestions";
 import { ChatOnboardingFlow } from "./aiceo/ChatOnboardingFlow";
+import { AgentChatMessageList } from "./chat/AgentChatMessageList";
+import { AgentChatInput } from "./chat/AgentChatInput";
+import { AgentChatSettingsModal } from "./chat/AgentChatSettingsModal";
+import { CreateEmployeeDialog } from "./chat/CreateEmployeeDialog";
 
-/* ─── Task Report Viewer (popup dialog) ─── */
-function TaskReportViewer({ content, onSaveToDb, savedToDb, triggerLabel, dialogTitle, onOpened }: {
-  content: string;
-  onSaveToDb?: (updatedContent: string) => Promise<void>;
-  savedToDb?: boolean;
-  triggerLabel?: string;
-  dialogTitle?: string;
-  onOpened?: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [editContent, setEditContent] = useState(content);
-  const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(!!savedToDb);
-
-  const handleDownload = () => {
-    const blob = new Blob([editContent], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "task-results.md";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleSave = async () => {
-    if (!onSaveToDb) return;
-    setSaving(true);
-    try {
-      await onSaveToDb(editContent);
-      setSaved(true);
-      toast.success("Document saved");
-    } catch { toast.error("Failed to save"); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <>
-      {/* Trigger button */}
-      <button
-        onClick={() => {
-          setOpen(true);
-          onOpened?.();
-        }}
-        className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all text-sm font-medium text-foreground group"
-      >
-        <FileText className="w-4 h-4 text-primary" />
-        {triggerLabel || "View Task Results"}
-        {saved && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
-        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto group-hover:translate-x-0.5 transition-transform" />
-      </button>
-
-      {/* Dialog */}
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setOpen(false)}>
-          <div
-            className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
-              <FileText className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground flex-1">{dialogTitle || "Task Results"}</span>
-              {saved && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className={cn("text-xs px-2.5 py-1 rounded-lg transition-colors", isEditing ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground")}
-              >
-                {isEditing ? "Preview" : "Edit"}
-              </button>
-              {onSaveToDb && (
-                <button onClick={handleSave} disabled={saving} className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors disabled:opacity-50">
-                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
-                  Save
-                </button>
-              )}
-              <button onClick={handleDownload} className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors">
-                <Download className="w-3 h-3" />
-                Download
-              </button>
-              <button onClick={() => setOpen(false)} className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto">
-              {isEditing ? (
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full min-h-[400px] p-5 bg-transparent text-sm text-foreground font-mono resize-none focus:outline-none border-none"
-                  spellCheck={false}
-                />
-              ) : (
-                <div className="p-6 max-w-none text-foreground text-[14.5px] leading-[1.75]">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      h1: ({children}) => <h1 className="text-xl font-bold text-foreground mt-6 mb-3 pb-2 border-b border-border/40">{children}</h1>,
-                      h2: ({children}) => <h2 className="text-lg font-semibold text-foreground mt-6 mb-3">{children}</h2>,
-                      h3: ({children}) => <h3 className="text-base font-semibold text-foreground mt-5 mb-2">{children}</h3>,
-                      p: ({children}) => <p className="mb-4 last:mb-0 leading-[1.8] text-foreground/90">{children}</p>,
-                      ul: ({children}) => <ul className="my-4 pl-6 space-y-2 list-disc marker:text-foreground/40">{children}</ul>,
-                      ol: ({children}) => <ol className="my-4 pl-6 space-y-2 list-decimal marker:text-foreground/40">{children}</ol>,
-                      li: ({children}) => <li className="leading-[1.7] text-foreground/90 pl-1">{children}</li>,
-                      strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-                      blockquote: ({children}) => <blockquote className="my-4 pl-4 border-l-2 border-primary/30 text-foreground/70 italic">{children}</blockquote>,
-                      hr: () => <hr className="my-6 border-border/50" />,
-                      code: ({children, className: cName}) => {
-                        const isBlock = cName?.includes("language-");
-                        return isBlock
-                          ? <code className={cn("block", cName)}>{children}</code>
-                          : <code className="rounded bg-muted px-1.5 py-0.5 text-[13px] font-mono text-foreground/80">{children}</code>;
-                      },
-                      pre: ({children}) => <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 text-[13px]">{children}</pre>,
-                      table: ({children}) => <div className="my-4 overflow-x-auto rounded-lg border border-border/50"><table className="w-full text-sm">{children}</table></div>,
-                      thead: ({children}) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
-                      th: ({children}) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px]">{children}</th>,
-                      td: ({children}) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80">{children}</td>,
-                      a: ({children, href}) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">{children}</a>,
-                    }}
-                  >{editContent}</ReactMarkdown>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-/* ─── Main view ─── */
 export function AgentChatView({
   activeBrandId,
   initialMessage,
@@ -192,66 +55,54 @@ export function AgentChatView({
   activeBrandId?: string | null;
   initialMessage?: string | null;
   onInitialMessageConsumed?: () => void;
-  /** When true and the chat is empty, render the chat-driven onboarding flow inline. */
   forceOnboarding?: boolean;
-  /** URL to pre-fill into the onboarding (from landing-page funnel ?url=). */
   onboardingInitialUrl?: string | null;
-  /** Called once the user has named their agent and chosen whether to supercharge. */
   onOnboardingComplete?: (agentName: string, brandId: string, supercharge: boolean) => void;
-  /** Notifies parent when the inline onboarding flow is active so it can lock navigation. */
   onOnboardingActiveChange?: (active: boolean) => void;
 }) {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
-  const { extensionConnected, detecting, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
+  const { extensionConnected, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
 
-  /* ── Agents = brands from Business DNA ── */
-  const agents = brands.map(b => ({ id: b.id, name: b.agentName || b.name || "AI" }));
+  useProviderConnections(activeBrandId ?? undefined);
 
-  /* ── Employees (from DB) ── */
-  const [employees, setEmployees] = useState<AIEmployee[]>([]);
-  const loadEmployees = async () => {
-    if (!user) return;
-    let query = supabase
-      .from("ai_employees" as any)
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (activeWorkspaceId) query = query.eq("workspace_id", activeWorkspaceId);
-    else query = query.eq("user_id", user.id);
-    const { data } = await query;
-    if (data) setEmployees(data as unknown as AIEmployee[]);
-  };
-  useEffect(() => { loadEmployees(); }, [user, activeWorkspaceId]);
+  const agents = brands.map((b) => ({ id: b.id, name: b.agentName || b.name || "AI" }));
 
-  /* ── UI state ── */
+  const {
+    employees,
+    handleDeleteEmployee,
+    handleUpdateEmployee,
+    showAddEmployee,
+    setShowAddEmployee,
+    addEmployeePrompt,
+    setAddEmployeePrompt,
+    isGeneratingEmployee,
+    generatedEmployee,
+    setGeneratedEmployee,
+    handleGenerateEmployee,
+    handleConfirmEmployee,
+  } = useEmployeeManagement(user, activeWorkspaceId);
+
   const [isDropupOpen, setIsDropupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<string>("");
-  const [showAgents, setShowAgents] = useState(false);
   const [showEmployeesMenu, setShowEmployeesMenu] = useState(false);
   const [isActionMode, setIsActionMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
   const [showGraphicsMenu, setShowGraphicsMenu] = useState(false);
   const [selectedGraphic, setSelectedGraphic] = useState<string | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<{ id: string; name: string; file?: File }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileChip[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
-  const [mentionState, setMentionState] = useState<{ active: boolean; node: Node | null; startOffset: number; endOffset: number }>({ active: false, node: null, startOffset: 0, endOffset: 0 });
+  const [mentionState, setMentionState] = useState<MentionState>({ active: false, node: null, startOffset: 0, endOffset: 0 });
   const [selectedChatEmployees, setSelectedChatEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
 
-  /* ── Chat state ── */
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
 
-  /* ── Onboarding latch ──
-   * Once the chat-driven onboarding flow is shown, keep it mounted until the user
-   * finishes (names agent + makes supercharge choice) — even if `forceOnboarding`
-   * flips to false mid-flow because save-onboarding created the brand and
-   * brands.length > 0. Without this, naming/supercharge phases would never appear.
-   */
   const [onboardingLocked, setOnboardingLocked] = useState<boolean>(!!forceOnboarding && messages.length === 0);
   useEffect(() => {
     if (forceOnboarding && messages.length === 0) {
@@ -261,6 +112,7 @@ export function AgentChatView({
   useEffect(() => {
     onOnboardingActiveChange?.(onboardingLocked);
   }, [onboardingLocked, onOnboardingActiveChange]);
+
   const [resumingTask, setResumingTask] = useState(false);
   const [resumableTask, setResumableTask] = useState<null | {
     continuationKey: string;
@@ -269,31 +121,33 @@ export function AgentChatView({
     continuationIndex: number;
     lastUserMessage?: string;
   }>(null);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  /* ── Stall watchdog: auto-stop if no progress for too long ── */
-  const STALL_TIMEOUT_MS = 90_000; // 90s with no content/step updates
+  const STALL_TIMEOUT_MS = 90_000;
   const lastActivityRef = useRef<number>(0);
   const activeAssistantIdRef = useRef<string | null>(null);
   const stalledRef = useRef<boolean>(false);
   const stallIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Reset activity timestamp whenever the active assistant message changes (content/steps)
   useEffect(() => {
     if (!isSending) return;
     const activeId = activeAssistantIdRef.current;
     if (!activeId) return;
-    const active = messages.find(m => m.id === activeId);
+    const active = messages.find((m) => m.id === activeId);
     if (!active) return;
-    const sig = (active.content?.length || 0) + "|" + (active.taskSteps?.length || 0) + "|" + (active.taskSteps?.[active.taskSteps.length - 1]?.status || "");
-    // Touch activity on any change in content/steps
+    const sig =
+      (active.content?.length || 0) +
+      "|" +
+      (active.taskSteps?.length || 0) +
+      "|" +
+      (active.taskSteps?.[active.taskSteps.length - 1]?.status || "");
     lastActivityRef.current = Date.now();
     void sig;
   }, [messages, isSending]);
 
-  // Poll for stalls while sending
   useEffect(() => {
     if (!isSending) {
       if (stallIntervalRef.current) {
@@ -308,24 +162,34 @@ export function AgentChatView({
       if (elapsed < STALL_TIMEOUT_MS) return;
       stalledRef.current = true;
       const assistantId = activeAssistantIdRef.current;
-      // Abort the in-flight request
       if (abortControllerRef.current) {
-        try { abortControllerRef.current.abort(); } catch { /* noop */ }
+        try {
+          abortControllerRef.current.abort();
+        } catch {
+          /* noop */
+        }
         abortControllerRef.current = null;
       }
-      // Inject a friendly stall message
       if (assistantId) {
-        setMessages(prev => prev.map(m => {
-          if (m.id !== assistantId) return m;
-          const updatedSteps = (m.taskSteps || []).map(s =>
-            s.status === "running" ? { ...s, status: "error" as const } : s
-          );
-          updatedSteps.push({ action: "error", label: "Stopped — no progress", status: "error" as const, detail: "The request stalled. Please try again." });
-          const baseContent = (m.content && m.content.trim().length > 0)
-            ? m.content + "\n\n---\n⚠️ *This response stopped because it wasn't making progress. Please try again.*"
-            : "⚠️ This message stopped because it wasn't making progress. Please try again.";
-          return { ...m, content: baseContent, taskSteps: updatedSteps, isStreaming: false };
-        }));
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== assistantId) return m;
+            const updatedSteps = (m.taskSteps || []).map((s) =>
+              s.status === "running" ? { ...s, status: "error" as const } : s,
+            );
+            updatedSteps.push({
+              action: "error",
+              label: "Stopped — no progress",
+              status: "error" as const,
+              detail: "The request stalled. Please try again.",
+            });
+            const baseContent =
+              m.content && m.content.trim().length > 0
+                ? m.content + "\n\n---\n⚠️ *This response stopped because it wasn't making progress. Please try again.*"
+                : "⚠️ This message stopped because it wasn't making progress. Please try again.";
+            return { ...m, content: baseContent, taskSteps: updatedSteps, isStreaming: false };
+          }),
+        );
       }
       toast.error("Message stopped — no progress. Try again.");
       setIsSending(false);
@@ -338,11 +202,8 @@ export function AgentChatView({
     };
   }, [isSending]);
 
-  /* ── Chat history sidebar state ── */
   const isMobileChatView = useIsMobile();
   const [showHistory, setShowHistory] = useState(false);
-
-  // On desktop, default history open; on mobile keep closed
   useEffect(() => {
     if (!isMobileChatView) {
       setShowHistory(true);
@@ -350,10 +211,9 @@ export function AgentChatView({
       setShowHistory(false);
     }
   }, [isMobileChatView]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+
   const [sessionMemory, setSessionMemory] = useState("");
   const [sessionMemoryOpen, setSessionMemoryOpen] = useState(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasMessages = messages.length > 0;
 
@@ -361,126 +221,48 @@ export function AgentChatView({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* ── Auto-send initial message from dashboard action ── */
+  const { activeChatId, handleSelectChat, handleNewChat } = useChatPersistence({
+    user,
+    activeWorkspaceId,
+    selectedAgent,
+    sessionMemory,
+    messages,
+    setMessages,
+    setSelectedAgent,
+    setSelectedChatEmployees,
+    setSessionMemory,
+    setSessionMemoryOpen,
+  });
+
   const initialMessageSentRef = useRef(false);
+  const dropupRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatInputRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!initialMessage || initialMessageSentRef.current || isSending) return;
-    // Defensive: ensure we always work with a string (AI sometimes returns objects).
-    const messageText = typeof initialMessage === "string"
-      ? initialMessage
-      : String(initialMessage ?? "");
+    const messageText = typeof initialMessage === "string" ? initialMessage : String(initialMessage ?? "");
     if (!messageText.trim()) return;
-    // Wait for chatInputRef to be ready
     const timer = setTimeout(() => {
       if (chatInputRef.current) {
         chatInputRef.current.innerText = messageText;
         initialMessageSentRef.current = true;
         onInitialMessageConsumed?.();
-        // Trigger send via a synthetic approach — set text then programmatically click send
-        // We'll dispatch the send directly after setting text
-        const sendBtn = document.querySelector('[data-send-btn]') as HTMLButtonElement;
+        const sendBtn = document.querySelector("[data-send-btn]") as HTMLButtonElement;
         if (sendBtn) sendBtn.click();
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [initialMessage, isSending]);
+  }, [initialMessage, isSending, onInitialMessageConsumed]);
 
-  /* ── Auto-save chat to DB (debounced) ── */
-  const saveChatSession = useCallback(async (msgs: ChatMessage[], chatId: string | null) => {
-    if (!user || msgs.length === 0) return;
-    const nonStreaming = msgs.filter(m => !m.isStreaming);
-    if (nonStreaming.length === 0) return;
-
-    const title = nonStreaming.find(m => m.role === "user")?.content?.slice(0, 60) || "New Chat";
-    const payload = {
-      user_id: user.id,
-      workspace_id: activeWorkspaceId || null,
-      agent_name: selectedAgent || null,
-      title,
-      messages: nonStreaming,
-      assistant_memory: sessionMemory ?? "",
-      updated_at: new Date().toISOString(),
-    };
-
-    try {
-      if (chatId) {
-        await supabase.from("agent_chat_sessions")
-          .update({ messages: nonStreaming as any, updated_at: new Date().toISOString(), title, assistant_memory: sessionMemory ?? "" })
-          .eq("id", chatId);
-      } else {
-        const { data } = await supabase.from("agent_chat_sessions")
-          .insert(payload as any)
-          .select("id")
-          .maybeSingle();
-        if (data?.id) setActiveChatId(data.id);
-      }
-    } catch (e) { console.warn("Failed to save chat session:", e); }
-  }, [user, activeWorkspaceId, selectedAgent, sessionMemory]);
-
-  // Capture final elapsed seconds when a streaming message finishes — this snapshot is
-  // persisted with the chat session so the timer remains stable when the user revisits later.
-  useEffect(() => {
-    setMessages(prev => {
-      let changed = false;
-      const next = prev.map(m => {
-        if (!m.isStreaming && m.streamStartTime && typeof m.elapsedSeconds !== "number") {
-          const diff = Math.max(0, Math.floor((Date.now() - m.streamStartTime) / 1000));
-          // Sanity guard for very old loaded sessions: ignore implausible values.
-          if (diff <= 60 * 60 * 24) {
-            changed = true;
-            return { ...m, elapsedSeconds: diff };
-          }
-        }
-        return m;
-      });
-      return changed ? next : prev;
-    });
-  }, [messages]);
-
-  // Debounced save when messages change
-  useEffect(() => {
-    if (messages.length === 0) return;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveChatSession(messages, activeChatId), 2000);
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [messages, activeChatId, saveChatSession, sessionMemory]);
-
-  const handleSelectChat = (session: ChatSession) => {
-    setActiveChatId(session.id);
-    const msgs = session.messages as ChatMessage[];
-    setMessages(msgs);
-    setSessionMemory(typeof session.assistant_memory === "string" ? session.assistant_memory : "");
-    setSessionMemoryOpen(!!(session.assistant_memory && String(session.assistant_memory).trim()));
-    if (session.agent_name) setSelectedAgent(session.agent_name);
-    // Restore employee context from saved messages
-    const lastEmployeeMsg = [...msgs].reverse().find(m => m.employees && m.employees.length > 0);
-    if (lastEmployeeMsg?.employees) {
-      setSelectedChatEmployees(lastEmployeeMsg.employees);
-    } else {
-      setSelectedChatEmployees([]);
-    }
-  };
-
-  const handleNewChat = () => {
-    setActiveChatId(null);
-    setMessages([]);
-    setSelectedChatEmployees([]);
-    setSessionMemory("");
-    setSessionMemoryOpen(false);
-  };
-
-  /* ── Integration connection state ── */
-  const [connectedProviders, setConnectedProviders] = useState<Record<string, boolean>>({});
-  const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
-
-  const activeBrandForConnections = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
+  const activeBrandForConnections = brands.find((b) => (b.agentName || b.name || "AI") === selectedAgent);
   const resolvedBrandId = activeBrandId || activeBrandForConnections?.id || null;
 
   const fetchResumableTask = useCallback(async () => {
     if (!user || isSending || document.visibilityState !== "visible") return;
     try {
       const { data: run } = await supabase
-        .from("long_task_runs")
+        .from("long_task_runs" as any)
         .select("id, continuation_key, task_type, status, phase, progress, logs, result_excerpt, error, updated_at, created_at")
         .eq("user_id", user.id)
         .in("status", ["queued", "in_progress"])
@@ -488,30 +270,32 @@ export function AgentChatView({
         .limit(1)
         .maybeSingle();
 
-      if (!run || !["queued", "in_progress"].includes(run.status)) {
+      if (!run || !["queued", "in_progress"].includes(String((run as { status?: string }).status || ""))) {
         setResumableTask(null);
         return;
       }
 
+      const continuationKey = String((run as { continuation_key?: string }).continuation_key || "");
       const { data: cp } = await supabase
-        .from("long_task_checkpoints")
+        .from("long_task_checkpoints" as any)
         .select("continuation_index, content, metadata, updated_at")
-        .eq("continuation_key", run.continuation_key)
+        .eq("continuation_key", continuationKey)
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       setResumableTask({
-        continuationKey: run.continuation_key,
-        phase: run.phase || "running",
-        progress: Number(run.progress || 0),
-        continuationIndex: Number(cp?.continuation_index || 0),
-        lastUserMessage: typeof (cp?.metadata as { lastUserMessage?: unknown } | null)?.lastUserMessage === "string"
-          ? (cp?.metadata as { lastUserMessage?: string }).lastUserMessage
-          : undefined,
+        continuationKey,
+        phase: String((run as { phase?: string }).phase || "running"),
+        progress: Number((run as { progress?: number }).progress || 0),
+        continuationIndex: Number((cp as { continuation_index?: number } | null)?.continuation_index || 0),
+        lastUserMessage:
+          typeof (cp?.metadata as { lastUserMessage?: unknown } | null)?.lastUserMessage === "string"
+            ? (cp?.metadata as { lastUserMessage?: string }).lastUserMessage
+            : undefined,
       });
     } catch {
-      // best effort
+      /* best effort */
     }
   }, [user, isSending]);
 
@@ -542,271 +326,74 @@ export function AgentChatView({
     };
   }, [user, fetchResumableTask]);
 
-  const logPlanLearningEvent = useCallback(async (eventType: "opened" | "completed", metadata?: Record<string, unknown>) => {
-    if (!resolvedBrandId) return;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-learning-event`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({
-          businessId: resolvedBrandId,
-          workspaceId: activeWorkspaceId || undefined,
-          cardId: "chat.strategic_plan",
-          tab: "chat",
-          eventType,
-          source: "chat_strategic_plan",
-          category: "planning",
-          metadata: { theme: "strategic_plan", ...(metadata || {}) },
-        }),
-      });
-    } catch {
-      // Best effort only.
-    }
-  }, [resolvedBrandId, activeWorkspaceId]);
-
-  // Check connections at user level (not brand-scoped)
-  const checkConnection = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ action: "check-status" }) }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const map: Record<string, boolean> = {};
-        for (const c of (data.connected || [])) map[c.provider] = true;
-        setConnectedProviders(map);
+  const logPlanLearningEvent = useCallback(
+    async (eventType: "opened" | "completed", metadata?: Record<string, unknown>) => {
+      if (!resolvedBrandId) return;
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) return;
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-learning-event`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            businessId: resolvedBrandId,
+            workspaceId: activeWorkspaceId || undefined,
+            cardId: "chat.strategic_plan",
+            tab: "chat",
+            eventType,
+            source: "chat_strategic_plan",
+            category: "planning",
+            metadata: { theme: "strategic_plan", ...(metadata || {}) },
+          }),
+        });
+      } catch {
+        /* best effort */
       }
-    } catch (err) { console.error("Check connection error:", err); }
-  }, []);
+    },
+    [resolvedBrandId, activeWorkspaceId],
+  );
 
-  useEffect(() => { checkConnection(); }, [checkConnection]);
-
-  // Handle OAuth return in agent chat
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthSuccess = params.get("oauth_success");
-    if (oauthSuccess) {
-      window.history.replaceState({}, "", window.location.pathname);
-      checkConnection();
-    }
-  }, [checkConnection]);
-
-  const handleProviderConnect = async (provider: string) => {
-    setConnectingProvider(provider);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error("Please log in first"); setConnectingProvider(false); return; }
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId: activeBrandId }) }
-      );
-      const data = await response.json();
-      if (data.authUrl) window.location.href = data.authUrl;
-      else toast.error(data.error || "Failed to get authorization URL");
-    } catch { toast.error("Failed to start connection"); }
-    setConnectingProvider(false);
-  };
-
-  const handleProviderDisconnect = async (provider: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ provider, action: "disconnect" }) }
-      );
-      setConnectedProviders(prev => { const next = { ...prev }; delete next[provider]; return next; });
-      toast.success(`${provider.charAt(0).toUpperCase() + provider.slice(1)} disconnected`);
-    } catch { toast.error("Failed to disconnect"); }
-  };
-
-  const dropupRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const chatInputRef = useRef<HTMLDivElement>(null);
-
-  /* Sync agent from breadcrumb's selected brand */
   useEffect(() => {
     if (activeBrandId) {
-      const brand = brands.find(b => b.id === activeBrandId);
+      const brand = brands.find((b) => b.id === activeBrandId);
       if (brand) setSelectedAgent(brand.agentName || brand.name || "AI");
     } else if (agents.length > 0 && !selectedAgent) {
       setSelectedAgent(agents[0].name);
     }
   }, [activeBrandId, brands, agents]);
 
-  const IMAGE_ANALYSIS_MAX_DIMENSION = 1600;
-  const IMAGE_ANALYSIS_MAX_BYTES = 2_000_000;
+  const fetchWithTimeout = useMemo(() => createFetchWithTimeout(abortControllerRef), []);
 
-  const fileToDataUrl = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string) || "");
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  const transport = useAgentChatTransports({
+    messages,
+    setMessages,
+    brands,
+    selectedAgent,
+    activeWorkspaceId,
+    sessionMemory,
+    user,
+    supabase,
+    fetchWithTimeout,
+    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
+  });
+  const { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode } = transport;
 
-  const optimizeImageForAnalysis = async (
-    file: File
-  ): Promise<{ base64: string; mimeType: string }> => {
-    const originalDataUrl = await fileToDataUrl(file);
-    const originalBase64 = originalDataUrl.split(",")[1] || "";
-
-    // Keep smaller images untouched to preserve fidelity and speed.
-    if (!file.type.startsWith("image/") || file.size <= 1_500_000) {
-      return { base64: originalBase64, mimeType: file.type || "image/png" };
-    }
-
-    let objectUrl: string | null = null;
-    try {
-      objectUrl = URL.createObjectURL(file);
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = objectUrl as string;
-      });
-
-      const largestSide = Math.max(img.naturalWidth, img.naturalHeight, 1);
-      const scale = Math.min(1, IMAGE_ANALYSIS_MAX_DIMENSION / largestSide);
-      const width = Math.max(1, Math.round(img.naturalWidth * scale));
-      const height = Math.max(1, Math.round(img.naturalHeight * scale));
-
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        return { base64: originalBase64, mimeType: file.type || "image/png" };
-      }
-
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const mimeType = "image/jpeg";
-      let quality = 0.82;
-      let optimizedDataUrl = canvas.toDataURL(mimeType, quality);
-      let estimatedBytes = Math.ceil((optimizedDataUrl.length * 3) / 4);
-
-      while (estimatedBytes > IMAGE_ANALYSIS_MAX_BYTES && quality > 0.45) {
-        quality -= 0.1;
-        optimizedDataUrl = canvas.toDataURL(mimeType, quality);
-        estimatedBytes = Math.ceil((optimizedDataUrl.length * 3) / 4);
-      }
-
-      return {
-        base64: optimizedDataUrl.split(",")[1] || originalBase64,
-        mimeType,
-      };
-    } catch {
-      return { base64: originalBase64, mimeType: file.type || "image/png" };
-    } finally {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    }
-  };
-
-  /* ── Read file contents — text read directly, images kept as base64 for vision ── */
-  const readFileContent = async (file: File, _session: any): Promise<string> => {
-    const textTypes = ["text/", "application/json", "application/xml", "text/csv", "application/csv"];
-    const isText = textTypes.some(t => file.type.startsWith(t)) || /\.(txt|md|csv|json|xml|html|css|js|ts|py|log|yml|yaml|toml|ini|cfg|env)$/i.test(file.name);
-
-    if (isText) {
-      const text = await file.text();
-      return text.slice(0, 50000);
-    }
-
-    // For images: optimize and return as a special JSON marker so we can send as vision
-    if (file.type.startsWith("image/")) {
-      try {
-        const optimized = await optimizeImageForAnalysis(file);
-        // Return a JSON marker that the chat functions will parse into multimodal content
-        return `__IMAGE_BASE64__${optimized.mimeType}__${optimized.base64}`;
-      } catch {
-        return `[File: ${file.name} (image, ${(file.size / 1024).toFixed(1)}KB)]`;
-      }
-    }
-
-    // For other binary files (PDFs, audio, etc.) — call analyze-content
-    try {
-      const base64Data = (await fileToDataUrl(file)).split(",")[1] || "";
-      let analyzeType = "document";
-      let contentBody: any = { documentName: file.name, fileBase64: base64Data, fileMimeType: file.type };
-
-      if (file.type.startsWith("audio/")) {
-        analyzeType = "audio";
-        contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
-      } else if (file.type.startsWith("video/")) {
-        analyzeType = "video";
-        contentBody = { fileName: file.name, fileBase64: base64Data, fileMimeType: file.type };
-      }
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120000);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${_session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          signal: controller.signal,
-          body: JSON.stringify({ type: analyzeType, content: contentBody }),
-        }
-      );
-      clearTimeout(timeout);
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.analysis) {
-          return `[Analysis of ${file.name}]\n${result.analysis}`;
-        }
-      }
-    } catch (err) {
-      console.error("File analysis error:", err);
-    }
-
-    return `[File: ${file.name} (${file.type || "unknown"}, ${(file.size / 1024).toFixed(1)}KB) — could not analyze]`;
-  };
-
-  /* ── Process files: read content in parallel, upload in background ── */
-  const processFiles = async (files: { id: string; name: string; file?: File }[], session: any): Promise<{ name: string; content: string }[]> => {
-    const validFiles = files.filter(f => f.file);
-    if (validFiles.length === 0) return [];
-
-    // Upload to storage in background (non-blocking)
-    for (const f of validFiles) {
-      if (!f.file) continue;
-      const path = `${user!.id}/chat/${Date.now()}-${f.name}`;
-      supabase.storage.from("business-data").upload(path, f.file).catch(() => {});
-    }
-
-    // Read all file contents in parallel
-    const results = await Promise.all(
-      validFiles.map(async (f) => ({
-        name: f.name,
-        content: await readFileContent(f.file!, session),
-      }))
-    );
-    return results;
-  };
-
-  /* ── Auto-run employee when selected from menu ── */
   const autoRunEmployee = async (emp: { id: string; name: string; role: string }) => {
     if (isSending) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { toast.error("Please log in first"); return; }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Please log in first");
+      return;
+    }
 
-    // Auto-enable Computer Mode for employees
     setIsActionMode(true);
 
     if (!extensionConnected) {
@@ -822,42 +409,50 @@ export function AgentChatView({
       content: `Run ${emp.name}: Execute the standard operating procedure.`,
       employees: [emp],
     };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setSelectedChatEmployees([emp]);
 
     const assistantId = crypto.randomUUID();
-    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
+    setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
     activeAssistantIdRef.current = assistantId;
     stalledRef.current = false;
     lastActivityRef.current = Date.now();
 
     try {
       await runComputerMode(session, userMsg, assistantId);
-    } catch (err: any) {
-      setMessages(prev => prev.map(m => {
-        if (m.id !== assistantId) return m;
-        const updatedSteps = (m.taskSteps || []).map(s => s.status === "running" ? { ...s, status: "error" as const } : s);
-        updatedSteps.push({ action: "error", label: `Failed: ${err.message || "Unknown error"}`, status: "error" as const });
-        return { ...m, content: `⚠️ ${err.message || "Something went wrong. Please try again."}`, taskSteps: updatedSteps, isStreaming: false };
-      }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== assistantId) return m;
+          const updatedSteps = (m.taskSteps || []).map((s) => (s.status === "running" ? { ...s, status: "error" as const } : s));
+          updatedSteps.push({ action: "error", label: `Failed: ${message}`, status: "error" as const });
+          return { ...m, content: `⚠️ ${message || "Something went wrong. Please try again."}`, taskSteps: updatedSteps, isStreaming: false };
+        }),
+      );
     }
     setIsSending(false);
   };
 
-  /* ── Send message ── */
   const handleSendMessage = async () => {
     if (isSending) return;
     const inputText = chatInputRef.current?.innerText?.trim() || "";
     if (!inputText && uploadedFiles.length === 0) return;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { toast.error("Please log in first"); return; }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Please log in first");
+      return;
+    }
 
     setIsSending(true);
 
-    const fileResults = await processFiles(uploadedFiles, session);
+    const fileResults = await processFiles(uploadedFiles, session, user!.id, (path, file) =>
+      supabase.storage.from("business-data").upload(path, file),
+    );
 
-    // Build user message
     let userContent = inputText;
     if (fileResults.length > 0) {
       userContent += `\n\n📎 Attached files:\n`;
@@ -866,7 +461,6 @@ export function AgentChatView({
       }
     }
     if (referencedUrls.length > 0) {
-      // Fetch content from referenced URLs so the AI can analyze them
       userContent += `\n\n🔗 Referenced URLs:`;
       const urlFetches = await Promise.allSettled(
         referencedUrls.map(async (r) => {
@@ -882,7 +476,7 @@ export function AgentChatView({
                 },
                 body: JSON.stringify({ url: r.url, type: "url" }),
               },
-              30000 // 30s timeout per URL
+              30000,
             );
             if (res.ok) {
               const data = await res.json();
@@ -892,7 +486,7 @@ export function AgentChatView({
           } catch {
             return { url: r.url, content: "" };
           }
-        })
+        }),
       );
       for (const result of urlFetches) {
         if (result.status === "fulfilled" && result.value.content) {
@@ -903,49 +497,11 @@ export function AgentChatView({
         }
       }
     }
-    if (selectedGraphic) {
-      const businessContextRule = `\n\nIMPORTANT: You MUST use the business's actual brand, product, audience, and any verified metrics from the Reference Material to personalize this graphic. Cross-check every claim against that business data before answering. Never create generic content, placeholders, or made-up numbers. If key business details are missing, clearly say what is missing instead of inventing it.`;
-      const graphicInstructions: Record<string, string> = {
-        "Document": `You MUST create a professional document that directly answers the user's question above. Analyze their request carefully and produce a well-structured document with relevant, specific content.${businessContextRule}
-Include a \`\`\`document code block with JSON BEFORE your text explanation:
-\`\`\`document
-{"title":"Relevant Title","sections":[{"heading":"Section Heading","content":"Detailed content addressing the user's question"}],"date":"${new Date().toLocaleDateString()}"}
-\`\`\`
-Make sections comprehensive with real actionable content related to the question. Then provide a brief summary below.`,
-        "Graph": `You MUST create a chart/graph that visualizes data relevant to the user's question above. Think about what data would be most useful to show visually for their request.${businessContextRule}
-Include a \`\`\`chart code block with JSON BEFORE your text explanation:
-\`\`\`chart
-{"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
-\`\`\`
-Supported types: bar, line, area, pie. For pie use nameKey and valueKey. Use realistic, relevant data that helps answer their question. Titles, labels, segments, and insights must reflect the business's actual brand, product, and audience context. Then explain the data below.`,
-        "Analytics": `You MUST create an analytics dashboard with metrics directly relevant to the user's question above. Choose metrics that would genuinely help them understand the topic.${businessContextRule}
-Include a \`\`\`analytics code block with JSON BEFORE your text explanation:
-\`\`\`analytics
-{"title":"Analytics Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Key insight"],"chart":{"data":[{"month":"Jan","value":100}],"xKey":"month","yKeys":["value"]}}
-\`\`\`
-Each metric: label, value, change (positive=growth, negative=decline), unit. Create metrics that directly answer the user's question and tie them to the business's actual offer, brand, or audience. Then explain below.`,
-        "Spreadsheet": `You MUST create a spreadsheet/table with data directly relevant to the user's question above. Organize the data in a way that helps them understand or act on their request.${businessContextRule}
-Include a \`\`\`spreadsheet code block with JSON BEFORE your text explanation:
-\`\`\`spreadsheet
-{"title":"Table Title","headers":["Col1","Col2"],"rows":[["A","B"],["C","D"]],"footer":["Total","100"]}
-\`\`\`
-Footer is optional. Fill with realistic, relevant data that addresses their question. Column names and rows must reflect the business's actual product, audience, offer, or verified metrics. Then explain below.`,
-        "Slide": `You MUST create a visually rich presentation slide with content directly relevant to the user's question above.${businessContextRule}
-Include a \`\`\`slide code block with JSON BEFORE your text explanation:
-\`\`\`slide
-{"title":"Slide Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"},{"value":"15K","label":"Users"}],"bullets":["Key point 1","Key point 2"],"takeaway":"Main takeaway","accent_color":"#4a86ff"}
-\`\`\`
-Supported layouts: "bullets" (default list), "stat-callout" (big numbers + optional bullets), "two-column" (use left_column and right_column arrays), "title-only".
-Always include an icon emoji. Use stats with large formatted numbers when presenting metrics. The slide must clearly reflect this business's DNA, product, and target audience. Use the business's actual data for stats. Then provide additional context below.`,
-      };
-      userContent += `\n\n🎨 Output format: ${selectedGraphic}\n${graphicInstructions[selectedGraphic] || ""}`;
-    }
+    userContent = appendGraphicInstructionsToUserContent(userContent, selectedGraphic);
 
-    // Resolve employee context: from current chip OR from thread history
     const resolveEmployeeContext = (): { id: string; name: string; role: string }[] | undefined => {
       if (selectedChatEmployees.length > 0) return [...selectedChatEmployees];
-      // Infer from the most recent employee-tagged message in this thread
-      const lastEmpMsg = [...messages].reverse().find(m => m.employees && m.employees.length > 0);
+      const lastEmpMsg = [...messages].reverse().find((m) => m.employees && m.employees.length > 0);
       if (lastEmpMsg?.employees && lastEmpMsg.employees.length > 0) return [...lastEmpMsg.employees];
       return undefined;
     };
@@ -956,104 +512,83 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       id: crypto.randomUUID(),
       role: "user",
       content: userContent,
-      files: uploadedFiles.map(f => ({ name: f.name })),
+      files: uploadedFiles.map((f) => ({ name: f.name })),
       employees: selectedEmployeesForMessage,
     };
 
     const hasSelectedEmployeeForMessage = (selectedEmployeesForMessage?.length ?? 0) > 0;
     const shouldUseEmployeeComputerMode =
-      hasSelectedEmployeeForMessage &&
-      isActionMode &&
-      extensionConnected &&
-      isExplicitEmployeeComputerRequest(inputText);
+      hasSelectedEmployeeForMessage && isActionMode && extensionConnected && isExplicitEmployeeComputerRequest(inputText);
 
-    // If we inferred employee context from history, persist it in state for future messages
     if (hasSelectedEmployeeForMessage && selectedChatEmployees.length === 0 && selectedEmployeesForMessage) {
       setSelectedChatEmployees(selectedEmployeesForMessage);
     }
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
 
-    // Clear inputs
     if (chatInputRef.current) chatInputRef.current.innerHTML = "";
     setUploadedFiles([]);
     setReferencedUrls([]);
     setSelectedGraphic(null);
     setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
 
-    // Add assistant placeholder
     const assistantId = crypto.randomUUID();
-    setMessages(prev => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
+    setMessages((prev) => [...prev, { id: assistantId, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }]);
     activeAssistantIdRef.current = assistantId;
     stalledRef.current = false;
     lastActivityRef.current = Date.now();
 
     try {
-      // If files are attached, always use chat mode (not browser automation) so the AI analyzes them
       const hasFiles = userMsg.files && userMsg.files.length > 0;
 
       if (hasFiles && hasSelectedEmployeeForMessage) {
-        // Files attached with employee: use employee chat to analyze files
         await runEmployeeChat(session, userMsg, assistantId);
       } else if (hasFiles) {
-        // Files attached without employee: use agent chat to analyze files
         await runAgentChat(session, userMsg, assistantId);
       } else if (shouldUseEmployeeComputerMode) {
-        // Explicit browser execution with employee
         await runComputerMode(session, userMsg, assistantId);
       } else if (isActionMode && extensionConnected && !hasSelectedEmployeeForMessage) {
-        // Computer mode without employee: agent chat with browser context
         await runAgentChatWithBrowser(session, userMsg, assistantId);
       } else if (hasSelectedEmployeeForMessage) {
-        // Employee chat (non-computer mode)
         await runEmployeeChat(session, userMsg, assistantId);
       } else {
-        // Agent chat (streaming via extension-agent)
         await runAgentChat(session, userMsg, assistantId);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Send error:", err);
-      const isCancelled = err.message === "Cancelled";
-      const errorMsg = isCancelled ? "Message cancelled" : (err.message || "Something went wrong");
-      setMessages(prev => prev.map(m => {
-        if (m.id !== assistantId) return m;
-        const updatedSteps = (m.taskSteps || []).map(s => 
-          s.status === "running" ? { ...s, status: "done" as const } : s
-        );
-        if (isCancelled) {
-          updatedSteps.push({ action: "cancel", label: "Cancelled by user", status: "done" as const });
-          if (m.content && m.content.trim().length > 5) {
-            return { ...m, content: m.content + "\n\n---\n*⏹ Generation stopped by user*", taskSteps: updatedSteps, isStreaming: false };
+      const errMessage = err instanceof Error ? err.message : "";
+      const isCancelled = errMessage === "Cancelled";
+      const errorMsg = isCancelled ? "Message cancelled" : errMessage || "Something went wrong";
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== assistantId) return m;
+          const updatedSteps = (m.taskSteps || []).map((s) => (s.status === "running" ? { ...s, status: "done" as const } : s));
+          if (isCancelled) {
+            updatedSteps.push({ action: "cancel", label: "Cancelled by user", status: "done" as const });
+            if (m.content && m.content.trim().length > 5) {
+              return { ...m, content: m.content + "\n\n---\n*⏹ Generation stopped by user*", taskSteps: updatedSteps, isStreaming: false };
+            }
+            return { ...m, content: "⏹ Message cancelled", taskSteps: updatedSteps, isStreaming: false };
           }
-          return { ...m, content: "⏹ Message cancelled", taskSteps: updatedSteps, isStreaming: false };
-        }
-        updatedSteps.push({ action: "error", label: `Failed: ${errorMsg}`, status: "error" as const });
-        if (m.content && m.content.trim().length > 20) {
-          return { ...m, content: m.content + "\n\n---\n⚠️ *Response was cut short. Try again with a more specific request.*", taskSteps: updatedSteps, isStreaming: false };
-        }
-        return { ...m, content: `⚠️ ${errorMsg}`, taskSteps: updatedSteps, isStreaming: false };
-      }));
+          updatedSteps.push({ action: "error", label: `Failed: ${errorMsg}`, status: "error" as const });
+          if (m.content && m.content.trim().length > 20) {
+            return {
+              ...m,
+              content: m.content + "\n\n---\n⚠️ *Response was cut short. Try again with a more specific request.*",
+              taskSteps: updatedSteps,
+              isStreaming: false,
+            };
+          }
+          return { ...m, content: `⚠️ ${errorMsg}`, taskSteps: updatedSteps, isStreaming: false };
+        }),
+      );
     }
 
     setIsSending(false);
   };
 
-  /* ── Fetch with timeout and cancellation support ── */
-  const fetchWithTimeout = (url: string, options: RequestInit, timeoutMs = 180000): Promise<Response> => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    return fetch(url, { ...options, signal: controller.signal })
-      .catch(err => {
-        if (err.name === "AbortError") throw new Error("Cancelled");
-        throw err;
-      })
-      .finally(() => clearTimeout(timer));
-  };
-
-  /* ── Cancel in-progress message ── */
   const handleCancelMessage = () => {
-    stalledRef.current = true; // prevent stall watchdog from firing right after manual cancel
+    stalledRef.current = true;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -1063,13 +598,14 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
   const handleResumeLongTask = async () => {
     if (!resumableTask || isSending || resumingTask) return;
     const resumeEmployee =
-      selectedChatEmployees[0] ||
-      [...messages].reverse().find((m) => m.employees && m.employees.length > 0)?.employees?.[0];
+      selectedChatEmployees[0] || [...messages].reverse().find((m) => m.employees && m.employees.length > 0)?.employees?.[0];
     if (!resumeEmployee) {
       toast.error("Select an employee to resume this task.");
       return;
     }
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       toast.error("Please log in first");
       return;
@@ -1089,9 +625,9 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     setMessages((prev) => {
       const existing = prev.find((m) => m.id === resumableTask.continuationKey);
       if (existing) {
-        return prev.map((m) => (m.id === resumableTask.continuationKey
-          ? { ...m, isStreaming: true, streamStartTime: Date.now(), content: m.content || "" }
-          : m));
+        return prev.map((m) =>
+          m.id === resumableTask.continuationKey ? { ...m, isStreaming: true, streamStartTime: Date.now(), content: m.content || "" } : m,
+        );
       }
       return [...prev, { id: resumableTask.continuationKey, role: "assistant", content: "", isStreaming: true, streamStartTime: Date.now() }];
     });
@@ -1101,8 +637,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     try {
       await runEmployeeChat(session, userMsg, resumableTask.continuationKey);
       setResumableTask(null);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to resume task");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to resume task");
     } finally {
       setIsSending(false);
       setResumingTask(false);
@@ -1110,83 +646,33 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     }
   };
 
-  const transport = useAgentChatTransports({
-    messages,
-    setMessages,
-    brands,
-    selectedAgent,
-    activeWorkspaceId,
-    sessionMemory,
-    user,
-    supabase,
-    fetchWithTimeout,
-    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
-  });
-  const { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode } = transport;
-
-  /* ── @mention / reference helpers ── */
   const insertReference = (result: { url: string; name: string; logo: string }) => {
     if (!chatInputRef.current) return;
-    chatInputRef.current.focus();
-    const selection = window.getSelection();
-    let range: Range;
-    if (mentionState.active && mentionState.node && document.contains(mentionState.node)) {
-      range = document.createRange();
-      range.setStart(mentionState.node, mentionState.startOffset);
-      range.setEnd(mentionState.node, mentionState.endOffset);
-      range.deleteContents();
-      setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
-    } else if (selection && selection.rangeCount > 0) {
-      range = selection.getRangeAt(0);
-      if (!chatInputRef.current.contains(range.commonAncestorContainer)) {
-        range = document.createRange();
-        range.selectNodeContents(chatInputRef.current);
-        range.collapse(false);
-      }
-    } else {
-      range = document.createRange();
-      range.selectNodeContents(chatInputRef.current);
-      range.collapse(false);
-    }
-    const beforeSpace = document.createTextNode("\u200B");
-    range.insertNode(beforeSpace);
-    range.setStartAfter(beforeSpace);
-    range.collapse(true);
-    const refNode = document.createElement("span");
-    refNode.contentEditable = "false";
-    refNode.className =
-      "inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-card border border-border align-middle mx-1 cursor-default shadow-sm select-none";
-    refNode.innerHTML = `<img src="${result.logo}" alt="" class="w-3.5 h-3.5 rounded-sm pointer-events-none" /><span class="text-xs font-medium text-foreground max-w-[120px] truncate pointer-events-none">${result.name}</span>`;
-    range.insertNode(refNode);
-    range.setStartAfter(refNode);
-    range.collapse(true);
-    const afterSpace = document.createTextNode("\u00A0");
-    range.insertNode(afterSpace);
-    range.setStartAfter(afterSpace);
-    range.collapse(true);
-    selection?.removeAllRanges();
-    selection?.addRange(range);
+    insertReferenceIntoChatInput(chatInputRef.current, mentionState, result, () =>
+      setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 }),
+    );
   };
 
-  const searchResults =
-    referenceUrlInput.length > 2
-      ? (() => {
-          const cleanInput = referenceUrlInput.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
-          const baseName = cleanInput.split(".")[0];
-          return [
-            { id: "1", url: `https://${cleanInput}`, name: cleanInput, logo: `https://www.google.com/s2/favicons?domain=${cleanInput}&sz=64` },
-            { id: "2", url: `https://${baseName}.com`, name: `${baseName}.com`, logo: `https://www.google.com/s2/favicons?domain=${baseName}.com&sz=64` },
-            { id: "3", url: `https://${baseName}.io`, name: `${baseName}.io`, logo: `https://www.google.com/s2/favicons?domain=${baseName}.io&sz=64` },
-          ].filter((v, i, a) => a.findIndex((t) => t.name === v.name) === i);
-        })()
-      : [];
+  const searchResults = useMemo(
+    () =>
+      referenceUrlInput.length > 2
+        ? (() => {
+            const cleanInput = referenceUrlInput.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+            const baseName = cleanInput.split(".")[0];
+            return [
+              { id: "1", url: `https://${cleanInput}`, name: cleanInput, logo: `https://www.google.com/s2/favicons?domain=${cleanInput}&sz=64` },
+              { id: "2", url: `https://${baseName}.com`, name: `${baseName}.com`, logo: `https://www.google.com/s2/favicons?domain=${baseName}.com&sz=64` },
+              { id: "3", url: `https://${baseName}.io`, name: `${baseName}.io`, logo: `https://www.google.com/s2/favicons?domain=${baseName}.io&sz=64` },
+            ].filter((v, i, a) => a.findIndex((t) => t.name === v.name) === i);
+          })()
+        : [],
+    [referenceUrlInput],
+  );
 
-  /* click-outside */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropupRef.current && !dropupRef.current.contains(event.target as Node)) {
         setIsDropupOpen(false);
-        setShowAgents(false);
         setShowEmployeesMenu(false);
         setShowReference(false);
         setShowGraphicsMenu(false);
@@ -1196,91 +682,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropupOpen]);
 
-  /* ── Employee CRUD helpers (settings modal) ── */
-  const handleDeleteEmployee = async (id: string) => {
-    await supabase.from("ai_employees" as any).delete().eq("id", id);
-    loadEmployees();
-  };
+  const activeSubMenu = showReference ? "reference" : showGraphicsMenu ? "graphics" : showEmployeesMenu ? "employees" : null;
 
-  const handleUpdateEmployee = async (emp: AIEmployee) => {
-    await supabase
-      .from("ai_employees" as any)
-      .update({ name: emp.name, role: emp.role, sop_purpose: emp.sop_purpose } as any)
-      .eq("id", emp.id);
-    loadEmployees();
-  };
-
-  const handleAddEmployee = async (employeeData: {
-    name: string; role: string;
-    sop_title?: string; sop_purpose?: string; sop_scope?: string;
-    sop_procedure?: string[]; sop_responsibilities?: string[]; sop_safety_notes?: string;
-  }) => {
-    if (!user) return;
-    await supabase.from("ai_employees" as any).insert({
-      user_id: user.id,
-      workspace_id: activeWorkspaceId || null,
-      name: employeeData.name,
-      role: employeeData.role,
-      sop_title: employeeData.sop_title || null,
-      sop_purpose: employeeData.sop_purpose || null,
-      sop_scope: employeeData.sop_scope || null,
-      sop_procedure: employeeData.sop_procedure || [],
-      sop_responsibilities: employeeData.sop_responsibilities || [],
-      sop_safety_notes: employeeData.sop_safety_notes || null,
-      status: "active",
-    } as any);
-    loadEmployees();
-  };
-
-  /* ── Add Employee dialog state ── */
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
-  const [addEmployeePrompt, setAddEmployeePrompt] = useState("");
-  const [isGeneratingEmployee, setIsGeneratingEmployee] = useState(false);
-  const [generatedEmployee, setGeneratedEmployee] = useState<any>(null);
-
-  const handleGenerateEmployee = async () => {
-    if (!addEmployeePrompt.trim()) return;
-    setIsGeneratingEmployee(true);
-    setGeneratedEmployee(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error("Please log in first"); return; }
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-employee`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ prompt: addEmployeePrompt.trim() }),
-        }
-      );
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        toast.error(err.error || "Failed to generate employee");
-        return;
-      }
-      const data = await response.json();
-      setGeneratedEmployee(data.employee);
-    } catch {
-      toast.error("Failed to generate employee");
-    } finally {
-      setIsGeneratingEmployee(false);
-    }
-  };
-
-  const handleConfirmEmployee = async () => {
-    if (!generatedEmployee) return;
-    await handleAddEmployee(generatedEmployee);
-    setShowAddEmployee(false);
-    setAddEmployeePrompt("");
-    setGeneratedEmployee(null);
-    toast.success(`${generatedEmployee.name} has been created!`);
-  };
-
-  /* ─── Sub-menu flyout content (rendered beside the main menu on desktop) ─── */
   const referenceSubContent = (
     <div className="py-2" onClick={(e) => e.stopPropagation()}>
       <div className="px-3 pb-2">
@@ -1310,6 +713,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             {searchResults.map((result) => (
               <button
                 key={result.id}
+                type="button"
                 onClick={() => {
                   setReferencedUrls((prev) => [...prev, { id: Math.random().toString(), ...result }]);
                   insertReference(result);
@@ -1343,6 +747,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       ].map((item) => (
         <button
           key={item.label}
+          type="button"
           onClick={() => {
             setSelectedGraphic(item.label);
             setIsDropupOpen(false);
@@ -1350,7 +755,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
           }}
           className={cn(
             "w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-3",
-            selectedGraphic === item.label ? "bg-primary/10 text-primary" : "text-muted-foreground"
+            selectedGraphic === item.label ? "bg-primary/10 text-primary" : "text-muted-foreground",
           )}
         >
           <item.icon className="w-4 h-4 shrink-0" />
@@ -1373,6 +778,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
           employees.map((emp) => (
             <button
               key={emp.id}
+              type="button"
               onClick={() => {
                 const empData = { id: emp.id, name: emp.name, role: emp.role };
                 if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
@@ -1380,7 +786,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 }
                 setIsDropupOpen(false);
                 setShowEmployeesMenu(false);
-                setTimeout(() => autoRunEmployee(empData), 100);
+                setTimeout(() => void autoRunEmployee(empData), 100);
               }}
               className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground flex flex-col"
             >
@@ -1394,7 +800,13 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       </div>
       <div className="border-t border-border mt-1 pt-1">
         <button
-          onClick={() => { setIsSettingsOpen(true); setSettingsTab("employees"); setIsDropupOpen(false); setShowEmployeesMenu(false); }}
+          type="button"
+          onClick={() => {
+            setIsSettingsOpen(true);
+            setSettingsTab("employees");
+            setIsDropupOpen(false);
+            setShowEmployeesMenu(false);
+          }}
           className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-primary font-medium flex items-center gap-2"
         >
           <Settings className="w-3 h-3" />
@@ -1404,492 +816,42 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
     </div>
   );
 
-  /* ─── Main menu items (desktop: flat list, sub-menus fly out to side) ─── */
-  const activeSubMenu = showReference ? "reference" : showGraphicsMenu ? "graphics" : showEmployeesMenu ? "employees" : null;
+  const handleMentionInput = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer;
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || "";
+      const offset = range.startOffset;
+      const textBeforeCursor = text.slice(0, offset);
+      const match = textBeforeCursor.match(/(?:^|\s)@(\S*)$/);
+      if (match) {
+        setMentionState({ active: true, node, startOffset: offset - match[1].length - 1, endOffset: offset });
+        setReferenceUrlInput(match[1]);
+        setIsDropupOpen(true);
+        setShowReference(true);
+      } else if (mentionState.active) {
+        setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
+        setShowReference(false);
+        setIsDropupOpen(false);
+      }
+    }
+  };
 
-  const plusMenuItems = (
-    <>
-      <button
-        onClick={() => { fileInputRef.current?.click(); setIsDropupOpen(false); }}
-        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors rounded-lg"
-      >
-        <FileUp className="w-4 h-4 text-muted-foreground" />
-        Upload Files
-      </button>
+  const onInsertReferenceFromInput = (result: { url: string; name: string; logo: string }) => {
+    setReferencedUrls((prev) => [...prev, { id: Math.random().toString(), ...result }]);
+    insertReference(result);
+    setReferenceUrlInput("");
+    setIsDropupOpen(false);
+    setShowReference(false);
+  };
 
-      <button
-        onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); setShowGraphicsMenu(false); }}
-        className={cn("w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg", showReference && "bg-muted/50")}
-      >
-        <div className="flex items-center gap-3">
-          <Globe className="w-4 h-4 text-muted-foreground" />
-          Reference (@)
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-      </button>
-
-      <button
-        onClick={(e) => { e.stopPropagation(); setShowGraphicsMenu(!showGraphicsMenu); setShowReference(false); setShowEmployeesMenu(false); }}
-        className={cn("w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg", showGraphicsMenu && "bg-muted/50")}
-      >
-        <div className="flex items-center gap-3">
-          <Palette className="w-4 h-4 text-muted-foreground" />
-          Graphics
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-      </button>
-
-      <button
-        onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); setShowGraphicsMenu(false); }}
-        className={cn("w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg", showEmployeesMenu && "bg-muted/50")}
-      >
-        <div className="flex items-center gap-3">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          Employees
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-      </button>
-
-      {!extensionConnected ? (
-        <a
-          href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg"
-        >
-          <div className="flex items-center gap-3">
-            <Monitor className="w-4 h-4 text-muted-foreground" />
-            Computer
-          </div>
-          <span className="text-xs font-semibold text-primary flex items-center gap-1">
-            <ExternalLink className="w-3 h-3" />
-            Get Extension
-          </span>
-        </a>
-      ) : (
-        <button
-          onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors rounded-lg"
-        >
-          <div className="flex items-center gap-3">
-            <Monitor className={`w-4 h-4 ${isActionMode ? "text-primary" : "text-muted-foreground"}`} />
-            Computer
-          </div>
-          <span className={`text-xs font-semibold ${isActionMode ? "text-primary" : "text-muted-foreground"}`}>
-            {isActionMode ? "ON" : "OFF"}
-          </span>
-        </button>
-      )}
-
-      <button
-        onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); }}
-        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors rounded-lg"
-      >
-        <Settings className="w-4 h-4 text-muted-foreground" />
-        Settings
-      </button>
-    </>
-  );
-
-  /* ─── Mobile menu content (inline expanding sub-menus) ─── */
-  const plusMenuMobileContent = (
-    <>
-      <button
-        onClick={() => { fileInputRef.current?.click(); setIsDropupOpen(false); }}
-        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
-      >
-        <FileUp className="w-4 h-4 text-muted-foreground" />
-        Upload Files
-      </button>
-
-      <div>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowReference(!showReference); setShowEmployeesMenu(false); setShowGraphicsMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Globe className="w-4 h-4 text-muted-foreground" />
-            Reference (@)
-          </div>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showReference ? "rotate-180" : ""}`} />
-        </button>
-        {showReference && referenceSubContent}
-      </div>
-
-      <div>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowGraphicsMenu(!showGraphicsMenu); setShowReference(false); setShowEmployeesMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Palette className="w-4 h-4 text-muted-foreground" />
-            Graphics
-          </div>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showGraphicsMenu ? "rotate-180" : ""}`} />
-        </button>
-        {showGraphicsMenu && graphicsSubContent}
-      </div>
-
-      <div>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowEmployeesMenu(!showEmployeesMenu); setShowReference(false); setShowGraphicsMenu(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            Employees
-          </div>
-          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showEmployeesMenu ? "rotate-180" : ""}`} />
-        </button>
-        {showEmployeesMenu && employeesSubContent}
-      </div>
-
-      {!extensionConnected ? (
-        <a
-          href="https://microsoftedge.microsoft.com/addons/detail/timewarp-%E2%80%93-ai-ceo/fajgkgjioehbiccafonfbdkjhoedceim"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => { setIsDropupOpen(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Monitor className="w-4 h-4 text-muted-foreground" />
-            Computer
-          </div>
-          <span className="text-xs font-semibold text-primary flex items-center gap-1">
-            <ExternalLink className="w-3 h-3" />
-            Get Extension
-          </span>
-        </a>
-      ) : (
-        <button
-          onClick={() => { setIsActionMode(!isActionMode); setIsDropupOpen(false); }}
-          className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center justify-between text-sm font-medium text-foreground transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Monitor className={`w-4 h-4 ${isActionMode ? "text-primary" : "text-muted-foreground"}`} />
-            Computer
-          </div>
-          <span className={`text-xs font-semibold ${isActionMode ? "text-primary" : "text-muted-foreground"}`}>
-            {isActionMode ? "ON" : "OFF"}
-          </span>
-        </button>
-      )}
-
-      <button
-        onClick={() => { setIsSettingsOpen(true); setIsDropupOpen(false); }}
-        className="w-full text-left px-4 py-3 hover:bg-muted/50 flex items-center gap-3 text-sm font-medium text-foreground transition-colors"
-      >
-        <Settings className="w-4 h-4 text-muted-foreground" />
-        Settings
-      </button>
-    </>
-  );
-
-  /* ─────────── Render ─────────── */
   const isOnboardingActive = !hasMessages && (forceOnboarding || onboardingLocked);
-  return (
-    <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#FAFBFF]">
-      {/* Main chat area */}
-      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#FAFBFF]">
-      {/* Sticky top agent display */}
-      <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#FAFBFF]">
-        {/* History toggle button — hidden during onboarding */}
-        {!isOnboardingActive && (
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-            title={showHistory ? "Hide chat history" : "Show chat history"}
-          >
-            {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
-          </button>
-        )}
-        <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground">
-          <Bot className="w-4 h-4 text-muted-foreground" />
-          {selectedAgent || "AI"}
-        </div>
-      </header>
 
-      {/* Central area: Orb when no messages, chat when messages exist */}
-      <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-[#FAFBFF]">
-        {resumableTask && !isSending && (
-          <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-4">
-            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Long task available to resume</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Phase: {resumableTask.phase} · Progress: {Math.max(0, Math.min(100, Math.round(resumableTask.progress)))}% · Checkpoint #{resumableTask.continuationIndex}
-                </p>
-              </div>
-              <Button size="sm" onClick={handleResumeLongTask} disabled={resumingTask}>
-                {resumingTask ? "Resuming..." : "Resume Long Task"}
-              </Button>
-            </div>
-          </div>
-        )}
-        {!hasMessages && (forceOnboarding || onboardingLocked) ? (
-          /* ── Chat-driven onboarding (first-time users) ── */
-          <ChatOnboardingFlow
-            initialUrl={onboardingInitialUrl}
-            onComplete={(agentName, brandId, supercharge, transcript) => {
-              // Seed the chat with the onboarding transcript so it auto-saves
-              // to agent_chat_sessions and the resulting business chat shows
-              // the conversation that created it.
-              const seeded: ChatMessage[] = transcript.map((m, i) => ({
-                id: `onb-${Date.now()}-${i}`,
-                role: m.role,
-                content: m.content,
-              }));
-              setMessages(seeded);
-              if (agentName) setSelectedAgent(agentName);
-              setOnboardingLocked(false);
-              onOnboardingComplete?.(agentName, brandId, supercharge);
-            }}
-          />
-        ) : !hasMessages ? (
-          /* ── Empty state with centered orb ── */
-          <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#FAFBFF]">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="relative z-10 animate-in fade-in zoom-in duration-700">
-              <BusinessBrainOrb size={window.innerWidth < 640 ? 180 : 280} />
-            </div>
-            <div className="mt-6 sm:mt-8 text-center z-10">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{selectedAgent}</h2>
-              <p className="text-muted-foreground mt-2 font-medium text-sm sm:text-base">Ready to assist you</p>
-            </div>
-          </div>
-        ) : (
-          /* ── Chat messages ── */
-          <div className="flex-1 min-h-full px-4 md:px-6 py-6 space-y-5 max-w-3xl mx-auto w-full">
-            {messages.map((msg, msgIndex) => {
-              let priorUserSnippet = "";
-              for (let j = msgIndex - 1; j >= 0; j--) {
-                if (messages[j].role === "user") {
-                  priorUserSnippet = (messages[j].content || "").slice(0, 500);
-                  break;
-                }
-              }
-              const displayTaskSteps = msg.role === "assistant"
-                ? ((msg.taskSteps && msg.taskSteps.length > 0)
-                    ? msg.taskSteps
-                    : (msg.isStreaming
-                        ? [{ action: "process", label: "Starting request", status: "running" as const }]
-                        : []))
-                : [];
-
-              return (
-              <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                <div className={cn(
-                  "max-w-[80%] rounded-2xl px-5 py-3 text-sm flex flex-col",
-                  msg.role === "user"
-                    ? "bg-[#e5e7eb] text-foreground rounded-br-md"
-                    : "rounded-bl-md text-foreground"
-                )}>
-                  {msg.role === "assistant" ? (
-                    <div className="max-w-none text-foreground text-[14.5px] leading-[1.75]">
-                      {/* Task step indicators */}
-                      {displayTaskSteps.length > 0 && (
-                        <TaskStepsDisplay
-                          steps={displayTaskSteps}
-                          currentStepIndex={msg.currentStepIndex ?? -1}
-                          isStreaming={msg.isStreaming}
-                          startTime={msg.streamStartTime}
-                          frozenElapsed={msg.elapsedSeconds}
-                        />
-                      )}
-                      {(!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
-                        <ChatDashboardCards
-                          cards={msg.dashboardCards || []}
-                          openingSummary={msg.dashboardOpeningSummary}
-                        />
-                      )}
-                      {/* Main content */}
-                      {msg.content && (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            h1: ({children}) => <h1 className="text-xl font-bold text-foreground mt-6 mb-3 first:mt-0">{children}</h1>,
-                            h2: ({children}) => <h2 className="text-lg font-bold text-foreground mt-6 mb-3 first:mt-0">{children}</h2>,
-                            h3: ({children}) => <h3 className="text-[15px] font-semibold text-foreground mt-5 mb-2 first:mt-0">{children}</h3>,
-                            p: ({children}) => <p className="mb-4 last:mb-0 leading-[1.8] text-foreground/90">{children}</p>,
-                            ul: ({children}) => <ul className="my-4 pl-6 space-y-2 list-disc marker:text-foreground/40">{children}</ul>,
-                            ol: ({children}) => <ol className="my-4 pl-6 space-y-2 list-decimal marker:text-foreground/40">{children}</ol>,
-                            li: ({children}) => <li className="leading-[1.7] text-foreground/90 pl-1">{children}</li>,
-                            strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
-                            blockquote: ({children}) => <blockquote className="my-4 pl-4 border-l-2 border-primary/30 text-foreground/70 italic">{children}</blockquote>,
-                            hr: () => <hr className="my-6 border-border/50" />,
-                            code: ({children, className}) => {
-                              const text = String(children).replace(/\n$/, "");
-                              if (className?.includes("language-chart") || className?.includes("language-graph")) {
-                                return <InlineChatAnalytics jsonString={text} />;
-                              }
-                              if (className?.includes("language-document")) {
-                                return <InlineDocument jsonString={text} />;
-                              }
-                              if (className?.includes("language-analytics")) {
-                                return <InlineChatAnalytics jsonString={text} />;
-                              }
-                              if (className?.includes("language-spreadsheet")) {
-                                return <InlineSpreadsheet jsonString={text} />;
-                              }
-                              if (className?.includes("language-slide")) {
-                                return <InlineSlide jsonString={text} />;
-                              }
-                              const isBlock = className?.includes("language-");
-                              return isBlock
-                                ? <code className={cn("block", className)}>{children}</code>
-                                : <code className="rounded bg-muted px-1.5 py-0.5 text-[13px] font-mono text-foreground/80">{children}</code>;
-                            },
-                            pre: ({children}) => {
-                              const child = children as any;
-                              const cls = child?.props?.className || "";
-                              if (cls.includes("language-chart") || cls.includes("language-graph") || cls.includes("language-document") || cls.includes("language-analytics") || cls.includes("language-spreadsheet") || cls.includes("language-slide")) {
-                                return <>{children}</>;
-                              }
-                              return <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 text-[13px]">{children}</pre>;
-                            },
-                            table: ({children}) => <div className="my-4 overflow-x-auto rounded-lg border border-border/50"><table className="w-full text-sm">{children}</table></div>,
-                            thead: ({children}) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
-                            th: ({children}) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px]">{children}</th>,
-                            td: ({children}) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80">{children}</td>,
-                            a: buildLiveCitationAnchor(msg.liveSourceRegistry),
-                          }}
-                        >{msg.content}</ReactMarkdown>
-                      )}
-                      {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
-                        <div className="flex items-center gap-3 py-2">
-                          <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold" />
-                          {msg.streamStartTime && <ThinkingTimer startTime={msg.streamStartTime} stopped={!msg.isStreaming} frozenElapsed={msg.elapsedSeconds} className="text-xs" />}
-                        </div>
-                      )}
-                      {msg.isStreaming && msg.content && displayTaskSteps.length === 0 && (
-                        <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
-                      )}
-                      {/* Inline document viewer */}
-                      {msg.reportContent && !msg.isStreaming && (
-                        <TaskReportViewer
-                          content={msg.reportContent}
-                          savedToDb={msg.reportSavedToDb}
-                          onSaveToDb={async (updatedContent) => {
-                            await supabase.from("user_business_data").insert({
-                              user_id: user!.id,
-                              workspace_id: activeWorkspaceId || undefined,
-                              data_type: "document",
-                              source: "agent-report",
-                              title: `Task Results — ${new Date().toLocaleDateString()}`,
-                              content: updatedContent,
-                              is_analyzed: true,
-                            });
-                          }}
-                        />
-                      )}
-                      {msg.planContent && !msg.isStreaming && (
-                        <TaskReportViewer
-                          content={msg.planContent}
-                          triggerLabel="Open Strategic Plan"
-                          dialogTitle="Strategic Plan"
-                          savedToDb={msg.planSavedToDb}
-                          onOpened={() => {
-                            void logPlanLearningEvent("opened", { confidence: msg.planConfidence || "unknown" });
-                          }}
-                          onSaveToDb={async (updatedContent) => {
-                            await supabase.from("user_business_data").insert({
-                              user_id: user!.id,
-                              workspace_id: activeWorkspaceId || undefined,
-                              data_type: "document",
-                              source: "strategic-plan",
-                              title: `Strategic Plan — ${new Date().toLocaleDateString()}`,
-                              content: updatedContent,
-                              is_analyzed: true,
-                              metadata: {
-                                plan_type: "strategic_plan",
-                                confidence: msg.planConfidence || "unknown",
-                                evidence_sources: msg.planEvidenceSources || [],
-                                business_id: resolvedBrandId,
-                              },
-                            } as any);
-                            await logPlanLearningEvent("completed", {
-                              confidence: msg.planConfidence || "unknown",
-                              evidenceCount: (msg.planEvidenceSources || []).length,
-                            });
-                            setMessages((prev) =>
-                              prev.map((m) => (m.id === msg.id ? { ...m, planSavedToDb: true } : m)),
-                            );
-                          }}
-                        />
-                      )}
-                      {/* Suggested actions are rendered as an overlay above the chat composer (see footer) */}
-                      {!msg.isStreaming && resolvedBrandId && (msg.content?.trim().length ?? 0) >= 30 && !msg.reportContent && (
-                        <AssistantInsightFeedback
-                          businessId={resolvedBrandId}
-                          workspaceId={activeWorkspaceId}
-                          assistantExcerpt={msg.content}
-                          userContextSnippet={priorUserSnippet || undefined}
-                          recorded={msg.insightFeedback}
-                          onRecorded={(sentiment) => {
-                            setMessages((prev) =>
-                              prev.map((m) => (m.id === msg.id ? { ...m, insightFeedback: sentiment } : m)),
-                            );
-                          }}
-                        />
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      {(() => {
-                        let display = msg.content;
-                        // Strip graphic instructions appended after emoji
-                        const graphicIdx = display.indexOf("\n\n🎨 Output format:");
-                        if (graphicIdx !== -1) display = display.slice(0, graphicIdx);
-                        // Strip fetched reference content appended after ---
-                        const refIdx = display.indexOf("\n\n--- http");
-                        if (refIdx !== -1) display = display.slice(0, refIdx);
-                        return display;
-                      })()}
-                      {msg.employees && msg.employees.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {msg.employees.map(e => (
-                            <span key={e.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-foreground/10 text-xs">
-                              <User className="w-3 h-3" /> {e.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-                {msg.role === "assistant" && (
-                  <div className="mt-2 ml-2">
-                    <BusinessBrainOrb size={18} animated={!!msg.isStreaming} />
-                  </div>
-                )}
-              </div>
-            )})}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </main>
-
-      {/* Chat Input — hidden during onboarding */}
-      {!isOnboardingActive && (
-      <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-[#FAFBFF]">
-        <input
-          type="file"
-          multiple
-          className="hidden"
-          ref={fileInputRef}
-          onChange={(e) => {
-            if (e.target.files) {
-              const newFiles = Array.from(e.target.files).map((f) => ({ name: f.name, id: Math.random().toString(), file: f }));
-              setUploadedFiles((prev) => [...prev, ...newFiles]);
-            }
-            e.target.value = "";
-          }}
-        />
-
-        {/* Suggestion overlay — covers the composer until dismissed or a suggestion is picked */}
-        {(() => {
+  const composerSuggestionOverlay =
+    !isOnboardingActive && hasMessages
+      ? (() => {
           const lastAssistant = [...messages].reverse().find(
             (m) => m.role === "assistant" && !m.isStreaming && m.suggestions && m.suggestions.length > 0,
           );
@@ -1906,8 +868,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                     chatInputRef.current.innerText = suggestion;
                     chatInputRef.current.focus();
                   }
-                  // Auto-send so the AI can immediately follow up with the next clarifying question if needed.
-                  setTimeout(() => handleSendMessage(), 0);
+                  setTimeout(() => void handleSendMessage(), 0);
                 }}
                 onDismiss={() => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
@@ -1918,424 +879,172 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                     chatInputRef.current.innerText = value;
                     chatInputRef.current.focus();
                   }
-                  // Send immediately so the user's typed answer is fired off.
-                  setTimeout(() => handleSendMessage(), 0);
+                  setTimeout(() => void handleSendMessage(), 0);
                 }}
               />
             </div>
           );
-        })()}
+        })()
+      : null;
 
-        <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
-          <div className="px-1 pb-1 border-b border-border/40 mb-1">
+  return (
+    <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#FAFBFF]">
+      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#FAFBFF]">
+        <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#FAFBFF]">
+          {!isOnboardingActive && (
             <button
               type="button"
-              onClick={() => setSessionMemoryOpen((o) => !o)}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+              onClick={() => setShowHistory(!showHistory)}
+              className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+              title={showHistory ? "Hide chat history" : "Show chat history"}
             >
-              <StickyNote className="h-3.5 w-3.5 shrink-0" />
-              <span className="flex-1 text-left">Session memory</span>
-              <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform", sessionMemoryOpen && "rotate-180")} />
+              {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
-            {sessionMemoryOpen && (
-              <Textarea
-                value={sessionMemory}
-                onChange={(e) => setSessionMemory(e.target.value)}
-                placeholder="Notes for this thread: facts, preferences, goals (saved with the chat)."
-                className="mt-1 min-h-[72px] max-h-[160px] resize-y text-sm bg-white"
-              />
-            )}
+          )}
+          <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground">
+            <Bot className="w-4 h-4 text-muted-foreground" />
+            {selectedAgent || "AI"}
           </div>
-          {/* Chips row: files, employees, computer mode — all inline */}
-          {(uploadedFiles.length > 0 || selectedChatEmployees.length > 0 || selectedGraphic || (isActionMode && extensionConnected)) && (
-            <div className="flex flex-wrap gap-1.5 px-1 pb-2">
-              {isActionMode && extensionConnected && (
-                <div className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5">
-                  <Monitor className="w-3.5 h-3.5 text-foreground" />
-                  <span className="text-xs font-medium text-foreground">Computer ON</span>
+        </header>
+
+        <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-[#FAFBFF]">
+          {resumableTask && !isSending && (
+            <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-4">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">Long task available to resume</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Phase: {resumableTask.phase} · Progress: {Math.max(0, Math.min(100, Math.round(resumableTask.progress)))}% · Checkpoint #
+                    {resumableTask.continuationIndex}
+                  </p>
                 </div>
-              )}
-              {selectedGraphic && (
-                <div className="flex items-center gap-1.5 bg-[#4a86ff]/10 border border-[#4a86ff]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <Palette className="w-3.5 h-3.5 text-[#4a86ff]" />
-                  <span className="text-xs font-medium text-[#4a86ff]">{selectedGraphic}</span>
-                  <button onClick={() => setSelectedGraphic(null)} className="text-[#4a86ff]/60 hover:text-[#4a86ff]">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-              {uploadedFiles.map((file) => (
-                <div key={file.id} className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <FileUp className="w-3.5 h-3.5 text-foreground" />
-                  <span className="text-xs font-medium text-foreground max-w-[120px] truncate">{file.name}</span>
-                  <button onClick={() => setUploadedFiles((fs) => fs.filter((f) => f.id !== file.id))} className="text-foreground/60 hover:text-foreground">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              {selectedChatEmployees.map((emp) => (
-                <div key={emp.id} className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                  <User className="w-3.5 h-3.5 text-foreground" />
-                  <span className="text-xs font-medium text-foreground max-w-[120px] truncate">{emp.name}</span>
-                  <button onClick={() => setSelectedChatEmployees((es) => es.filter((e) => e.id !== emp.id))} className="text-foreground/60 hover:text-foreground">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+                <Button size="sm" onClick={() => void handleResumeLongTask()} disabled={resumingTask}>
+                  {resumingTask ? "Resuming..." : "Resume Long Task"}
+                </Button>
+              </div>
             </div>
           )}
-          <div className="relative flex items-center">
-          {/* Desktop: main menu opens upward, sub-menus fly out to the right */}
-          {isDropupOpen && !isMobileChatView && (
-            <div className="absolute bottom-[calc(100%+12px)] left-0 flex items-end z-40">
-              {/* Main menu */}
-              <div className="w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border py-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
-                {plusMenuItems}
-              </div>
-              {/* Flyout sub-menu to the right */}
-              {activeSubMenu && (
-                <div className="ml-2 w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border animate-in slide-in-from-left-2 fade-in duration-150">
-                  {activeSubMenu === "reference" && referenceSubContent}
-                  {activeSubMenu === "graphics" && graphicsSubContent}
-                  {activeSubMenu === "employees" && employeesSubContent}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Mobile bottom sheet */}
-          <Sheet open={isDropupOpen && isMobileChatView} onOpenChange={(open) => { if (!open) { setIsDropupOpen(false); setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); } }}>
-            <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto px-2 pb-6">
-              <SheetHeader className="sr-only"><SheetTitle>Menu</SheetTitle></SheetHeader>
-              <div className="py-2">
-                {plusMenuMobileContent}
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          {/* Plus button — opens on hover (desktop only) */}
-          <div className="group relative"
-            onMouseEnter={() => { if (!isMobileChatView && !isDropupOpen) setIsDropupOpen(true); }}
-          >
-            <button
-              onClick={() => { setIsDropupOpen(!isDropupOpen); if (isDropupOpen) { setShowEmployeesMenu(false); setShowReference(false); setShowGraphicsMenu(false); } }}
-              className={`p-2.5 rounded-full transition-all active:scale-95 flex items-center justify-center ${
-                isActionMode
-                  ? isDropupOpen ? "bg-primary/20 text-primary" : "text-primary hover:bg-primary/10"
-                  : isDropupOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <Plus className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Contenteditable input */}
-          <div className="flex-1 flex items-center px-3 py-1">
-            <div
-              ref={chatInputRef}
-              contentEditable
-              suppressContentEditableWarning
-              className="flex-1 bg-transparent border-none outline-none text-foreground text-base min-w-[120px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text cursor-text"
-              data-placeholder="Ask me anything..."
-              onInput={() => {
-                const selection = window.getSelection();
-                if (!selection || selection.rangeCount === 0) return;
-                const range = selection.getRangeAt(0);
-                const node = range.startContainer;
-                if (node.nodeType === Node.TEXT_NODE) {
-                  const text = node.textContent || "";
-                  const offset = range.startOffset;
-                  const textBeforeCursor = text.slice(0, offset);
-                  const match = textBeforeCursor.match(/(?:^|\s)@(\S*)$/);
-                  if (match) {
-                    setMentionState({ active: true, node, startOffset: offset - match[1].length - 1, endOffset: offset });
-                    setReferenceUrlInput(match[1]);
-                    setIsDropupOpen(true);
-                    setShowReference(true);
-                  } else if (mentionState.active) {
-                    setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
-                    setShowReference(false);
-                    setIsDropupOpen(false);
-                  }
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (mentionState.active && searchResults.length > 0) {
-                    const result = searchResults[0];
-                    setReferencedUrls((prev) => [...prev, { id: Math.random().toString(), ...result }]);
-                    insertReference(result);
-                    setReferenceUrlInput("");
-                    setIsDropupOpen(false);
-                    setShowReference(false);
-                    return;
-                  }
-                  handleSendMessage();
-                }
+          {!hasMessages && (forceOnboarding || onboardingLocked) ? (
+            <ChatOnboardingFlow
+              initialUrl={onboardingInitialUrl}
+              onComplete={(agentName, brandId, supercharge, transcript) => {
+                const seeded: ChatMessage[] = transcript.map((m, i) => ({
+                  id: `onb-${Date.now()}-${i}`,
+                  role: m.role,
+                  content: m.content,
+                }));
+                setMessages(seeded);
+                if (agentName) setSelectedAgent(agentName);
+                setOnboardingLocked(false);
+                onOnboardingComplete?.(agentName, brandId, supercharge);
               }}
             />
-          </div>
-
-          {/* Send / Stop button */}
-          {isSending ? (
-            <button
-              onClick={handleCancelMessage}
-              className="p-2.5 rounded-full bg-destructive text-destructive-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm hover:bg-destructive/90"
-              title="Stop generating"
-            >
-              <Square className="w-4 h-4 fill-current" />
-            </button>
+          ) : !hasMessages ? (
+            <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#FAFBFF]">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="relative z-10 animate-in fade-in zoom-in duration-700">
+                <BusinessBrainOrb size={typeof window !== "undefined" && window.innerWidth < 640 ? 180 : 280} />
+              </div>
+              <div className="mt-6 sm:mt-8 text-center z-10">
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{selectedAgent}</h2>
+                <p className="text-muted-foreground mt-2 font-medium text-sm sm:text-base">Ready to assist you</p>
+              </div>
+            </div>
           ) : (
-            <button
-              data-send-btn
-              onClick={handleSendMessage}
-              className={`p-2.5 rounded-full text-primary-foreground transition-all active:scale-95 flex items-center justify-center shadow-sm ${
-                isActionMode ? "bg-primary hover:bg-primary/90" : "bg-foreground hover:bg-foreground/90"
-              }`}
-            >
-              <ArrowUp className="w-5 h-5" />
-            </button>
+            <AgentChatMessageList
+              messages={messages}
+              messagesEndRef={messagesEndRef}
+              resolvedBrandId={resolvedBrandId}
+              activeWorkspaceId={activeWorkspaceId}
+              user={user}
+              setMessages={setMessages}
+              logPlanLearningEvent={logPlanLearningEvent}
+            />
           )}
-          </div>
-        </div>
-      </footer>
-      )}
+        </main>
 
-      {/* Settings Modal */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsSettingsOpen(false)} />
-          <div className="relative w-full sm:max-w-4xl h-[85vh] sm:h-[600px] bg-background shadow-2xl border border-border rounded-t-2xl sm:rounded-2xl z-50 animate-in slide-in-from-bottom sm:zoom-in-95 fade-in duration-200 flex flex-col overflow-hidden">
-            {/* Modal header with agent dropdown */}
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-card">
-              <div className="w-8" />
-              <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
-                <h3 className="text-base sm:text-lg font-bold text-foreground">Settings</h3>
-                <span className="text-muted-foreground">·</span>
-                <select
-                  value={selectedAgent}
-                  onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-white"
-                >
-                  {agents.map((agent) => (
-                    <option key={agent.id} value={agent.name}>{agent.name}</option>
-                  ))}
-                </select>
-              </div>
-              <button onClick={() => setIsSettingsOpen(false)} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors flex-shrink-0">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <AgentChatInput
+          dropupRef={dropupRef}
+          fileInputRef={fileInputRef}
+          chatInputRef={chatInputRef}
+          isMobileChatView={isMobileChatView}
+          isDropupOpen={isDropupOpen}
+          setIsDropupOpen={setIsDropupOpen}
+          sessionMemoryOpen={sessionMemoryOpen}
+          setSessionMemoryOpen={setSessionMemoryOpen}
+          sessionMemory={sessionMemory}
+          setSessionMemory={setSessionMemory}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          selectedChatEmployees={selectedChatEmployees}
+          setSelectedChatEmployees={setSelectedChatEmployees}
+          selectedGraphic={selectedGraphic}
+          setSelectedGraphic={setSelectedGraphic}
+          isActionMode={isActionMode}
+          setIsActionMode={setIsActionMode}
+          extensionConnected={extensionConnected}
+          showReference={showReference}
+          setShowReference={setShowReference}
+          showGraphicsMenu={showGraphicsMenu}
+          setShowGraphicsMenu={setShowGraphicsMenu}
+          showEmployeesMenu={showEmployeesMenu}
+          setShowEmployeesMenu={setShowEmployeesMenu}
+          setIsSettingsOpen={setIsSettingsOpen}
+          isSending={isSending}
+          mentionState={mentionState}
+          setMentionState={setMentionState}
+          referenceUrlInput={referenceUrlInput}
+          setReferenceUrlInput={setReferenceUrlInput}
+          searchResults={searchResults}
+          onInsertReference={onInsertReferenceFromInput}
+          onSend={() => void handleSendMessage()}
+          onCancel={handleCancelMessage}
+          onInputForMention={handleMentionInput}
+          activeSubMenu={activeSubMenu}
+          referenceSubContent={referenceSubContent}
+          graphicsSubContent={graphicsSubContent}
+          employeesSubContent={employeesSubContent}
+        />
+        )}
 
-            <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
-              {/* Sidebar — horizontal on mobile */}
-              <div className="sm:w-64 bg-card border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-y-auto shrink-0">
-                {([
-                  { key: "safety", label: "Safety", icon: Shield },
-                  { key: "employees", label: "Employees", icon: Users },
-                  { key: "connections", label: "Connections", icon: Link },
-                ] as const).map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setSettingsTab(key)}
-                    className={`text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 sm:gap-3 whitespace-nowrap ${settingsTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                ))}
-              </div>
+        <AgentChatSettingsModal
+          open={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          agents={agents}
+          selectedAgent={selectedAgent}
+          setSelectedAgent={setSelectedAgent}
+          brands={brands}
+          settingsTab={settingsTab}
+          setSettingsTab={setSettingsTab}
+          employees={employees}
+          onDeleteEmployee={handleDeleteEmployee}
+          onUpdateEmployee={handleUpdateEmployee}
+          onOpenAddEmployee={() => setShowAddEmployee(true)}
+        />
 
-              {/* Content */}
-              <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-[#FAFBFF]">
-                {settingsTab === "safety" && (
-                  <div className="flex-1">
-                    {(() => {
-                      const activeBrand = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
-                      if (activeBrand) {
-                        return <SettingsView activeBrandId={activeBrand.id} />;
-                      }
-                      return (
-                        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                          <p>Select an agent to configure safety settings.</p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
+        <CreateEmployeeDialog
+          open={showAddEmployee}
+          onClose={() => {
+            setShowAddEmployee(false);
+            setAddEmployeePrompt("");
+            setGeneratedEmployee(null);
+          }}
+          addEmployeePrompt={addEmployeePrompt}
+          setAddEmployeePrompt={setAddEmployeePrompt}
+          isGeneratingEmployee={isGeneratingEmployee}
+          generatedEmployee={generatedEmployee}
+          setGeneratedEmployee={setGeneratedEmployee}
+          onGenerate={() => void handleGenerateEmployee()}
+          onConfirm={() => void handleConfirmEmployee()}
+        />
+      </div>
 
-                {settingsTab === "employees" && (
-                  <div className="space-y-6 flex-1">
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
-                      <div className="space-y-4">
-                        {employees.map((emp) => (
-                          <div key={emp.id} className="border border-border p-4 rounded-xl space-y-3 bg-[#E8F0FE]">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 mr-4">
-                                <input
-                                  type="text"
-                                  defaultValue={emp.name}
-                                  onBlur={(e) => handleUpdateEmployee({ ...emp, name: e.target.value })}
-                                  className="font-semibold text-foreground bg-transparent border-none p-0 focus:ring-0 w-full placeholder-muted-foreground outline-none"
-                                  placeholder="Employee Name"
-                                />
-                                <input
-                                  type="text"
-                                  defaultValue={emp.role}
-                                  onBlur={(e) => handleUpdateEmployee({ ...emp, role: e.target.value })}
-                                  className="text-xs text-muted-foreground bg-transparent border-none p-0 focus:ring-0 w-full mt-0.5 placeholder-muted-foreground outline-none"
-                                  placeholder="Role / Title"
-                                />
-                              </div>
-                              <button onClick={() => handleDeleteEmployee(emp.id)} className="text-destructive hover:text-destructive/80 p-1 flex-shrink-0">
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setShowAddEmployee(true)}
-                        className="mt-4 w-full py-2.5 border border-dashed border-border text-muted-foreground rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Employee
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {settingsTab === "connections" && (
-                  <div className="flex-1 -mx-4 -mt-2">
-                    <ConnectionsView />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Employee Dialog */}
-      {showAddEmployee && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                <h3 className="text-base font-semibold">Create AI Employee</h3>
-              </div>
-              <button onClick={() => { setShowAddEmployee(false); setAddEmployeePrompt(""); setGeneratedEmployee(null); }} className="text-muted-foreground hover:text-foreground p-1">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {!generatedEmployee ? (
-                <>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Describe what you want this employee to do. AI will configure it with the optimal name, role, and procedure.
-                    </p>
-                    <textarea
-                      value={addEmployeePrompt}
-                      onChange={(e) => setAddEmployeePrompt(e.target.value)}
-                      placeholder="e.g. I need someone who monitors our social media mentions every morning, summarizes sentiment, and drafts response suggestions for negative comments..."
-                      className="w-full h-32 px-4 py-3 rounded-xl border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/60"
-                      autoFocus
-                      disabled={isGeneratingEmployee}
-                    />
-                  </div>
-                  <Button
-                    onClick={handleGenerateEmployee}
-                    disabled={isGeneratingEmployee || addEmployeePrompt.trim().length < 3}
-                    className="w-full gap-2"
-                  >
-                    {isGeneratingEmployee ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing & Configuring...</>
-                    ) : (
-                      <><Sparkles className="w-4 h-4" /> Generate Employee</>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {/* Preview generated employee */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">{generatedEmployee.name}</p>
-                        <p className="text-xs text-muted-foreground">{generatedEmployee.role}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Purpose</p>
-                        <p className="text-sm text-foreground">{generatedEmployee.sop_purpose}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Scope</p>
-                        <p className="text-sm text-foreground">{generatedEmployee.sop_scope}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Procedure</p>
-                        <ol className="list-decimal list-inside space-y-1">
-                          {(generatedEmployee.sop_procedure || []).map((step: string, i: number) => (
-                            <li key={i} className="text-sm text-foreground">{step}</li>
-                          ))}
-                        </ol>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Responsibilities</p>
-                        <ul className="list-disc list-inside space-y-1">
-                          {(generatedEmployee.sop_responsibilities || []).map((r: string, i: number) => (
-                            <li key={i} className="text-sm text-foreground">{r}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Safety Notes</p>
-                        <p className="text-sm text-foreground">{generatedEmployee.sop_safety_notes}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <Button variant="outline" className="flex-1" onClick={() => { setGeneratedEmployee(null); }}>
-                      Regenerate
-                    </Button>
-                    <Button className="flex-1 gap-2" onClick={handleConfirmEmployee}>
-                      <Plus className="w-4 h-4" /> Create Employee
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      </div>{/* end main chat area */}
-
-      {/* Chat History Sidebar — hidden on mobile */}
-      {/* Desktop: inline sidebar */}
       {showHistory && !isMobileChatView && !isOnboardingActive && (
         <div className="hidden md:block shrink-0 h-[calc(100%-16px)] my-2 mr-2">
-          <ChatHistorySidebar
-            activeChatId={activeChatId}
-            onSelectChat={handleSelectChat}
-            onNewChat={handleNewChat}
-          />
+          <ChatHistorySidebar activeChatId={activeChatId} onSelectChat={handleSelectChat} onNewChat={handleNewChat} />
         </div>
       )}
 
-      {/* Mobile: Sheet overlay */}
       {isMobileChatView && !isOnboardingActive && (
         <Sheet open={showHistory} onOpenChange={setShowHistory}>
           <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
@@ -2344,8 +1053,14 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
             </SheetHeader>
             <ChatHistorySidebar
               activeChatId={activeChatId}
-              onSelectChat={(session) => { handleSelectChat(session); setShowHistory(false); }}
-              onNewChat={() => { handleNewChat(); setShowHistory(false); }}
+              onSelectChat={(session) => {
+                handleSelectChat(session);
+                setShowHistory(false);
+              }}
+              onNewChat={() => {
+                handleNewChat();
+                setShowHistory(false);
+              }}
             />
           </SheetContent>
         </Sheet>
