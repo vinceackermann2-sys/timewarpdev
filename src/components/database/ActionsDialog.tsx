@@ -307,7 +307,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
               <div className="flex items-start justify-between gap-4">
                 <p className="text-sm text-muted-foreground">
-                  Invite team members to collaborate. Each member has their own individual Actions balance.
+                  {" "}
                 </p>
               </div>
 
