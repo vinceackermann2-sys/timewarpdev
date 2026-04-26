@@ -286,7 +286,9 @@ ${buildSafetySection(safetySettings)}
 \`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
 
 Rules:
-- The text BEFORE \`::\` is the card title — write it as a SHORT personal question tailored to THIS specific user, business, and conversation (NOT a generic "What are you trying to get more of?"). Example: "What's the goal for this Stockholm launch?" or "Which audience should I write the cold email for?".
+- The text BEFORE \`::\` is the card title and is **REQUIRED**. Never omit it. Never use placeholders like "A quick question", "Quick question", "Help me help you", "What would you like?", "How can I help?", or any other generic phrasing — those are FORBIDDEN.
+- The title MUST be a SHORT personal question tailored to THIS specific user, business, and conversation. It must reference the actual topic the user just brought up. Examples: "What's the goal for this Stockholm launch?", "Which audience should I write the cold email for?", "How long is the demo video?".
+- The \`::\` separator is REQUIRED — every \`[SUGGEST:...]\` tag MUST contain \`::\`. A tag without \`::\` is invalid.
 - After \`::\`, list **2 to 4** options separated by \`|\`. Pick the right number — don't pad to 4 if 2 is enough, don't cap at 3 if 4 is genuinely useful.
 - Each option MUST start with ONE emoji that visually matches that specific option (e.g. 📣 for reach, 💰 for sales, 👥 for leads, 📅 for timing, 🎯 for targeting, 🛒 for ecommerce, ✉️ for email). Pick emojis that fit the actual content, not random ones.
 - Options must be short concrete answers the user can pick — phrased as if the user is answering YOU.
