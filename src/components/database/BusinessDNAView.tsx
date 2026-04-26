@@ -512,7 +512,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
             </div>
           </div>
           {/* Right-rail navigator skeleton */}
-          <div className="hidden lg:block w-48 shrink-0 border-l border-border/50 px-4 py-8 space-y-3">
+          <div className="hidden lg:block w-48 shrink-0 px-4 py-8 space-y-3">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-4 w-full rounded" />
             ))}
