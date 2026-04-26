@@ -1588,6 +1588,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
   );
 
   /* ─────────── Render ─────────── */
+  const isOnboardingActive = !hasMessages && (forceOnboarding || onboardingLocked);
   return (
     <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#FAFBFF]">
       {/* Main chat area */}
