@@ -548,7 +548,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                             <TableRow key={ws.workspaceId}>
                               <TableCell>
                                 <div className="flex items-center gap-3">
-                                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Building2 className="h-4 w-4 text-primary" /></div>
+                                  <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-white"><Building2 className="h-4 w-4 text-[#4c5767]" /></div>
                                   <div><p className="font-medium text-foreground">{ws.workspaceName}</p><p className="text-xs text-muted-foreground">Created {new Date(ws.createdAt).toLocaleDateString()}</p></div>
                                 </div>
                               </TableCell>

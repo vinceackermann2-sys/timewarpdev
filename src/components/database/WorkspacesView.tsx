@@ -111,7 +111,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
                 </Button>
               </div>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setShowNewInput(true)} className="bg-[#E8F0FE] hover:bg-[#E8F0FE]">
+              <Button size="sm" variant="outline" onClick={() => setShowNewInput(true)} className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input h-9 rounded-md px-3 text-white bg-primary">
                 <Plus className="h-4 w-4 mr-1" />
                 New workspace
               </Button>
@@ -140,8 +140,8 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Building2 className="h-4 w-4 text-primary" />
+                        <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-white">
+                          <Building2 className="h-4 w-4 text-[#4c5767]" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{ws.workspaceName}</p>
