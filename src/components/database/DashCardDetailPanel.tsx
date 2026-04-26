@@ -1237,28 +1237,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
     return parts.join("\n").trim() || card.description || card.title;
   })();
 
-  if (minimized) {
-    return (
-      <aside
-        className="hidden md:flex w-12 shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col items-center justify-start py-4 rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in"
-      >
-        <button
-          type="button"
-          aria-label="Expand"
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(false); }}
-          className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <div
-          className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground select-none"
-          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-        >
-          {card.title}
-        </div>
-      </aside>
-    );
-  }
+  // Minimized/close state disabled — panel always renders expanded.
 
   return (
     <TooltipProvider delayDuration={250}>
