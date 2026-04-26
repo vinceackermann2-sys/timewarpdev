@@ -1240,22 +1240,21 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
   if (minimized) {
     return (
       <aside
-        className="hidden md:flex w-[420px] shrink-0 self-end mb-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in cursor-pointer"
+        className="hidden md:flex w-12 shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col items-center justify-start py-4 rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in"
       >
-        <div className="px-6 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{topLabel}</span>
-            <span className="text-sm font-semibold text-foreground truncate ml-2">{card.title}</span>
-          </div>
-          <button
-            type="button"
-            aria-label="Expand"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(false); }}
-            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
-          >
-            <ChevronDown className="h-4 w-4 rotate-180 transition-transform duration-300" />
-          </button>
+        <button
+          type="button"
+          aria-label="Expand"
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(false); }}
+          className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div
+          className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground select-none"
+          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+        >
+          {card.title}
         </div>
       </aside>
     );
