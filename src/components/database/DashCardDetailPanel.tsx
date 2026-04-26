@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Clock, Sparkles, MessageSquare, ChevronDown, MoreVertical, Check, ExternalLink,
+  Clock, Sparkles, MessageSquare, ChevronDown, ChevronLeft, ChevronRight, MoreVertical, Check, ExternalLink,
   Mail, Calendar, FileText, Hash, Briefcase, StickyNote, Users, Inbox,
   Copy, EyeOff, RotateCcw, Plus, Trash2, Loader2,
 } from "lucide-react";
@@ -1240,22 +1240,21 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
   if (minimized) {
     return (
       <aside
-        className="hidden md:flex w-[420px] shrink-0 self-end mb-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in cursor-pointer"
+        className="hidden md:flex w-12 shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col items-center justify-start py-4 rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in"
       >
-        <div className="px-6 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0">{topLabel}</span>
-            <span className="text-sm font-semibold text-foreground truncate ml-2">{card.title}</span>
-          </div>
-          <button
-            type="button"
-            aria-label="Expand"
-            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(false); }}
-            className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
-          >
-            <ChevronDown className="h-4 w-4 rotate-180 transition-transform duration-300" />
-          </button>
+        <button
+          type="button"
+          aria-label="Expand"
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(false); }}
+          className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <div
+          className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground select-none"
+          style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+        >
+          {card.title}
         </div>
       </aside>
     );
@@ -1266,33 +1265,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
       <aside className="hidden md:flex w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in">
         {/* ── Top bar ─────────────── */}
         <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
-            <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
-          </div>
           <div className="flex items-center gap-1">
-            {hasExternalSource && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}
-                    disabled={!sourceUrl}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (sourceUrl) {
-                        onTrackEvent?.("clicked", card, { priority: card.priority, theme: (card.category || "").toLowerCase(), destination: "source-link" });
-                        window.open(sourceUrl, "_blank", "noopener,noreferrer");
-                      }
-                    }}
-                    className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed outline-none"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}</TooltipContent>
-              </Tooltip>
-            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -1304,7 +1277,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                   <MoreVertical className="h-4 w-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuItem onClick={() => copyToClipboard(card.title, "Title")}>
                   <Copy className="h-3.5 w-3.5 mr-2" /> Copy title
                 </DropdownMenuItem>
@@ -1332,13 +1305,41 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <div className="flex items-center gap-1.5 text-muted-foreground ml-1">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            {hasExternalSource && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}
+                    disabled={!sourceUrl}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (sourceUrl) {
+                        onTrackEvent?.("clicked", card, { priority: card.priority, theme: (card.category || "").toLowerCase(), destination: "source-link" });
+                        window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                      }
+                    }}
+                    className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed outline-none"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{sourceUrl ? `Open in ${sourceMeta.label}` : `${sourceMeta.label} link unavailable`}</TooltipContent>
+              </Tooltip>
+            )}
             <button
               type="button"
-              aria-label="Minimize"
+              aria-label="Collapse"
               onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(true); }}
               className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
