@@ -1266,15 +1266,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         {/* ── Top bar ─────────────── */}
         <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Close panel"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); setMinimized(true); }}
-              className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            >
-              <PanelRightClose className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-1.5 text-muted-foreground ml-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
               <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
             </div>
