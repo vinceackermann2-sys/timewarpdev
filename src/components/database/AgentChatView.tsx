@@ -1815,18 +1815,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                           }}
                         />
                       )}
-                      {/* Suggested actions */}
-                      {!msg.isStreaming && msg.suggestions && msg.suggestions.length > 0 && (
-                        <AssistantSuggestions
-                          suggestions={msg.suggestions}
-                          onSelect={(suggestion) => {
-                            if (chatInputRef.current) {
-                              chatInputRef.current.innerText = suggestion;
-                              chatInputRef.current.focus();
-                            }
-                          }}
-                        />
-                      )}
+                      {/* Suggested actions are rendered as an overlay above the chat composer (see footer) */}
                       {!msg.isStreaming && resolvedBrandId && (msg.content?.trim().length ?? 0) >= 30 && !msg.reportContent && (
                         <AssistantInsightFeedback
                           businessId={resolvedBrandId}
