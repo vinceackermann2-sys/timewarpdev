@@ -1906,9 +1906,14 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
                 onDismiss={() => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
                 }}
-                onCustom={() => {
+                onCustom={(value) => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
-                  chatInputRef.current?.focus();
+                  if (chatInputRef.current) {
+                    chatInputRef.current.innerText = value;
+                    chatInputRef.current.focus();
+                  }
+                  // Send immediately so the user's typed answer is fired off.
+                  setTimeout(() => handleSendMessage(), 0);
                 }}
               />
             </div>
