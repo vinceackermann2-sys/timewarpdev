@@ -815,8 +815,10 @@ For charts use a \`\`\`chart code block:
 \`\`\`
 Supported chart types: bar, line, area, pie.
 
-## MANDATORY SUGGESTIONS
-**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.**`;
+## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN
+**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.**
+
+**Bias toward CLARIFYING QUESTIONS, not next-step ideas.** Whenever the request is even slightly ambiguous (unclear goal, audience, channel, timeframe, budget, or success metric), the 3 suggestions MUST be short concrete answer-options the user can pick to narrow the request — phrased as if the user is answering YOU (e.g. "Reach — get seen by more people" | "Sales — get more customers" | "Leads — get emails, calls, or signups"). Only fall back to next-step ideas when the request is fully specified.**`;
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
