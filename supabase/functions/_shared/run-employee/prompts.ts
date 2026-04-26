@@ -281,6 +281,8 @@ ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create 
 ${buildSafetySection(safetySettings)}
 
 ## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN, ONE STEP AT A TIME
+**CRITICAL: Every single response — without exception — MUST end with exactly one \`[SUGGEST:...]\` tag. A response without this tag is INVALID and will be rejected. This applies even to short replies, error messages, confirmations, and follow-ups.**
+
 **At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line. Use the personalized format:**
 
 \`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
