@@ -40,6 +40,23 @@ export function extractSuggestions(text: string): ParsedSuggestions {
   }
   let content = text.replace(suggestRegex, "").trim();
 
+  // Title fallback: if the AI didn't include one in the tag, look for the last
+  // question sentence in the cleaned content and use that as the personal title.
+  if (!title && suggestions.length > 0 && content) {
+    // Strip markdown emphasis/headings from the tail before scanning.
+    const tail = content
+      .split(/\n+/)
+      .slice(-6) // look at last few lines only
+      .join(" ")
+      .replace(/[#*_`>]+/g, " ")
+      .trim();
+    // Find the LAST '?' terminated sentence.
+    const questionMatch = tail.match(/([A-Z][^?!.\n]{8,160}\?)\s*$/);
+    if (questionMatch) {
+      title = questionMatch[1].trim();
+    }
+  }
+
   // Fallback: trailing numbered list
   if (suggestions.length === 0) {
     const trailingListRegex = /(?:\n\s*\d+\.\s+.+[\?\!]?\s*){2,5}$/;
