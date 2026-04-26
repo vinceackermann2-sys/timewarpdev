@@ -1279,6 +1279,45 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
               <span className="text-[11px] font-semibold uppercase tracking-wider">{topLabel}</span>
             </div>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="More options"
+                className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors outline-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => copyToClipboard(card.title, "Title")}>
+                <Copy className="h-3.5 w-3.5 mr-2" /> Copy title
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => copyToClipboard(originalContent, "Original content")}>
+                <FileText className="h-3.5 w-3.5 mr-2" /> Copy original content
+              </DropdownMenuItem>
+              {sourceUrl && (
+                <DropdownMenuItem onClick={() => {
+                  onTrackEvent?.("clicked", card, { priority: card.priority, theme: (card.category || "").toLowerCase(), destination: "source-link" });
+                  window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                }}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Open in {sourceMeta.label}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={toggleDone}>
+                {done ? (
+                  <><RotateCcw className="h-3.5 w-3.5 mr-2" /> Mark as not done</>
+                ) : (
+                  <><Check className="h-3.5 w-3.5 mr-2" /> Mark as done</>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={dismissCard} className="text-destructive focus:text-destructive">
+                <EyeOff className="h-3.5 w-3.5 mr-2" /> Dismiss card
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* ── Title ─────────────────────────────────────────── */}
