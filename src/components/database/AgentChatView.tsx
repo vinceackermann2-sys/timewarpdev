@@ -2100,6 +2100,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
           </div>
         </div>
       </footer>
+      )}
 
       {/* Settings Modal */}
       {isSettingsOpen && (
