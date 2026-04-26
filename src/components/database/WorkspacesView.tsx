@@ -111,7 +111,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
                 </Button>
               </div>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => setShowNewInput(true)} className="bg-[#E8F0FE] hover:bg-[#E8F0FE]">
+              <Button size="sm" variant="outline" onClick={() => setShowNewInput(true)} className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input h-9 rounded-md px-3 text-white bg-primary">
                 <Plus className="h-4 w-4 mr-1" />
                 New workspace
               </Button>
