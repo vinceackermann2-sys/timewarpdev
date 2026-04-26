@@ -118,15 +118,6 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
           </Link>
 
           <div className="orb-hero__nav-actions">
-            <button
-              type="button"
-              aria-label="Toggle appearance"
-              className="orb-hero__icon-btn"
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-            >
-              {isDark ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-
             <Link to="/auth" className="orb-hero__pill-link">
               Log in
             </Link>
