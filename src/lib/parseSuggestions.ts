@@ -80,5 +80,18 @@ export function extractSuggestions(text: string): ParsedSuggestions {
     }
   }
 
+  // Last-resort fallback: AI completely forgot to suggest. Provide 3 generic
+  // continuation options so the questions card never disappears entirely.
+  if (suggestions.length === 0 && content.trim().length > 0) {
+    suggestions.push(
+      "✅ Yes, go ahead",
+      "✏️ Refine the answer",
+      "➕ Show me more options",
+    );
+    if (!title) {
+      title = "Want me to keep going?";
+    }
+  }
+
   return { content, suggestions: suggestions.slice(0, 4), title };
 }
