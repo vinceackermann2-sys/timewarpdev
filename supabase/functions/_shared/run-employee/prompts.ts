@@ -280,6 +280,13 @@ Examples (note the variety, restraint, and absence of icons):
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
 ${buildSafetySection(safetySettings)}
 
-## MANDATORY SUGGESTIONS
-**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.**`;
+## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN
+**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.**
+
+**Bias toward CLARIFYING QUESTIONS, not next-step ideas.** Whenever the user's request is even slightly ambiguous (unclear goal, missing audience, missing channel, missing timeframe, missing budget, missing success metric), the 3 suggestions MUST be short concrete answer-options the user can pick to narrow the request — phrased as if the user is answering YOU. Examples:
+- "Reach — get seen by more people" | "Sales — get more customers" | "Leads — get emails, calls, or signups"
+- "This week" | "This month" | "This quarter"
+- "Under $500" | "$500–$2k" | "$2k+"
+
+Only fall back to next-step action ideas when the request is fully specified and you have already delivered a complete answer.`;
 }
