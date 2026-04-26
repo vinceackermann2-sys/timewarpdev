@@ -1042,7 +1042,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
           { role: "user", content: fullContext },
         ],
       }),
-    }, 90_000);
+    }, 140_000);
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text().catch(() => "");
