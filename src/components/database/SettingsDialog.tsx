@@ -112,15 +112,12 @@ type BillingPeriod = "monthly" | "quarterly" | "annually";
 type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
 
 const sidebarItems = [
-  { section: "Account", items: [
-    { id: "settings" as SettingsTab, label: "Settings", icon: Settings },
-    { id: "workspace" as SettingsTab, label: "Workspace", icon: Users },
-    { id: "plans" as SettingsTab, label: "Plans & Billing", icon: CreditCard },
-  ]},
-  { section: "Connections", items: [
-    { id: "connections" as SettingsTab, label: "Integrations", icon: Unplug },
-  ]},
-];
+   { section: "Account", items: [
+     { id: "settings" as SettingsTab, label: "Settings", icon: Settings },
+     { id: "workspace" as SettingsTab, label: "Workspace", icon: Users },
+     { id: "plans" as SettingsTab, label: "Plans & Billing", icon: CreditCard },
+   ]},
+ ];
 
 const ROLE_CONFIG: Record<Role, { label: string; icon: typeof Crown; color: string }> = {
   owner: { label: "Owner", icon: Crown, color: "text-amber-500" },
