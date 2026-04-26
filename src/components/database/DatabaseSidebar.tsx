@@ -87,9 +87,7 @@ interface DatabaseSidebarProps {
   onDnaPillarChange?: (pillar: DnaPillar) => void;
 }
 
-export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeDashboardTab, onDashboardTabChange, activeDnaPillar, onDnaPillarChange }: DatabaseSidebarProps) {
-  const [dashExpanded, setDashExpanded] = useState(currentView === "manage");
-  const [dnaExpanded, setDnaExpanded] = useState(currentView === "businessdna");
+export function DatabaseSidebar({ currentView, onViewChange, userEmail }: DatabaseSidebarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state, toggleSidebar, setOpen } = useSidebar();
