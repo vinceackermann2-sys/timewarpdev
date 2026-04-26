@@ -1588,20 +1588,23 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
   );
 
   /* ─────────── Render ─────────── */
+  const isOnboardingActive = !hasMessages && (forceOnboarding || onboardingLocked);
   return (
     <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#FAFBFF]">
       {/* Main chat area */}
       <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#FAFBFF]">
       {/* Sticky top agent display */}
       <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#FAFBFF]">
-        {/* History toggle button */}
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-          title={showHistory ? "Hide chat history" : "Show chat history"}
-        >
-          {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
-        </button>
+        {/* History toggle button — hidden during onboarding */}
+        {!isOnboardingActive && (
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+            title={showHistory ? "Hide chat history" : "Show chat history"}
+          >
+            {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+          </button>
+        )}
         <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground">
           <Bot className="w-4 h-4 text-muted-foreground" />
           {selectedAgent || "AI"}
@@ -1868,7 +1871,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         )}
       </main>
 
-      {/* Chat Input */}
+      {/* Chat Input — hidden during onboarding */}
+      {!isOnboardingActive && (
       <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-[#FAFBFF]">
         <input
           type="file"
@@ -2096,6 +2100,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
           </div>
         </div>
       </footer>
+      )}
 
       {/* Settings Modal */}
       {isSettingsOpen && (
@@ -2320,7 +2325,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
 
       {/* Chat History Sidebar — hidden on mobile */}
       {/* Desktop: inline sidebar */}
-      {showHistory && !isMobileChatView && (
+      {showHistory && !isMobileChatView && !isOnboardingActive && (
         <div className="hidden md:block shrink-0 h-[calc(100%-16px)] my-2 mr-2">
           <ChatHistorySidebar
             activeChatId={activeChatId}
@@ -2331,7 +2336,7 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       )}
 
       {/* Mobile: Sheet overlay */}
-      {isMobileChatView && (
+      {isMobileChatView && !isOnboardingActive && (
         <Sheet open={showHistory} onOpenChange={setShowHistory}>
           <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
             <SheetHeader className="sr-only">
