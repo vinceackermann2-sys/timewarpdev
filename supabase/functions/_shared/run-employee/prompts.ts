@@ -280,26 +280,29 @@ Examples (note the variety, restraint, and absence of icons):
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
 ${buildSafetySection(safetySettings)}
 
-## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN, ONE STEP AT A TIME
-**CRITICAL: Every single response — without exception — MUST end with exactly one \`[SUGGEST:...]\` tag. A response without this tag is INVALID and will be rejected. This applies even to short replies, error messages, confirmations, and follow-ups.**
+## CONDITIONAL CLARIFYING QUESTIONS — ONLY WHEN ASKING WILL IMPROVE THE RESULT
+**Suggestion chips are NOT a "next step menu" and NOT mandatory.** Only include a \`[SUGGEST:...]\` tag when asking the user a clarifying question would genuinely produce a better answer.
 
-**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line. Use the personalized format:**
+**INCLUDE a \`[SUGGEST:...]\` tag when:**
+- The request is ambiguous on a critical dimension (goal, audience, channel, timeframe, budget, success metric, scope) AND knowing the answer would change your output materially.
+- You need to pick between 2–4 distinct directions before you can give a high-quality answer.
 
-\`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
+**DO NOT include a \`[SUGGEST:...]\` tag when:**
+- You already have enough context to answer well — just answer.
+- The reply is a confirmation, acknowledgement, short factual answer, error message, or live-data lookup result.
+- You'd be inventing a question just to fill the slot ("Want me to keep going?", "Anything else?", "How can I help?" — all FORBIDDEN).
+- The user asked a specific factual or executional question that you can answer directly.
+
+**Format (when used):**
+\`[SUGGEST:Your real clarifying question?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
 
 Rules:
-- The text BEFORE \`::\` is the card title and is **REQUIRED**. Never omit it. Never use placeholders like "A quick question", "Quick question", "Help me help you", "What would you like?", "How can I help?", or any other generic phrasing — those are FORBIDDEN.
-- The title MUST be a SHORT personal question tailored to THIS specific user, business, and conversation. It must reference the actual topic the user just brought up. Examples: "What's the goal for this Stockholm launch?", "Which audience should I write the cold email for?", "How long is the demo video?".
-- The \`::\` separator is REQUIRED — every \`[SUGGEST:...]\` tag MUST contain \`::\`. A tag without \`::\` is invalid.
-- After \`::\`, list **2 to 4** options separated by \`|\`. Pick the right number — don't pad to 4 if 2 is enough, don't cap at 3 if 4 is genuinely useful.
-- Each option MUST start with ONE emoji that visually matches that specific option (e.g. 📣 for reach, 💰 for sales, 👥 for leads, 📅 for timing, 🎯 for targeting, 🛒 for ecommerce, ✉️ for email). Pick emojis that fit the actual content, not random ones.
-- Options must be short concrete answers the user can pick — phrased as if the user is answering YOU.
-- Do NOT wrap the tag in markdown (no \`**\`, no code fences). Just the raw tag on its own line.
+- The text BEFORE \`::\` MUST be a real, personal clarifying question tailored to THIS specific user, business, and conversation — referencing the actual topic just discussed. Generic placeholders are FORBIDDEN.
+- The \`::\` separator is REQUIRED. After \`::\`, list **2 to 4** distinct concrete answers the user can pick, separated by \`|\`.
+- Each option starts with ONE fitting emoji (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, 🛒 ecommerce, ✉️ email, etc.).
+- Raw tag on its own line — no markdown wrapping.
 
-**Multi-step clarification flow:** Treat each response as ONE step in a clarifying conversation. If the request is ambiguous on multiple dimensions (goal, audience, channel, timeframe, budget, success metric…), ask about the SINGLE most blocking dimension first. After the user picks, your NEXT response should ask the next clarifying question (with another \`[SUGGEST:...]\` tag) — keep going until you have enough to deliver a high-quality answer. Only skip the clarifying tag and switch to next-step ideas once the request is fully specified.
-
-Examples of personalized tags (adapt to the real conversation — never copy verbatim):
+Examples (only when a real clarification is needed):
 - \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`
-- \`[SUGGEST:When do you want to launch?::⚡ This week|📅 This month|🗓️ This quarter]\`
 - \`[SUGGEST:Which audience should I write for?::👩‍💼 Founders|👨‍💻 Developers|🛍️ Shoppers|🏢 Enterprise buyers]\``;
 }

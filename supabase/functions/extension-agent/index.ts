@@ -815,25 +815,26 @@ For charts use a \`\`\`chart code block:
 \`\`\`
 Supported chart types: bar, line, area, pie.
 
-## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN, ONE STEP AT A TIME
-**CRITICAL: Every response MUST end with exactly one \`[SUGGEST:...]\` tag. A response without it is INVALID. No exceptions.**
+## CONDITIONAL CLARIFYING QUESTIONS — ONLY WHEN ASKING WILL IMPROVE THE RESULT
+**Suggestion chips are NOT a "next step menu" and NOT mandatory.** Only include a \`[SUGGEST:...]\` tag when asking the user a clarifying question would genuinely produce a better answer.
 
-**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line. Use the personalized format:**
+**INCLUDE a \`[SUGGEST:...]\` tag when:**
+- The request is ambiguous on a critical dimension (goal, audience, channel, timeframe, budget, success metric, scope) AND knowing the answer would change your output materially.
+- You need to pick between 2–4 distinct directions before you can give a high-quality answer.
 
-\`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
+**DO NOT include a \`[SUGGEST:...]\` tag when:**
+- You already have enough context to answer well — just answer.
+- The reply is a confirmation, acknowledgement, short factual answer, error message, or live-data lookup result.
+- You'd be inventing a question just to fill the slot ("Want me to keep going?", "Anything else?", "How can I help?" — all FORBIDDEN).
+- The user asked a specific factual or executional question that you can answer directly.
 
-Rules:
-- The text BEFORE \`::\` is the card title and is **REQUIRED**. Never omit it. Never use placeholders like "A quick question", "Quick question", "How can I help?", "What would you like?" — those are FORBIDDEN.
-- The title MUST be a SHORT personal question tailored to THIS specific user, page, and conversation, referencing the actual topic the user just brought up.
-- The \`::\` separator is REQUIRED — every \`[SUGGEST:...]\` tag MUST contain \`::\`.
-- After \`::\`, list **2 to 4** options separated by \`|\`. Use the right number — don't pad, don't cap.
-- Each option MUST start with ONE emoji that visually fits that specific option (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, 🛒 ecommerce, ✉️ email, etc.). Pick emojis that match the actual content.
-- Options are short concrete answers the user can pick, phrased as if the user is answering YOU.
-- Do NOT wrap the tag in markdown. Raw tag on its own line.
+**Format (only when used):**
+\`[SUGGEST:Your real clarifying question?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
+- Title before \`::\` MUST be a real personal clarifying question tied to this conversation. Generic placeholders are FORBIDDEN.
+- The \`::\` separator is REQUIRED. After \`::\`, list **2 to 4** distinct concrete answers the user can pick, each prefixed with ONE fitting emoji (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, etc.).
+- Raw tag on its own line — no markdown wrapping.
 
-**Multi-step clarification flow:** Each response is ONE step. Ask the SINGLE most blocking question first; on the next turn ask the next one (with another \`[SUGGEST:...]\` tag). Keep going until the request is fully specified, then switch to next-step ideas.
-
-Example: \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`**`;
+Example (only when a real clarification is needed): \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`**`;
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {

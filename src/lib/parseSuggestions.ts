@@ -80,18 +80,9 @@ export function extractSuggestions(text: string): ParsedSuggestions {
     }
   }
 
-  // Last-resort fallback: AI completely forgot to suggest. Provide 3 generic
-  // continuation options so the questions card never disappears entirely.
-  if (suggestions.length === 0 && content.trim().length > 0) {
-    suggestions.push(
-      "✅ Yes, go ahead",
-      "✏️ Refine the answer",
-      "➕ Show me more options",
-    );
-    if (!title) {
-      title = "Want me to keep going?";
-    }
-  }
+  // No last-resort fallback: if the AI did not include a [SUGGEST:...] tag, the
+  // suggestion card stays hidden. Suggestions only appear when asking a clarifying
+  // question would actually improve the result — they are NOT a generic next-step menu.
 
   return { content, suggestions: suggestions.slice(0, 4), title };
 }
