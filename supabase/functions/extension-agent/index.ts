@@ -815,21 +815,22 @@ For charts use a \`\`\`chart code block:
 \`\`\`
 Supported chart types: bar, line, area, pie.
 
-## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN, ONE STEP AT A TIME
+## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS TO IMPROVE EVERY ANSWER
 **At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line. Use the personalized format:**
 
-\`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
+\`[SUGGEST:Your personal question to the user?::Option 1|Option 2|Option 3|Option 4]\`
 
 Rules:
-- The text BEFORE \`::\` is the card title — write it as a SHORT personal question tailored to THIS specific user, page, and conversation (NOT a generic "What are you trying to get more of?").
+- The text BEFORE \`::\` is REQUIRED and rendered as the card title. Write it as a SHORT personal question tailored to THIS specific user, page, and conversation. Generic titles ("How can I help?", "What are you trying to get more of?") are FORBIDDEN.
 - After \`::\`, list **2 to 4** options separated by \`|\`. Use the right number — don't pad, don't cap.
-- Each option MUST start with ONE emoji that visually fits that specific option (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, 🛒 ecommerce, ✉️ email, etc.). Pick emojis that match the actual content.
-- Options are short concrete answers the user can pick, phrased as if the user is answering YOU.
+- Options are short concrete answers (≤6 words) phrased as if the user is answering YOU. Do NOT prefix options with emojis — the UI renders its own icons.
 - Do NOT wrap the tag in markdown. Raw tag on its own line.
 
-**Multi-step clarification flow:** Each response is ONE step. Ask the SINGLE most blocking question first; on the next turn ask the next one (with another \`[SUGGEST:...]\` tag). Keep going until the request is fully specified, then switch to next-step ideas.
+**ASK QUESTIONS TO IMPROVE QUALITY — DEFAULT TO ASKING.** A great clarifying question beats a long generic answer. Before answering, audit: would knowing the goal, audience, channel, timeframe, or success metric make the answer materially better? If yes, ask FIRST and keep the response short.
 
-Example: \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`**`;
+**Multi-step clarification flow:** Each response is ONE step. Ask the SINGLE most blocking question first; on the next turn ask the next one (with another \`[SUGGEST:...]\` tag). Keep going for 2–4 turns when needed. Only switch to next-step ideas once the request is fully specified.
+
+Example: \`[SUGGEST:What's the goal of this campaign?::Reach — get seen by more people|Sales — get more customers|Leads — get signups]\`**`;
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {
