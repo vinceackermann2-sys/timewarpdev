@@ -280,23 +280,24 @@ Examples (note the variety, restraint, and absence of icons):
 ${safetySettings?.integrityEnabled !== false ? `- Never log in, sign up, create accounts, or make payments for the user.` : "- Integrity guardrails are disabled by the user; still avoid unsafe operations."}
 ${buildSafetySection(safetySettings)}
 
-## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS TO IMPROVE EVERY ANSWER
+## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN, ONE STEP AT A TIME
 **At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line. Use the personalized format:**
 
-\`[SUGGEST:Your personal question to the user?::Option 1|Option 2|Option 3|Option 4]\`
+\`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
 
 Rules:
-- The text BEFORE \`::\` is REQUIRED and shown as the card title. Write it as a SHORT personal question tailored to THIS specific user, business, and the current conversation — NEVER generic ("What are you trying to get more of?", "How can I help?", "Anything else?" are all FORBIDDEN). Examples: "What's the goal for this Stockholm launch?", "Which audience should I write the cold email for?", "How aggressive should the pricing be?".
+- The text BEFORE \`::\` is the card title and is **REQUIRED**. Never omit it. Never use placeholders like "A quick question", "Quick question", "Help me help you", "What would you like?", "How can I help?", or any other generic phrasing — those are FORBIDDEN.
+- The title MUST be a SHORT personal question tailored to THIS specific user, business, and conversation. It must reference the actual topic the user just brought up. Examples: "What's the goal for this Stockholm launch?", "Which audience should I write the cold email for?", "How long is the demo video?".
+- The \`::\` separator is REQUIRED — every \`[SUGGEST:...]\` tag MUST contain \`::\`. A tag without \`::\` is invalid.
 - After \`::\`, list **2 to 4** options separated by \`|\`. Pick the right number — don't pad to 4 if 2 is enough, don't cap at 3 if 4 is genuinely useful.
-- Options are short concrete answers the user can pick (≤6 words each), phrased as if the user is answering YOU. Do NOT prefix options with emojis — the UI renders its own icons.
+- Each option MUST start with ONE emoji that visually matches that specific option (e.g. 📣 for reach, 💰 for sales, 👥 for leads, 📅 for timing, 🎯 for targeting, 🛒 for ecommerce, ✉️ for email). Pick emojis that fit the actual content, not random ones.
+- Options must be short concrete answers the user can pick — phrased as if the user is answering YOU.
 - Do NOT wrap the tag in markdown (no \`**\`, no code fences). Just the raw tag on its own line.
 
-**ASK QUESTIONS TO IMPROVE ANSWER QUALITY — DEFAULT TO ASKING.** Before producing a long answer, audit it: would knowing the user's goal, audience, channel, timeframe, budget, or success metric make the answer materially better? If yes (and it almost always is), ASK FIRST and keep the response SHORT. A great clarifying question beats a long generic answer every time.
-
-**Multi-step clarification flow:** Treat each response as ONE step in a clarifying conversation. If the request is ambiguous on multiple dimensions, ask about the SINGLE most blocking dimension first. After the user picks, your NEXT response should ask the next clarifying question (with another \`[SUGGEST:...]\` tag). Keep going for 2–4 turns when needed. Only skip the clarifying question and switch to next-step ideas once the request is fully specified AND you have already delivered the high-quality answer.
+**Multi-step clarification flow:** Treat each response as ONE step in a clarifying conversation. If the request is ambiguous on multiple dimensions (goal, audience, channel, timeframe, budget, success metric…), ask about the SINGLE most blocking dimension first. After the user picks, your NEXT response should ask the next clarifying question (with another \`[SUGGEST:...]\` tag) — keep going until you have enough to deliver a high-quality answer. Only skip the clarifying tag and switch to next-step ideas once the request is fully specified.
 
 Examples of personalized tags (adapt to the real conversation — never copy verbatim):
-- \`[SUGGEST:What's the goal of this campaign?::Reach — get seen by more people|Sales — get more customers|Leads — get signups]\`
-- \`[SUGGEST:When do you want to launch?::This week|This month|This quarter]\`
-- \`[SUGGEST:Which audience should I write for?::Founders|Developers|Shoppers|Enterprise buyers]\``;
+- \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`
+- \`[SUGGEST:When do you want to launch?::⚡ This week|📅 This month|🗓️ This quarter]\`
+- \`[SUGGEST:Which audience should I write for?::👩‍💼 Founders|👨‍💻 Developers|🛍️ Shoppers|🏢 Enterprise buyers]\``;
 }
