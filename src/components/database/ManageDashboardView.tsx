@@ -848,7 +848,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
       </ScrollArea>
       </div>
 
-      {loading && !hasCards && activeBrand ? (
+      {loading && !hasEverLoaded && activeBrand ? (
         <DetailPanelSkeleton />
       ) : (
         <DashCardDetailPanel
