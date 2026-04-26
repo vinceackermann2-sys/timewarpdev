@@ -737,7 +737,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   return (
     <div className="h-full flex relative overflow-hidden bg-[#FAFBFF]">
       <div className="flex-1 min-w-0 flex flex-col">
-      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-white">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-[#fafbff]">
         <div className="flex items-start justify-between mb-4 gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
