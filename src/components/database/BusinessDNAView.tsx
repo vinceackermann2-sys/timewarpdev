@@ -661,28 +661,12 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
             </DialogHeader>
           </div>
           <div className="px-8 pb-2">
-            <div className="flex items-stretch justify-center gap-3">
-              <div className="flex-1 aspect-[4/3] rounded-lg overflow-hidden bg-[#E8F0FE] flex items-center justify-center">
-                <img
-                  src={superchargeBrowserRight}
-                  alt=""
-                  aria-hidden="true"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 aspect-[4/3] rounded-lg overflow-hidden bg-[#E8F0FE] flex items-center justify-center">
+            <div className="flex items-stretch justify-center">
+              <div className="w-full aspect-[16/7] rounded-lg overflow-hidden bg-[#E8F0FE] flex items-center justify-center">
                 <img
                   src={superchargeIllustration}
                   alt="Supercharge your Business DNA"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 aspect-[4/3] rounded-lg overflow-hidden bg-[#E8F0FE] flex items-center justify-center">
-                <img
-                  src={superchargePortalLeft}
-                  alt=""
-                  aria-hidden="true"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
             </div>
