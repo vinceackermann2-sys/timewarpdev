@@ -468,7 +468,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       footerLeft={<PeopleAvatars />}
-      footerRight={<PillCTA label="View OKRs" onClick={onOpen} />}
+      footerRight={<PillCTA label={objectiveCtaLabel(card)} onClick={onOpen} />}
     />
   );
 }
