@@ -646,6 +646,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
           </div>
         )}
       </div>
+      </div>
 
       <Dialog open={showSuperchargePopup} onOpenChange={setShowSuperchargePopup}>
         <DialogContent className="max-w-3xl bg-[#FAFAFD] border-border/60 rounded-2xl p-0 overflow-hidden">
