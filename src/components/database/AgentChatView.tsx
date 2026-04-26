@@ -1595,14 +1595,16 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
       <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#FAFBFF]">
       {/* Sticky top agent display */}
       <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#FAFBFF]">
-        {/* History toggle button */}
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-          title={showHistory ? "Hide chat history" : "Show chat history"}
-        >
-          {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
-        </button>
+        {/* History toggle button — hidden during onboarding */}
+        {!isOnboardingActive && (
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="absolute right-4 p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+            title={showHistory ? "Hide chat history" : "Show chat history"}
+          >
+            {showHistory ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+          </button>
+        )}
         <div className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground">
           <Bot className="w-4 h-4 text-muted-foreground" />
           {selectedAgent || "AI"}
