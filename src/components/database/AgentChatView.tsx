@@ -1895,13 +1895,15 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
               <AssistantSuggestions
                 suggestions={lastAssistant.suggestions!}
                 variant="overlay"
-                title="What are you trying to get more of?"
+                title={lastAssistant.suggestionTitle}
                 onSelect={(suggestion) => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
                   if (chatInputRef.current) {
                     chatInputRef.current.innerText = suggestion;
                     chatInputRef.current.focus();
                   }
+                  // Auto-send so the AI can immediately follow up with the next clarifying question if needed.
+                  setTimeout(() => handleSendMessage(), 0);
                 }}
                 onDismiss={() => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
