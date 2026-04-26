@@ -19,8 +19,9 @@ export function extractSuggestions(text: string): ParsedSuggestions {
   const suggestions: string[] = [];
   let title: string | undefined;
 
-  // Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, or newlines)
-  const suggestRegex = /\*{0,2}`{0,3}\[SUGGEST:\s*([^\]]+)\]\s*`{0,3}\*{0,2}/g;
+  // Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, ```[SUGGEST:...]```, or surrounding whitespace/newlines)
+  // The body is non-greedy and can span newlines, so multi-line tags still parse.
+  const suggestRegex = /\*{0,2}`{0,3}\[SUGGEST:\s*([\s\S]+?)\]\s*`{0,3}\*{0,2}/g;
   let match;
   while ((match = suggestRegex.exec(text)) !== null) {
     const raw = match[1];
