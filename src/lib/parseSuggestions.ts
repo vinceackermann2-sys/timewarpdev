@@ -1,25 +1,47 @@
 /**
  * Robust parser for AI-generated follow-up suggestions.
- * Handles multiple formats the AI may produce:
- * 1. [SUGGEST:A|B|C]
- * 2. Numbered list at the end (1. Question? 2. Question? 3. Question?)
- * 3. Markdown bold/italic wrapping around the tag
+ *
+ * Supported formats (preferred → legacy):
+ *   1. [SUGGEST:Personal question to the user?::📣 Reach|💰 Sales|👥 Leads]
+ *      → title = "Personal question to the user?"
+ *      → suggestions[] each with leading emoji preserved in the label
+ *   2. [SUGGEST:📣 Reach|💰 Sales|👥 Leads]   (no title)
+ *   3. [SUGGEST:A|B|C]                         (plain, legacy)
+ *   4. Trailing numbered list (fallback)
  */
-export function extractSuggestions(text: string): { content: string; suggestions: string[] } {
-  const suggestions: string[] = [];
+export interface ParsedSuggestions {
+  content: string;
+  suggestions: string[];
+  title?: string;
+}
 
-  // 1. Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, or newlines)
+export function extractSuggestions(text: string): ParsedSuggestions {
+  const suggestions: string[] = [];
+  let title: string | undefined;
+
+  // Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, or newlines)
   const suggestRegex = /\*{0,2}`{0,3}\[SUGGEST:\s*([^\]]+)\]\s*`{0,3}\*{0,2}/g;
   let match;
   while ((match = suggestRegex.exec(text)) !== null) {
-    const items = match[1].split("|").map(s => s.trim()).filter(Boolean);
+    const raw = match[1];
+    // Optional title prefix delimited by "::"
+    let body = raw;
+    const titleSplit = raw.split("::");
+    if (titleSplit.length > 1) {
+      const candidateTitle = titleSplit[0].trim();
+      // Only treat as title if it looks like a question / sentence (not a single short option).
+      if (candidateTitle.length > 0 && candidateTitle.length < 140) {
+        title = candidateTitle;
+        body = titleSplit.slice(1).join("::");
+      }
+    }
+    const items = body.split("|").map((s) => s.trim()).filter(Boolean);
     suggestions.push(...items);
   }
   let content = text.replace(suggestRegex, "").trim();
 
-  // 2. If no suggestions found via tag, try numbered list at end of response
+  // Fallback: trailing numbered list
   if (suggestions.length === 0) {
-    // Match a trailing block of 2-5 numbered items (e.g. "1. How can I...?\n2. What about...?")
     const trailingListRegex = /(?:\n\s*\d+\.\s+.+[\?\!]?\s*){2,5}$/;
     const listMatch = content.match(trailingListRegex);
     if (listMatch) {
@@ -35,10 +57,10 @@ export function extractSuggestions(text: string): { content: string; suggestions
       if (suggestions.length >= 2) {
         content = content.slice(0, content.length - listBlock.length).trim();
       } else {
-        suggestions.length = 0; // Not confident enough, discard
+        suggestions.length = 0;
       }
     }
   }
 
-  return { content, suggestions: suggestions.slice(0, 3) };
+  return { content, suggestions: suggestions.slice(0, 4), title };
 }

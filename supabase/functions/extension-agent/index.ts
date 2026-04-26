@@ -815,10 +815,21 @@ For charts use a \`\`\`chart code block:
 \`\`\`
 Supported chart types: bar, line, area, pie.
 
-## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN
-**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line with 3 follow-up ideas. Format: [SUGGEST:Idea 1|Idea 2|Idea 3] — do NOT omit this tag, do NOT wrap it in markdown formatting like bold or code blocks. Just the raw tag on its own line.**
+## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN, ONE STEP AT A TIME
+**At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line. Use the personalized format:**
 
-**Bias toward CLARIFYING QUESTIONS, not next-step ideas.** Whenever the request is even slightly ambiguous (unclear goal, audience, channel, timeframe, budget, or success metric), the 3 suggestions MUST be short concrete answer-options the user can pick to narrow the request — phrased as if the user is answering YOU (e.g. "Reach — get seen by more people" | "Sales — get more customers" | "Leads — get emails, calls, or signups"). Only fall back to next-step ideas when the request is fully specified.**`;
+\`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
+
+Rules:
+- The text BEFORE \`::\` is the card title — write it as a SHORT personal question tailored to THIS specific user, page, and conversation (NOT a generic "What are you trying to get more of?").
+- After \`::\`, list **2 to 4** options separated by \`|\`. Use the right number — don't pad, don't cap.
+- Each option MUST start with ONE emoji that visually fits that specific option (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, 🛒 ecommerce, ✉️ email, etc.). Pick emojis that match the actual content.
+- Options are short concrete answers the user can pick, phrased as if the user is answering YOU.
+- Do NOT wrap the tag in markdown. Raw tag on its own line.
+
+**Multi-step clarification flow:** Each response is ONE step. Ask the SINGLE most blocking question first; on the next turn ask the next one (with another \`[SUGGEST:...]\` tag). Keep going until the request is fully specified, then switch to next-step ideas.
+
+Example: \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`**`;
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {

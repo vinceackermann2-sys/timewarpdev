@@ -166,12 +166,13 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
 
-    const { content: sugCleanContent, suggestions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    const { content: sugCleanContent, suggestions, title: suggestionTitle } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: cleanContent,
       suggestions,
+      suggestionTitle,
       taskSteps: [...taskSteps],
       isStreaming: false,
       ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
@@ -525,12 +526,13 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    const { content: sugCleanContent, suggestions } = extractSuggestions(accumulatedContent || "Task completed.");
+    const { content: sugCleanContent, suggestions, title: suggestionTitle } = extractSuggestions(accumulatedContent || "Task completed.");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: cleanContent,
       suggestions,
+      suggestionTitle,
       taskSteps: [...taskSteps],
       isStreaming: false,
       ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),

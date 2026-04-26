@@ -21,6 +21,8 @@ export interface ChatMessage {
   reportContent?: string;
   reportSavedToDb?: boolean;
   suggestions?: string[];
+  /** Optional personal title for the suggestions card (set by AI via [SUGGEST:Title::A|B|C]). */
+  suggestionTitle?: string;
   /** User rated this assistant reply via thumbs (hidden after submit). */
   insightFeedback?: "helpful" | "not_helpful";
   planContent?: string;
