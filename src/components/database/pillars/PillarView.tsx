@@ -288,7 +288,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
         </div>
 
         {/* Right-rail snake-path navigator */}
-        <aside className="hidden xl:flex w-[280px] shrink-0 sticky top-6 self-start justify-center pb-40 border-l border-border/60">
+        <aside className="hidden xl:flex w-[280px] shrink-0 sticky top-6 self-start justify-center pb-40">
           <div className="w-[280px] relative px-4">
             <div className="flex flex-col select-none relative w-full ml-3 pb-[40px] pt-[20px]">
               {/* Top tail fade */}
