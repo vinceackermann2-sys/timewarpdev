@@ -845,6 +845,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
                 <div className="text-muted-foreground w-full py-8 text-center text-sm">No cards match "{searchQuery}"</div>
               )}
             </motion.div>
+            </>
           )}
         </main>
       </ScrollArea>
