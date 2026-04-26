@@ -56,7 +56,7 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="border-b border-border px-3 pt-3 bg-[#E8F0FE]">
             <TabsList className="w-full grid grid-cols-2 h-9 bg-[#dae0e7]">
-              <TabsTrigger value="inbox" className="text-xs gap-1.5 bg-white">
+              <TabsTrigger value="inbox" className="text-xs gap-1.5 bg-[#f0f5ff]">
                 <Inbox className="h-3.5 w-3.5" />
                 Inbox
                 {inboxItems.some(i => i.unread) && (
