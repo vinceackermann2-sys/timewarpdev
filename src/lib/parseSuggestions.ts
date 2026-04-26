@@ -19,8 +19,9 @@ export function extractSuggestions(text: string): ParsedSuggestions {
   const suggestions: string[] = [];
   let title: string | undefined;
 
-  // Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, or newlines)
-  const suggestRegex = /\*{0,2}`{0,3}\[SUGGEST:\s*([^\]]+)\]\s*`{0,3}\*{0,2}/g;
+  // Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, ```[SUGGEST:...]```, or surrounding whitespace/newlines)
+  // The body is non-greedy and can span newlines, so multi-line tags still parse.
+  const suggestRegex = /\*{0,2}`{0,3}\[SUGGEST:\s*([\s\S]+?)\]\s*`{0,3}\*{0,2}/g;
   let match;
   while ((match = suggestRegex.exec(text)) !== null) {
     const raw = match[1];
@@ -30,7 +31,7 @@ export function extractSuggestions(text: string): ParsedSuggestions {
     if (titleSplit.length > 1) {
       const candidateTitle = titleSplit[0].trim();
       // Only treat as title if it looks like a question / sentence (not a single short option).
-      if (candidateTitle.length > 0 && candidateTitle.length < 140) {
+      if (candidateTitle.length > 0 && candidateTitle.length < 220) {
         title = candidateTitle;
         body = titleSplit.slice(1).join("::");
       }
@@ -76,6 +77,19 @@ export function extractSuggestions(text: string): ParsedSuggestions {
       } else {
         suggestions.length = 0;
       }
+    }
+  }
+
+  // Last-resort fallback: AI completely forgot to suggest. Provide 3 generic
+  // continuation options so the questions card never disappears entirely.
+  if (suggestions.length === 0 && content.trim().length > 0) {
+    suggestions.push(
+      "✅ Yes, go ahead",
+      "✏️ Refine the answer",
+      "➕ Show me more options",
+    );
+    if (!title) {
+      title = "Want me to keep going?";
     }
   }
 

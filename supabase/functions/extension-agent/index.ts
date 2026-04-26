@@ -816,6 +816,8 @@ For charts use a \`\`\`chart code block:
 Supported chart types: bar, line, area, pie.
 
 ## MANDATORY SUGGESTIONS — ASK CLARIFYING QUESTIONS OFTEN, ONE STEP AT A TIME
+**CRITICAL: Every response MUST end with exactly one \`[SUGGEST:...]\` tag. A response without it is INVALID. No exceptions.**
+
 **At the very end of EVERY response, you MUST include exactly one suggestion tag on its own line. Use the personalized format:**
 
 \`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`

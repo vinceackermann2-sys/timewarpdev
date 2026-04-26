@@ -167,6 +167,11 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     }
 
     const { content: sugCleanContent, suggestions, title: suggestionTitle } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    if (suggestions.length === 0) {
+      console.warn("[suggestions] No [SUGGEST:...] tag detected in assistant reply. Tail:", (fullContent || "").slice(-300));
+    } else {
+      console.log("[suggestions] parsed", { count: suggestions.length, title: suggestionTitle, suggestions });
+    }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
@@ -527,6 +532,11 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
     const { content: sugCleanContent, suggestions, title: suggestionTitle } = extractSuggestions(accumulatedContent || "Task completed.");
+    if (suggestions.length === 0) {
+      console.warn("[suggestions:employee] No [SUGGEST:...] tag detected. Tail:", (accumulatedContent || "").slice(-300));
+    } else {
+      console.log("[suggestions:employee] parsed", { count: suggestions.length, title: suggestionTitle, suggestions });
+    }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
