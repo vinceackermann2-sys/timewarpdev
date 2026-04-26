@@ -140,7 +140,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-visible" aria-describedby={undefined}>
+      <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-hidden rounded-2xl" aria-describedby={undefined}>
         <VisuallyHidden.Root><DialogTitle>Get more Actions</DialogTitle></VisuallyHidden.Root>
         {/* Header */}
         <div className="text-center pt-8 pb-4 px-6 bg-[#FAFBFF]">
