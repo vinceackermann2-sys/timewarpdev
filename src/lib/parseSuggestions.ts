@@ -31,7 +31,7 @@ export function extractSuggestions(text: string): ParsedSuggestions {
     if (titleSplit.length > 1) {
       const candidateTitle = titleSplit[0].trim();
       // Only treat as title if it looks like a question / sentence (not a single short option).
-      if (candidateTitle.length > 0 && candidateTitle.length < 140) {
+      if (candidateTitle.length > 0 && candidateTitle.length < 220) {
         title = candidateTitle;
         body = titleSplit.slice(1).join("::");
       }
