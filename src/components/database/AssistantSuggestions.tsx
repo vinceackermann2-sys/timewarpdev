@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { X, Pencil, ArrowUp } from "lucide-react";
+import {
+  X, Pencil, ArrowUp,
+  Megaphone, DollarSign, Users, Calendar, Target, ShoppingCart, Mail,
+  TrendingUp, Clock, Zap, Building2, Rocket, Heart, Sparkles, BarChart3,
+  Globe, MessageSquare, Search, Lightbulb, Award, Briefcase, CheckCircle2,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AssistantSuggestionsProps {
@@ -17,16 +23,46 @@ interface AssistantSuggestionsProps {
 }
 
 // Match a single leading emoji (or short emoji cluster) followed by a space.
-// Falls back to a neutral dot if the AI didn't supply one.
 const LEADING_EMOJI_REGEX =
   /^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u;
 
-function splitEmoji(raw: string): { emoji: string | null; label: string } {
-  const m = raw.match(LEADING_EMOJI_REGEX);
-  if (m) {
-    return { emoji: m[1], label: raw.slice(m[0].length).trim() };
+function stripLeadingEmoji(raw: string): string {
+  return raw.replace(LEADING_EMOJI_REGEX, "").trim();
+}
+
+// Keyword → lucide icon mapping. Order matters — earlier matches win.
+const ICON_RULES: Array<{ test: RegExp; icon: LucideIcon }> = [
+  { test: /\b(reach|awareness|seen|visib|brand|impressions?)\b/i, icon: Megaphone },
+  { test: /\b(sales?|revenue|customers?|buyers?|purchase|conversion)\b/i, icon: DollarSign },
+  { test: /\b(leads?|signups?|emails?|contacts?|prospects?)\b/i, icon: Users },
+  { test: /\b(week|month|quarter|year|today|tomorrow|date|when|deadline|schedule)\b/i, icon: Calendar },
+  { test: /\b(goal|target|objective|focus|priority)\b/i, icon: Target },
+  { test: /\b(shop|store|ecom|ecommerce|product|cart|checkout)\b/i, icon: ShoppingCart },
+  { test: /\b(email|newsletter|inbox|outreach)\b/i, icon: Mail },
+  { test: /\b(growth|grow|scale|increase|expand)\b/i, icon: TrendingUp },
+  { test: /\b(now|urgent|asap|immediate|fast|quick)\b/i, icon: Zap },
+  { test: /\b(later|wait|soon|hour|minute)\b/i, icon: Clock },
+  { test: /\b(enterprise|b2b|company|companies|business|corporate)\b/i, icon: Building2 },
+  { test: /\b(launch|start|begin|kick.?off|new)\b/i, icon: Rocket },
+  { test: /\b(retention|loyalty|love|nurture|engagement)\b/i, icon: Heart },
+  { test: /\b(creative|design|content|idea|inspire)\b/i, icon: Sparkles },
+  { test: /\b(report|analytics|metrics|data|kpi|dashboard|stats)\b/i, icon: BarChart3 },
+  { test: /\b(website|web|online|internet|global|international)\b/i, icon: Globe },
+  { test: /\b(chat|message|conversation|reply|respond|comment)\b/i, icon: MessageSquare },
+  { test: /\b(research|search|find|explore|discover|investigate)\b/i, icon: Search },
+  { test: /\b(strategy|plan|approach|recommend|suggest|tip)\b/i, icon: Lightbulb },
+  { test: /\b(award|win|best|premium|top|elite)\b/i, icon: Award },
+  { test: /\b(work|job|career|hire|team|employee|founder|developer)\b/i, icon: Briefcase },
+  { test: /\b(yes|done|complete|confirm|ok|okay|approve)\b/i, icon: CheckCircle2 },
+];
+
+function pickIcon(label: string, idx: number): LucideIcon {
+  for (const rule of ICON_RULES) {
+    if (rule.test.test(label)) return rule.icon;
   }
-  return { emoji: null, label: raw };
+  // Neutral fallback cycle so each row still gets a distinct icon.
+  const fallbacks = [Sparkles, Target, Lightbulb, Zap];
+  return fallbacks[idx % fallbacks.length];
 }
 
 export function AssistantSuggestions({
@@ -82,7 +118,8 @@ export function AssistantSuggestions({
       {/* Suggestion rows (supports 2–4 options) */}
       <div className="flex flex-col">
         {visibleSuggestions.map((suggestion, idx) => {
-          const { emoji, label } = splitEmoji(suggestion);
+          const label = stripLeadingEmoji(suggestion);
+          const IconComp = pickIcon(label, idx);
           return (
             <button
               key={idx}
@@ -93,10 +130,9 @@ export function AssistantSuggestions({
                 idx === 0 && "bg-[#F3F0FF]/60",
               )}
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-xs font-medium text-muted-foreground">
-                {idx + 1}
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-muted-foreground">
+                <IconComp className="h-3.5 w-3.5" />
               </div>
-              {emoji && <span className="text-base shrink-0">{emoji}</span>}
               <span className="text-sm text-foreground/90 leading-relaxed flex-1">
                 {label}
               </span>
