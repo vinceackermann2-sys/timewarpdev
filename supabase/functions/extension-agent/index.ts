@@ -821,7 +821,9 @@ Supported chart types: bar, line, area, pie.
 \`[SUGGEST:Your personal question to the user?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
 
 Rules:
-- The text BEFORE \`::\` is the card title — write it as a SHORT personal question tailored to THIS specific user, page, and conversation (NOT a generic "What are you trying to get more of?").
+- The text BEFORE \`::\` is the card title and is **REQUIRED**. Never omit it. Never use placeholders like "A quick question", "Quick question", "How can I help?", "What would you like?" — those are FORBIDDEN.
+- The title MUST be a SHORT personal question tailored to THIS specific user, page, and conversation, referencing the actual topic the user just brought up.
+- The \`::\` separator is REQUIRED — every \`[SUGGEST:...]\` tag MUST contain \`::\`.
 - After \`::\`, list **2 to 4** options separated by \`|\`. Use the right number — don't pad, don't cap.
 - Each option MUST start with ONE emoji that visually fits that specific option (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, 🛒 ecommerce, ✉️ email, etc.). Pick emojis that match the actual content.
 - Options are short concrete answers the user can pick, phrased as if the user is answering YOU.
