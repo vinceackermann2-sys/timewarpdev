@@ -396,7 +396,7 @@ const DesktopFlow = () => {
             animate={isInView ? { opacity: 1 } : {}}
             className="flex items-center gap-3 bg-white border-2 border-slate-100 px-5 py-3.5 rounded-full shadow-lg"
           >
-            <div className="w-7 h-7 rounded-full border-[3px] border-slate-100 flex items-center justify-center bg-slate-50">
+            <div className="w-7 h-7 rounded-full border-[3px] border-slate-100 flex items-center justify-center bg-[#F0F5FF]">
               <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
             </div>
             <div className="relative flex items-center">
@@ -582,7 +582,7 @@ const MobileTreeFlow = () => {
   };
 
   return (
-    <div ref={containerRef} className="block lg:hidden w-full max-w-md mx-auto overflow-hidden h-[550px] relative border border-slate-100 rounded-3xl bg-slate-50/50 shadow-inner">
+    <div ref={containerRef} className="block lg:hidden w-full max-w-md mx-auto overflow-hidden h-[550px] relative border border-slate-100 rounded-3xl bg-[#F0F5FF]/50 shadow-inner">
       <motion.div 
         animate={getCameraState(step)}
         transition={{ duration: 1.2, ease: "easeInOut" }}
@@ -594,7 +594,7 @@ const MobileTreeFlow = () => {
           animate={isInView ? { opacity: 1 } : {}}
           className="flex items-center gap-2 bg-white border-2 border-slate-100 px-4 py-2.5 rounded-full shadow-lg z-20"
         >
-          <div className="w-5 h-5 rounded-full border-[2px] border-slate-100 flex items-center justify-center bg-slate-50">
+          <div className="w-5 h-5 rounded-full border-[2px] border-slate-100 flex items-center justify-center bg-[#F0F5FF]">
             <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
           </div>
           <div className="flex">
@@ -720,7 +720,7 @@ const MobileTreeFlow = () => {
 
 export default function HowItWorks() {
   return (
-    <section className="pt-8 pb-32 relative z-50 overflow-hidden bg-[#fcfcfd]">
+    <section className="pt-8 pb-32 relative z-50 overflow-hidden bg-[#FAFBFF]">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-16 relative z-20">
           <h3 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">

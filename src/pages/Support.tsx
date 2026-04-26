@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Support() {
   return (
-    <div className="min-h-[1300px] text-foreground bg-[#fcfcfd]">
+    <div className="min-h-[1300px] text-foreground bg-[#FAFBFF]">
       <div className="max-w-[1900px] mx-auto px-4 py-12 bg-white">
         <Link to="/app" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
@@ -26,7 +26,7 @@ export default function Support() {
                   Send us an email and we'll get back to you as soon as possible.
                 </p>
                 <a href="mailto:support@timewarpdev.com">
-                  <Button variant="outline" size="sm" className="bg-[#eef2f7]">
+                  <Button variant="outline" size="sm" className="bg-[#E8F0FE]">
                     support@timewarpdev.com
                   </Button>
                 </a>
@@ -45,7 +45,7 @@ export default function Support() {
                   Have an idea or found a bug? Let us know through the Developer dialog in the app sidebar.
                 </p>
                 <Link to="/app">
-                  <Button variant="outline" size="sm" className="bg-[#eef2f7]">
+                  <Button variant="outline" size="sm" className="bg-[#E8F0FE]">
                     Open App
                   </Button>
                 </Link>

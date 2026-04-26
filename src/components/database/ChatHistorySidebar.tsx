@@ -73,7 +73,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
   return (
     <div className="w-64 shrink-0 h-full border border-border/30 bg-card/50 flex flex-col rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-[#eef2f7]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-[#E8F0FE]">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Chat History</span>
@@ -88,7 +88,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
       </div>
 
       {/* Sessions list */}
-      <div className="flex-1 overflow-y-auto py-2 bg-[#eef2f7]">
+      <div className="flex-1 overflow-y-auto py-2 bg-[#E8F0FE]">
         {isLoading ? (
           <div className="px-4 space-y-3 pt-2">
             {[1, 2, 3].map(i => (
