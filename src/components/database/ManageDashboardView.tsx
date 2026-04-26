@@ -770,7 +770,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           </div>
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-white border-border shadow-[0_0_8px_0_hsl(210_20%_85%/0.55)]"
+            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-white border-border shadow-none"
             placeholder="Search cards..."
           />
         </div>
