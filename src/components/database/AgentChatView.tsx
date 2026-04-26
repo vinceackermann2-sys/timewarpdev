@@ -1871,7 +1871,8 @@ Always include an icon emoji. Use stats with large formatted numbers when presen
         )}
       </main>
 
-      {/* Chat Input */}
+      {/* Chat Input — hidden during onboarding */}
+      {!isOnboardingActive && (
       <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-[#FAFBFF]">
         <input
           type="file"
