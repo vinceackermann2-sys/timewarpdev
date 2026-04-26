@@ -216,7 +216,7 @@ function PillCTA({ label, onClick }: { label: string; onClick: () => void }) {
     <Button
       size="sm"
       variant="outline"
-      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 text-foreground/80 hover:text-foreground bg-[#E8F0FE] hover:bg-[#E8F0FE]"
+      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 text-foreground/80 hover:text-foreground bg-white"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
       {label}
