@@ -682,7 +682,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         .eq("brand_id", brandId)
         .maybeSingle();
       if (!data?.tab_cards) return;
-      const tabs = data.tab_cards as Record<string, DashboardCard[]>;
+      const tabs = data.tab_cards as unknown as Record<string, DashboardCard[]>;
       const result: Record<string, DashboardCard[]> = {
         Briefing: tabs.Briefing || [],
         Updates: tabs.Updates || [],
