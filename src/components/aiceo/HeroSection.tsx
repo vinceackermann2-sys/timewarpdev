@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Link2, Moon, Sun, Globe, ArrowRight } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Link2, Globe, ArrowRight } from "lucide-react";
 
 interface HeroSectionProps {
   onRunClick?: () => void;
@@ -21,8 +20,6 @@ const urls = [
 
 export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
   const navigate = useNavigate();
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
   const grainCanvasRef = useRef<HTMLCanvasElement>(null);
   const [typewriterText, setTypewriterText] = useState("");
   const [url, setUrl] = useState("");
@@ -118,15 +115,6 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
           </Link>
 
           <div className="orb-hero__nav-actions">
-            <button
-              type="button"
-              aria-label="Toggle appearance"
-              className="orb-hero__icon-btn"
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-            >
-              {isDark ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-
             <Link to="/auth" className="orb-hero__pill-link">
               Log in
             </Link>
@@ -145,7 +133,7 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
       <canvas
         ref={grainCanvasRef}
         className="absolute inset-0 z-[1] pointer-events-none mix-blend-multiply"
-        style={{ opacity: isDark ? 0.15 : 0.08 }}
+        style={{ opacity: 0.08 }}
       />
 
       {/* ── Orb stage ── */}

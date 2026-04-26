@@ -371,29 +371,6 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                 Plans & Billing
               </DropdownMenuItem>
               
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="cursor-pointer py-2.5">
-                  <Palette className="h-4 w-4 mr-2" />
-                  Appearance
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem onClick={() => setTheme("light")} className="cursor-pointer">
-                    <Sun className="h-4 w-4 mr-2" />
-                    Light
-                    {theme === "light" && <Check className="h-4 w-4 ml-auto" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("dark")} className="cursor-pointer">
-                    <Moon className="h-4 w-4 mr-2" />
-                    Dark
-                    {theme === "dark" && <Check className="h-4 w-4 ml-auto" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("system")} className="cursor-pointer">
-                    <Monitor className="h-4 w-4 mr-2" />
-                    System theme
-                    {theme === "system" && <Check className="h-4 w-4 ml-auto" />}
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
               
               <DropdownMenuItem 
                 className="cursor-pointer py-2.5"
