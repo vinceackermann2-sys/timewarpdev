@@ -567,6 +567,28 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
 
   return (
     <div className="flex flex-col h-full items-center">
+      <div className="w-full px-4 sm:px-6 lg:px-8 pt-4 bg-background">
+        <div className="flex items-center gap-1 border-b border-border/60 overflow-x-auto">
+          {BRAIN_SEGMENTS.filter(s => PILLAR_IDS.has(s.id)).map((seg) => {
+            const isActive = activeSegment === seg.id;
+            const Icon = seg.icon;
+            return (
+              <button
+                key={seg.id}
+                onClick={() => setActiveSegment(seg.id)}
+                className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                  isActive
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {seg.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <div className="flex-1 w-full overflow-hidden">
         {activeSegment && PILLAR_IDS.has(activeSegment) ? (
           <PillarView
