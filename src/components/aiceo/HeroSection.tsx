@@ -133,7 +133,7 @@ export function HeroSection({ onRunClick, onAuthRequest }: HeroSectionProps) {
       <canvas
         ref={grainCanvasRef}
         className="absolute inset-0 z-[1] pointer-events-none mix-blend-multiply"
-        style={{ opacity: isDark ? 0.15 : 0.08 }}
+        style={{ opacity: 0.08 }}
       />
 
       {/* ── Orb stage ── */}
