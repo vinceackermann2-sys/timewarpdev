@@ -40,7 +40,7 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
           } ${isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'}`}
         >
           <div className="relative">
-            <Inbox className="h-4 w-4 text-primary" />
+            <Inbox className="h-4 w-4 text-muted-foreground" />
             {hasUnread && (
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-primary rounded-full" />
             )}
