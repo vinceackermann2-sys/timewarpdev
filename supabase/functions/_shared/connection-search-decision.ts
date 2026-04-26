@@ -20,6 +20,11 @@ const CONNECTION_TRIGGER_PATTERNS = [
   /\bwhat(?:'s|\s+is|\s+are)\s+(my|our)\s+(meetings|events|calls|appointments)\b/i,
   /\b(do|have)\s+i\s+(have|get)\s+(any\s+)?(meetings|events|calls)\b/i,
   /\b(synced|sync)\s+(emails?|messages?|files?|calendar)\b/i,
+  // Fuzzy fallback: possessive "my/our/the last/latest/recent N <anything>" almost always implies live data lookup
+  // even if the noun is misspelled (e.g. "my last 5 documketns"). Catches typos that other patterns miss.
+  /\b(my|our|the)\s+(last|latest|recent|past)\s+\d+\s+\w{3,}\b/i,
+  // Fuzzy fallback: "show/list/find/get/pull me my/the last N <anything>"
+  /\b(show|list|find|get|pull|fetch|give)\s+me\s+(my|our|the)?\s*(last|latest|recent|past|top)?\s*\d*\s*\w{3,}\b/i,
   /\bwhy\b.{0,70}\b(delay|delayed|late|slipped|behind|blocked|stuck|at risk|off track|not on track)\b.{0,45}\b(project|launch|release|ship|delivery|milestone|initiative|rollout|timeline)\b/i,
   /\b(project|launch|initiative|milestone|rollout)\b.{0,50}\b(delayed|behind|late|slipped|overdue|blocked|stuck|at risk|off track|status)\b/i,
   /\b(status|health)\b.{0,30}\b(project|initiative|launch|program|workstream)\b/i,
