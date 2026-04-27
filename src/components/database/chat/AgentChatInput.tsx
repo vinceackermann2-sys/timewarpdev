@@ -37,6 +37,7 @@ export function AgentChatInput({
   selectedGraphic,
   setSelectedGraphic,
   isActionMode,
+  setIsActionMode,
   extensionConnected,
   showReference,
   setShowReference,
