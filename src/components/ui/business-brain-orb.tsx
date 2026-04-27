@@ -17,10 +17,11 @@ const BusinessBrainOrb: React.FC<BusinessBrainOrbProps> = ({ size = 22, classNam
       <img
         src={timewarpLogo}
         alt="TimeWarp"
-        className={cn("h-full w-full object-contain select-none", animated && "animate-spin-slow")}
-        style={{ animationDuration: animated ? "20s" : undefined }}
+        className="h-full w-full object-contain select-none"
         draggable={false}
       />
+      {/* animated prop preserved for backwards compatibility */}
+      {animated ? null : null}
     </div>
   );
 };
