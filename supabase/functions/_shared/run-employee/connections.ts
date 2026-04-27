@@ -691,12 +691,12 @@ async function getGoogleTokenForProvider(
 
 // --- Per-provider intent detection ---
 // If the user explicitly names a provider, only search that one (saves usage).
-const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
+// Patterns that EXPLICITLY name a provider — these activate targeted mode and
+// restrict the live search to just the matching connectors.
+const EXPLICIT_PROVIDER_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\b(gmail|g[\s-]?mail)\b/i, providers: ["google_gmail"] },
-  // "google docs", "google documents", "google files", "google drive", "gdrive", "google sheets", "google slides"
   { keys: /\b(google\s*(docs?|documents?|files?|drives?|sheets?|slides?)|gdrive)\b/i, providers: ["google_drive"] },
   { keys: /\b(google\s*calendar|gcal)\b/i, providers: ["google_calendar"] },
-  // Bare "google" (no specific sub-tool) — assume Drive only when paired with file/doc keywords; otherwise fan out.
   { keys: /\bgoogle\b(?!\s*(docs?|documents?|files?|drives?|sheets?|slides?|calendar|gcal|mail))/i, providers: ["google_gmail", "google_drive", "google_calendar"] },
   { keys: /\b(outlook)\b/i, providers: ["microsoft_outlook"] },
   { keys: /\b(onedrive|one\s*drive|sharepoint)\b/i, providers: ["microsoft_onedrive"] },
@@ -705,14 +705,32 @@ const PROVIDER_NAME_PATTERNS: { keys: RegExp; providers: string[] }[] = [
   { keys: /\bslack\b/i, providers: ["slack"] },
   { keys: /\b(hubspot|hub\s*spot|crm)\b/i, providers: ["hubspot"] },
   { keys: /\b(zoom|webinar)\b/i, providers: ["zoom"] },
-  { keys: /\b(stripe|payment\w*|charge\w*|invoice\w*|mrr|arr|revenue|subscriber\w*|subscription\w*|payout\w*|refund\w*|checkout)\b/i, providers: ["stripe"] },
-  // Generic file/doc keywords without a provider name → fan out to all file/doc providers (Google Drive + OneDrive)
-  { keys: /\b(documents?|docs?|files?|spreadsheets?|sheets?|slides?|presentations?)\b/i, providers: ["google_drive", "microsoft_onedrive"] },
-  // Generic email keywords without a provider name → fan out to email providers
-  { keys: /\b(emails?|mails?|inbox|messages?)\b/i, providers: ["google_gmail", "microsoft_outlook"] },
-  // Generic calendar keywords → fan out to calendar providers
-  { keys: /\b(calendar|schedule|meetings?|appointments?|events?)\b/i, providers: ["google_calendar", "microsoft_outlook"] },
+  { keys: /\b(stripe)\b/i, providers: ["stripe"] },
 ];
+
+// Generic topical hints — these DO NOT activate targeted mode. They only
+// suggest additional providers worth searching alongside the broad fan-out.
+// Generic words like "presentation", "revenue", or "files" must never EXCLUDE
+// other connected tools from being searched.
+const GENERIC_TOPIC_PATTERNS: { keys: RegExp; providers: string[] }[] = [
+  { keys: /\b(documents?|docs?|files?|spreadsheets?|sheets?|slides?|presentations?|deck|decks)\b/i, providers: ["google_drive", "microsoft_onedrive"] },
+  { keys: /\b(emails?|mails?|inbox|messages?)\b/i, providers: ["google_gmail", "microsoft_outlook"] },
+  { keys: /\b(calendar|schedule|meetings?|appointments?|events?)\b/i, providers: ["google_calendar", "microsoft_outlook"] },
+  { keys: /\b(payment\w*|charge\w*|invoice\w*|mrr|arr|revenue|subscriber\w*|subscription\w*|payout\w*|refund\w*|checkout)\b/i, providers: ["stripe"] },
+];
+
+// Backwards-compatible export — used elsewhere as a non-restrictive hint list.
+export const PROVIDER_NAME_PATTERNS = [...EXPLICIT_PROVIDER_PATTERNS, ...GENERIC_TOPIC_PATTERNS];
+
+/** True if the user explicitly named a specific provider (e.g. "gmail", "stripe"). */
+export function detectExplicitProviders(query: string): string[] {
+  if (!query) return [];
+  const matched = new Set<string>();
+  for (const { keys, providers } of EXPLICIT_PROVIDER_PATTERNS) {
+    if (keys.test(query)) providers.forEach((p) => matched.add(p));
+  }
+  return Array.from(matched);
+}
 
 export function detectNamedProviders(query: string): string[] {
   if (!query) return [];
