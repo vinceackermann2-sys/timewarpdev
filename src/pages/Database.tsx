@@ -255,8 +255,6 @@ function EmployeesArea({
 
 import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
-
 interface PendingTask {
   role: string;
   task: string;
