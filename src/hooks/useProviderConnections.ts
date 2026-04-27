@@ -2,6 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Retry on transient edge-runtime degradations (503 / boot races).
+async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status !== 503) return res;
+    } catch (err) {
+      if (attempt === retries) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  }
+  return fetch(url, init);
+}
+
 export function useProviderConnections(activeBrandId?: string | null) {
   const [connectedProviders, setConnectedProviders] = useState<Record<string, boolean>>({});
   const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
@@ -12,7 +26,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.user) return;
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
+      const response = await fetchWithRetry(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -56,7 +70,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
         setConnectingProvider(false);
         return;
       }
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
+      const response = await fetchWithRetry(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +100,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) return;
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
+      await fetchWithRetry(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
