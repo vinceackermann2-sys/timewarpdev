@@ -96,7 +96,14 @@ export function AgentChatMessageList({
                   {(!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
                     <ChatDashboardCards cards={msg.dashboardCards || []} openingSummary={msg.dashboardOpeningSummary} />
                   )}
-                  {msg.content && (
+                  {(() => {
+                    // Strip trailing unclosed/empty markdown code fences that render as a blank grey box
+                    let cleaned = (msg.content || "")
+                      .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "") // unclosed fence at end
+                      .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "") // empty fence pair
+                      .trimEnd();
+                    return cleaned;
+                  })() && (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
