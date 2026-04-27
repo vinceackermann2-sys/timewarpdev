@@ -48,5 +48,11 @@ export function appendGraphicInstructionsToUserContent(
       ? documentInstruction(new Date().toLocaleDateString())
       : GRAPHIC_INSTRUCTIONS_STATIC[selectedGraphic];
   if (!instruction) return userContent;
-  return `${userContent}\n\n🎨 Output format: ${selectedGraphic}\n${instruction}`;
+  // Hoist the format directive to the TOP of the user message so the model
+  // can't ignore it after a long brief, and repeat it at the bottom for
+  // robustness. The "🎨 Output format:" tag is also what the server-side
+  // VISUAL OUTPUT RULES gate keys off of.
+  const header = `🎨 Output format: ${selectedGraphic} — REQUIRED. ${instruction}\n\n---\n\n`;
+  const footer = `\n\n---\n\n🎨 Reminder — Output format: ${selectedGraphic}. You MUST include the \`\`\`${selectedGraphic.toLowerCase()} code block as instructed above. Do NOT respond with prose only.`;
+  return `${header}${userContent}${footer}`;
 }
