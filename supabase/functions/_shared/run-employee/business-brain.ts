@@ -465,25 +465,63 @@ export async function buildBusinessBrainContext(supabase: any, params: BrainLoad
   });
 
   const findByType = (type: string) => items.find((i: any) => i.data_type === type);
-  const product = safeParseJson(findByType("product")?.content) || {};
-  const audience = safeParseJson(findByType("audience")?.content) || {};
+  // Tolerate both legacy short keys ("product", "audience") AND the canonical 9-pillar
+  // *_dna / domain keys actually written by the onboarding pipeline.
+  const product = safeParseJson(findByType("product_dna")?.content) || safeParseJson(findByType("product")?.content) || {};
+  const audience = safeParseJson(findByType("audience_dna")?.content) || safeParseJson(findByType("audience")?.content) || {};
+  const brandDna = safeParseJson(findByType("brand_dna")?.content) || {};
   const strategy = safeParseJson(findByType("strategy")?.content) || {};
   const growth = safeParseJson(findByType("growth")?.content) || {};
   const financial = safeParseJson(findByType("financial")?.content) || {};
+  const market = safeParseJson(findByType("market")?.content) || {};
+  const operations = safeParseJson(findByType("operations")?.content) || {};
+
+  const coreOffer = product?.value_proposition || product?.mechanism || product?.name || product?.title || brandDna?.mission;
+  const icp = audience?.primary_segment?.name || audience?.segment || audience?.name || audience?.target;
+  const valuePromise = product?.value_proposition || strategy?.vision || brandDna?.vision || strategy?.positioning;
+  const channels = compactList([
+    growth?.channels?.[0]?.channel,
+    growth?.channels?.[1]?.channel,
+    growth?.growth_model?.[0]?.channel,
+    strategy?.channelFocus,
+  ]);
+  const voice = compactList([
+    brandContent?.voice,
+    brandContent?.tone,
+    brandContent?.brandVoice,
+    brandDna?.voice?.tone,
+    brandDna?.voice?.style,
+  ]);
+  const constraints = compactList([
+    strategy?.constraint,
+    strategy?.riskLimit,
+    financial?.budgetConstraint,
+    operations?.constraints,
+    ...(Array.isArray(strategy?.bets) ? strategy.bets.slice(0, 1).map((b: any) => b?.thesis) : []),
+  ]);
+  const kpis = compactList([
+    financial?.northStar,
+    financial?.primaryKPI,
+    growth?.primaryKPI,
+    ...(Array.isArray(strategy?.objectives) ? strategy.objectives.slice(0, 2) : []),
+    operations?.core_processes?.[0]?.kpi,
+  ]);
 
   const profileContext = `
 ## Business Operating Profile (Canonical)
 - Business: ${brandRow.title || "Unknown"}
-- Category: ${brandContent?.category || "Unknown"}
-- Core Offer: ${product?.name || product?.title || "Not clearly defined yet"}
-- ICP / Audience: ${audience?.name || audience?.segment || audience?.target || "Not clearly defined yet"}
-- Primary Value Promise: ${product?.valueProposition || strategy?.positioning || "Not clearly defined yet"}
-- Preferred Channels: ${(compactList([growth?.primaryChannel, growth?.secondaryChannel, strategy?.channelFocus]).join(", ") || "Not clearly defined yet")}
-- Brand Voice: ${(compactList([brandContent?.voice, brandContent?.tone, brandContent?.brandVoice]).join(", ") || "Not clearly defined yet")}
-- Strategic Constraints: ${(compactList([strategy?.constraint, strategy?.riskLimit, financial?.budgetConstraint]).join(", ") || "None explicitly recorded")}
-- KPI Priorities: ${(compactList([financial?.northStar, financial?.primaryKPI, growth?.primaryKPI]).join(", ") || "Not explicitly recorded")}
+- Category: ${brandContent?.category || market?.definition?.primary_category || "Unknown"}
+- Mission: ${brandDna?.mission || "Not clearly defined yet"}
+- Vision: ${brandDna?.vision || strategy?.vision || "Not clearly defined yet"}
+- Core Offer: ${coreOffer || "Not clearly defined yet"}
+- ICP / Audience: ${icp || "Not clearly defined yet"}
+- Primary Value Promise: ${valuePromise || "Not clearly defined yet"}
+- Preferred Channels: ${channels.join(", ") || "Not clearly defined yet"}
+- Brand Voice: ${voice.join(", ") || "Not clearly defined yet"}
+- Strategic Constraints: ${constraints.join(", ") || "None explicitly recorded"}
+- KPI Priorities: ${kpis.join(", ") || "Not explicitly recorded"}
 
-Use this profile as the primary operating truth for decisions.`;
+Use this profile as the primary operating truth for decisions. **Important:** if any field above is populated with real content, this business is NOT a blank slate — reason from the profile as real intelligence. Only call out missing data for fields that literally read "Not clearly defined yet" or "Unknown", and never describe the business as undefined when fields are filled.`;
 
   const learning = await loadLearningSummary(supabase, userId, brandId);
   const themeSummary = await loadThemeWeightsSummary(supabase, brandId);
