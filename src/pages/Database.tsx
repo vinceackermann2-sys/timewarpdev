@@ -40,6 +40,8 @@ function MobileHeader() {
   );
 }
 
+type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+
 // Auto-opens the active (or first) brand into BusinessDNAView whenever the user
 // is on the Business DNA view but no brand is selected yet — so clicking a pillar
 // in the sidebar jumps straight into the pillar instead of showing onboarding.
