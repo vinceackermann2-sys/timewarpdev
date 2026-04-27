@@ -963,6 +963,7 @@ export function AgentChatView({
           )}
         </main>
 
+        {!isOnboardingActive && (
         <AgentChatInput
           dropupRef={dropupRef}
           fileInputRef={fileInputRef}
