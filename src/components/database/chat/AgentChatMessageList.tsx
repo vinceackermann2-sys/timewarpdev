@@ -54,6 +54,12 @@ export function AgentChatMessageList({
                 : []
             : [];
 
+        // Strip trailing unclosed/empty markdown code fences that render as a blank grey box
+        const cleanedContent = (msg.content || "")
+          .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
+          .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
+          .trimEnd();
+
         return (
           <div
             key={msg.id}
