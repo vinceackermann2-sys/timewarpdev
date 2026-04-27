@@ -21,6 +21,9 @@ export interface ChatMessage {
   reportContent?: string;
   reportSavedToDb?: boolean;
   suggestions?: string[];
+  planActionPayloads?: Record<string, string>;
+  evidenceAudit?: { status: "pass" | "warn"; score: number; warnings: string[] };
+  replyContract?: "direct" | "live_lookup" | "strategic_plan";
   /** Optional personal title for the suggestions card (set by AI via [SUGGEST:Title::A|B|C]). */
   suggestionTitle?: string;
   /** User rated this assistant reply via thumbs (hidden after submit). */

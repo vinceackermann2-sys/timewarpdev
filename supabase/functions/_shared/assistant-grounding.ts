@@ -39,12 +39,25 @@ ${LIVE_SOURCE_CITATION_INSTRUCTIONS}
 `.trim();
 
 const EVIDENCE_MAP_HINT = `
-## Evidence map (lightweight)
-When your answer mixes sources, end with a short bullet list (2–5 lines) under **### Evidence map**:
-- **Business DNA / profile:** what you used from stored business context (or "none").
-- **Live connectors:** what you used from live search (or "none / not searched").
-- **User message / attachments:** what came only from the user (or "none").
-- **Inference:** any non-obvious logic not directly stated above (or "none").
+## Evidence map (structured, required for data-backed replies)
+When your answer contains recommendations, metrics, comparisons, or strategic claims, append this JSON block at the end:
+\`\`\`evidence_json
+{
+  "sources": {
+    "business_dna": ["..."],
+    "live_connectors": ["..."],
+    "user_input": ["..."],
+    "external": ["..."]
+  },
+  "inference": ["..."],
+  "missing_data": ["..."],
+  "confidence": "high|medium|low"
+}
+\`\`\`
+Rules:
+- Use arrays with concrete source names or short snippets; use [] when none.
+- Do not fabricate citations or numbers.
+- If evidence is sparse, include that in \`missing_data\` and lower confidence.
 `.trim();
 
 const EXECUTIVE_LIVE_INVENTORY = `

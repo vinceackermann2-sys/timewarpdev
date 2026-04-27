@@ -33,6 +33,7 @@ import { useEmployeeManagement } from "@/hooks/useEmployeeManagement";
 import { useChatPersistence } from "@/hooks/useChatPersistence";
 import { processFiles, type UploadedFileChip } from "@/lib/agentChat/fileProcessing";
 import { appendGraphicInstructionsToUserContent } from "@/lib/agentChat/graphicInstructions";
+import { runGraphicGate } from "@/lib/agentChat/graphicGate";
 import { createFetchWithTimeout } from "@/lib/agentChat/fetchWithTimeout";
 import { insertReferenceIntoChatInput } from "@/lib/agentChat/mentionHelpers";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
@@ -498,7 +499,17 @@ export function AgentChatView({
         }
       }
     }
-    userContent = appendGraphicInstructionsToUserContent(userContent, selectedGraphic);
+    let resolvedGraphic = selectedGraphic;
+    if (!resolvedGraphic) {
+      const gate = runGraphicGate(inputText);
+      if (gate.suggestGraphic && gate.autoApply && gate.graphicType) {
+        resolvedGraphic = gate.graphicType;
+        toast.message(`Auto-generating ${gate.graphicType.toLowerCase()} output for this request.`);
+      } else if (gate.suggestGraphic && gate.graphicType) {
+        userContent += `\n\nIf a ${gate.graphicType.toLowerCase()} would clarify this answer, include the appropriate code block.`;
+      }
+    }
+    userContent = appendGraphicInstructionsToUserContent(userContent, resolvedGraphic);
 
     const resolveEmployeeContext = (): { id: string; name: string; role: string }[] | undefined => {
       if (selectedChatEmployees.length > 0) return [...selectedChatEmployees];
@@ -865,8 +876,9 @@ export function AgentChatView({
                 title={lastAssistant.suggestionTitle}
                 onSelect={(suggestion) => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
+                  const mapped = lastAssistant.planActionPayloads?.[suggestion];
                   if (chatInputRef.current) {
-                    chatInputRef.current.innerText = suggestion;
+                    chatInputRef.current.innerText = mapped || suggestion;
                     chatInputRef.current.focus();
                   }
                   setTimeout(() => void handleSendMessage(), 0);

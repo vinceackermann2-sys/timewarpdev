@@ -14,6 +14,9 @@ import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contr
 import { buildAssistantGroundingBlock } from "../_shared/assistant-grounding.ts";
 import { formatSessionMemoryBlock } from "../_shared/session-memory-context.ts";
 import { sanitizeAssistantAgainstLiveContext } from "../_shared/live-response-guard.ts";
+import { buildPerformanceEvidenceMarkdown } from "../_shared/performance-evidence.ts";
+import { formatQuestionGatePromptBlock, runQuestionGate } from "../_shared/question-gate.ts";
+import { formatDnaRouterBlock, runDnaContextRouter } from "../_shared/dna-context-router.ts";
 import {
   runPreflightGuardrails,
   runPostflightGuardrails,
@@ -115,6 +118,13 @@ serve(async (req) => {
       brandId,
       workspaceId,
     });
+    const questionGate = runQuestionGate({ message: lastUserMsg, profileContext });
+    const questionGateBlock = formatQuestionGatePromptBlock(questionGate);
+    const dnaRoute = await runDnaContextRouter(supabase, user.id, workspaceId, brandId, lastUserMsg, replyContract);
+    const dnaRouterBlock = formatDnaRouterBlock(dnaRoute);
+    const performanceEvidence = businessId
+      ? await buildPerformanceEvidenceMarkdown(supabase, businessId, 30)
+      : "";
 
     const preflightBlock = runPreflightGuardrails(lastUserMsg, safetySettings);
     if (preflightBlock) {
@@ -153,7 +163,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       );
 
       const pageSection = buildPageSection();
-      const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}`;
+      const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n## Evidence Paths\n- Path 1 Internal History: ${performanceEvidence ? "available" : "sparse"}\n- Path 2 External Benchmark: use connected sources with citations only\n- Path 3 User Feedback: honor explicit constraints and ratings`;
       const systemPrompt = buildBrowserActionPrompt(pageSection, identity, fullContext, safetySettings);
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -349,7 +359,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             const answerTopic = queryTopic || topic;
             const pageSection = buildPageSection();
             const hasBrowserContext = !!pageContext;
-            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}`;
+            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n## Evidence Paths\n- Path 1 Internal History: ${performanceEvidence ? "available" : "sparse"}\n- Path 2 External Benchmark: use connected sources with citations only\n- Path 3 User Feedback: honor explicit constraints and ratings`;
             const systemPrompt = hasBrowserContext
               ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
               : buildChatPrompt(identity, fullContext, replyContract);
@@ -373,6 +383,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               "Loading the answer",
             ];
             const craftLabel = craftPhrases[Math.floor(Math.random() * craftPhrases.length)];
+            if (replyContract === "strategic_plan") {
+              sendStep("Building strategic plan...", "running", "response");
+            }
             sendStep(craftLabel, "running", "response");
             heartbeat = setInterval(() => {
               send({ type: "progress", step: { label: "Still working on this task...", status: "running", action: "heartbeat", detail: `Task type: ${taskType}` } });
@@ -455,6 +468,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             send({
               type: "result",
               content: finalContent,
+              replyContract,
               connectionDecision,
               searchedProviders,
               skippedProviderDetails,

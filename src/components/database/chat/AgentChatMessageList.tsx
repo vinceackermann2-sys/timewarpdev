@@ -67,6 +67,21 @@ export function AgentChatMessageList({
             >
               {msg.role === "assistant" ? (
                 <div className="max-w-none text-foreground text-[14.5px] leading-[1.75]">
+                  {msg.planContent && !msg.isStreaming && (
+                    <div className="mb-2 inline-flex items-center rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
+                      📋 Strategic Plan
+                    </div>
+                  )}
+                  {msg.replyContract === "live_lookup" && !msg.isStreaming && (
+                    <div className="mb-2 inline-flex items-center rounded-full bg-sky-100 text-sky-700 text-[11px] px-2 py-0.5">
+                      🔎 Live Lookup
+                    </div>
+                  )}
+                  {msg.evidenceAudit?.status === "warn" && !msg.isStreaming && (
+                    <div className="mb-2 inline-flex items-center rounded-full bg-amber-100 text-amber-700 text-[11px] px-2 py-0.5">
+                      ⚠ Evidence check: {msg.evidenceAudit.warnings[0] || "Needs stronger grounding"}
+                    </div>
+                  )}
                   {displayTaskSteps.length > 0 && (
                     <TaskStepsDisplay
                       steps={displayTaskSteps}

@@ -13,10 +13,12 @@ export interface ParsedSuggestions {
   content: string;
   suggestions: string[];
   title?: string;
+  planActions?: Array<{ label: string; prefill: string }>;
 }
 
 export function extractSuggestions(text: string): ParsedSuggestions {
   const suggestions: string[] = [];
+  const planActions: Array<{ label: string; prefill: string }> = [];
   let title: string | undefined;
 
   // Standard [SUGGEST:...] tag (with optional markdown wrapping like **[SUGGEST:...]**, `[SUGGEST:...]`, ```[SUGGEST:...]```, or surrounding whitespace/newlines)
@@ -40,6 +42,21 @@ export function extractSuggestions(text: string): ParsedSuggestions {
     suggestions.push(...items);
   }
   let content = text.replace(suggestRegex, "").trim();
+
+  // [PLAN_ACTION:Label::prefill text]
+  const planActionRegex = /\*{0,2}`{0,3}\[PLAN_ACTION:\s*([\s\S]+?)\]\s*`{0,3}\*{0,2}/g;
+  let paMatch;
+  while ((paMatch = planActionRegex.exec(content)) !== null) {
+    const raw = paMatch[1];
+    const [labelRaw, ...prefillParts] = raw.split("::");
+    const label = (labelRaw || "").trim();
+    const prefill = prefillParts.join("::").trim();
+    if (label) {
+      planActions.push({ label, prefill: prefill || label });
+      suggestions.push(label);
+    }
+  }
+  content = content.replace(planActionRegex, "").trim();
 
   // Title fallback: if the AI didn't include one in the tag, look for the last
   // question sentence in the cleaned content and use that as the personal title.
@@ -84,5 +101,5 @@ export function extractSuggestions(text: string): ParsedSuggestions {
   // suggestion card stays hidden. Suggestions only appear when asking a clarifying
   // question would actually improve the result — they are NOT a generic next-step menu.
 
-  return { content, suggestions: suggestions.slice(0, 4), title };
+  return { content, suggestions: suggestions.slice(0, 4), title, planActions: planActions.slice(0, 4) };
 }

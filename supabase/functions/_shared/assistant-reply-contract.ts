@@ -3,7 +3,7 @@ import { shouldSearchConnections } from "./connection-search-decision.ts";
 /** How the assistant should structure and ground its reply (ACIM-style routing). */
 export type AssistantReplyContract = "live_lookup" | "direct" | "strategic_plan";
 
-const FORCE_PLAN_RE = /\b(plan mode|advanced plan|first principles plan|deep plan|detailed strategy plan)\b/i;
+const FORCE_PLAN_RE = /\b(plan mode|advanced plan|first principles plan|deep plan|detailed strategy plan|make me a plan|help me plan|create a strategy for|break this down)\b/i;
 const FORCE_DIRECT_RE = /\b(no plan|skip plan|quick answer|just answer)\b/i;
 const SIMPLE_QUERY_RE = /^\s*(what|who|when|where|which|is|are|do|does|can)\b[\s\S]{0,180}\??\s*$/i;
 const STRATEGY_KEYWORDS_RE = /\b(grow|growth|scale|scaling|turnaround|gtm|go.?to.?market|roadmap|strategy|strategic|pricing strategy|market entry|expansion|retention|churn|funnel|acquisition|positioning|operating model|business model|profitability)\b/i;
@@ -29,7 +29,7 @@ export function classifyAssistantReplyContract(userQuery: string): AssistantRepl
 
   const hasStrategyIntent = STRATEGY_KEYWORDS_RE.test(userQuery);
   const hasComplexity = COMPLEXITY_RE.test(userQuery);
-  const longQuery = userQuery.trim().length >= 180;
+const longQuery = userQuery.trim().length >= 100;
   const hasMultipleGoals = userQuery.trim().length >= 90 && MULTI_OBJECTIVE_RE.test(userQuery);
 
   if (hasStrategyIntent && (hasComplexity || longQuery || hasMultipleGoals)) {

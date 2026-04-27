@@ -6,6 +6,8 @@ import { buildMultimodalContent } from "@/lib/agentChat/multimodal";
 import { buildConnectionTaskSteps, upsertChatTaskStep } from "@/lib/agentChat/connectionSteps";
 import { generateTaskReport } from "@/lib/agentChat/taskReport";
 import { extractPlanArtifact } from "@/lib/agentChat/planArtifacts";
+import { extractPlanActions } from "@/lib/agentChat/planActionExtractor";
+import { runEvidenceAudit } from "@/lib/agentChat/evidenceAudit";
 import type { ChatMessage } from "@/lib/agentChat/types";
 import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 import { consumeAgentChatSseStream, consumeOpenAiStyleSseStream } from "@/lib/streamReaders";
@@ -122,6 +124,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     const contentType = response.headers.get("content-type") || "";
     let fullContent = "";
+    let replyContractMeta: "direct" | "live_lookup" | "strategic_plan" | undefined;
 
     if (contentType.includes("text/event-stream")) {
       let streaming = "";
@@ -151,6 +154,9 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
         },
         onResult: (evt) => {
           if (evt.content) streaming = evt.content;
+          if (evt.replyContract === "direct" || evt.replyContract === "live_lookup" || evt.replyContract === "strategic_plan") {
+            replyContractMeta = evt.replyContract;
+          }
           if (evt.liveSourceRegistry && Object.keys(evt.liveSourceRegistry).length > 0) {
             extensionLiveReg = evt.liveSourceRegistry;
             syncTaskSteps(streaming);
@@ -166,18 +172,34 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
 
-    const { content: sugCleanContent, suggestions, title: suggestionTitle } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    const { content: sugCleanContent, suggestions, title: suggestionTitle, planActions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
     if (suggestions.length === 0) {
       console.warn("[suggestions] No [SUGGEST:...] tag detected in assistant reply. Tail:", (fullContent || "").slice(-300));
     } else {
       console.log("[suggestions] parsed", { count: suggestions.length, title: suggestionTitle, suggestions });
     }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
+    const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
+    const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
+    const actionPayloads: Record<string, string> = {};
+    const keyFor = (label: string) => label.replace(/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u, "").trim();
+    for (const pa of planActions || []) {
+      actionPayloads[pa.label] = pa.prefill;
+      actionPayloads[keyFor(pa.label)] = pa.prefill;
+    }
+    for (const pa of derivedPlanActions) {
+      actionPayloads[pa.label] = pa.prefill;
+      actionPayloads[keyFor(pa.label)] = pa.prefill;
+    }
+    const evidenceAudit = runEvidenceAudit(cleanContent, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: cleanContent,
-      suggestions,
+      suggestions: mergedSuggestions,
       suggestionTitle,
+      planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
+      evidenceAudit,
+      replyContract: replyContractMeta,
       taskSteps: [...taskSteps],
       isStreaming: false,
       ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
@@ -531,18 +553,33 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    const { content: sugCleanContent, suggestions, title: suggestionTitle } = extractSuggestions(accumulatedContent || "Task completed.");
+    const { content: sugCleanContent, suggestions, title: suggestionTitle, planActions } = extractSuggestions(accumulatedContent || "Task completed.");
     if (suggestions.length === 0) {
       console.warn("[suggestions:employee] No [SUGGEST:...] tag detected. Tail:", (accumulatedContent || "").slice(-300));
     } else {
       console.log("[suggestions:employee] parsed", { count: suggestions.length, title: suggestionTitle, suggestions });
     }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
+    const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
+    const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
+    const actionPayloads: Record<string, string> = {};
+    const keyFor = (label: string) => label.replace(/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u, "").trim();
+    for (const pa of planActions || []) {
+      actionPayloads[pa.label] = pa.prefill;
+      actionPayloads[keyFor(pa.label)] = pa.prefill;
+    }
+    for (const pa of derivedPlanActions) {
+      actionPayloads[pa.label] = pa.prefill;
+      actionPayloads[keyFor(pa.label)] = pa.prefill;
+    }
+    const evidenceAudit = runEvidenceAudit(cleanContent, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: cleanContent,
-      suggestions,
+      suggestions: mergedSuggestions,
       suggestionTitle,
+      planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
+      evidenceAudit,
       taskSteps: [...taskSteps],
       isStreaming: false,
       ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),

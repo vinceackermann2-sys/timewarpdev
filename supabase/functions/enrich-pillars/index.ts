@@ -53,7 +53,7 @@ For tam/sam/som, "size" MUST be a SHORT money figure ONLY (e.g. "$120B", "$8.5B"
   "funding": string,
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-Estimate cautiously based on industry norms when concrete numbers are not in context. Never invent specific revenue numbers — use ranges or "estimated". Always include a "checklist" array of 5-8 {item, status} objects covering each financial field.`,
+Never invent specific revenue numbers. If integration/accounting evidence is missing, leave revenue_arch/costs/unit_economics/profitability/cash_flow/funding empty and mark Gap in checklist. Category benchmarks are allowed only when explicitly labeled "(estimated from category)" and only in benchmark/reference fields. Always include a "checklist" array of 5-8 {item, status} objects covering each financial field.`,
 
   operations: `Return JSON with the keys exactly:
 {
@@ -81,7 +81,7 @@ Use the doc formula [VENDOR] + [WHAT THEY SUPPLY] + [CRITICALITY: 1-5] + [RISK] 
   "retention": string,
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-org_chart MUST be a recursive tree with {role, name, children}. Top node is the CEO/Founder. Use the doc formula [CAPABILITY DOMAIN] + [CURRENT STRENGTH: 1-5] + [REQUIRED STRENGTH: 1-5] + [GAP] + [PLAN] for capabilities. Use plausible function names (Founder, Marketing Lead, Ops Lead) when no real names are known. Always include checklist of 5-8 items.`,
+org_chart MUST be a recursive tree with {role, name, children}. Top node is the CEO/Founder. Use the doc formula [CAPABILITY DOMAIN] + [CURRENT STRENGTH: 1-5] + [REQUIRED STRENGTH: 1-5] + [GAP] + [PLAN] for capabilities. CRITICAL: never invent placeholder names or titles when sources are sparse; return empty names/rows and mark Gap. Always include checklist of 5-8 items.`,
 
   growth: `Return JSON with the keys exactly:
 {
@@ -145,39 +145,134 @@ mechanism = how the product creates the result (1-2 sentences). value_propositio
 journey is the customer journey map; supporting_signal briefly cites INTERNAL AUDIENCE SIGNALS or AUDIENCE/COMMUNITY evidence when used, else "inference". pain_architecture is 5-10 ranked pain points (most acute first). Always include checklist of 5-8 items.`,
 };
 
-const FIELD_SOURCE_POLICY = {
-  market: {
-    "definition.tam": "web_evidence_required",
-    "definition.sam": "web_evidence_required",
-    "definition.som": "web_evidence_required",
-    competitors: "internal_or_competitor_cited",
-  },
-  financial: {
-    "unit_economics": "integration_preferred",
-    "profitability": "integration_preferred",
-    "revenue_arch": "website_or_onboarding",
-    projections: "web_evidence_required",
-  },
-  growth: {
-    "growth_model": "internal_or_competitor_cited",
-    channels: "internal_or_competitor_cited",
-    experiments: "internal_or_competitor_cited",
-  },
-  strategy: {
-    bets: "internal_or_competitor_cited",
-    milestones: "internal_or_competitor_cited",
+type SourceMode =
+  | "website_or_onboarding"
+  | "web_evidence_required"
+  | "integration_preferred"
+  | "integration_only"
+  | "internal_or_competitor_cited";
+
+const FIELD_SOURCE_POLICY: Record<string, Record<string, SourceMode>> = {
+  brand: {
+    b1: "website_or_onboarding", b2: "website_or_onboarding", b3: "website_or_onboarding", b4: "website_or_onboarding",
+    b5: "website_or_onboarding", b6: "website_or_onboarding", b7: "website_or_onboarding", b8: "website_or_onboarding",
+    b9: "website_or_onboarding", b10: "internal_or_competitor_cited", b11: "website_or_onboarding",
   },
   product: {
-    roadmap: "internal_or_competitor_cited",
+    p1: "website_or_onboarding", p2: "website_or_onboarding", p3: "website_or_onboarding", p4: "website_or_onboarding",
+    p5: "website_or_onboarding", p6: "website_or_onboarding", p7: "website_or_onboarding", p8: "website_or_onboarding",
+    p9: "internal_or_competitor_cited", p10: "internal_or_competitor_cited", p11: "internal_or_competitor_cited",
+    p12: "internal_or_competitor_cited", p13: "website_or_onboarding", p14: "internal_or_competitor_cited", p15: "website_or_onboarding",
   },
   audience: {
-    journey: "internal_or_competitor_cited",
+    a1: "website_or_onboarding", a2: "integration_preferred", a3: "website_or_onboarding", a4: "internal_or_competitor_cited",
+    a5: "internal_or_competitor_cited", a6: "internal_or_competitor_cited", a7: "internal_or_competitor_cited",
+    a8: "integration_preferred", a9: "internal_or_competitor_cited", a10: "internal_or_competitor_cited",
+    a11: "integration_preferred", a12: "website_or_onboarding", a13: "website_or_onboarding",
+  },
+  market: {
+    m1: "web_evidence_required", m2: "internal_or_competitor_cited", m3: "internal_or_competitor_cited",
+    m4: "internal_or_competitor_cited", m5: "web_evidence_required", m6: "web_evidence_required",
+    m7: "internal_or_competitor_cited", m8: "internal_or_competitor_cited", m9: "website_or_onboarding",
+  },
+  financial: {
+    f1: "website_or_onboarding", f2: "integration_preferred", f3: "integration_preferred", f4: "integration_preferred",
+    f5: "integration_preferred", f6: "integration_preferred", f7: "web_evidence_required", f8: "integration_only", f9: "website_or_onboarding",
+  },
+  operations: {
+    o1: "website_or_onboarding", o2: "integration_preferred", o3: "integration_preferred", o4: "integration_preferred",
+    o5: "website_or_onboarding", o6: "integration_preferred", o7: "internal_or_competitor_cited",
+    o8: "web_evidence_required", o9: "website_or_onboarding",
   },
   people: {
-    org_chart: "integration_only",
-    leadership: "integration_only",
+    pe1: "integration_only", pe2: "integration_only", pe3: "internal_or_competitor_cited", pe4: "internal_or_competitor_cited",
+    pe5: "internal_or_competitor_cited", pe6: "integration_preferred", pe7: "integration_only", pe8: "integration_preferred",
+    pe9: "website_or_onboarding",
   },
-} as const;
+  growth: {
+    g1: "internal_or_competitor_cited", g2: "internal_or_competitor_cited", g3: "integration_preferred",
+    g4: "internal_or_competitor_cited", g5: "integration_preferred", g6: "internal_or_competitor_cited",
+    g7: "integration_preferred", g8: "website_or_onboarding", g9: "internal_or_competitor_cited", g10: "website_or_onboarding",
+  },
+  strategy: {
+    s1: "website_or_onboarding", s2: "internal_or_competitor_cited", s3: "internal_or_competitor_cited",
+    s4: "website_or_onboarding", s5: "integration_preferred", s6: "website_or_onboarding",
+    s7: "internal_or_competitor_cited", s8: "internal_or_competitor_cited", s9: "website_or_onboarding",
+    s10: "internal_or_competitor_cited", s11: "website_or_onboarding",
+  },
+};
+
+function hasConnectedProvider(connectedProviders: string[], includesAny: string[]): boolean {
+  return connectedProviders.some((p) => includesAny.some((x) => p.includes(x)));
+}
+
+function sanitizeNumbersForLowEvidence(input: string): string {
+  if (!input) return input;
+  // If value contains hard numeric claims without explicit estimate wording, blank it.
+  if (/\b\d+(?:\.\d+)?(?:%|k|m|b)?\b/i.test(input) && !/\bestimate|estimated|range|approx|~|about\b/i.test(input)) return "";
+  return input;
+}
+
+function sanitizePeopleData(payload: any, hasPeopleEvidence: boolean): any {
+  if (!payload || typeof payload !== "object") return payload;
+  const placeholderName = /^(founder|ceo|marketing lead|ops lead|sales lead|john doe|jane doe|employee \d+|team member)$/i;
+  const scrubNode = (node: any): any => {
+    if (!node || typeof node !== "object") return node;
+    const out: any = { ...node };
+    const name = String(out.name || "").trim();
+    if (!hasPeopleEvidence || placeholderName.test(name)) out.name = "";
+    if (Array.isArray(out.children)) out.children = out.children.map(scrubNode);
+    return out;
+  };
+  if (payload.org_chart) payload.org_chart = scrubNode(payload.org_chart);
+  if (Array.isArray(payload.leadership)) {
+    payload.leadership = payload.leadership
+      .map((x: any) => ({ ...x, name: (!hasPeopleEvidence || placeholderName.test(String(x?.name || "").trim())) ? "" : x?.name || "" }))
+      .filter((x: any) => String(x.name || "").trim().length > 0);
+  }
+  if (!hasPeopleEvidence) {
+    payload.compensation = "";
+    payload.retention = payload.retention || "";
+  }
+  return payload;
+}
+
+function sanitizeFinancialData(payload: any, hasFinancialIntegration: boolean): any {
+  if (!payload || typeof payload !== "object") return payload;
+  if (!hasFinancialIntegration) {
+    payload.revenue_arch = [];
+    payload.costs = [];
+    payload.unit_economics = [];
+    payload.profitability = [];
+    payload.cash_flow = "";
+    payload.funding = "";
+  } else {
+    if (Array.isArray(payload.unit_economics)) {
+      payload.unit_economics = payload.unit_economics.map((r: any) => ({ ...r, value: sanitizeNumbersForLowEvidence(String(r?.value || "")) }));
+    }
+  }
+  return payload;
+}
+
+function enforceChecklist(data: any, defaultItems: string[]): any {
+  if (!data || typeof data !== "object") return data;
+  const list = Array.isArray(data.checklist) ? data.checklist : [];
+  if (list.length >= 3) return data;
+  data.checklist = defaultItems.slice(0, 6).map((item) => ({ item, status: "Gap" as const }));
+  return data;
+}
+
+const CHECKLIST_DEFAULTS: Record<string, string[]> = {
+  brand: ["Brand description", "Mission", "Vision", "Values", "Voice", "Perception"],
+  product: ["Description", "Features", "Pricing", "USPs", "Social proof", "Roadmap"],
+  audience: ["Audience description", "Segmentation", "Persona", "Triggers", "Language patterns", "Retention"],
+  market: ["Market definition", "Competitors", "Positioning map", "Forces", "Trends", "White space"],
+  financial: ["Business model", "Revenue architecture", "Cost structure", "Unit economics", "Cash flow", "Funding"],
+  operations: ["Operating model", "Core processes", "Tech stack", "Vendors", "Operational KPIs", "Compliance"],
+  people: ["Org structure", "Leadership profiles", "Capability map", "Culture", "Compensation", "Retention"],
+  growth: ["Growth model", "Channel intelligence", "Funnel architecture", "Campaigns", "Creative intelligence", "Experiments"],
+  strategy: ["Strategic vision", "Objectives", "Strategic bets", "Resource allocation", "Milestones", "Scenario planning"],
+};
 
 type EvidenceMode = "blend" | "internal" | "external" | "feedback_first";
 
@@ -654,10 +749,11 @@ serve(async (req) => {
 CRITICAL EVIDENCE RULES — read carefully:
 - You are working from a brand description, product list, audience list captured during onboarding, AND a list of which integrations the user has connected. The presence of a connection is a SIGNAL (e.g. "HubSpot connected" → there IS a CRM/pipeline; "Slack connected with N members" → there IS a team) but NOT a license to invent specific names, dollar amounts, or counts you do not see in the context.
 - DO NOT fabricate. Do not invent specific revenue numbers, headcount, employee names, real vendor names, real competitor names, real CAC/LTV/margin numbers, real funding amounts, or real internal processes.
-- For EACH field, decide: is there direct evidence in the provided context, OR is this a safe externally-observable category-level inference (e.g. "B2B SaaS companies in this category typically use a subscription revenue model")?
-  - If YES (direct evidence) → fill it concretely.
-  - If category-level inference is reasonable → fill it but make it generic to the CATEGORY (no fake specifics) and prefix or suffix the string with "(estimated from category)".
-  - If NO basis at all (e.g. internal financials, real org chart, real vendors, real KPI targets) → return an EMPTY string "" for string fields, or an EMPTY array [] for arrays. Do NOT make up placeholder names like "John Doe", "Vendor A", "Competitor X", "$1M ARR" etc.
+- SOURCE HIERARCHY (must follow): Integration data > user-uploaded docs > website scrape > external cited research > web snippets > category inference (labeled) > AI generation without evidence (forbidden).
+- For EACH field, decide: is there direct evidence in the provided context?
+  - If YES → fill concretely from evidence.
+  - If only category-level inference exists → fill only when allowed and label "(estimated from category)".
+  - If no defensible basis → return EMPTY string "" or EMPTY array [] and mark Gap in checklist.
 - Competitors: ONLY include real competitors you genuinely know exist in this category from public knowledge. If you can't name 2+ real ones with confidence, return an empty array.
 - Org chart / leadership are integration-only fields in this system. If integration signals are missing, return empty arrays — do NOT invent names from website content.
 - Financials (CAC, LTV, margins, revenue, funding, projections): unless explicitly stated in the context, return empty strings/arrays. NEVER invent dollar figures.
@@ -714,6 +810,9 @@ ${fileEvidenceFromFunnel.length > 0
   ? fileEvidenceFromFunnel.map((f: any) => `- ${String(f?.name || "file")}: ${compact(String(f?.excerpt || ""), 320)}`).join("\n")
   : "(none)"}
 
+FIELD SOURCE MODE POLICY (authoritative):
+${JSON.stringify(FIELD_SOURCE_POLICY[pillarId] || {}, null, 2)}
+
 ${PILLAR_PROMPTS[pillarId]}`;
 
     const targetPillars: string[] = Array.isArray(pillars) && pillars.length
@@ -722,7 +821,12 @@ ${PILLAR_PROMPTS[pillarId]}`;
 
     const results = await Promise.allSettled(
       targetPillars.map(async (pillarId) => {
-        const data = await callAi(systemPrompt, buildUserPrompt(pillarId));
+        let data = await callAi(systemPrompt, buildUserPrompt(pillarId));
+        const hasPeopleEvidence = hasConnectedProvider(connectedProviders, ["slack", "teams", "hubspot", "google", "microsoft"]);
+        const hasFinancialIntegration = hasConnectedProvider(connectedProviders, ["stripe", "hubspot", "quickbooks", "xero", "netsuite", "google_sheets"]);
+        if (pillarId === "people") data = sanitizePeopleData(data, hasPeopleEvidence);
+        if (pillarId === "financial") data = sanitizeFinancialData(data, hasFinancialIntegration);
+        data = enforceChecklist(data, CHECKLIST_DEFAULTS[pillarId] || ["Field completeness"]);
         return { pillarId, data };
       })
     );
