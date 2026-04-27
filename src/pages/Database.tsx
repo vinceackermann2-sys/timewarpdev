@@ -527,6 +527,13 @@ const Database = () => {
           setShowBusinessDNA(true);
         }}
       />
+      <NoBrandsRedirect
+        currentView={currentView}
+        onForceView={(view) => {
+          setCurrentView(view);
+          localStorage.setItem("tw_current_view", view);
+        }}
+      />
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">
           <div className={onboardingLocked ? "contents pointer-events-none opacity-60" : "contents"}>
