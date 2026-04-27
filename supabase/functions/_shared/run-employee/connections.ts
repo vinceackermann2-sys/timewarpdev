@@ -1080,7 +1080,9 @@ export async function searchConnectedProviders(
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_drive");
           const results = await searchGoogleDriveData(token, effectiveQuery, searchTopicForApis);
-          if (results.length > 0) connectionContext += `\n\n### Live Data from Google Drive\n${results.join("\n\n")}\n`;
+          if (results.length > 0) {
+            connectionContext += `\n\n### Live Data from Google Drive\n#### Recent Files\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+          }
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "done", action: "connections" });
         } catch (e) {
           console.error("[connections] Drive search failed:", e);
