@@ -61,8 +61,10 @@ export function AgentChatMessageList({
           >
             <div
               className={cn(
-                "max-w-[80%] rounded-2xl px-5 py-3 text-sm flex flex-col",
-                msg.role === "user" ? "bg-[#e5e7eb] text-foreground rounded-br-md" : "rounded-bl-md text-foreground",
+                "max-w-[80%] text-sm flex flex-col",
+                msg.role === "user"
+                  ? "rounded-2xl rounded-br-md bg-muted/50 text-foreground px-4 py-2.5"
+                  : "rounded-2xl rounded-bl-md text-foreground px-1 py-1",
               )}
             >
               {msg.role === "assistant" ? (
