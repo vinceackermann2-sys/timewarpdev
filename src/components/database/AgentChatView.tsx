@@ -284,14 +284,15 @@ export function AgentChatView({
         .limit(1)
         .maybeSingle();
 
+      const cpRow = cp as { continuation_index?: number; metadata?: { lastUserMessage?: unknown } } | null;
       setResumableTask({
         continuationKey,
         phase: String((run as { phase?: string }).phase || "running"),
         progress: Number((run as { progress?: number }).progress || 0),
-        continuationIndex: Number((cp as { continuation_index?: number } | null)?.continuation_index || 0),
+        continuationIndex: Number(cpRow?.continuation_index || 0),
         lastUserMessage:
-          typeof (cp?.metadata as { lastUserMessage?: unknown } | null)?.lastUserMessage === "string"
-            ? (cp?.metadata as { lastUserMessage?: string }).lastUserMessage
+          typeof cpRow?.metadata?.lastUserMessage === "string"
+            ? (cpRow.metadata.lastUserMessage as string)
             : undefined,
       });
     } catch {
