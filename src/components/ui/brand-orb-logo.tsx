@@ -43,7 +43,7 @@ const BrandOrbLogo: React.FC<BrandOrbLogoProps> = ({
       <img
         src={logoUrl!}
         alt={brandName ? `${brandName} logo` : "Brand logo"}
-        className="h-full w-full object-contain"
+        className="h-full w-full object-contain bg-[#fafbff]"
         loading="lazy"
         onError={() => setErrored(true)}
       />
