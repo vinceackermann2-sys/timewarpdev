@@ -53,7 +53,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.access_token) {
         try {
           const { data, error } = await supabase.auth.getUser(session.access_token);
-          if (error || !data?.user) {
+          const isMissingUser =
+            !!error &&
+            (error.message?.toLowerCase().includes("user") ||
+              (error as { status?: number }).status === 403 ||
+              (error as { status?: number }).status === 401);
+          if (isMissingUser || (!error && !data?.user)) {
+            // Purge stale tokens directly — signOut() would also 403 with this token.
+            try {
+              for (const key of Object.keys(localStorage)) {
+                if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+                  localStorage.removeItem(key);
+                }
+              }
+            } catch {
+              // ignore storage access errors
+            }
             await supabase.auth.signOut({ scope: "local" }).catch(() => {});
             if (!isMounted) return;
             setState({ session: null, user: null, isLoading: false });
