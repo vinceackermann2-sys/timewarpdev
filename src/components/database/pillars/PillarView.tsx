@@ -208,7 +208,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                   <img
                     src={logoUrl}
                     alt={brand?.name || "Business logo"}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain bg-[#fafbff]"
                   />
                 ) : (
                   <BusinessBrainOrb size={40} />
