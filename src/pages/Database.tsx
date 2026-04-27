@@ -81,8 +81,8 @@ function NoBrandsRedirect({
     if (isLoading) return;
     if (brands.length > 0) return;
     if (isWorkspaceMemberOnly) return;
-    // employees + businessdna already render onboarding inline — leave them alone.
-    if (currentView === "employees" || currentView === "businessdna") return;
+    // employees already renders chat-driven onboarding inline — leave it alone.
+    if (currentView === "employees") return;
     onForceView("employees");
   }, [isLoading, brands.length, isWorkspaceMemberOnly, currentView, onForceView]);
   return null;
