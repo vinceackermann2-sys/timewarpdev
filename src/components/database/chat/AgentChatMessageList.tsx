@@ -54,6 +54,12 @@ export function AgentChatMessageList({
                 : []
             : [];
 
+        // Strip trailing unclosed/empty markdown code fences that render as a blank grey box
+        const cleanedContent = (msg.content || "")
+          .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
+          .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
+          .trimEnd();
+
         return (
           <div
             key={msg.id}
@@ -96,7 +102,7 @@ export function AgentChatMessageList({
                   {(!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
                     <ChatDashboardCards cards={msg.dashboardCards || []} openingSummary={msg.dashboardOpeningSummary} />
                   )}
-                  {msg.content && (
+                  {cleanedContent && (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -149,6 +155,15 @@ export function AgentChatMessageList({
                           ) {
                             return <>{children}</>;
                           }
+                          // Hide empty <pre> blocks (e.g., from stray/unclosed ``` fences)
+                          const innerText = (() => {
+                            try {
+                              const c = children as any;
+                              const raw = c?.props?.children;
+                              return typeof raw === "string" ? raw.trim() : Array.isArray(raw) ? raw.join("").trim() : "";
+                            } catch { return ""; }
+                          })();
+                          if (!innerText) return null;
                           return <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 text-[13px]">{children}</pre>;
                         },
                         table: ({ children }) => (
@@ -162,7 +177,7 @@ export function AgentChatMessageList({
                         a: buildLiveCitationAnchor(msg.liveSourceRegistry),
                       }}
                     >
-                      {msg.content}
+                      {cleanedContent}
                     </ReactMarkdown>
                   )}
                   {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
