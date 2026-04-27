@@ -664,7 +664,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
                 <img
                   src={superchargeIllustration}
                   alt="Supercharge your Business DNA"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain bg-[#fafbff]"
                 />
               </div>
             </div>
