@@ -950,14 +950,16 @@ export async function searchConnectedProviders(
   const liveChunkCounter = { n: 0 };
   const searchPromises: Promise<void>[] = [];
 
-  // Per-provider intent: if user names a specific tool, search ONLY that one (saves usage).
-  // Generic intent (e.g. "documents", "emails") is narrowed to providers the user actually has connected.
-  const rawNamedProviders = detectNamedProviders(userQuery);
+  // Per-provider intent: only narrow to a specific provider when the user
+  // EXPLICITLY named one (e.g. "gmail", "stripe", "onedrive"). Generic words
+  // like "presentation", "revenue", or "files" must NOT exclude other
+  // connected tools from being searched.
+  const rawNamedProviders = detectExplicitProviders(userQuery);
   const namedProviders = narrowProvidersByConnections(rawNamedProviders, connectedProviders, userQuery);
   const useTargeted = namedProviders.length > 0;
   const isAllowed = (provider: string) => !useTargeted || namedProviders.includes(provider);
   if (useTargeted) {
-    console.log("[connections] Targeted search — raw:", rawNamedProviders, "narrowed:", namedProviders);
+    console.log("[connections] Targeted search (explicit provider) — raw:", rawNamedProviders, "narrowed:", namedProviders);
   }
 
   if (intentProfile.omitZoom && connectedProviders.includes("zoom") && isAllowed("zoom")) {
