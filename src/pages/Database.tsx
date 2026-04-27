@@ -61,6 +61,31 @@ function DnaPillarAutoOpener({
   return null;
 }
 
+// Forces users with zero brands into the onboarding flow regardless of which
+// view they're on (manage, connections, aiceo, workspaces). Non-owner workspace
+// members are exempt — they collaborate on someone else's brand and shouldn't
+// be pushed into creating their own.
+function NoBrandsRedirect({
+  currentView,
+  onForceView,
+}: {
+  currentView: View;
+  onForceView: (view: View) => void;
+}) {
+  const { brands, isLoading } = useBusinessDNA();
+  const { activeWorkspace } = useWorkspace();
+  const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
+  useEffect(() => {
+    if (isLoading) return;
+    if (brands.length > 0) return;
+    if (isWorkspaceMemberOnly) return;
+    // employees + businessdna already render onboarding inline — leave them alone.
+    if (currentView === "employees" || currentView === "businessdna") return;
+    onForceView("employees");
+  }, [isLoading, brands.length, isWorkspaceMemberOnly, currentView, onForceView]);
+  return null;
+}
+
 // Renders a skeleton placeholder while BusinessDNA data is still loading,
 // then either the DNA view (if a brand exists) or the onboarding flow.
 function BusinessDnaArea({
