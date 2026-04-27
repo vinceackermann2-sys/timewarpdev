@@ -26,7 +26,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session?.user) return;
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
+      const response = await fetchWithRetry(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +70,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
         setConnectingProvider(false);
         return;
       }
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
+      const response = await fetchWithRetry(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -100,7 +100,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) return;
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
+      await fetchWithRetry(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connect-provider`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
