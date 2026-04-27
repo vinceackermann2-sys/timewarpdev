@@ -2,6 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Retry on transient edge-runtime degradations (503 / boot races).
+async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.status !== 503) return res;
+    } catch (err) {
+      if (attempt === retries) throw err;
+    }
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  }
+  return fetch(url, init);
+}
+
 export function useProviderConnections(activeBrandId?: string | null) {
   const [connectedProviders, setConnectedProviders] = useState<Record<string, boolean>>({});
   const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
