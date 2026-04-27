@@ -45,8 +45,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // 2. Bootstrap session safely (deduped, timeout-protected)
-    getSafeSession().then((session) => {
+    getSafeSession().then(async (session) => {
       if (!isMounted) return;
+      // Verify the user still exists server-side. If the JWT references a
+      // deleted/missing user (auth returns 403 user_not_found), force a local
+      // sign-out so we don't keep firing edge functions with a stale token.
+      if (session?.access_token) {
+        try {
+          const { data, error } = await supabase.auth.getUser(session.access_token);
+          if (error || !data?.user) {
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+            if (!isMounted) return;
+            setState({ session: null, user: null, isLoading: false });
+            return;
+          }
+        } catch {
+          // Network/transport issue — keep the session and let edge fns retry.
+        }
+      }
       setState({ session, user: session?.user ?? null, isLoading: false });
     });
 
