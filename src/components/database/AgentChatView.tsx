@@ -290,8 +290,8 @@ export function AgentChatView({
         progress: Number((run as { progress?: number }).progress || 0),
         continuationIndex: Number((cp as { continuation_index?: number } | null)?.continuation_index || 0),
         lastUserMessage:
-          typeof ((cp as any)?.metadata as { lastUserMessage?: unknown } | null)?.lastUserMessage === "string"
-            ? ((cp as any)?.metadata as { lastUserMessage?: string }).lastUserMessage
+          typeof (cp?.metadata as { lastUserMessage?: unknown } | null)?.lastUserMessage === "string"
+            ? (cp?.metadata as { lastUserMessage?: string }).lastUserMessage
             : undefined,
       });
     } catch {
