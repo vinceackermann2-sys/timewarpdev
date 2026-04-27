@@ -25,9 +25,29 @@ function parseEvidenceSources(markdown: string): string[] {
     .slice(0, 8);
 }
 
+// Strips internal-only blocks the AI is instructed to emit but should not render to the user.
+// - ```evidence_json ... ``` fenced blocks
+// - bare "## Evidence map" sections followed by a JSON object
+// - bare evidence_json {...} occurrences (no fence)
+const EVIDENCE_FENCE_RE = /```evidence_json[\s\S]*?```/gi;
+const EVIDENCE_HEADING_RE = /(^|\n)#{1,6}\s*Evidence map[\s\S]*?(?=\n#{1,6}\s|\s*$)/gi;
+const EVIDENCE_BARE_RE = /(^|\n)evidence_json\s*\{[\s\S]*?\}\s*(?=\n|$)/gi;
+
+export function stripInternalAuditBlocks(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(EVIDENCE_FENCE_RE, "")
+    .replace(EVIDENCE_HEADING_RE, "$1")
+    .replace(EVIDENCE_BARE_RE, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function extractPlanArtifact(text: string): { content: string; artifact: PlanArtifact | null } {
   const match = text.match(PLAN_TAG_RE);
-  if (!match) return { content: text, artifact: null };
+  if (!match) {
+    return { content: stripInternalAuditBlocks(text), artifact: null };
+  }
   const markdown = match[1].trim();
   const artifact: PlanArtifact = {
     title: "Strategic Plan",
@@ -35,7 +55,7 @@ export function extractPlanArtifact(text: string): { content: string; artifact: 
     evidenceSources: parseEvidenceSources(markdown),
     confidence: detectConfidence(markdown),
   };
-  const content = text.replace(PLAN_TAG_RE, "").trim();
+  const content = stripInternalAuditBlocks(text.replace(PLAN_TAG_RE, "").trim());
   return { content, artifact };
 }
 
