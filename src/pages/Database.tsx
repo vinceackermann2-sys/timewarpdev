@@ -40,6 +40,8 @@ function MobileHeader() {
   );
 }
 
+type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+
 // Auto-opens the active (or first) brand into BusinessDNAView whenever the user
 // is on the Business DNA view but no brand is selected yet — so clicking a pillar
 // in the sidebar jumps straight into the pillar instead of showing onboarding.
@@ -58,6 +60,31 @@ function DnaPillarAutoOpener({
     const target = brands[0];
     if (target) onOpenBrand(target.id);
   }, [enabled, isLoading, activeBrandId, brands, onOpenBrand]);
+  return null;
+}
+
+// Forces users with zero brands into the onboarding flow regardless of which
+// view they're on (manage, connections, aiceo, workspaces). Non-owner workspace
+// members are exempt — they collaborate on someone else's brand and shouldn't
+// be pushed into creating their own.
+function NoBrandsRedirect({
+  currentView,
+  onForceView,
+}: {
+  currentView: View;
+  onForceView: (view: View) => void;
+}) {
+  const { brands, isLoading } = useBusinessDNA();
+  const { activeWorkspace } = useWorkspace();
+  const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
+  useEffect(() => {
+    if (isLoading) return;
+    if (brands.length > 0) return;
+    if (isWorkspaceMemberOnly) return;
+    // employees + businessdna already render onboarding inline — leave them alone.
+    if (currentView === "employees" || currentView === "businessdna") return;
+    onForceView("employees");
+  }, [isLoading, brands.length, isWorkspaceMemberOnly, currentView, onForceView]);
   return null;
 }
 
@@ -229,8 +256,6 @@ function EmployeesArea({
 }
 
 import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
-
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
 
 interface PendingTask {
   role: string;
@@ -500,6 +525,13 @@ const Database = () => {
         onOpenBrand={(brandId) => {
           setActiveBrandId(brandId);
           setShowBusinessDNA(true);
+        }}
+      />
+      <NoBrandsRedirect
+        currentView={currentView}
+        onForceView={(view) => {
+          setCurrentView(view);
+          localStorage.setItem("tw_current_view", view);
         }}
       />
       <SidebarProvider>
