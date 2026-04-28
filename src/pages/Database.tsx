@@ -255,7 +255,7 @@ function EmployeesArea({
   );
 }
 
-import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
+import type { DashboardTab, DnaPillar, EmployeesTab } from "@/components/database/DatabaseSidebar";
 
 interface PendingTask {
   role: string;
@@ -288,6 +288,7 @@ const Database = () => {
   const [purchasedActions, setPurchasedActions] = useState(0);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>("Briefing");
   const [dnaPillar, setDnaPillar] = useState<DnaPillar>("brand");
+  const [employeesTab, setEmployeesTab] = useState<EmployeesTab>("agents");
   const [onboardingLocked, setOnboardingLocked] = useState(false);
 
   // Warn user when navigating away mid-onboarding (refresh, close tab, back button).
@@ -545,6 +546,8 @@ const Database = () => {
               onDashboardTabChange={setDashboardTab}
               activeDnaPillar={dnaPillar}
               onDnaPillarChange={setDnaPillar}
+              activeEmployeesTab={employeesTab}
+              onEmployeesTabChange={setEmployeesTab}
             />
           </div>
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
