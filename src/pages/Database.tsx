@@ -270,7 +270,7 @@ const Database = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
-    if (saved && ["aiceo", "businessdna", "employees", "workspaces", "manage"].includes(saved)) {
+    if (saved && ["aiceo", "businessdna", "employees", "employeesHub", "workspaces", "manage"].includes(saved)) {
       return saved as View;
     }
     // First-time users land directly in the assistant chat (which renders the
