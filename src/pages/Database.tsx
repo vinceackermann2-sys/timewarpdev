@@ -16,6 +16,7 @@ import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
 import { ManageDashboardView } from "@/components/database/ManageDashboardView";
+import { EmployeesHubView } from "@/components/database/EmployeesHubView";
 import { TopBreadcrumb } from "@/components/database/TopBreadcrumb";
 
 
