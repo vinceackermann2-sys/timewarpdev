@@ -288,6 +288,7 @@ const Database = () => {
   const [purchasedActions, setPurchasedActions] = useState(0);
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>("Briefing");
   const [dnaPillar, setDnaPillar] = useState<DnaPillar>("brand");
+  const [employeesTab, setEmployeesTab] = useState<EmployeesTab>("agents");
   const [onboardingLocked, setOnboardingLocked] = useState(false);
 
   // Warn user when navigating away mid-onboarding (refresh, close tab, back button).
