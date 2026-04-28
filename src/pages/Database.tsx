@@ -546,6 +546,8 @@ const Database = () => {
               onDashboardTabChange={setDashboardTab}
               activeDnaPillar={dnaPillar}
               onDnaPillarChange={setDnaPillar}
+              activeEmployeesTab={employeesTab}
+              onEmployeesTabChange={setEmployeesTab}
             />
           </div>
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
