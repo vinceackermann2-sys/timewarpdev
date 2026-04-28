@@ -173,42 +173,33 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeEm
                     {!isCollapsed && <span>Dashboard</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <Collapsible defaultOpen className="group/collapsible">
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        tooltip="Employees"
-                        className="w-full"
-                      >
+                <SidebarMenuItem>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <SidebarMenuButton tooltip="Employees" className="w-full">
                         <Users2 className="h-4 w-4 shrink-0" />
-                        {!isCollapsed && (
-                          <>
-                            <span className="flex-1 text-left">Employees</span>
-                            <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
-                          </>
-                        )}
+                        {!isCollapsed && <span>Employees</span>}
                       </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    {!isCollapsed && (
-                      <CollapsibleContent>
-                        <div className="ml-6 mt-1 flex flex-col gap-0.5 border-l border-border/50 pl-2">
-                          <button
-                            onClick={() => onEmployeesTabChange?.("agents")}
-                            className={`text-left text-xs py-1.5 px-2 rounded-md transition-colors ${activeEmployeesTab === "agents" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"}`}
-                          >
-                            Agents
-                          </button>
-                          <button
-                            onClick={() => onEmployeesTabChange?.("employees")}
-                            className={`text-left text-xs py-1.5 px-2 rounded-md transition-colors ${activeEmployeesTab === "employees" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50 text-muted-foreground"}`}
-                          >
-                            Employees
-                          </button>
-                        </div>
-                      </CollapsibleContent>
-                    )}
-                  </SidebarMenuItem>
-                </Collapsible>
+                    </PopoverTrigger>
+                    <PopoverContent side="right" align="start" className="w-44 p-1.5">
+                      <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Customize
+                      </p>
+                      <button
+                        onClick={() => onEmployeesTabChange?.("agents")}
+                        className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${activeEmployeesTab === "agents" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"}`}
+                      >
+                        Agents
+                      </button>
+                      <button
+                        onClick={() => onEmployeesTabChange?.("employees")}
+                        className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${activeEmployeesTab === "employees" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"}`}
+                      >
+                        Employees
+                      </button>
+                    </PopoverContent>
+                  </Popover>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
