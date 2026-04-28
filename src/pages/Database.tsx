@@ -255,7 +255,7 @@ function EmployeesArea({
   );
 }
 
-import type { DashboardTab, DnaPillar } from "@/components/database/DatabaseSidebar";
+import type { DashboardTab, DnaPillar, EmployeesTab } from "@/components/database/DatabaseSidebar";
 
 interface PendingTask {
   role: string;
