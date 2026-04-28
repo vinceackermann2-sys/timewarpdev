@@ -40,7 +40,7 @@ function MobileHeader() {
   );
 }
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 
 // Auto-opens the active (or first) brand into BusinessDNAView whenever the user
 // is on the Business DNA view but no brand is selected yet — so clicking a pillar
