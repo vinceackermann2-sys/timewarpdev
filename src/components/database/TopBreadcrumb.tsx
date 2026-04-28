@@ -8,12 +8,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 
 const VIEW_LABELS: Record<View, string> = {
   aiceo: "AI CEO",
   businessdna: "Business DNA",
   employees: "Assistant",
+  employeesHub: "Employees",
   workspaces: "Workspaces",
   connections: "Connectors",
   manage: "Dashboard",

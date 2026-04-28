@@ -16,6 +16,7 @@ import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { AgentChatView } from "@/components/database/AgentChatView";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
 import { ManageDashboardView } from "@/components/database/ManageDashboardView";
+import { EmployeesHubView } from "@/components/database/EmployeesHubView";
 import { TopBreadcrumb } from "@/components/database/TopBreadcrumb";
 
 
@@ -40,7 +41,7 @@ function MobileHeader() {
   );
 }
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 
 // Auto-opens the active (or first) brand into BusinessDNAView whenever the user
 // is on the Business DNA view but no brand is selected yet — so clicking a pillar
@@ -270,7 +271,7 @@ const Database = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>(() => {
     const saved = localStorage.getItem("tw_current_view");
-    if (saved && ["aiceo", "businessdna", "employees", "workspaces", "manage"].includes(saved)) {
+    if (saved && ["aiceo", "businessdna", "employees", "employeesHub", "workspaces", "manage"].includes(saved)) {
       return saved as View;
     }
     // First-time users land directly in the assistant chat (which renders the
@@ -630,6 +631,12 @@ const Database = () => {
                     setInitialAssistantMessage(text);
                     handleViewChange("employees");
                   }}
+                />
+              )}
+              {currentView === "employeesHub" && user && (
+                <EmployeesHubView
+                  activeTab={employeesTab}
+                  onTabChange={setEmployeesTab}
                 />
               )}
             </main>

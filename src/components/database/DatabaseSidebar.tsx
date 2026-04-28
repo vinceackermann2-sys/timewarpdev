@@ -73,7 +73,7 @@ import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 export type DashboardTab = "Briefing" | "Updates" | "To-Dos" | "Objectives";
 export type DnaPillar = "brand" | "product" | "audience" | "market" | "financial" | "operations" | "people" | "growth" | "strategy";
 export type EmployeesTab = "agents" | "employees";
@@ -174,31 +174,15 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeEm
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <SidebarMenuButton tooltip="Employees" className="w-full">
-                        <Users2 className="h-4 w-4 shrink-0" />
-                        {!isCollapsed && <span>Employees</span>}
-                      </SidebarMenuButton>
-                    </PopoverTrigger>
-                    <PopoverContent side="right" align="start" className="w-44 p-1.5">
-                      <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Customize
-                      </p>
-                      <button
-                        onClick={() => onEmployeesTabChange?.("agents")}
-                        className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${activeEmployeesTab === "agents" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"}`}
-                      >
-                        Agents
-                      </button>
-                      <button
-                        onClick={() => onEmployeesTabChange?.("employees")}
-                        className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${activeEmployeesTab === "employees" ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50"}`}
-                      >
-                        Employees
-                      </button>
-                    </PopoverContent>
-                  </Popover>
+                  <SidebarMenuButton
+                    isActive={currentView === "employeesHub"}
+                    onClick={() => onViewChange("employeesHub")}
+                    tooltip="Employees"
+                    className={currentView === "employeesHub" ? "bg-primary/10 text-primary" : ""}
+                  >
+                    <Users2 className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Employees</span>}
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
