@@ -632,6 +632,12 @@ const Database = () => {
                   }}
                 />
               )}
+              {currentView === "employeesHub" && user && (
+                <EmployeesHubView
+                  activeTab={employeesTab}
+                  onTabChange={setEmployeesTab}
+                />
+              )}
             </main>
           </SidebarInset>
           <ActionsCelebration
