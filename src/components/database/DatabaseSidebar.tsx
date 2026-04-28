@@ -76,6 +76,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
 export type DashboardTab = "Briefing" | "Updates" | "To-Dos" | "Objectives";
 export type DnaPillar = "brand" | "product" | "audience" | "market" | "financial" | "operations" | "people" | "growth" | "strategy";
+export type EmployeesTab = "agents" | "employees";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -85,9 +86,11 @@ interface DatabaseSidebarProps {
   onDashboardTabChange?: (tab: DashboardTab) => void;
   activeDnaPillar?: DnaPillar;
   onDnaPillarChange?: (pillar: DnaPillar) => void;
+  activeEmployeesTab?: EmployeesTab;
+  onEmployeesTabChange?: (tab: EmployeesTab) => void;
 }
 
-export function DatabaseSidebar({ currentView, onViewChange, userEmail }: DatabaseSidebarProps) {
+export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeEmployeesTab, onEmployeesTabChange }: DatabaseSidebarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state, toggleSidebar, setOpen } = useSidebar();
