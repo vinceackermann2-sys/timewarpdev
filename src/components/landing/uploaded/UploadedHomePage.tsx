@@ -1428,27 +1428,27 @@ const Footer = () => (
              <div>
                <h5 className="font-semibold text-gray-900 mb-4 text-[13px]">Product</h5>
                <ul className="space-y-3 text-[13px] text-gray-600">
-                 <li><a href="#" className="hover:text-gray-900 transition-colors">Pricing</a></li>
+                 <li><Link to="/pricing" className="hover:text-gray-900 transition-colors">Pricing</Link></li>
                </ul>
              </div>
              <div>
                <h5 className="font-semibold text-gray-900 mb-4 text-[13px]">Resources</h5>
                <ul className="space-y-3 text-[13px] text-gray-600">
-                 <li><a href="#" className="hover:text-gray-900 transition-colors">Support</a></li>
+                 <li><Link to="/support" className="hover:text-gray-900 transition-colors">Support</Link></li>
                </ul>
              </div>
              <div>
                <h5 className="font-semibold text-gray-900 mb-4 text-[13px]">Legal</h5>
                <ul className="space-y-3 text-[13px] text-gray-600">
-                 <li><a href="#" className="hover:text-gray-900 transition-colors">Terms of Service</a></li>
-                 <li><a href="#" className="hover:text-gray-900 transition-colors">Privacy Policy</a></li>
-                 <li><a href="#" className="hover:text-gray-900 transition-colors">Data Deletion</a></li>
+                 <li><Link to="/terms" className="hover:text-gray-900 transition-colors">Terms of Service</Link></li>
+                 <li><Link to="/privacy" className="hover:text-gray-900 transition-colors">Privacy Policy</Link></li>
+                 <li><Link to="/data-deletion" className="hover:text-gray-900 transition-colors">Data Deletion</Link></li>
                </ul>
              </div>
              <div>
                <h5 className="font-semibold text-gray-900 mb-4 text-[13px]">Community</h5>
                <ul className="space-y-3 text-[13px] text-gray-600">
-                 <li><a href="#" className="hover:text-gray-900 transition-colors">Discord</a></li>
+                 <li><a href="https://discord.gg/" target="_blank" rel="noreferrer" className="hover:text-gray-900 transition-colors">Discord</a></li>
                </ul>
              </div>
            </div>
