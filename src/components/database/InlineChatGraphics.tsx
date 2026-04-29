@@ -161,7 +161,7 @@ export function InlineSpreadsheet({ jsonString, editorEnabled = true }: { jsonSt
           <thead>
             <tr className="bg-muted/50 border-b border-border/50">
               {config.headers.map((h, i) => (
-                <th key={i} className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px] whitespace-nowrap">{h}</th>
+                <th key={i} className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px] shadow-none whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
