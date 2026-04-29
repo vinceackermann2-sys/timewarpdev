@@ -69,7 +69,7 @@ export function AgentChatMessageList({
               className={cn(
                 "max-w-[80%] text-sm flex flex-col",
                 msg.role === "user"
-                  ? "rounded-2xl rounded-br-md bg-muted/50 text-foreground px-4 py-2.5"
+                  ? "rounded-2xl rounded-br-md bg-[#3B82F6]/10 text-foreground px-4 py-2.5"
                   : "rounded-2xl rounded-bl-md text-foreground px-1 py-1",
               )}
             >
