@@ -1462,7 +1462,7 @@ const Footer = () => (
    </footer>
 );
 
-export default function App() {
+export default function UploadedHomePage() {
   return (
     <div className="font-sans antialiased text-gray-900 bg-[#fdfcfd] min-h-screen">
       <Navbar />
