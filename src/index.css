@@ -585,7 +585,7 @@
     --browser-dot-green: 142 71% 45%;
 
     /* Sidebar */
-    --sidebar-background: 0 0% 100%;
+    --sidebar-background: 300 20% 99%;
     --sidebar-foreground: 220 39% 11%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -593,7 +593,7 @@
     --sidebar-accent-foreground: 220 39% 11%;
     --sidebar-border: 220 14% 94%;
     --sidebar-ring: 217 91% 60%;
-    --sidebar: 0 0% 100%;
+    --sidebar: 300 20% 99%;
 
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --font-serif: Merriweather, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
@@ -640,7 +640,7 @@
     --border: 220 14% 94%;
     --input: 220 14% 90%;
     --ring: 217 91% 60%;
-    --sidebar-background: 0 0% 100%;
+    --sidebar-background: 300 20% 99%;
     --sidebar-foreground: 220 39% 11%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -648,7 +648,7 @@
     --sidebar-accent-foreground: 220 39% 11%;
     --sidebar-border: 220 14% 94%;
     --sidebar-ring: 217 91% 60%;
-    --sidebar: 0 0% 100%;
+    --sidebar: 300 20% 99%;
   }
 }
 
