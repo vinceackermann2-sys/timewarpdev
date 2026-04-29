@@ -1079,7 +1079,7 @@ export function BusinessDNAOnboarding({
                       className={`cursor-pointer rounded-2xl overflow-hidden border-2 transition-all ${
                         isSelected
                           ? "border-primary ring-4 ring-[#4a86ff]/20"
-                          : "border-transparent bg-muted hover:border-[#e5e4df]"
+                          : "border-transparent bg-muted hover:border-border"
                       }`}
                     >
                       <div className="relative h-36 sm:h-48 bg-card flex items-center justify-center">
@@ -1295,7 +1295,7 @@ export function BusinessDNAOnboarding({
                   onClick={() => setForgingTab("found")}
                   className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
                     forgingTab === "found"
-                      ? "bg-card border border-[#e5e4df] text-foreground shadow-sm"
+                      ? "bg-card border border-border text-foreground shadow-sm"
                       : "text-muted-foreground bg-background"
                   }`}
                 >
@@ -1310,7 +1310,7 @@ export function BusinessDNAOnboarding({
                   onClick={() => setForgingTab("confirmed")}
                   className={`px-4 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-2 transition-colors ${
                     forgingTab === "confirmed"
-                      ? "bg-card border border-[#e5e4df] text-foreground shadow-sm"
+                      ? "bg-card border border-border text-foreground shadow-sm"
                       : "text-muted-foreground bg-background"
                   }`}
                 >
@@ -1389,7 +1389,7 @@ export function BusinessDNAOnboarding({
                 <div className="w-full flex flex-col gap-3">
                   {persistenceComplete ? (
                     <>
-                      <div className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
+                      <div className="w-full bg-muted border border-border rounded-xl p-4 flex items-center gap-3">
                         <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
                         <div>
                           <span className="text-[15px] font-medium text-foreground">{brandData.name || "Brand"}</span>
@@ -1397,13 +1397,13 @@ export function BusinessDNAOnboarding({
                         </div>
                       </div>
                       {displayProducts.map((p: any, i: number) => (
-                        <div key={i} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
+                        <div key={i} className="w-full bg-muted border border-border rounded-xl p-4 flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
                           <span className="text-[15px] font-medium text-foreground">{p.name || `Product ${i + 1}`}</span>
                         </div>
                       ))}
                       {audiencesRaw.filter((a: any) => a?.name).map((a: any, i: number) => (
-                        <div key={`ca-${i}`} className="w-full bg-[#f9f9f8] border border-[#e5e4df] rounded-xl p-4 flex items-center gap-3">
+                        <div key={`ca-${i}`} className="w-full bg-muted border border-border rounded-xl p-4 flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-[#22c55e] shrink-0" />
                           <span className="text-[15px] font-medium text-foreground">{a.name}</span>
                         </div>

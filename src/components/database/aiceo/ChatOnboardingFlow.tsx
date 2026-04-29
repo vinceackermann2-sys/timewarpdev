@@ -779,7 +779,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                             "text-left rounded-2xl overflow-hidden border-2 transition-all",
                             isSelected
                               ? "border-primary ring-4 ring-[#4a86ff]/20"
-                              : "border-transparent bg-muted hover:border-[#e5e4df]"
+                              : "border-transparent bg-muted hover:border-border"
                           )}
                         >
                           <div className="relative h-28 bg-card flex items-center justify-center">
