@@ -14,7 +14,7 @@ export function AgentChatMessage({ role, content, steps, isStreaming }: AgentCha
   if (role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="bg-muted text-foreground max-w-[80%] rounded-lg px-5 py-3 text-sm">
+        <div className="bg-[#e5e7eb] text-foreground max-w-[80%] rounded-2xl rounded-br-md px-5 py-3 text-sm">
           {content}
         </div>
       </div>
@@ -52,7 +52,7 @@ export function AgentChatMessage({ role, content, steps, isStreaming }: AgentCha
 
   return (
     <div className="flex justify-start">
-      <div className="bg-card/80 backdrop-blur border border-border/50 max-w-[85%] rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-card/80 backdrop-blur border border-border/50 max-w-[85%] rounded-2xl rounded-bl-md overflow-hidden">
         {/* Text content */}
         {content && (
           <div className="px-5 py-3 text-sm text-foreground/90">

@@ -25,14 +25,14 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 
 function MobileHeader() {
   const { toggleSidebar } = useSidebar();
   return (
-    <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-background">
-      <div className="flex items-center">
-        <TimeWarpLogo size={28} wordmarkClassName="text-sm" />
+    <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2">
+        <img src="/favicon.png" alt="TimeWarp" className="h-7 w-7 rounded-lg" />
+        <span className="font-semibold text-sm">TimeWarp</span>
       </div>
       <Button variant="ghost" size="icon" onClick={toggleSidebar}>
         <Menu className="h-5 w-5" />
@@ -551,7 +551,7 @@ const Database = () => {
               onEmployeesTabChange={setEmployeesTab}
             />
           </div>
-          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-background">
+          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
             <MobileHeader />
             <div className={onboardingLocked ? "pointer-events-none opacity-60" : ""}>
               <TopBreadcrumb
@@ -564,7 +564,7 @@ const Database = () => {
                 }}
               />
             </div>
-            <main className="flex-1 min-h-0 overflow-hidden rounded-tl-lg border-t border-l border-border bg-background">
+            <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-[#d1d5db] bg-background">
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
                   initialTask={pendingTask}

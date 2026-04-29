@@ -2,7 +2,6 @@ import { Globe, ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import futureCity from "@/assets/future-city.jpg";
 import { useNavigate, Link } from "react-router-dom";
-import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 import ZipHowItWorks from "@/components/landing/ZipHowItWorks";
 import ZipLifeAndWork from "@/components/landing/ZipLifeAndWork";
 
@@ -179,8 +178,9 @@ export function ProductDescription({ onAuthRequest }: ProductDescriptionProps) {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl pb-10 pt-4">
           <div className="rounded-2xl border border-border/50 dark:border-[hsl(0_0%_20%)] bg-muted/30 dark:bg-[hsl(0_0%_14%)] backdrop-blur-sm px-5 sm:px-12 py-8 sm:py-14">
             <div className="flex flex-col gap-8 sm:flex-row sm:gap-14">
-              <div className="shrink-0">
-                <TimeWarpLogo size={40} wordmarkClassName="text-xl font-semibold" />
+              <div className="flex items-start gap-2 shrink-0">
+                <img src="/favicon.png" alt="TimeWarp" className="h-10 w-10 rounded-md" />
+                <span className="font-semibold text-xl text-foreground dark:text-white">TimeWarp</span>
               </div>
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-6 sm:gap-14 flex-1">
                 <div className="space-y-2">

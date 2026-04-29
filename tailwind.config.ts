@@ -82,7 +82,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Inter',
+  				'Plus Jakarta Sans',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',

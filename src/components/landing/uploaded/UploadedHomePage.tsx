@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { lovable } from '@/integrations/lovable/index';
 import heroFutureCity from '@/assets/hero-future-city.png';
-import { TimeWarpLogo } from '@/components/brand/TimeWarpLogo';
+import timewarpLogo from '@/assets/timewarp-logo-swirl.png';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -46,8 +46,9 @@ const Navbar = () => {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 px-6 transition-all duration-300 flex items-center justify-between ${isScrolled ? 'py-3 bg-white/40 backdrop-blur-xl shadow-sm text-gray-900 border-none' : 'py-5 bg-transparent border-transparent text-white/90'}`}>
       <div className="flex items-center space-x-8">
-        <Link to="/" className="flex items-center">
-          <TimeWarpLogo size={28} wordmarkClassName="text-xl font-black tracking-tighter" />
+        <Link to="/" className="flex items-center gap-2">
+          <img src={timewarpLogo} alt="TimeWarp" className="h-7 w-auto" />
+          <span className="text-xl font-black tracking-tighter">TimeWarp</span>
         </Link>
       </div>
       <div className="flex items-center space-x-4">
@@ -168,7 +169,7 @@ const GrowBusiness = () => {
                  </div>
                  <p className="text-[13px] font-medium text-gray-700 pr-2 tracking-tight">TimeWarp</p>
              </div>
-             <p className="text-[11px] text-gray-500 font-medium bg-[#f2f4f6] px-2.5 py-1.5 rounded-lg border border-gray-100">&quot;Let me look at the data&quot;</p>
+             <p className="text-[11px] text-gray-500 font-medium bg-[#f2f4f6] px-2.5 py-1.5 rounded-lg border border-gray-100">Let me look at the data</p>
           </motion.div>
         </div>
 
@@ -461,7 +462,7 @@ const Hero = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="text-5xl md:text-7xl font-bold text-white max-w-4xl tracking-tight leading-[1.1] mb-6 relative z-10 drop-shadow-lg"
+        className="text-5xl md:text-7xl font-bold max-w-4xl tracking-tight leading-[1.1] mb-6 relative z-10 text-shine-blue"
       >
         The future of business.
       </motion.h1>
@@ -1448,8 +1449,9 @@ const Footer = () => (
      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between mb-16 gap-10">
         <div className="flex flex-col md:flex-row gap-12 lg:gap-24">
            {/* Logo Component */}
-           <Link to="/" className="flex items-center">
-             <TimeWarpLogo size={28} wordmarkClassName="text-xl font-bold tracking-tight" />
+           <Link to="/" className="flex items-center gap-2">
+             <img src={timewarpLogo} alt="TimeWarp" className="h-7 w-auto" />
+             <span className="text-xl font-bold tracking-tight text-[#1a202c]">TimeWarp</span>
            </Link>
 
            {/* Links */}

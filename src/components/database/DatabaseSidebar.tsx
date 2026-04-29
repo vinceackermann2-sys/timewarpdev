@@ -72,7 +72,6 @@ import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
-import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 
 type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 export type DashboardTab = "Briefing" | "Updates" | "To-Dos" | "Objectives";
@@ -128,8 +127,13 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeEm
         <SidebarHeader className="p-2">
           <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'justify-between'}`}>
             {!isCollapsed && (
-              <Link to="/app" className="flex items-center">
-                <TimeWarpLogo size={32} wordmarkClassName="text-lg" />
+              <Link to="/app" className="flex items-center gap-2">
+                <img 
+                  src="/favicon.png" 
+                  alt="TimeWarp" 
+                  className="h-8 w-8 rounded-lg object-cover flex-shrink-0"
+                />
+                <span className="font-semibold text-lg">TimeWarp</span>
               </Link>
             )}
             <button
@@ -334,8 +338,8 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeEm
           <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button className={`w-full rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${profileMenuOpen ? 'bg-primary/10 text-primary' : ''} ${isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'}`}>
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary-foreground">
+                <div className="h-8 w-8 rounded-[14px] bg-[#4a86ff] flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-white">
                     {(userEmail || "U").charAt(0).toUpperCase()}
                   </span>
                 </div>

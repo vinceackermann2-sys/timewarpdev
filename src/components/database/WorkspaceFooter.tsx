@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 
 interface WorkspaceFooterProps {
   compact?: boolean;
@@ -7,13 +6,14 @@ interface WorkspaceFooterProps {
 
 export function WorkspaceFooter({ compact = false }: WorkspaceFooterProps) {
   return (
-    <div className="w-full px-4 sm:px-6 py-8 sm:py-14 bg-background mx-auto" style={{ maxWidth: 1900 }}>
-      <div className="w-full mx-auto rounded-lg border border-border px-5 sm:px-12 py-8 sm:py-14 bg-card shadow-sm">
+    <div className="w-full px-4 sm:px-6 py-8 sm:py-14 bg-[#FAFBFF] mx-auto" style={{ maxWidth: 1900 }}>
+      <div className="w-full mx-auto rounded-2xl border border-[#d1d5db] px-5 sm:px-12 py-8 sm:py-14 bg-[#E8F0FE]">
           <div className="flex flex-col gap-8 lg:flex-row lg:gap-14">
             {/* Left: logo + links */}
             <div className="flex flex-col gap-8 sm:flex-row sm:gap-14 flex-1">
-              <div className="shrink-0">
-                <TimeWarpLogo size={40} wordmarkClassName="text-xl" />
+              <div className="flex items-start gap-2 shrink-0">
+                <img src="/favicon.png" alt="TimeWarp" className="h-10 w-10 rounded-md" />
+                <span className="font-semibold text-xl text-foreground">TimeWarp</span>
               </div>
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-6 sm:gap-14 flex-1">
                 <div className="space-y-2">
