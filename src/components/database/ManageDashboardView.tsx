@@ -855,7 +855,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 shrink-0 bg-card hover:bg-card active:bg-card focus:bg-card hover:text-foreground shadow-none opacity-100 text-foreground" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 shrink-0 shadow-none opacity-100 bg-primary text-white" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Update
             </Button>
