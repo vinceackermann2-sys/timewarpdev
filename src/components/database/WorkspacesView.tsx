@@ -15,6 +15,7 @@ import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
 import { WorkspaceDetailView } from "@/components/database/WorkspaceDetailView";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 interface WorkspacesViewProps {
   onBack?: () => void;
@@ -89,7 +90,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-1">
         <div className="rounded-xl border border-border">
           {/* Toolbar */}
-          <div className="flex items-center justify-between px-5 py-4 border-b bg-[#fcfcfd] border-[#eeeff2]/0">
+          <div className="flex items-center justify-between px-5 py-4">
             <span className="text-sm font-medium text-muted-foreground">
               {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}
             </span>
@@ -136,7 +137,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
                 {workspaces.map((ws) => (
                   <TableRow
                     key={ws.workspaceId}
-                    className={ws.workspaceId === activeWorkspaceId ? "bg-muted/40" : ""}
+                    className={cn("rounded-xl overflow-hidden [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl", ws.workspaceId === activeWorkspaceId ? "bg-muted/40" : "")}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
