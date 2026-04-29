@@ -168,7 +168,7 @@ function PlanCard({
   const benefits = PLAN_BENEFITS[planKey];
 
   return (
-    <div className="relative rounded-3xl border border-border bg-card p-8 flex flex-col shadow-sm">
+    <div className="relative rounded-3xl border border-border p-8 flex flex-col shadow-sm bg-white">
       {/* Badge top right */}
       {badge && (
         <div className="absolute top-6 right-6">
@@ -351,7 +351,7 @@ export default function PricingPage() {
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-background">
+          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#f3f5f7]">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}
