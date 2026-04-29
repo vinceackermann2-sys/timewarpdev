@@ -127,10 +127,10 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Workspace</TableHead>
+                  <TableHead className="rounded-tl-xl">Workspace</TableHead>
                   <TableHead>Your Role</TableHead>
                   <TableHead>Members</TableHead>
-                  <TableHead className="text-right" />
+                  <TableHead className="text-right rounded-tr-xl" />
                 </TableRow>
               </TableHeader>
               <TableBody>
