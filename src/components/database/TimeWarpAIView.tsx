@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -546,11 +547,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <img 
-              src="/favicon.png" 
-              alt="TimeWarp" 
-              className="h-10 w-10 rounded-xl object-cover shadow-glow"
-            />
+            <TimeWarpLogo iconOnly size={40} />
             <h1 className="text-2xl font-bold">TimeWarp AI</h1>
             <Sparkles className="h-5 w-5 text-primary animate-pulse" />
           </div>
@@ -659,11 +656,7 @@ export function TimeWarpAIView({ initialTask, onTaskConsumed }: TimeWarpAIViewPr
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border/50 bg-card/30">
         <div className="flex items-center gap-3">
-          <img 
-            src="/favicon.png" 
-            alt="TimeWarp" 
-            className="h-8 w-8 rounded-lg object-cover"
-          />
+          <TimeWarpLogo iconOnly size={32} />
           <div>
             <h1 className="font-semibold flex items-center gap-2">
               TimeWarp AI
