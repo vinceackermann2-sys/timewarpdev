@@ -461,7 +461,7 @@ const Hero = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="text-5xl md:text-7xl font-bold max-w-4xl tracking-tight leading-[1.1] mb-6 relative z-10 text-shine-blue"
+        className="text-5xl md:text-7xl font-bold text-white max-w-4xl tracking-tight leading-[1.1] mb-6 relative z-10 drop-shadow-lg"
       >
         The future of business.
       </motion.h1>
