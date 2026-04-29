@@ -36,7 +36,7 @@ export function AgentChatSettingsModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose} />
       <div className="relative w-full sm:max-w-4xl h-[85vh] sm:h-[600px] bg-background shadow-2xl border border-border rounded-t-2xl sm:rounded-2xl z-50 animate-in slide-in-from-bottom sm:zoom-in-95 fade-in duration-200 flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-card">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-[#fcfcfd]">
           <div className="w-8" />
           <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
             <h3 className="text-base sm:text-lg font-bold text-foreground">Settings</h3>
@@ -59,7 +59,7 @@ export function AgentChatSettingsModal({
         </div>
 
         <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
-          <div className="sm:w-64 bg-card border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-y-auto shrink-0">
+          <div className="sm:w-64 border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-y-auto shrink-0 bg-[#fcfcfd]">
             {(
               [
                 { key: "safety", label: "Safety", icon: Shield },
@@ -81,7 +81,7 @@ export function AgentChatSettingsModal({
             ))}
           </div>
 
-          <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-background">
+          <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-[#fcfcfd]">
             {settingsTab === "safety" && (
               <div className="flex-1">
                 {(() => {
