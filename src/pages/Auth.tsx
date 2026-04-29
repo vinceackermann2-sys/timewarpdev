@@ -360,12 +360,12 @@ const Auth = () => {
                   {isSignUp ? (
                     <>
                       Already have an account?{" "}
-                      <button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Sign in here</button>
+                      <button onClick={() => setIsSignUp(false)} className="hover:underline font-medium text-[#3c83f6]">Sign in here</button>
                     </>
                   ) : (
                     <>
                       Don't have an account?{" "}
-                      <button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button>
+                      <button onClick={() => setIsSignUp(true)} className="hover:underline font-medium text-[#3c83f6]">Sign up</button>
                     </>
                   )}
                 </div>
