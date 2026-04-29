@@ -97,7 +97,7 @@ function ConnectionCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group hover:shadow-sm border-border bg-background ${
+      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group hover:shadow-sm border-border bg-[#dbe6ff] ${
         integration.comingSoon
           ? "opacity-60 cursor-default"
           : ""
