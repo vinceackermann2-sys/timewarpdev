@@ -25,14 +25,14 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 
 function MobileHeader() {
   const { toggleSidebar } = useSidebar();
   return (
-    <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border">
-      <div className="flex items-center gap-2">
-        <img src="/favicon.png" alt="TimeWarp" className="h-7 w-7 rounded-lg" />
-        <span className="font-semibold text-sm">TimeWarp</span>
+    <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-background">
+      <div className="flex items-center">
+        <TimeWarpLogo size={28} wordmarkClassName="text-sm" />
       </div>
       <Button variant="ghost" size="icon" onClick={toggleSidebar}>
         <Menu className="h-5 w-5" />
