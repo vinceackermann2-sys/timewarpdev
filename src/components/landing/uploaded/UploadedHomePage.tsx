@@ -169,7 +169,7 @@ const GrowBusiness = () => {
                  </div>
                  <p className="text-[13px] font-medium text-gray-700 pr-2 tracking-tight">TimeWarp</p>
              </div>
-             <p className="text-[11px] text-gray-500 font-medium bg-[#f2f4f6] px-2.5 py-1.5 rounded-lg border border-gray-100">Let me look at the data</p>
+             <p className="text-[11px] text-gray-500 font-medium bg-[#f2f4f6] px-2.5 py-1.5 rounded-lg border border-gray-100">"Let me look at the data"</p>
           </motion.div>
         </div>
 
@@ -269,7 +269,7 @@ const GrowBusiness = () => {
                  </div>
                  <p className="text-[10px] font-medium text-gray-700 tracking-tight">TimeWarp</p>
              </div>
-             <p className="text-[9px] text-gray-500 font-medium bg-[#f2f4f6] px-2 py-1 rounded border border-gray-100 text-center z-20">Let me look at<br />the data</p>
+             <p className="text-[9px] text-gray-500 font-medium bg-[#f2f4f6] px-2 py-1 rounded border border-gray-100 text-center z-20">"Let me look at<br />the data"</p>
           </motion.div>
         </div>
 
