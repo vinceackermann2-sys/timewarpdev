@@ -474,13 +474,9 @@ const Hero = () => {
         <PromptBox />
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button className="bg-[#3B82F6] text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-[#2563EB] transition-colors shadow-[0_0_20px_rgba(168,113,182,0.4)] border border-white/20">
+          <Link to="/auth?mode=signup" className="bg-[#3B82F6] text-white px-6 py-3 rounded-full font-semibold flex items-center gap-2 hover:bg-[#2563EB] transition-colors shadow-[0_0_20px_rgba(168,113,182,0.4)] border border-white/20">
             Start for free ✨
-          </button>
-          <label className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white px-6 py-3 rounded-full cursor-pointer transition-colors shadow-lg font-semibold flex items-center gap-2">
-            Upload Custom Bg
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-          </label>
+          </Link>
         </div>
       </motion.div>
   
