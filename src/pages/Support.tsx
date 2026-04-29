@@ -15,8 +15,8 @@ export default function Support() {
         <p className="text-muted-foreground mb-10">Need help? We're here for you.</p>
 
         <div className="space-y-6">
-          <div className="rounded-xl border border-border p-6 bg-card">
-            <div className="flex items-start gap-4 bg-card">
+          <div className="rounded-xl border border-border p-6 bg-[#dbe6ff]">
+            <div className="flex items-start gap-4 bg-[#dbe6ff]">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Mail className="h-5 w-5 text-foreground" />
               </div>
@@ -34,8 +34,8 @@ export default function Support() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border p-6 bg-card">
-            <div className="flex items-start gap-4 bg-card">
+          <div className="rounded-xl border border-border p-6 bg-[#dbe6ff]">
+            <div className="flex items-start gap-4 bg-[#dbe6ff]">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <MessageSquare className="h-5 w-5 text-foreground" />
               </div>
