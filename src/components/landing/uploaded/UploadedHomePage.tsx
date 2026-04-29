@@ -396,7 +396,10 @@ const PromptBox = () => {
              value={inputValue}
              onChange={(e) => setInputValue(e.target.value)}
              onKeyDown={(e) => {
-               if (e.key === 'Enter') setInputValue("");
+               if (e.key === 'Enter') {
+                 e.preventDefault();
+                 goToOnboarding();
+               }
              }}
              placeholder={placeholderText || " "} 
              className="w-full bg-transparent border-none outline-none text-gray-800 placeholder-gray-400 text-lg md:text-xl font-medium"
@@ -407,7 +410,11 @@ const PromptBox = () => {
              <button className="p-2 text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors">
                  <Plus className="w-5 h-5" />
              </button>
-             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors bg-white shadow-sm text-sm font-semibold text-gray-700 min-w-[124px] relative overflow-hidden cursor-pointer h-9">
+             <button
+                type="button"
+                onClick={goToOnboarding}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors bg-white shadow-sm text-sm font-semibold text-gray-700 min-w-[124px] relative overflow-hidden cursor-pointer h-9"
+             >
                  <span className="whitespace-nowrap">Connect to</span>
                  <AnimatePresence mode="popLayout">
                     <motion.div
@@ -421,10 +428,10 @@ const PromptBox = () => {
                        {React.createElement(integrations[integrationIndex].icon, { className: "w-5 h-5 rounded-full" })}
                     </motion.div>
                  </AnimatePresence>
-             </div>
+             </button>
           </div>
           <button 
-             onClick={() => setInputValue("")}
+             onClick={goToOnboarding}
              className="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center hover:bg-gray-800 transition-colors shadow-md group"
           >
              <ArrowUp className="w-5 h-5 stroke-[2.5] group-hover:-translate-y-0.5 transition-transform" />
