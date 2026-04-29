@@ -216,7 +216,7 @@ function SegmentContent({
 
       {isAdding && (
         <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-3">
-          <Textarea placeholder={`Add a ${segment.label.toLowerCase()} insight...`} className="text-sm min-h-[80px] resize-none bg-white" value={newText} onChange={(e) => setNewText(e.target.value)} />
+          <Textarea placeholder={`Add a ${segment.label.toLowerCase()} insight...`} className="text-sm min-h-[80px] resize-none bg-card" value={newText} onChange={(e) => setNewText(e.target.value)} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setIsAdding(false); setNewText(""); }}>Cancel</Button>
             <Button size="sm" className="h-8 text-xs" onClick={handleAdd} disabled={!newText.trim()}>
@@ -566,7 +566,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
   return (
     <div className="flex h-full w-full">
       {/* Left vertical pillar menu */}
-      <aside className="w-52 shrink-0 border-r border-border/60 flex flex-col py-4 px-3 gap-0.5 overflow-y-auto bg-[#fafbff]">
+      <aside className="w-52 shrink-0 border-r border-border/60 flex flex-col py-4 px-3 gap-0.5 overflow-y-auto bg-background">
         <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Business DNA
         </div>
@@ -647,7 +647,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
       </div>
 
       <Dialog open={showSuperchargePopup} onOpenChange={setShowSuperchargePopup}>
-        <DialogContent className="max-w-3xl bg-[#FAFAFD] border-border/60 rounded-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl bg-background border-border/60 rounded-2xl p-0 overflow-hidden">
           <div className="px-8 pt-8 pb-2">
             <DialogHeader className="space-y-2 text-left">
               <DialogTitle className="text-2xl font-bold text-foreground">
@@ -660,11 +660,11 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
           </div>
           <div className="px-8 pb-2">
             <div className="flex items-stretch justify-center">
-              <div className="w-full aspect-[16/7] rounded-lg overflow-hidden bg-[#fcfcfd] flex items-center justify-center">
+              <div className="w-full aspect-[16/7] rounded-lg overflow-hidden bg-background flex items-center justify-center">
                 <img
                   src={superchargeIllustration}
                   alt="Supercharge your Business DNA"
-                  className="w-full h-full object-contain bg-[#fafbff]"
+                  className="w-full h-full object-contain bg-background"
                 />
               </div>
             </div>
@@ -673,7 +673,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
             <Button
               variant="outline"
               onClick={() => setShowSuperchargePopup(false)}
-              className="rounded-full bg-white hover:bg-white"
+              className="rounded-full bg-card hover:bg-card"
             >
               Not now
             </Button>

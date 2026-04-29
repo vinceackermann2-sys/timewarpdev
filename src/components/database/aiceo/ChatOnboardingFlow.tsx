@@ -642,20 +642,20 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
   // ─────────── RENDER ───────────
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-[#FAFBFF]">
+    <div className="h-full w-full overflow-y-auto bg-background">
       <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12 space-y-6">
         {/* Greeting bubble */}
         <AssistantBubble>
           <div className="flex items-center gap-3 mb-2">
             <BusinessBrainOrb size={32} />
             <div>
-              <p className="text-[15px] font-semibold text-[#1a1f36]">Welcome 👋</p>
-              <p className="text-[13px] text-[#697386]">
+              <p className="text-[15px] font-semibold text-foreground">Welcome 👋</p>
+              <p className="text-[13px] text-muted-foreground">
                 Let's set up your business so I can act as your CEO.
               </p>
             </div>
           </div>
-          <p className="text-[14px] text-[#1a1f36]">
+          <p className="text-[14px] text-foreground">
             What's your company website? Paste any URL and I'll do the research for you.
           </p>
         </AssistantBubble>
@@ -663,18 +663,18 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         {/* URL input card */}
         {phase === "url" && (
           <UserActionCard>
-            <div className="border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm bg-[#fcfcfd]">
+            <div className="border-[1.5px] border-primary rounded-2xl p-2 shadow-sm bg-background">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                 <div className="flex items-center gap-2 flex-1 min-w-0 px-1">
                   <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0">
-                    <Globe className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
+                    <Globe className="w-5 h-5 text-primary" strokeWidth={2} />
                   </div>
                   <input
                     type="text"
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleSubmitUrl(); }}
-                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-[#1a1f36] text-[16px] sm:text-[15px]"
+                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-foreground text-[16px] sm:text-[15px]"
                     placeholder={`e.g. ${placeholderText}|`}
                     autoFocus
                   />
@@ -682,14 +682,14 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                 <button
                   onClick={handleSubmitUrl}
                   disabled={!urlInput.trim()}
-                  className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
+                  className="bg-primary hover:bg-primary/90 disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 text-[15px] shrink-0"
                 >
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex items-center gap-2 px-3 mt-3 mb-2">
-                <WandSparkles className="w-4 h-4 text-[#697386]" strokeWidth={2} />
-                <span className="text-[13px] text-[#697386]">Company URL works best.</span>
+                <WandSparkles className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
+                <span className="text-[13px] text-muted-foreground">Company URL works best.</span>
               </div>
             </div>
           </UserActionCard>
@@ -705,16 +705,16 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         {/* Analyzing */}
         {phase === "analyzing" && (
           <AssistantBubble>
-            <div className="rounded-xl border border-black/5 bg-[#fcfcfd] p-4">
+            <div className="rounded-xl border border-black/5 bg-background p-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-[#e6f2ff] flex items-center justify-center shrink-0">
-                  <Telescope className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
+                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shrink-0">
+                  <Telescope className="w-5 h-5 text-primary" strokeWidth={2} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-medium text-[#1a1f36] truncate">
+                  <p className="text-[14px] font-medium text-foreground truncate">
                     Analyzing {activeUrl}
                   </p>
-                  <p className="text-[12px] text-[#697386] truncate">{progressStage}</p>
+                  <p className="text-[12px] text-muted-foreground truncate">{progressStage}</p>
                 </div>
               </div>
               {scrapeError ? (
@@ -725,15 +725,15 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                   </div>
                   <button
                     onClick={handleRetryAnalyze}
-                    className="self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4a86ff]/10 hover:bg-[#4a86ff]/20 text-[#4a86ff] text-sm font-medium transition-colors"
+                    className="self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> Try again
                   </button>
                 </div>
               ) : (
-                <div className="w-full h-1.5 bg-[#e5e4df] rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#4a86ff] rounded-full transition-all duration-300 ease-out"
+                    className="h-full bg-primary rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${Math.max(3, progress)}%` }}
                   />
                 </div>
@@ -746,20 +746,20 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         {phase === "products" && (
           <>
             <AssistantBubble>
-              <p className="text-[14px] text-[#1a1f36] mb-1">
+              <p className="text-[14px] text-foreground mb-1">
                 I found {discoveredProducts.length} {businessTypePlural}. Pick the one you sell —
                 I'll build your DNA around it.
               </p>
             </AssistantBubble>
             <UserActionCard wide>
               {discoveredProducts.length === 0 ? (
-                <div className="bg-[#f4f3ee] rounded-2xl p-6 text-center">
-                  <p className="text-[#697386] text-sm mb-3">
+                <div className="bg-muted rounded-2xl p-6 text-center">
+                  <p className="text-muted-foreground text-sm mb-3">
                     No {businessTypePlural} detected. I'll build DNA from your brand data.
                   </p>
                   <button
                     onClick={handleSubmitProducts}
-                    className="bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-5 py-2 rounded-xl font-medium text-sm"
+                    className="bg-primary hover:bg-primary/90 transition-colors text-white px-5 py-2 rounded-xl font-medium text-sm"
                   >
                     Continue
                   </button>
@@ -778,11 +778,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                           className={cn(
                             "text-left rounded-2xl overflow-hidden border-2 transition-all",
                             isSelected
-                              ? "border-[#4a86ff] ring-4 ring-[#4a86ff]/20"
-                              : "border-transparent bg-[#f4f3ee] hover:border-[#e5e4df]"
+                              ? "border-primary ring-4 ring-[#4a86ff]/20"
+                              : "border-transparent bg-muted hover:border-border"
                           )}
                         >
-                          <div className="relative h-28 bg-white flex items-center justify-center">
+                          <div className="relative h-28 bg-card flex items-center justify-center">
                             {showImg ? (
                               <img
                                 src={imgUrl}
@@ -791,22 +791,22 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                                 onError={() => setFailedImages(prev => new Set(prev).add(imgUrl!))}
                               />
                             ) : (
-                              <Globe className="w-7 h-7 text-[#697386]/40" />
+                              <Globe className="w-7 h-7 text-muted-foreground/40" />
                             )}
                             <div
                               className={cn(
                                 "absolute top-2 right-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors",
-                                isSelected ? "bg-[#4a86ff] border-[#4a86ff]" : "bg-black/40 border-white/60"
+                                isSelected ? "bg-primary border-primary" : "bg-black/40 border-white/60"
                               )}
                             >
                               {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                             </div>
                           </div>
-                          <div className="p-3 bg-[#fcfcfd]">
-                            <p className="text-[10px] font-semibold text-[#697386] tracking-wider mb-0.5 uppercase">
+                          <div className="p-3 bg-background">
+                            <p className="text-[10px] font-semibold text-muted-foreground tracking-wider mb-0.5 uppercase">
                               {businessTypeLabel}
                             </p>
-                            <p className="text-[13px] font-bold text-[#1a1f36] leading-tight line-clamp-2">
+                            <p className="text-[13px] font-bold text-foreground leading-tight line-clamp-2">
                               {p.name || `${businessTypeLabel} ${i + 1}`}
                             </p>
                           </div>
@@ -818,7 +818,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                     <button
                       onClick={handleSubmitProducts}
                       disabled={selectedProductIdx == null}
-                      className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[14px]"
+                      className="bg-primary hover:bg-primary/90 disabled:opacity-50 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[14px]"
                     >
                       Continue <ArrowRight className="w-4 h-4" />
                     </button>
@@ -842,10 +842,10 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         {/* Forging timeline */}
         {phase === "forging" && (
           <AssistantBubble>
-            <div className="rounded-xl border border-black/5 bg-[#fcfcfd] p-4">
+            <div className="rounded-xl border border-black/5 bg-background p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-[#4a86ff]" />
-                <p className="text-[14px] font-semibold text-[#1a1f36]">Forging your Business DNA</p>
+                <Sparkles className="w-4 h-4 text-primary" />
+                <p className="text-[14px] font-semibold text-foreground">Forging your Business DNA</p>
               </div>
               {persistenceError ? (
                 <div className="flex flex-col gap-3">
@@ -855,7 +855,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                   </div>
                   <button
                     onClick={() => { setPersistenceError(null); setPhase("forging"); }}
-                    className="self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4a86ff]/10 hover:bg-[#4a86ff]/20 text-[#4a86ff] text-sm font-medium transition-colors"
+                    className="self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> Retry
                   </button>
@@ -868,13 +868,13 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                     return (
                       <li key={t.label} className="flex items-center gap-2 text-[13.5px]">
                         {t.done ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#4a86ff] shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                         ) : isActive ? (
-                          <Loader2 className="w-4 h-4 text-[#4a86ff] shrink-0 animate-spin" />
+                          <Loader2 className="w-4 h-4 text-primary shrink-0 animate-spin" />
                         ) : (
-                          <div className="w-4 h-4 rounded-full border border-[#cbd5e1] shrink-0" />
+                          <div className="w-4 h-4 rounded-full border border-border shrink-0" />
                         )}
-                        <span className={cn(t.done ? "text-[#1a1f36]" : "text-[#697386]")}>
+                        <span className={cn(t.done ? "text-foreground" : "text-muted-foreground")}>
                           {t.label}
                         </span>
                       </li>
@@ -892,7 +892,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
             <AssistantBubble>
               <div className="flex items-center gap-3 mb-2">
                 <BrandOrbLogo logoUrl={createdBrandLogoUrl} brandName={createdBrandName} size={36} />
-                <p className="text-[14px] text-[#1a1f36]">
+                <p className="text-[14px] text-foreground">
                   Your DNA is forged. What should I call your AI agent?
                 </p>
               </div>
@@ -905,11 +905,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
-                    className="bg-[#f4f3ee] border-[1.5px] border-[#4a86ff] rounded-2xl p-2 shadow-sm"
+                    className="bg-muted border-[1.5px] border-primary rounded-2xl p-2 shadow-sm"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ml-1">
-                        <WandSparkles className="w-5 h-5 text-[#4a86ff]" strokeWidth={2} />
+                        <WandSparkles className="w-5 h-5 text-primary" strokeWidth={2} />
                       </div>
                       <input
                         type="text"
@@ -918,14 +918,14 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && agentName.trim()) handleFinishNaming();
                         }}
-                        className="flex-1 bg-transparent border-none outline-none text-[#1a1f36] text-[16px] sm:text-[15px]"
+                        className="flex-1 bg-transparent border-none outline-none text-foreground text-[16px] sm:text-[15px]"
                         placeholder="e.g. Nova, Atlas, Sage…"
                         autoFocus
                       />
                       <button
                         onClick={handleFinishNaming}
                         disabled={!agentName.trim()}
-                        className="bg-[#4a86ff] hover:bg-[#2875ff] disabled:bg-[#4a86ff]/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                        className="bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                       >
                         Continue
                         <ArrowRight className="w-4 h-4" />
@@ -937,7 +937,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
                     key="going"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 text-[#4a86ff] text-sm py-2"
+                    className="flex items-center gap-2 text-primary text-sm py-2"
                   >
                     <Loader2 className="w-4 h-4 animate-spin" /> Saving {agentName.trim()}…
                   </motion.div>
@@ -959,12 +959,12 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
           <>
             <AssistantBubble>
               <div className="flex items-center gap-3 mb-2">
-                <Sparkles className="w-5 h-5 text-[#4a86ff] shrink-0" />
-                <p className="text-[15px] font-semibold text-[#1a1f36]">
+                <Sparkles className="w-5 h-5 text-primary shrink-0" />
+                <p className="text-[15px] font-semibold text-foreground">
                   Want to supercharge your DNA?
                 </p>
               </div>
-              <p className="text-[14px] text-[#1a1f36] leading-relaxed">
+              <p className="text-[14px] text-foreground leading-relaxed">
                 Connect your tools (Gmail, Drive, HubSpot, Slack…) or upload files and URLs so I can fill in the gaps with verified, real evidence — no made-up data. You can also do this later from Business DNA.
               </p>
             </AssistantBubble>
@@ -972,13 +972,13 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => handleSuperchargeChoice(true)}
-                  className="bg-[#4a86ff] hover:bg-[#2875ff] transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                  className="bg-primary hover:bg-primary/90 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                 >
                   <Sparkles className="w-4 h-4" /> Yes, supercharge
                 </button>
                 <button
                   onClick={() => handleSuperchargeChoice(false)}
-                  className="bg-white border border-[#e5e7eb] hover:bg-[#f4f3ee] transition-colors text-[#1a1f36] px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
+                  className="bg-card border border-border hover:bg-muted transition-colors text-foreground px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
                 >
                   Skip for now <ArrowRight className="w-4 h-4" />
                 </button>
@@ -1001,10 +1001,10 @@ function AssistantBubble({ children }: { children: React.ReactNode }) {
       transition={{ duration: 0.25 }}
       className="flex items-start gap-3"
     >
-      <div className="w-8 h-8 rounded-full bg-white border border-[#e5e7eb] flex items-center justify-center shrink-0">
+      <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shrink-0">
         <img src="/favicon.png" alt="AI CEO" className="w-5 h-5 rounded-full object-cover" />
       </div>
-      <div className="flex-1 min-w-0 bg-white border border-[#e5e7eb] rounded-2xl rounded-tl-md p-4 shadow-sm">
+      <div className="flex-1 min-w-0 bg-card border border-border rounded-2xl rounded-tl-md p-4 shadow-sm">
         {children}
       </div>
     </motion.div>
@@ -1019,7 +1019,7 @@ function UserBubble({ children }: { children: React.ReactNode }) {
       transition={{ duration: 0.25 }}
       className="flex justify-end"
     >
-      <div className="max-w-[80%] bg-[#4a86ff] text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-[14px] shadow-sm">
+      <div className="max-w-[80%] bg-primary text-white rounded-2xl rounded-tr-md px-4 py-2.5 text-[14px] shadow-sm">
         {children}
       </div>
     </motion.div>

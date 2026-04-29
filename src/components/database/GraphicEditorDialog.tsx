@@ -151,10 +151,10 @@ export function GraphicEditorDialog({
               {/* Left: AI Chat */}
               <div className="flex flex-col border-b border-border bg-card lg:border-b-0 lg:border-r overflow-hidden">
                 {/* Chat messages */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-[#FAFBFF]">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-background">
                   {chatHistory.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                      <div className="h-9 w-9 rounded-xl flex items-center justify-center mb-3 bg-[#dae0e7]/0">
+                      <div className="h-9 w-9 rounded-xl flex items-center justify-center mb-3 bg-muted/0">
                         <Sparkles className="w-4 h-4 text-primary" />
                       </div>
                       <p className="text-[13px] font-medium text-foreground">Refine with AI</p>
@@ -206,8 +206,8 @@ export function GraphicEditorDialog({
                 </div>
 
                 {/* Chat input bar */}
-                <div className="p-3 border-t border-border bg-[#FAFBFF]">
-                  <div className="flex items-end border border-border rounded-2xl p-1.5 focus-within:border-primary/40 transition-colors bg-white">
+                <div className="p-3 border-t border-border bg-background">
+                  <div className="flex items-end border border-border rounded-2xl p-1.5 focus-within:border-primary/40 transition-colors bg-card">
                     <div
                       ref={chatInputRef}
                       contentEditable

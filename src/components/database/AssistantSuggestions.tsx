@@ -100,8 +100,8 @@ export function AssistantSuggestions({
               onClick={() => onSelect(label)}
               className={cn(
                 "group flex items-center gap-3 text-left px-4 py-3 transition-colors border-b border-border/40",
-                "hover:bg-[#F3F0FF]",
-                idx === 0 && "bg-[#F3F0FF]/60",
+                "hover:bg-accent",
+                idx === 0 && "bg-accent/60",
               )}
             >
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/70 text-xs font-medium text-muted-foreground">

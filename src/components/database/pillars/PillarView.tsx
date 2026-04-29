@@ -196,7 +196,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
   const logoUrl = brand?.logoUrls?.[brand?.selectedLogo ?? 0];
 
   return (
-    <div ref={containerRef} className="h-full w-full overflow-y-auto bg-[#FAFBFF]">
+    <div ref={containerRef} className="h-full w-full overflow-y-auto bg-background">
       <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-10 flex flex-col xl:flex-row gap-10 items-start">
         {/* Main column */}
         <div className="flex-1 min-w-0 w-full">
@@ -208,7 +208,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                   <img
                     src={logoUrl}
                     alt={brand?.name || "Business logo"}
-                    className="w-full h-full object-contain bg-[#fafbff]"
+                    className="w-full h-full object-contain bg-background"
                   />
                 ) : (
                   <BusinessBrainOrb size={40} />
@@ -238,7 +238,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                 variant="outline"
                 size="sm"
                 onClick={() => setEditMode((v) => !v)}
-                className="shrink-0 gap-2 bg-white hover:text-accent-foreground"
+                className="shrink-0 gap-2 bg-card hover:text-accent-foreground"
               >
                 {editMode ? (
                   <>

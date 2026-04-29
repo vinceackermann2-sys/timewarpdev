@@ -32,20 +32,20 @@ interface Integration {
 }
 
 const integrations: Integration[] = [
-  { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook, section: "microsoft", iconBg: "bg-white" },
-  { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft", iconBg: "bg-white" },
-  { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft", iconBg: "bg-white" },
-  { id: "microsoft_teams", name: "Microsoft Teams", description: "Messages and channels", logo: logoMsTeams, section: "microsoft", iconBg: "bg-white" },
-  { id: "google_calendar", name: "Google Calendar", description: "Events & scheduling", logo: logoGoogleCalendar, section: "google", iconBg: "bg-white" },
-  { id: "google_drive", name: "Google Drive", description: "Files & folders", logo: logoGoogleDrive, section: "google", iconBg: "bg-white" },
-  { id: "google_docs", name: "Google Docs", description: "Documents", logo: logoGoogleDocs, section: "google", iconBg: "bg-white" },
-  { id: "google_sheets", name: "Google Sheets", description: "Spreadsheets", logo: logoGoogleSheets, section: "google", iconBg: "bg-white" },
-  { id: "google_slides", name: "Google Slides", description: "Presentations", logo: logoGoogleSlides, section: "google", iconBg: "bg-white" },
-  { id: "google_gmail", name: "Gmail", description: "Emails & contacts", logo: logoGmail, section: "google", iconBg: "bg-white" },
+  { id: "microsoft_outlook", name: "Microsoft Outlook", description: "Emails, contacts & calendar", logo: logoMsOutlook, section: "microsoft", iconBg: "bg-card" },
+  { id: "microsoft_onedrive", name: "Microsoft OneDrive", description: "Upload and read files", logo: logoMsOnedrive, section: "microsoft", iconBg: "bg-card" },
+  { id: "microsoft_onenote", name: "Microsoft OneNote", description: "Read and write notes", logo: logoMsOnenote, section: "microsoft", iconBg: "bg-card" },
+  { id: "microsoft_teams", name: "Microsoft Teams", description: "Messages and channels", logo: logoMsTeams, section: "microsoft", iconBg: "bg-card" },
+  { id: "google_calendar", name: "Google Calendar", description: "Events & scheduling", logo: logoGoogleCalendar, section: "google", iconBg: "bg-card" },
+  { id: "google_drive", name: "Google Drive", description: "Files & folders", logo: logoGoogleDrive, section: "google", iconBg: "bg-card" },
+  { id: "google_docs", name: "Google Docs", description: "Documents", logo: logoGoogleDocs, section: "google", iconBg: "bg-card" },
+  { id: "google_sheets", name: "Google Sheets", description: "Spreadsheets", logo: logoGoogleSheets, section: "google", iconBg: "bg-card" },
+  { id: "google_slides", name: "Google Slides", description: "Presentations", logo: logoGoogleSlides, section: "google", iconBg: "bg-card" },
+  { id: "google_gmail", name: "Gmail", description: "Emails & contacts", logo: logoGmail, section: "google", iconBg: "bg-card" },
   { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
   { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other", iconBg: "bg-blue-500" },
   { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, section: "other", iconBg: "bg-orange-100" },
-  { id: "stripe", name: "Stripe", description: "Payments, customers & revenue", logo: logoStripe, section: "other", iconBg: "bg-white" },
+  { id: "stripe", name: "Stripe", description: "Payments, customers & revenue", logo: logoStripe, section: "other", iconBg: "bg-card" },
 ];
 
 interface ConnectedProvider {
@@ -97,7 +97,7 @@ function ConnectionCard({
 }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group hover:shadow-sm border-border bg-[#fcfcfd] ${
+      className={`relative flex flex-col gap-3 p-5 rounded-xl border transition-all group hover:shadow-sm border-border bg-background ${
         integration.comingSoon
           ? "opacity-60 cursor-default"
           : ""
@@ -129,7 +129,7 @@ function ConnectionCard({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 text-xs gap-1.5 w-full bg-white hover:bg-white"
+            className="h-8 px-3 text-xs gap-1.5 w-full bg-card hover:bg-card"
             disabled={isConnecting}
             onClick={() => onConnect()}
           >
@@ -277,7 +277,7 @@ export function ConnectionsView() {
 
 
   return (
-    <div className="h-full min-h-0 max-h-full overflow-y-auto bg-[#FAFBFF]">
+    <div className="h-full min-h-0 max-h-full overflow-y-auto bg-background">
       <div className="max-w-4xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold mb-1">Connectors</h1>
@@ -287,7 +287,7 @@ export function ConnectionsView() {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-black">Microsoft 365</p>
+          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-foreground">Microsoft 365</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {microsoftIntegrations.map(integration => (
               <ConnectionCard
@@ -305,7 +305,7 @@ export function ConnectionsView() {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-black">Google Workspace</p>
+          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-foreground">Google Workspace</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {googleIntegrations.map(integration => (
               <ConnectionCard
@@ -323,7 +323,7 @@ export function ConnectionsView() {
         </div>
 
         <div className="mb-6">
-          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-black">Other</p>
+          <p className="text-xs font-medium uppercase tracking-wider mb-3 text-foreground">Other</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {otherIntegrations.map(integration => (
               <ConnectionCard

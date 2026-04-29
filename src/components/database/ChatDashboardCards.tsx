@@ -61,7 +61,7 @@ function ChatDashCard({ card }: { card: DashboardCard }) {
         <div
           role="button"
           tabIndex={0}
-          className="group relative border border-border/60 rounded-2xl px-4 py-4 w-full flex flex-col gap-3 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left bg-[#e7effe]"
+          className="group relative border border-border/60 rounded-2xl px-4 py-4 w-full flex flex-col gap-3 transition-all duration-200 hover:border-border hover:shadow-md cursor-pointer text-left bg-accent"
         >
           {/* Header: source logo + delta + priority */}
           <div className="flex items-start justify-between gap-2">
@@ -102,7 +102,7 @@ function ChatDashCard({ card }: { card: DashboardCard }) {
             <Button
               size="sm"
               variant="outline"
-              className="h-7 px-3 rounded-full text-[11px] font-medium gap-1 border-border/70 text-foreground/80 hover:text-foreground bg-white"
+              className="h-7 px-3 rounded-full text-[11px] font-medium gap-1 border-border/70 text-foreground/80 hover:text-foreground bg-card"
               onClick={(e) => e.stopPropagation()}
             >
               {ctaLabel}

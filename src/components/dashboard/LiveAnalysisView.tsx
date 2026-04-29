@@ -346,7 +346,7 @@ export function LiveAnalysisView({ role, mode, onComplete }: LiveAnalysisViewPro
 
                 {/* Current Item Preview */}
                 {currentItem && (
-                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                  <div className="mt-3 p-3 rounded-lg bg-card/5 border border-white/10">
                     <div className="flex items-center gap-2 mb-2">
                       {getItemIcon(currentItem.type)}
                       <span className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -480,7 +480,7 @@ export function LiveAnalysisView({ role, mode, onComplete }: LiveAnalysisViewPro
                   </div>
                   <div className="space-y-3">
                     {/* Step 1 */}
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-card/5 border border-white/5">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-bold text-white">1</span>
                       </div>
@@ -495,7 +495,7 @@ export function LiveAnalysisView({ role, mode, onComplete }: LiveAnalysisViewPro
                     </div>
                     
                     {/* Step 2 */}
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-card/5 border border-white/5">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-bold text-white">2</span>
                       </div>
@@ -510,7 +510,7 @@ export function LiveAnalysisView({ role, mode, onComplete }: LiveAnalysisViewPro
                     </div>
                     
                     {/* Step 3 */}
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-card/5 border border-white/5">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-purple-600 flex items-center justify-center flex-shrink-0">
                         <span className="text-xs font-bold text-white">3</span>
                       </div>

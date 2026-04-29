@@ -105,7 +105,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
               }
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-[120px] resize-none bg-white"
+              className="min-h-[120px] resize-none bg-card"
             />
           </div>
 

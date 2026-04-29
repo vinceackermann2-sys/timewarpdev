@@ -360,7 +360,7 @@ export function BrandingEditor({
                   <img
                     src={logo}
                     alt="Brand logo"
-                    className="h-full w-full object-contain p-4 bg-[#fafbff]"
+                    className="h-full w-full object-contain p-4 bg-background"
                   />
                   {i === branding.selectedLogo && (
                     <div className="absolute top-2.5 left-2.5 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
