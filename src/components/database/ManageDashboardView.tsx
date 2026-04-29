@@ -442,7 +442,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       middle={
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#fcfcfd]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-background">
           <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
           <div className="flex items-end justify-between gap-3">
             <div className="flex items-baseline gap-1.5 min-w-0">
@@ -511,7 +511,7 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
 
       {/* Objective progress block */}
       {isObjective && (
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#fcfcfd]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-background">
           <Skeleton className="h-2.5 w-24" />
           <div className="flex items-end justify-between gap-3">
             <Skeleton className="h-6 w-20" />
@@ -817,7 +817,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   }, [activeTab, filteredCards, detailCard]);
 
   return (
-    <div className="h-full flex relative overflow-hidden bg-[#FAFBFF]">
+    <div className="h-full flex relative overflow-hidden bg-background">
       {/* Left vertical tab menu */}
       <aside className="w-52 shrink-0 border-r border-border/60 bg-[#fafbff] flex flex-col py-4 px-3 gap-0.5">
         <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">

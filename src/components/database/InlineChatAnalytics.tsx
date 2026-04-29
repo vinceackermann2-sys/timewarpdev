@@ -221,10 +221,10 @@ export function InlineChatAnalytics({ jsonString, editorEnabled = true }: { json
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
         <div className="ml-auto flex items-center gap-1">
           {editor}
-          <button onClick={handleSave} className="p-1 rounded hover:bg-[#4a86ff]/20 transition-colors" title="Save">
+          <button onClick={handleSave} className="p-1 rounded hover:bg-primary/20 transition-colors" title="Save">
             {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-[#4a86ff]" />}
           </button>
-          <button onClick={handleDownloadPptx} className="p-1 rounded hover:bg-[#4a86ff]/20 transition-colors" title="Download as PPTX">
+          <button onClick={handleDownloadPptx} className="p-1 rounded hover:bg-primary/20 transition-colors" title="Download as PPTX">
             <Download className="w-3.5 h-3.5 text-[#4a86ff]" />
           </button>
         </div>

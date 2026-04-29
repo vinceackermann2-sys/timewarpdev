@@ -647,7 +647,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
       </div>
 
       <Dialog open={showSuperchargePopup} onOpenChange={setShowSuperchargePopup}>
-        <DialogContent className="max-w-3xl bg-[#FAFAFD] border-border/60 rounded-2xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl bg-background border-border/60 rounded-2xl p-0 overflow-hidden">
           <div className="px-8 pt-8 pb-2">
             <DialogHeader className="space-y-2 text-left">
               <DialogTitle className="text-2xl font-bold text-foreground">
@@ -660,7 +660,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
           </div>
           <div className="px-8 pb-2">
             <div className="flex items-stretch justify-center">
-              <div className="w-full aspect-[16/7] rounded-lg overflow-hidden bg-[#fcfcfd] flex items-center justify-center">
+              <div className="w-full aspect-[16/7] rounded-lg overflow-hidden bg-background flex items-center justify-center">
                 <img
                   src={superchargeIllustration}
                   alt="Supercharge your Business DNA"

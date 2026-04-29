@@ -68,7 +68,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-[#FAFBFF]">
+    <div className="flex flex-col h-full overflow-y-auto bg-background">
       {/* Header */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
         {onBack && (

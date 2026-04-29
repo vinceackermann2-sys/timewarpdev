@@ -635,7 +635,7 @@ export function SuperchargeDNAWizard({
 
           <div className="rounded-3xl border border-black/5 bg-gradient-to-b from-[#f1f5fc] to-[#e8eef9] p-9 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-[#4a86ff]/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-[#4a86ff]" />
               </div>
               <div>
@@ -661,11 +661,11 @@ export function SuperchargeDNAWizard({
                     )}
                   >
                     {t.done ? (
-                      <div className="h-7 w-7 rounded-full bg-[#4a86ff] flex items-center justify-center shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0">
                         <CheckCircle2 className="w-4 h-4 text-white" />
                       </div>
                     ) : isActive ? (
-                      <div className="h-7 w-7 rounded-full bg-[#4a86ff]/15 flex items-center justify-center shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
                         <Loader2 className="w-4 h-4 text-[#4a86ff] animate-spin" />
                       </div>
                     ) : (
@@ -711,7 +711,7 @@ export function SuperchargeDNAWizard({
     return (
       <div className="flex flex-col h-full w-full">
         {/* Top progress bar */}
-        <div className="shrink-0 backdrop-blur border-b border-border bg-[#FAFBFF]">
+        <div className="shrink-0 backdrop-blur border-b border-border bg-background">
           <div className="max-w-5xl mx-auto w-full px-6 py-3">
             {TopProgressBar}
           </div>
@@ -727,8 +727,8 @@ export function SuperchargeDNAWizard({
         </div>
 
         {/* Sticky bottom continue bar */}
-        <div className="shrink-0 backdrop-blur border-t border-border bg-[#FAFBFF]">
-          <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center gap-3 bg-[#FAFBFF]">
+        <div className="shrink-0 backdrop-blur border-t border-border bg-background">
+          <div className="max-w-5xl mx-auto w-full px-6 py-3 flex items-center gap-3 bg-background">
             {FooterActions}
           </div>
         </div>

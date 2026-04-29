@@ -104,7 +104,7 @@ export function AgentChatInput({
   employeesSubContent: React.ReactNode;
 }) {
   return (
-    <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-[#FAFBFF]">
+    <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-background">
       <input
         type="file"
         multiple
@@ -153,7 +153,7 @@ export function AgentChatInput({
               </div>
             )}
             {selectedGraphic && (
-              <div className="flex items-center gap-1.5 bg-[#4a86ff]/10 border border-[#4a86ff]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-1.5 bg-primary/10 border border-[#4a86ff]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
                 <Palette className="w-3.5 h-3.5 text-[#4a86ff]" />
                 <span className="text-xs font-medium text-[#4a86ff]">{selectedGraphic}</span>
                 <button type="button" onClick={() => setSelectedGraphic(null)} className="text-[#4a86ff]/60 hover:text-[#4a86ff]">

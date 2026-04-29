@@ -143,7 +143,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
       <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-hidden rounded-2xl" aria-describedby={undefined}>
         <VisuallyHidden.Root><DialogTitle>Get more Actions</DialogTitle></VisuallyHidden.Root>
         {/* Header */}
-        <div className="text-center pt-8 pb-4 px-6 bg-[#FAFBFF]">
+        <div className="text-center pt-8 pb-4 px-6 bg-background">
           <div className="flex items-center justify-center gap-3 mb-3">
             <WandSparkles className="h-7 w-7 bg-[#4d91ff]/0 text-primary" />
             <span className="text-4xl font-bold text-black">
@@ -156,7 +156,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pb-2 bg-[#FAFBFF]">
+        <div className="px-6 pb-2 bg-background">
           <div className="flex rounded-xl bg-muted/50 p-1 gap-1">
             {tabs.map((tab) => (
               <button
@@ -176,7 +176,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tab Content */}
-        <div className="px-6 pb-8 pt-4 min-h-[220px] bg-[#FAFBFF]">
+        <div className="px-6 pb-8 pt-4 min-h-[220px] bg-background">
           {/* Get more Actions */}
           {activeTab === "upgrade" && (
             <div className="space-y-5">

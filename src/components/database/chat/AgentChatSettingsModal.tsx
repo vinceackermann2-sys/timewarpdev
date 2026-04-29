@@ -81,7 +81,7 @@ export function AgentChatSettingsModal({
             ))}
           </div>
 
-          <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-[#fcfcfd]">
+          <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col bg-background">
             {settingsTab === "safety" && (
               <div className="flex-1">
                 {(() => {

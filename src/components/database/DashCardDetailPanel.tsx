@@ -477,7 +477,7 @@ function SourceChip({ card }: { card: DashboardCard }) {
     : null;
 
   return (
-    <div className="px-4 py-2.5 flex items-center gap-2 bg-[#fcfcfd] border-b border-border/40">
+    <div className="px-4 py-2.5 flex items-center gap-2 bg-background border-b border-border/40">
       {sourceMeta.icon ? (
         <img
           src={sourceMeta.icon}
@@ -1241,7 +1241,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
 
   return (
     <TooltipProvider delayDuration={250}>
-      <aside className="hidden md:flex w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in">
+      <aside className="hidden md:flex w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-background shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in">
         {/* ── Top bar ─────────────── */}
         <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
           <div className="flex items-center gap-1">
@@ -1310,7 +1310,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         <StickyNotes cardId={card.id} />
 
         {/* ── Sticky bottom — single personalized action button ─────── */}
-        <div className="shrink-0 px-6 pb-5 pt-2 bg-[#FAFBFF] shadow-xl">
+        <div className="shrink-0 px-6 pb-5 pt-2 bg-background shadow-xl">
           <Button
             size="sm"
             className="w-full h-10 gap-1.5 text-[13px] font-semibold rounded-lg bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"
