@@ -262,9 +262,15 @@ export function AgentChatMessageList({
               ) : (
                 <>
                   {(() => {
-                    let display = msg.content;
-                    const graphicIdx = display.indexOf("\n\n🎨 Output format:");
-                    if (graphicIdx !== -1) display = display.slice(0, graphicIdx);
+                    let display = msg.displayContent ?? msg.content;
+                    // Strip graphic-format scaffolding (header may appear at start or mid-message)
+                    const graphicHeaderIdx = display.indexOf("🎨 Output format:");
+                    if (graphicHeaderIdx !== -1) {
+                      const before = display.slice(0, graphicHeaderIdx).trimEnd();
+                      // Try to recover the user's actual ask between the header block and the footer reminder
+                      const sepMatch = display.match(/---\n\n([\s\S]*?)\n\n---\n\n🎨 Reminder/);
+                      display = sepMatch ? (before ? `${before}\n\n${sepMatch[1].trim()}` : sepMatch[1].trim()) : before;
+                    }
                     const refIdx = display.indexOf("\n\n--- http");
                     if (refIdx !== -1) display = display.slice(0, refIdx);
                     return display;
