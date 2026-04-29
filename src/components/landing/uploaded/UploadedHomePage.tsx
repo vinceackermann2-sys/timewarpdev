@@ -46,10 +46,10 @@ const Navbar = () => {
         <div className="text-xl font-black tracking-tighter">TimeWarp</div>
       </div>
       <div className="flex items-center space-x-4">
-        <a href="#" className={`text-sm font-medium transition-colors ${isScrolled ? 'hover:text-gray-600' : 'hover:text-white'}`}>Log in</a>
-        <button className={`text-sm font-semibold px-4 py-1.5 rounded-full transition-colors shadow-sm ${isScrolled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white text-gray-900 hover:bg-gray-100'}`}>
+        <Link to="/auth" className={`text-sm font-medium transition-colors ${isScrolled ? 'hover:text-gray-600' : 'hover:text-white'}`}>Log in</Link>
+        <Link to="/auth?mode=signup" className={`text-sm font-semibold px-4 py-1.5 rounded-full transition-colors shadow-sm ${isScrolled ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white text-gray-900 hover:bg-gray-100'}`}>
           Start free
-        </button>
+        </Link>
       </div>
     </nav>
   );
