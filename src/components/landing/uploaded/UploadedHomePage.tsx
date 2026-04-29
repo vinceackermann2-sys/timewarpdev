@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ChevronLeft, 
@@ -54,7 +55,7 @@ const Navbar = () => {
   );
 };
 
-import { IntegrationIcons } from './components/DataIcons';
+import { IntegrationIcons } from './DataIcons';
 
 const AnimSinglePath = ({ 
   d, 
