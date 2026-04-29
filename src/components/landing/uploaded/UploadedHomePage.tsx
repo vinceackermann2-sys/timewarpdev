@@ -455,14 +455,14 @@ const Hero = () => {
         className="absolute inset-0 z-[-20] bg-cover bg-center transition-all duration-700"
         style={{ backgroundImage: `url('${bgImage}')` }}
       />
-      <div className="absolute inset-0 z-[-10] bg-[#3B82F6]/80 mix-blend-multiply" />
+      <div className="absolute inset-0 z-[-10] bg-white/30" />
       <div className="absolute inset-0 z-[-5] bg-gradient-to-b from-transparent via-transparent to-[#fdfcfd]" />
       
       <motion.h1 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="text-5xl md:text-7xl font-bold text-white max-w-4xl tracking-tight leading-[1.1] mb-6 relative z-10"
+        className="text-5xl md:text-7xl font-bold max-w-4xl tracking-tight leading-[1.1] mb-6 relative z-10 text-shine-blue"
       >
         The future of business.
       </motion.h1>
@@ -1049,7 +1049,7 @@ const ChatMockupAnimation = ({ activeStoryIdx, onStoryChange }: { activeStoryIdx
                          return (
                            <div key={idx} className="flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-left-2 duration-300 text-gray-600">
                              <StepIcon className="w-3.5 h-3.5" />
-                             <span className={thinkingStep === idx ? "animate-shimmer" : ""}>{stepInfo.text}</span>
+                             <span className={thinkingStep === idx ? "text-shine-blue font-semibold" : ""}>{stepInfo.text}</span>
                              {thinkingStep > idx && <span className="text-green-500">✔</span>}
                            </div>
                          );
