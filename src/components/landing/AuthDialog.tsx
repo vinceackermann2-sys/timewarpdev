@@ -287,7 +287,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
                   <Label htmlFor="dialog-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="dialog-email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl" />
+                    <Input id="dialog-email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl bg-white border-white" />
                   </div>
                 </div>
 
