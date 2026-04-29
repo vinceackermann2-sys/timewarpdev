@@ -259,7 +259,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen max-w-[1900px] mx-auto bg-background flex flex-col">
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4 bg-[#fcfcfd]">
         <div className="w-full max-w-5xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
           <div className="p-6 sm:p-10 flex flex-col justify-center bg-[#fcfcfd]">
             <div className="hidden sm:flex items-center gap-2 mb-8">
