@@ -54,6 +54,19 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
     return "secondary" as const;
   };
 
+  const avatarPalette = [
+    "bg-[#9D75BD]/15 text-[#7A509E]",   // purple
+    "bg-[#7E9BCD]/15 text-[#3F6BAA]",   // blue
+    "bg-[#DE9EB6]/20 text-[#B5567E]",   // pink
+    "bg-[#E8C26B]/20 text-[#9B7A1F]",   // yellow
+    "bg-[#86C19A]/20 text-[#3E8A5C]",   // green
+  ];
+  const colorFor = (id: string) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return avatarPalette[h % avatarPalette.length];
+  };
+
   // Show detail view when managing a workspace
   const managingWs = managingWsId ? workspaces.find(w => w.workspaceId === managingWsId) : null;
   if (managingWs) {
@@ -141,8 +154,8 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-card">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0", colorFor(ws.workspaceId))}>
+                          <Building2 className="h-4 w-4" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{ws.workspaceName}</p>
