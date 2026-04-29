@@ -26,7 +26,7 @@ export default function Support() {
                   Send us an email and we'll get back to you as soon as possible.
                 </p>
                 <a href="mailto:support@timewarpdev.com">
-                  <Button variant="outline" size="sm" className="bg-[#E8F0FE]">
+                  <Button variant="outline" size="sm" className="bg-[#fcfcfd]">
                     support@timewarpdev.com
                   </Button>
                 </a>
@@ -45,7 +45,7 @@ export default function Support() {
                   Have an idea or found a bug? Let us know through the Developer dialog in the app sidebar.
                 </p>
                 <Link to="/app">
-                  <Button variant="outline" size="sm" className="bg-[#E8F0FE]">
+                  <Button variant="outline" size="sm" className="bg-[#fcfcfd]">
                     Open App
                   </Button>
                 </Link>

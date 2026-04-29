@@ -442,7 +442,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       middle={
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#E8F0FE]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#fcfcfd]">
           <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
           <div className="flex items-end justify-between gap-3">
             <div className="flex items-baseline gap-1.5 min-w-0">
@@ -511,7 +511,7 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
 
       {/* Objective progress block */}
       {isObjective && (
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#E8F0FE]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#fcfcfd]">
           <Skeleton className="h-2.5 w-24" />
           <div className="flex items-end justify-between gap-3">
             <Skeleton className="h-6 w-20" />

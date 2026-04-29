@@ -351,7 +351,7 @@ export default function PricingPage() {
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#E8F0FE]">
+          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#fcfcfd]">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}

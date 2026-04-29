@@ -261,7 +261,7 @@ const Auth = () => {
     <div className="min-h-screen max-w-[1900px] mx-auto bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-5xl rounded-2xl border border-border/50 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 bg-card">
-          <div className="p-6 sm:p-10 flex flex-col justify-center bg-[#E8F0FE]">
+          <div className="p-6 sm:p-10 flex flex-col justify-center bg-[#fcfcfd]">
             <div className="hidden sm:flex items-center gap-2 mb-8">
               <img src="/favicon.png" alt="TimeWarp" className="h-9 w-9 rounded-lg object-cover" />
               <span className="font-semibold text-lg text-foreground">TimeWarp</span>
@@ -314,7 +314,7 @@ const Auth = () => {
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-white" />
+                      <Input id="email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-white border-white" />
                     </div>
                   </div>
 
@@ -322,7 +322,7 @@ const Auth = () => {
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-white" />
+                      <Input id="password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-white border-white" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -348,7 +348,7 @@ const Auth = () => {
 
                   <Button
                     type="submit"
-                    className="w-full h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="w-full h-12 rounded-xl text-primary-foreground bg-[#3c83f6]"
                     disabled={isLoading || (isSignUp && !agreedToTerms)}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -360,12 +360,12 @@ const Auth = () => {
                   {isSignUp ? (
                     <>
                       Already have an account?{" "}
-                      <button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Sign in here</button>
+                      <button onClick={() => setIsSignUp(false)} className="hover:underline font-medium text-[#3c83f6]">Sign in here</button>
                     </>
                   ) : (
                     <>
                       Don't have an account?{" "}
-                      <button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button>
+                      <button onClick={() => setIsSignUp(true)} className="hover:underline font-medium text-[#3c83f6]">Sign up</button>
                     </>
                   )}
                 </div>

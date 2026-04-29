@@ -477,7 +477,7 @@ function SourceChip({ card }: { card: DashboardCard }) {
     : null;
 
   return (
-    <div className="px-4 py-2.5 flex items-center gap-2 bg-[#E8F0FE] border-b border-border/40">
+    <div className="px-4 py-2.5 flex items-center gap-2 bg-[#fcfcfd] border-b border-border/40">
       {sourceMeta.icon ? (
         <img
           src={sourceMeta.icon}

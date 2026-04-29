@@ -660,7 +660,7 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
           </div>
           <div className="px-8 pb-2">
             <div className="flex items-stretch justify-center">
-              <div className="w-full aspect-[16/7] rounded-lg overflow-hidden bg-[#E8F0FE] flex items-center justify-center">
+              <div className="w-full aspect-[16/7] rounded-lg overflow-hidden bg-[#fcfcfd] flex items-center justify-center">
                 <img
                   src={superchargeIllustration}
                   alt="Supercharge your Business DNA"
