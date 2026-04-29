@@ -378,6 +378,24 @@
   animation: textShimmer 2s linear infinite;
 }
 
+/* Blue text shine — fills text only, sweeps left to right */
+.text-shine-blue {
+  background: linear-gradient(
+    110deg,
+    #1E3A8A 0%,
+    #3B82F6 35%,
+    #93C5FD 50%,
+    #3B82F6 65%,
+    #1E3A8A 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: textShimmer 3s linear infinite;
+}
+
 @keyframes connector-extend-seamless {
   0% { opacity: 0; clip-path: circle(0% at 50% 50%); }
   15% { opacity: 1; clip-path: circle(20% at 50% 50%); }
