@@ -331,9 +331,9 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
               <div className="text-center text-sm mt-4">
                 {isSignUp ? (
-                  <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Log in</button></>
+                  <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="hover:underline font-medium text-[#3c83f6]">Log in</button></>
                 ) : (
-                  <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button></>
+                  <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="hover:underline font-medium text-[#3c83f6]">Sign up</button></>
                 )}
               </div>
             </>
