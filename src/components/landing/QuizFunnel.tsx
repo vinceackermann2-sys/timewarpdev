@@ -165,13 +165,8 @@ export function QuizFunnel() {
       <header className="relative z-10 pt-8 pb-4">
         <div className="container mx-auto px-4 flex flex-col items-center">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-2">
-            <img 
-              src="/favicon.png" 
-              alt="TimeWarp" 
-              className="h-12 w-12 rounded-xl object-cover shadow-glow"
-            />
-            <span className="text-3xl font-bold text-foreground tracking-tight">TimeWarp</span>
+          <div className="mb-2">
+            <TimeWarpLogo size={48} wordmarkClassName="text-3xl font-bold tracking-tight" />
           </div>
           <span className="text-xs tracking-[0.3em] text-muted-foreground uppercase">Your Own AI C-Suite</span>
           
