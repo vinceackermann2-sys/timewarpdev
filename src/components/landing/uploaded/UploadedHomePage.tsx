@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { lovable } from '@/integrations/lovable/index';
 import heroFutureCity from '@/assets/hero-future-city.png';
 import timewarpLogo from '@/assets/timewarp-logo-swirl.png';
+import tabFrameBg from '@/assets/tab-frame-bg.png';
 import { 
   ChevronLeft, 
   ChevronRight, 
