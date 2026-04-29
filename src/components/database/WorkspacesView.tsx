@@ -15,6 +15,7 @@ import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
 import { WorkspaceDetailView } from "@/components/database/WorkspaceDetailView";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 interface WorkspacesViewProps {
   onBack?: () => void;
