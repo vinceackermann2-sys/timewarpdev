@@ -509,6 +509,7 @@ export function AgentChatView({
         userContent += `\n\nIf a ${gate.graphicType.toLowerCase()} would clarify this answer, include the appropriate code block.`;
       }
     }
+    const displayContent = userContent;
     userContent = appendGraphicInstructionsToUserContent(userContent, resolvedGraphic);
 
     const resolveEmployeeContext = (): { id: string; name: string; role: string }[] | undefined => {
@@ -524,6 +525,7 @@ export function AgentChatView({
       id: crypto.randomUUID(),
       role: "user",
       content: userContent,
+      displayContent,
       files: uploadedFiles.map((f) => ({ name: f.name })),
       employees: selectedEmployeesForMessage,
     };
