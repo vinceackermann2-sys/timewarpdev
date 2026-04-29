@@ -4,12 +4,7 @@ import { Loader2 } from "lucide-react";
 import { getSafeSession } from "@/lib/authSession";
 import { AuthDialog } from "@/components/landing/AuthDialog";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
-import { Header } from "@/components/landing/Header";
-import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
-import NewHero from "@/components/landing/NewHero";
-import NewHowItWorks from "@/components/landing/NewHowItWorks";
-import NewValueComparison from "@/components/landing/NewValueComparison";
-import NewCTA from "@/components/landing/NewCTA";
+import UploadedHomePage from "@/components/landing/uploaded/UploadedHomePage";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
@@ -49,10 +44,7 @@ const AiCeo = () => {
     };
   }, [navigate, isOAuthReturn, searchParams]);
 
-  const handleGetDNA = (url?: string) => {
-    setAuthProductUrl(url || undefined);
-    setAuthOpen(true);
-  };
+
 
   if (isLoading) {
     return (
@@ -67,15 +59,10 @@ const AiCeo = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <Header />
-      <NewHero onGetDNA={handleGetDNA} />
-      <NewHowItWorks />
-      <NewValueComparison />
-      <NewCTA onGetDNA={handleGetDNA} />
-      <WorkspaceFooter />
+    <>
+      <UploadedHomePage />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
-    </div>
+    </>
   );
 };
 
