@@ -551,7 +551,7 @@ const Database = () => {
               onEmployeesTabChange={setEmployeesTab}
             />
           </div>
-          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
+          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-background">
             <MobileHeader />
             <div className={onboardingLocked ? "pointer-events-none opacity-60" : ""}>
               <TopBreadcrumb
@@ -564,7 +564,7 @@ const Database = () => {
                 }}
               />
             </div>
-            <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-[#d1d5db] bg-background">
+            <main className="flex-1 min-h-0 overflow-hidden rounded-tl-lg border-t border-l border-border bg-background">
               {currentView === "aiceo" && user && (
                 <TimeWarpAIView
                   initialTask={pendingTask}
