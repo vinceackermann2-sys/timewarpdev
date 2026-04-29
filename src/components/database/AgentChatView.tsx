@@ -901,9 +901,9 @@ export function AgentChatView({
       : null;
 
   return (
-    <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-[#FAFBFF]">
-      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-[#FAFBFF]">
-        <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-[#FAFBFF]">
+    <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-background">
+      <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-background">
+        <header className="shrink-0 z-20 flex justify-center items-center py-3 backdrop-blur-md bg-background/90">
           {!isOnboardingActive && (
             <button
               type="button"
@@ -920,7 +920,7 @@ export function AgentChatView({
           </div>
         </header>
 
-        <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-[#FAFBFF]">
+        <main ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col relative z-10 overflow-y-auto overscroll-contain bg-background">
           {resumableTask && !isSending && (
             <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-4">
               <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -953,7 +953,7 @@ export function AgentChatView({
               }}
             />
           ) : !hasMessages ? (
-            <div className="flex-1 flex flex-col items-center justify-center px-4 bg-[#FAFBFF]">
+            <div className="flex-1 flex flex-col items-center justify-center px-4 bg-background">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
               <div className="relative z-10 animate-in fade-in zoom-in duration-700">
                 <BusinessBrainOrb size={typeof window !== "undefined" && window.innerWidth < 640 ? 180 : 280} />

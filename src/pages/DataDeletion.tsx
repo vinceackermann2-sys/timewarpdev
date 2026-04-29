@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
+import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 import {
   Accordion,
   AccordionContent,
@@ -10,10 +11,17 @@ import {
 export default function DataDeletion() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-        <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 inline-block">
-          ← Back to home
-        </Link>
+      <div className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
+        <div className="mb-8 flex items-center justify-between">
+          <Link to="/" className="flex items-center">
+            <TimeWarpLogo size={34} wordmarkClassName="text-lg" />
+          </Link>
+          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            ← Back to home
+          </Link>
+        </div>
+
+        <article className="rounded-lg border border-border bg-card p-6 sm:p-10 shadow-sm">
 
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">Data Deletion & Integration Guide</h1>
         <p className="text-muted-foreground mb-10">How TimeWarp integrates with your tools and how to manage your data</p>
@@ -152,6 +160,7 @@ export default function DataDeletion() {
             </p>
           </section>
         </div>
+        </article>
       </div>
       <WorkspaceFooter compact />
     </div>

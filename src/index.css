@@ -836,6 +836,19 @@
     box-shadow: 0 6px 20px hsl(var(--portal-accent) / 0.3);
     transform: translateY(-2px);
   }
+
+  .bg-\[\#FAFBFF\],
+  .bg-\[\#fafbff\],
+  .bg-\[\#FAFAFD\] {
+    background-color: hsl(var(--background));
+  }
+
+  .bg-\[\#F0F5FF\],
+  .bg-\[\#f0f5ff\],
+  .bg-\[\#E8F0FE\],
+  .bg-\[\#e7effe\] {
+    background-color: hsl(var(--card));
+  }
 }
 
 /* Whiteboard smooth node transitions */

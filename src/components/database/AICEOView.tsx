@@ -24,7 +24,7 @@ export function AICEOView() {
           
           <Button 
             onClick={() => navigate("/app")}
-            className="gradient-primary shadow-glow"
+            className="bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
           >
             Start Analysis
             <ArrowRight className="h-4 w-4 ml-2" />
