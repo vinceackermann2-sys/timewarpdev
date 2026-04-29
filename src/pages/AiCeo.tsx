@@ -62,15 +62,10 @@ const AiCeo = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <Header />
-      <NewHero onGetDNA={handleGetDNA} />
-      <NewHowItWorks />
-      <NewValueComparison />
-      <NewCTA onGetDNA={handleGetDNA} />
-      <WorkspaceFooter />
+    <>
+      <UploadedHomePage />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
-    </div>
+    </>
   );
 };
 
