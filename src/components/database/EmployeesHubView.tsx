@@ -18,7 +18,7 @@ export function EmployeesHubView({ activeTab, onTabChange }: EmployeesHubViewPro
             onClick={() => onTabChange("agents")}
             className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${
               activeTab === "agents"
-                ? "text-primary font-medium bg-[#f3f5f7]"
+                ? "font-medium bg-[#f3f5f7] text-[#101828]"
                 : "hover:bg-muted/50"
             }`}
           >
@@ -28,7 +28,7 @@ export function EmployeesHubView({ activeTab, onTabChange }: EmployeesHubViewPro
             onClick={() => onTabChange("employees")}
             className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${
               activeTab === "employees"
-                ? "text-primary font-medium bg-[#f3f5f7]"
+                ? "font-medium bg-[#f3f5f7] text-[#101828]"
                 : "hover:bg-muted/50"
             }`}
           >
