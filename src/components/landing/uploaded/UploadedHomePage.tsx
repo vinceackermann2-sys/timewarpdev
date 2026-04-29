@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { lovable } from '@/integrations/lovable/index';
 import heroFutureCity from '@/assets/hero-future-city.png';
-import timewarpLogo from '@/assets/timewarp-logo.svg';
+import timewarpLogo from '@/assets/timewarp-logo-swirl.png';
 import { 
   ChevronLeft, 
   ChevronRight, 
