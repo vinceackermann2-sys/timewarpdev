@@ -4,6 +4,8 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Optional sanitized text shown in the UI for user messages (hides graphic format scaffolding sent to the model). */
+  displayContent?: string;
   /** Live connector row metadata for \`twcite:twsrc_N\` links in markdown (Gmail, Drive, Calendar, etc.). */
   liveSourceRegistry?: LiveSourceRegistry;
   /** Populated when assistant loads CEO dashboard snapshot cards (briefing / updates / to-dos / objectives). */
