@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { lovable } from '@/integrations/lovable/index';
 import heroFutureCity from '@/assets/hero-future-city.png';
+import timewarpLogo from '@/assets/timewarp-logo.svg';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -45,7 +46,10 @@ const Navbar = () => {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 px-6 transition-all duration-300 flex items-center justify-between ${isScrolled ? 'py-3 bg-white/40 backdrop-blur-xl shadow-sm text-gray-900 border-none' : 'py-5 bg-transparent border-transparent text-white/90'}`}>
       <div className="flex items-center space-x-8">
-        <div className="text-xl font-black tracking-tighter">TimeWarp</div>
+        <Link to="/" className="flex items-center gap-2">
+          <img src={timewarpLogo} alt="TimeWarp" className="h-7 w-auto" />
+          <span className="text-xl font-black tracking-tighter">TimeWarp</span>
+        </Link>
       </div>
       <div className="flex items-center space-x-4">
         <Link to="/auth" className={`text-sm font-medium transition-colors ${isScrolled ? 'hover:text-gray-600' : 'hover:text-white'}`}>Log in</Link>
@@ -1445,12 +1449,10 @@ const Footer = () => (
      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between mb-16 gap-10">
         <div className="flex flex-col md:flex-row gap-12 lg:gap-24">
            {/* Logo Component */}
-           <div className="flex items-start gap-2">
-             <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-400 via-purple-400 to-pink-400 flex items-center justify-center shrink-0">
-               <div className="w-3 h-3 bg-white/80 rounded-full blur-[1px]"></div>
-             </div>
-             <div className="text-xl font-bold tracking-tight text-[#1a202c]">TimeWarp</div>
-           </div>
+           <Link to="/" className="flex items-center gap-2">
+             <img src={timewarpLogo} alt="TimeWarp" className="h-7 w-auto" />
+             <span className="text-xl font-bold tracking-tight text-[#1a202c]">TimeWarp</span>
+           </Link>
 
            {/* Links */}
            <div className="flex flex-wrap gap-12 md:gap-20 mt-1 md:mt-0">
