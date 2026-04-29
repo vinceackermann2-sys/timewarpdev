@@ -208,7 +208,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                   <img
                     src={logoUrl}
                     alt={brand?.name || "Business logo"}
-                    className="w-full h-full object-contain bg-[#fafbff]"
+                    className="w-full h-full object-contain bg-background"
                   />
                 ) : (
                   <BusinessBrainOrb size={40} />
@@ -238,7 +238,7 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                 variant="outline"
                 size="sm"
                 onClick={() => setEditMode((v) => !v)}
-                className="shrink-0 gap-2 bg-white hover:text-accent-foreground"
+                className="shrink-0 gap-2 bg-card hover:text-accent-foreground"
               >
                 {editMode ? (
                   <>

@@ -545,7 +545,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                             <TableRow key={ws.workspaceId}>
                               <TableCell>
                                 <div className="flex items-center gap-3">
-                                  <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-white"><Building2 className="h-4 w-4 text-[#4c5767]" /></div>
+                                  <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-card"><Building2 className="h-4 w-4 text-muted-foreground" /></div>
                                   <div><p className="font-medium text-foreground">{ws.workspaceName}</p><p className="text-xs text-muted-foreground">Created {new Date(ws.createdAt).toLocaleDateString()}</p></div>
                                 </div>
                               </TableCell>
@@ -572,8 +572,8 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                   <div className="space-y-4">
                     <p className="text-muted-foreground text-sm">{selectedWs.workspaceName} · {wsMemberData.members.length} member{wsMemberData.members.length !== 1 ? "s" : ""}</p>
                     <div className="inline-flex items-center p-1 rounded-lg bg-muted border border-border">
-                      <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-white" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
-                      <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "text-foreground shadow-sm bg-white" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
+                      <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
+                      <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <div className="relative flex-1 max-w-sm">

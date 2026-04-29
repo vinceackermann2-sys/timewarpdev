@@ -305,7 +305,7 @@ export function SuperchargeDNAWizard({
       )}
       {step === 2 && (
         <>
-          <Button variant="outline" onClick={() => setStep(1)} size="lg" className="bg-white hover:bg-white">Back</Button>
+          <Button variant="outline" onClick={() => setStep(1)} size="lg" className="bg-card hover:bg-card">Back</Button>
           <div className="flex-1" />
           <Button onClick={() => setStep(3)} size="lg">
             Continue <ArrowRight className="h-4 w-4 ml-1.5" />
@@ -314,7 +314,7 @@ export function SuperchargeDNAWizard({
       )}
       {step === 3 && (
         <>
-          <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg" className="bg-white hover:bg-white">
+          <Button variant="outline" onClick={() => setStep(2)} disabled={running} size="lg" className="bg-card hover:bg-card">
             Back
           </Button>
           <div className="flex-1" />
@@ -636,13 +636,13 @@ export function SuperchargeDNAWizard({
           <div className="rounded-3xl border border-black/5 bg-gradient-to-b from-[#f1f5fc] to-[#e8eef9] p-9 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-[#4a86ff]" />
+                <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-base font-semibold text-[#1a1f36] leading-tight">
+                <p className="text-base font-semibold text-foreground leading-tight">
                   Supercharging your Business DNA
                 </p>
-                <p className="text-[12px] text-[#697386]">
+                <p className="text-[12px] text-muted-foreground">
                   Verified enrichment in progress
                 </p>
               </div>
@@ -656,7 +656,7 @@ export function SuperchargeDNAWizard({
                     key={t.label}
                     className={cn(
                       "flex items-center gap-3 text-[15px] rounded-xl px-4 py-3 transition-all",
-                      isActive && "bg-white/60",
+                      isActive && "bg-card/60",
                       t.done && "opacity-90"
                     )}
                   >
@@ -666,18 +666,18 @@ export function SuperchargeDNAWizard({
                       </div>
                     ) : isActive ? (
                       <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                        <Loader2 className="w-4 h-4 text-[#4a86ff] animate-spin" />
+                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
                       </div>
                     ) : (
-                      <div className="w-7 h-7 rounded-full border-2 border-[#cbd5e1] shrink-0" />
+                      <div className="w-7 h-7 rounded-full border-2 border-border shrink-0" />
                     )}
                     <span
                       className={cn(
                         t.done
-                          ? "text-[#1a1f36] font-medium"
+                          ? "text-foreground font-medium"
                           : isActive
-                          ? "text-[#1a1f36] font-medium"
-                          : "text-[#697386]"
+                          ? "text-foreground font-medium"
+                          : "text-muted-foreground"
                       )}
                     >
                       {t.label}
@@ -689,10 +689,10 @@ export function SuperchargeDNAWizard({
 
             {logs.length > 0 && (
               <div className="mt-6 pt-5 border-t border-black/5">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#697386] mb-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Activity
                 </p>
-                <div className="font-mono text-[11px] text-[#697386] space-y-0.5 max-h-32 overflow-y-auto">
+                <div className="font-mono text-[11px] text-muted-foreground space-y-0.5 max-h-32 overflow-y-auto">
                   {logs.slice(-6).map((line, i) => (
                     <div key={`${line}-${i}`} className="truncate">
                       › {line}

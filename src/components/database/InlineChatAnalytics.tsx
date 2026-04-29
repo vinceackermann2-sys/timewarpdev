@@ -217,15 +217,15 @@ export function InlineChatAnalytics({ jsonString, editorEnabled = true }: { json
     <div className="my-4 rounded-xl border border-border/40 bg-card overflow-hidden shadow-sm">
       {/* Header */}
       <div className="px-5 py-3 flex items-center gap-2 border-b border-border/30">
-        <BarChart3 className="w-4 h-4 text-[#4a86ff]" />
+        <BarChart3 className="w-4 h-4 text-primary" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
         <div className="ml-auto flex items-center gap-1">
           {editor}
           <button onClick={handleSave} className="p-1 rounded hover:bg-primary/20 transition-colors" title="Save">
-            {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-[#4a86ff]" />}
+            {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-primary" />}
           </button>
           <button onClick={handleDownloadPptx} className="p-1 rounded hover:bg-primary/20 transition-colors" title="Download as PPTX">
-            <Download className="w-3.5 h-3.5 text-[#4a86ff]" />
+            <Download className="w-3.5 h-3.5 text-primary" />
           </button>
         </div>
       </div>
@@ -271,7 +271,7 @@ export function InlineChatAnalytics({ jsonString, editorEnabled = true }: { json
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">Key Insights</p>
             {config.insights.map((insight, i) => (
               <div key={i} className="flex items-start gap-2 text-sm text-foreground/85 leading-relaxed">
-                <span className="text-[#4a86ff] mt-0.5 text-xs">●</span>
+                <span className="text-primary mt-0.5 text-xs">●</span>
                 <span>{insight}</span>
               </div>
             ))}

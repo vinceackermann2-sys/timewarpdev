@@ -419,10 +419,10 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                           key={i}
                           className={`h-8 rounded-lg transition-all duration-500 flex items-center px-3 ${
                             scannedItems.includes(item) 
-                              ? 'bg-white/10 border border-white/20' 
+                              ? 'bg-card/10 border border-white/20' 
                               : i === currentScanItem 
                                 ? 'bg-accent/20 border border-accent/40 animate-pulse'
-                                : 'bg-white/5'
+                                : 'bg-card/5'
                           }`}
                         >
                           <span className="text-xs text-muted-foreground truncate">
@@ -464,7 +464,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                   </div>
 
                   {phase === "analyzing" && (
-                    <div className="w-64 bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="w-64 bg-card/5 rounded-lg p-4 border border-white/10">
                       <div className="flex items-center gap-2 mb-2">
                         <Loader2 className="h-4 w-4 animate-spin text-accent" />
                         <span className="text-sm">
@@ -484,7 +484,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                     variant="outline"
                     onClick={handleTakeControl}
                     disabled={isManualControl}
-                    className="border-white/20 bg-white/5 hover:bg-white/10 text-xs tracking-wider"
+                    className="border-white/20 bg-card/5 hover:bg-card/10 text-xs tracking-wider"
                   >
                     <Circle className={`h-2 w-2 mr-2 ${isManualControl ? 'fill-green-400 text-green-400' : 'fill-red-400 text-red-400'}`} />
                     <div className="text-left">
@@ -576,7 +576,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                                 <span className="text-xs uppercase tracking-wider font-medium">
                                   {rec.priority} priority
                                 </span>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-card/10 text-muted-foreground">
                                   {rec.effort} effort
                                 </span>
                               </div>
@@ -634,7 +634,7 @@ export function AIResearchView({ role, mode, onComplete, onTakeControl }: AIRese
                 </div>
               </div>
             </div>
-            <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="mt-3 h-1.5 bg-card/10 rounded-full overflow-hidden">
               <div 
                 className="h-full rounded-full transition-all duration-300"
                 style={{ 

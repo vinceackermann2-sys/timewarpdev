@@ -61,7 +61,7 @@ export function AssistantInsightFeedback(props: {
           disabled={busy !== null}
           onClick={() => void submit("helpful")}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors bg-white",
+            "inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors bg-card",
             busy && "opacity-60 pointer-events-none",
           )}
         >
@@ -73,7 +73,7 @@ export function AssistantInsightFeedback(props: {
           disabled={busy !== null}
           onClick={() => void submit("not_helpful")}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors bg-white",
+            "inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors bg-card",
             busy && "opacity-60 pointer-events-none",
           )}
         >
@@ -89,7 +89,7 @@ export function AssistantInsightFeedback(props: {
           maxLength={500}
           rows={2}
           placeholder="Optional note (sent with your next rating)"
-          className="mt-1 w-full resize-none rounded-lg border border-border/60 px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-primary/30 bg-white"
+          className="mt-1 w-full resize-none rounded-lg border border-border/60 px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-primary/30 bg-card"
         />
       </label>
     </div>

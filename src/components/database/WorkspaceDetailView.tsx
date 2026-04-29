@@ -174,7 +174,7 @@ export function WorkspaceDetailView({
             onClick={() => setTab("users")}
             className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${
               tab === "users"
-                ? "text-foreground shadow-sm bg-white"
+                ? "text-foreground shadow-sm bg-card"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -184,7 +184,7 @@ export function WorkspaceDetailView({
             onClick={() => setTab("invites")}
             className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${
               tab === "invites"
-                ? "text-foreground shadow-sm bg-white"
+                ? "text-foreground shadow-sm bg-card"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >

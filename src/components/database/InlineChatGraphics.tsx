@@ -34,10 +34,10 @@ function GraphicActions({ onSave, onDownload, editor }: { onSave: () => void; on
     <div className="ml-auto flex items-center gap-1">
       {editor}
       <button onClick={handleSave} className="p-1 rounded hover:bg-primary/20 transition-colors" title="Save to database">
-        {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-[#4a86ff]" />}
+        {saved ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Save className="w-3.5 h-3.5 text-primary" />}
       </button>
       <button onClick={onDownload} className="p-1 rounded hover:bg-primary/20 transition-colors" title="Download">
-        <Download className="w-3.5 h-3.5 text-[#4a86ff]" />
+        <Download className="w-3.5 h-3.5 text-primary" />
       </button>
     </div>
   );
@@ -111,8 +111,8 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
 
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-      <div className="bg-primary/10 border-b border-[#4a86ff]/20 px-5 py-3 flex items-center gap-2">
-        <FileText className="w-4 h-4 text-[#4a86ff]" />
+      <div className="bg-primary/10 border-b border-primary/20 px-5 py-3 flex items-center gap-2">
+        <FileText className="w-4 h-4 text-primary" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
         {config.date && <span className="text-xs text-muted-foreground">{config.date}</span>}
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
@@ -151,8 +151,8 @@ export function InlineSpreadsheet({ jsonString, editorEnabled = true }: { jsonSt
 
   return (
     <div className="my-4 rounded-xl border border-border/50 bg-card overflow-hidden shadow-sm">
-      <div className="bg-primary/10 border-b border-[#4a86ff]/20 px-5 py-3 flex items-center gap-2">
-        <Table2 className="w-4 h-4 text-[#4a86ff]" />
+      <div className="bg-primary/10 border-b border-primary/20 px-5 py-3 flex items-center gap-2">
+        <Table2 className="w-4 h-4 text-primary" />
         <span className="text-sm font-semibold text-foreground">{config.title}</span>
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>

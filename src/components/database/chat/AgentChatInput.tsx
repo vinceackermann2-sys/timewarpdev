@@ -136,7 +136,7 @@ export function AgentChatInput({
               value={sessionMemory}
               onChange={(e) => setSessionMemory(e.target.value)}
               placeholder="Notes for this thread: facts, preferences, goals (saved with the chat)."
-              className="mt-1 min-h-[72px] max-h-[160px] resize-y text-sm bg-white"
+              className="mt-1 min-h-[72px] max-h-[160px] resize-y text-sm bg-card"
             />
           )}
         </div>
@@ -153,10 +153,10 @@ export function AgentChatInput({
               </div>
             )}
             {selectedGraphic && (
-              <div className="flex items-center gap-1.5 bg-primary/10 border border-[#4a86ff]/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                <Palette className="w-3.5 h-3.5 text-[#4a86ff]" />
-                <span className="text-xs font-medium text-[#4a86ff]">{selectedGraphic}</span>
-                <button type="button" onClick={() => setSelectedGraphic(null)} className="text-[#4a86ff]/60 hover:text-[#4a86ff]">
+              <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
+                <Palette className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">{selectedGraphic}</span>
+                <button type="button" onClick={() => setSelectedGraphic(null)} className="text-primary/60 hover:text-primary">
                   <X className="w-3 h-3" />
                 </button>
               </div>
