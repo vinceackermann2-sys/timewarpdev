@@ -764,7 +764,7 @@ const FeatureShowcase = () => {
             {currentTabInfo.description}
           </p>
         </div>
-        <div className="md:w-2/3 w-full rounded-[32px] shadow-2xl p-4 md:p-6 overflow-hidden h-[420px] relative bg-[conic-gradient(from_180deg_at_50%_50%,#E195AB_0deg,#9B7BB6_120deg,#7E99C9_240deg,#E195AB_360deg)]">
+        <div className="md:w-2/3 w-full rounded-[32px] shadow-2xl p-4 md:p-6 overflow-hidden h-[420px] relative bg-cover bg-center" style={{ backgroundImage: `url(${tabFrameBg})` }}>
             <div className="w-full h-full bg-[#fdfcfd] rounded-2xl overflow-hidden relative shadow-xl flex flex-col">
               <div className="h-10 w-full flex items-center px-4 shrink-0 bg-[#fdfcfd] z-30">
                  <div className="flex gap-1.5">
