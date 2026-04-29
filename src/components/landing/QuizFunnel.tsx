@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 
 // Import cosmic backgrounds
 import ceoBg from "@/assets/ceo-bg.png";

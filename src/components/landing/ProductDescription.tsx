@@ -2,6 +2,7 @@ import { Globe, ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import futureCity from "@/assets/future-city.jpg";
 import { useNavigate, Link } from "react-router-dom";
+import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 import ZipHowItWorks from "@/components/landing/ZipHowItWorks";
 import ZipLifeAndWork from "@/components/landing/ZipLifeAndWork";
 
