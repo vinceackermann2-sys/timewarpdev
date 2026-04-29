@@ -44,10 +44,7 @@ const AiCeo = () => {
     };
   }, [navigate, isOAuthReturn, searchParams]);
 
-  const handleGetDNA = (url?: string) => {
-    setAuthProductUrl(url || undefined);
-    setAuthOpen(true);
-  };
+
 
   if (isLoading) {
     return (
