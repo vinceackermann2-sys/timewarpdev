@@ -172,8 +172,8 @@ export function AgentChatMessageList({
                           </div>
                         ),
                         thead: ({ children }) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
-                        th: ({ children }) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px]">{children}</th>,
-                        td: ({ children }) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80">{children}</td>,
+                        th: ({ children }) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px] shadow-none">{children}</th>,
+                        td: ({ children }) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80 bg-white">{children}</td>,
                         a: buildLiveCitationAnchor(msg.liveSourceRegistry),
                       }}
                     >
