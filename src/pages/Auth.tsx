@@ -12,6 +12,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { getSafeSession } from "@/lib/authSession";
 import { lovable } from "@/integrations/lovable";
+import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
