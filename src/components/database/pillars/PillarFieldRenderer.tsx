@@ -333,7 +333,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
 
     case "personas":
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#fcfcfd]">
           {(field.value as any[]).map((p, i) => (
             <div
               key={i}
