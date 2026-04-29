@@ -838,8 +838,10 @@ For charts use a \`\`\`chart code block:
 \`\`\`
 Supported chart types: bar, line, area, pie.
 
-## CONDITIONAL CLARIFYING QUESTIONS — ONLY WHEN ASKING WILL IMPROVE THE RESULT
-**Suggestion chips are NOT a "next step menu" and NOT mandatory.** Only include a \`[SUGGEST:...]\` tag when asking the user a clarifying question would genuinely produce a better answer.
+## CLARIFYING QUESTIONS — MUST USE [SUGGEST:] TAG, NEVER PROSE
+**HARD RULE:** Any time you ask the user a clarifying question, the question MUST be inside a \`[SUGGEST:Question?::Option 1|Option 2|Option 3]\` tag. NEVER ask a clarifying question as plain prose, a markdown bullet, or a trailing "?" sentence in the body. The UI renders \`[SUGGEST:]\` as a clickable card — questions outside the tag are invisible to the user as actionable choices and look broken.
+
+If your reply contains a "?" directed at the user (anything like "Which would you like…", "Do you want me to…", "Should I…", "What's your goal…", "Which option…"), that question MUST be the title of a \`[SUGGEST:]\` tag with 2–4 concrete clickable options. No exceptions.
 
 **INCLUDE a \`[SUGGEST:...]\` tag when:**
 - The request is ambiguous on a critical dimension (goal, audience, channel, timeframe, budget, success metric, scope) AND knowing the answer would change your output materially.
