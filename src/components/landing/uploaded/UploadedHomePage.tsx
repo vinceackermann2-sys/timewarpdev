@@ -327,6 +327,10 @@ const GrowBusiness = () => {
 };
 
 const PromptBox = () => {
+  const navigate = (window as any).__twNavigate as ((to: string) => void) | undefined;
+  const goToOnboarding = () => {
+    window.location.href = "/auth?mode=signup";
+  };
   const [inputValue, setInputValue] = useState("");
   const [integrationIndex, setIntegrationIndex] = useState(0);
   const [placeholderText, setPlaceholderText] = useState("");
