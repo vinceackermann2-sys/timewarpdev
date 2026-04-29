@@ -89,7 +89,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-1">
         <div className="rounded-xl border border-border bg-card">
           {/* Toolbar */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-5 py-4 border-b bg-[#fcfcfd] border-[#eeeff2]/0">
             <span className="text-sm font-medium text-muted-foreground">
               {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}
             </span>
