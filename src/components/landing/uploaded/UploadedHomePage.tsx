@@ -168,7 +168,7 @@ const GrowBusiness = () => {
                  </div>
                  <p className="text-[13px] font-medium text-gray-700 pr-2 tracking-tight">TimeWarp</p>
              </div>
-             <p className="text-[11px] text-gray-500 font-medium bg-[#f2f4f6] px-2.5 py-1.5 rounded-lg border border-gray-100">Let me look at the data</p>
+             <p className="text-[11px] text-gray-500 font-medium bg-[#f2f4f6] px-2.5 py-1.5 rounded-lg border border-gray-100">&quot;Let me look at the data&quot;</p>
           </motion.div>
         </div>
 
