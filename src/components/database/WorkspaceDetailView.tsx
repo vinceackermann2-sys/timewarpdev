@@ -169,7 +169,7 @@ export function WorkspaceDetailView({
         </div>
 
         {/* Tabs */}
-        <div className="inline-flex items-center p-1 rounded-lg border border-border mb-4 bg-[#E8F0FE]">
+        <div className="inline-flex items-center p-1 rounded-lg border border-border mb-4 bg-[#fcfcfd]">
           <button
             onClick={() => setTab("users")}
             className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${
@@ -200,7 +200,7 @@ export function WorkspaceDetailView({
               placeholder="Filter by name or email"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="pl-9 h-9 bg-[#E8F0FE]/0"
+              className="pl-9 h-9 bg-[#fcfcfd]/0"
             />
           </div>
           <div className="flex items-center gap-2">

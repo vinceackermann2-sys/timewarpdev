@@ -85,7 +85,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   const total = totalNum === Infinity ? "∞" : String(totalNum);
 
   return (
-    <div className="rounded-xl border border-border p-5 bg-[#E8F0FE]">
+    <div className="rounded-xl border border-border p-5 bg-[#fcfcfd]">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
@@ -489,7 +489,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium">Email</Label>
-                        <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-[#E8F0FE]">
+                        <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-[#fcfcfd]">
                           <Mail className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">{userEmail}</span>
                         </div>
@@ -500,7 +500,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                   <Separator />
                   <div>
                     <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><Key className="h-4 w-4" /> Security</h3>
-                    <div className="rounded-xl border border-border p-5 space-y-4 bg-[#E8F0FE]">
+                    <div className="rounded-xl border border-border p-5 space-y-4 bg-[#fcfcfd]">
                       <div>
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-1"><Key className="h-3.5 w-3.5" /> Change Password</h4>
                         <p className="text-xs text-muted-foreground mb-4">Update your password to keep your account secure.</p>
@@ -532,7 +532,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
                           <Button size="sm" variant="ghost" onClick={() => { setShowCreateWs(false); setNewWsName(""); }}>Cancel</Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-[#E8F0FE]"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
+                        <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-[#fcfcfd]"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
                       )}
                     </div>
                     {wsLoading ? (
@@ -667,7 +667,7 @@ export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialog
 
                   {/* Billing toggle */}
                   <div className="flex justify-center">
-                    <div className="inline-flex items-center rounded-full p-1 gap-1 bg-[#E8F0FE]">
+                    <div className="inline-flex items-center rounded-full p-1 gap-1 bg-[#fcfcfd]">
                       {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
                         <button
                           key={period}
