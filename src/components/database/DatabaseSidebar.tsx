@@ -72,6 +72,7 @@ import { FeedbackDialog } from "./FeedbackDialog";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { TimeWarpLogo } from "@/components/brand/TimeWarpLogo";
 
 type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 export type DashboardTab = "Briefing" | "Updates" | "To-Dos" | "Objectives";
