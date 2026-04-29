@@ -425,17 +425,8 @@ const PromptBox = () => {
 };
 
 const Hero = () => {
-  const [bgImage, setBgImage] = useState("https://images.unsplash.com/photo-1542224566-6e85f2e6772f?auto=format&fit=crop&q=80");
+  const bgImage = "https://images.unsplash.com/photo-1542224566-6e85f2e6772f?auto=format&fit=crop&q=80";
   const [activeStoryIdx, setActiveStoryIdx] = useState(0);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const imageUrl = URL.createObjectURL(file);
-      setBgImage(imageUrl);
-      e.target.value = '';
-    }
-  };
 
   return (
     <section className="relative isolate pt-28 pb-12 px-4 flex flex-col items-center justify-center text-center overflow-hidden">
