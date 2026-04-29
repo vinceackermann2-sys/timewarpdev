@@ -335,7 +335,7 @@ export default function PricingPage() {
     : "USD / month\nbilled annually";
 
   return (
-    <div className="min-h-screen bg-[#FAFBFF]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
           <ArrowLeft className="h-4 w-4" />
@@ -351,15 +351,15 @@ export default function PricingPage() {
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#E8F0FE]">
+          <div className="inline-flex items-center rounded-lg p-1.5 gap-1 border border-border bg-card shadow-sm">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}
                 onClick={() => setBilling(period)}
                 className={cn(
-                  "px-6 py-2 rounded-full text-sm font-medium transition-all capitalize",
+                  "px-6 py-2 rounded-md text-sm font-medium transition-all capitalize",
                   billing === period
-                    ? "shadow-sm bg-white text-black"
+                    ? "shadow-sm bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
