@@ -88,7 +88,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
 
       {/* Table */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-1">
-        <div className="rounded-xl border border-border">
+        <div>
           {/* Toolbar */}
           <div className="flex items-center justify-between px-5 py-4">
             <span className="text-sm font-medium text-muted-foreground">
