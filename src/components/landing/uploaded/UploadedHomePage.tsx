@@ -1448,9 +1448,8 @@ const Footer = () => (
      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between mb-16 gap-10">
         <div className="flex flex-col md:flex-row gap-12 lg:gap-24">
            {/* Logo Component */}
-           <Link to="/" className="flex items-center gap-2">
-             <img src={timewarpLogo} alt="TimeWarp" className="h-7 w-auto" />
-             <span className="text-xl font-bold tracking-tight text-[#1a202c]">TimeWarp</span>
+           <Link to="/" className="flex items-center">
+             <TimeWarpLogo size={28} wordmarkClassName="text-xl font-bold tracking-tight" />
            </Link>
 
            {/* Links */}
