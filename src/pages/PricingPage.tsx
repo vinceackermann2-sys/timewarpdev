@@ -168,7 +168,7 @@ function PlanCard({
   const benefits = PLAN_BENEFITS[planKey];
 
   return (
-    <div className="relative rounded-3xl border border-border bg-card p-8 flex flex-col shadow-sm">
+    <div className="relative rounded-lg border border-border bg-card p-8 flex flex-col shadow-sm">
       {/* Badge top right */}
       {badge && (
         <div className="absolute top-6 right-6">
@@ -209,9 +209,9 @@ function PlanCard({
         onClick={onClick}
         disabled={loading}
         className={cn(
-          "w-full h-12 rounded-full font-semibold mb-8",
+          "w-full h-12 rounded-lg font-semibold mb-8",
           buttonVariant === "primary" && !buttonGradient && "bg-foreground text-background hover:bg-foreground/90",
-          buttonVariant === "outline" && "text-foreground border border-border bg-[#FAFBFF]",
+          buttonVariant === "outline" && "text-foreground border border-border bg-background",
           buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
           buttonGradient && "bg-primary text-primary-foreground hover:opacity-90 border-0 hover:no-underline"
         )}
