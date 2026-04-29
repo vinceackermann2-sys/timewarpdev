@@ -113,7 +113,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
                   className={cn(
                     "w-full text-left px-3 py-2.5 rounded-lg transition-all group",
                     isActive
-                      ? "border border-primary/20 bg-[#f3f5f7]"
+                      ? "border bg-[#f3f5f7] border-white"
                       : "hover:bg-muted/50 border border-transparent"
                   )}
                 >
