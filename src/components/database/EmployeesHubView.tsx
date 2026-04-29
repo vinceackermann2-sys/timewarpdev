@@ -28,7 +28,7 @@ export function EmployeesHubView({ activeTab, onTabChange }: EmployeesHubViewPro
             onClick={() => onTabChange("employees")}
             className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${
               activeTab === "employees"
-                ? "bg-primary/10 text-primary font-medium"
+                ? "text-primary font-medium bg-[#f3f5f7]"
                 : "hover:bg-muted/50"
             }`}
           >
