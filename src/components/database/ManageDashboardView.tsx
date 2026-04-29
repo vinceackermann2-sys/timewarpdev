@@ -164,7 +164,7 @@ function CardShell({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative border border-border/60 rounded-2xl px-4 sm:px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left shadow-none opacity-100 bg-[#f3f5f7] ${dimmed ? "opacity-60" : ""}`}
+      className={`group relative border border-border/60 rounded-2xl px-4 sm:px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left shadow-none opacity-100 bg-[#dbe6ff] ${dimmed ? "opacity-60" : ""}`}
     >
       {/* Header: source logo (or leading control) ↔ accent */}
       {(topLeft || leadingControl || topRight || delta) && (
