@@ -348,7 +348,7 @@ const Auth = () => {
 
                   <Button
                     type="submit"
-                    className="w-full h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="w-full h-12 rounded-xl text-primary-foreground bg-[#3c83f6]"
                     disabled={isLoading || (isSignUp && !agreedToTerms)}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
