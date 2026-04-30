@@ -640,8 +640,8 @@ const Database = () => {
                   onCreateWithTimeWarp={(kind) => {
                     setInitialAssistantMessage(
                       kind === "agent"
-                        ? "I want to create a new AI agent. Help me design it — ask me what tasks it should handle, then propose a name, role, and a Standard Operating Procedure I can approve."
-                        : "I want to hire a new AI employee. Help me design them — ask me what role they should fill, then propose a name, responsibilities, and a Standard Operating Procedure I can approve.",
+                        ? "Use the **agents** skill to help me build a new agent. Walk me through it step by step: (1) the trigger (event, schedule, or threshold), (2) which of my connected integrations it should use, (3) the full step-by-step SOP, (4) the hard safety boundary and escalation path. End with a complete ready-to-configure spec and ask if I want to connect this agent to one of my employees."
+                        : "Use the **employees** skill to help me hire a new employee. Walk me through it step by step: (1) the domain lens (e.g. CMO, COO, Head of Sales — what they filter every decision through), (2) what they own vs. advise on vs. explicitly don't touch, (3) the agents they should supervise. Show me the Employee vs Agent distinction so I don't confuse the two, and end by asking if I want to build an agent for this employee to supervise.",
                     );
                     handleViewChange("employees");
                   }}
