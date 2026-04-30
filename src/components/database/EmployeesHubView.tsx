@@ -8,6 +8,8 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { EmployeeDetailView } from "./EmployeeDetailView";
 import type { AIEmployee } from "./EmployeesView";
 import type { EmployeesTab } from "./DatabaseSidebar";
+import { AgentDetailView } from "./agents/AgentDetailView";
+import { normalizeAgentRow, type AIAgent } from "./agents/types";
 import { cn } from "@/lib/utils";
 
 interface EmployeesHubViewProps {
@@ -19,7 +21,7 @@ interface EmployeesHubViewProps {
 export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp }: EmployeesHubViewProps) {
   const { user, isLoading: authLoading } = useAuth();
   const { activeWorkspaceId, isLoading: workspaceLoading } = useWorkspace();
-  const [items, setItems] = useState<AIEmployee[]>([]);
+  const [items, setItems] = useState<Array<AIEmployee | AIAgent>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -30,13 +32,15 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
     setIsLoading(true);
     try {
       let query = supabase
-        .from("ai_employees" as any)
+        .from((activeTab === "agents" ? "ai_agents" : "ai_employees") as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (activeWorkspaceId) query = query.eq("workspace_id", activeWorkspaceId);
       else query = query.eq("user_id", user.id);
       const { data, error } = await query;
-      if (!error && data) setItems(data as unknown as AIEmployee[]);
+      if (!error && data) {
+        setItems(activeTab === "agents" ? (data as any[]).map(normalizeAgentRow) : (data as unknown as AIEmployee[]));
+      }
     } catch (e) {
       console.warn("Failed to load employees:", e);
     }
@@ -57,10 +61,18 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
     return items.filter(
       (it) =>
         it.name.toLowerCase().includes(q) ||
-        it.role.toLowerCase().includes(q) ||
-        (it.sop_title || "").toLowerCase().includes(q),
+        (activeTab === "agents"
+          ? [
+              (it as AIAgent).description,
+              (it as AIAgent).trigger_type,
+              (it as AIAgent).trigger_source,
+              (it as AIAgent).trigger_condition,
+              (it as AIAgent).trigger_schedule,
+            ]
+          : [(it as AIEmployee).role, (it as AIEmployee).sop_title]
+        ).some((v) => String(v || "").toLowerCase().includes(q)),
     );
-  }, [items, search]);
+  }, [activeTab, items, search]);
 
   const selected = items.find((i) => i.id === selectedId) || null;
 
@@ -72,6 +84,14 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
   const emptyHelp = activeTab === "agents"
     ? "Describe the trigger (event, schedule, or threshold) and the outcome. TimeWarp will draft the SOP, the integrations it needs, and the escalation path."
     : "Pick the domain (CMO, COO, Head of Sales…). TimeWarp will define what they own vs. advise on vs. don't touch, and the agents they should supervise.";
+
+  const rowSubtitle = (item: AIEmployee | AIAgent) => {
+    if (activeTab === "agents") {
+      const agent = item as AIAgent;
+      return agent.trigger_schedule || agent.trigger_condition || agent.trigger_type;
+    }
+    return (item as AIEmployee).role;
+  };
 
   const handleDelete = async (id: string) => {
     await supabase.from("ai_employees" as any).delete().eq("id", id);
@@ -196,7 +216,7 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
                       <BusinessBrainOrb size={24} />
                       <div className="min-w-0 flex-1">
                         <p className={cn("text-sm truncate", isSel ? "font-medium" : "")}>{it.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{it.role}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{rowSubtitle(it)}</p>
                       </div>
                     </button>
                   </li>
@@ -209,9 +229,16 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
 
       {/* Right detail panel */}
       <main className="flex-1 min-h-0 overflow-y-auto bg-background">
-        {selected ? (
+        {selected ? activeTab === "agents" ? (
+          <AgentDetailView
+            agent={selected as AIAgent}
+            onBack={() => setSelectedId(null)}
+            onDeleted={() => { setSelectedId(null); load(); }}
+            onUpdated={(updated) => setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))}
+          />
+        ) : (
           <EmployeeDetailView
-            employee={selected}
+            employee={selected as AIEmployee}
             onBack={() => setSelectedId(null)}
             onDelete={handleDelete}
           />
