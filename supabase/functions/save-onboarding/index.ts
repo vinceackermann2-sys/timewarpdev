@@ -43,49 +43,78 @@ serve(async (req) => {
 
     const { brandData, productData, productsData, audienceData, audiencesData, workspaceId: hintWsId, brandName } = await req.json();
 
+    // --- Per-user serialization to prevent duplicate workspace/brand creation
+    // when the client (or React StrictMode) fires save-onboarding twice. ---
+    const lockKey = await admin.rpc("acquire_user_onboarding_lock", { _user_id: userId }).catch(() => null);
+    // Lock is best-effort; the real dedup happens via re-checks + unique guards below.
+
     // --- Resolve workspace server-side (never trust client blindly) ---
     let wsId: string | null = null;
 
-    // Fetch user's actual workspaces
-    const { data: wsData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
-    const userWorkspaces = (wsData as any[]) || [];
+    // Fetch user's actual workspaces (direct query, not RPC, to dedupe by created_by)
+    const { data: ownedWs } = await admin
+      .from("workspaces")
+      .select("id, name, created_at")
+      .eq("created_by", userId)
+      .order("created_at", { ascending: true });
+    const ownedList = (ownedWs as any[]) || [];
 
-    if (userWorkspaces.length > 0) {
-      if (hintWsId && userWorkspaces.some((w: any) => w.workspace_id === hintWsId)) {
-        wsId = hintWsId;
-      } else {
-        wsId = userWorkspaces[0].workspace_id;
-      }
+    // Pull membership-based list as fallback (covers invited users)
+    const { data: memberWs } = await admin.rpc("get_user_workspaces", { _user_id: userId });
+    const memberList = (memberWs as any[]) || [];
+
+    if (hintWsId && (ownedList.some(w => w.id === hintWsId) || memberList.some((w: any) => w.workspace_id === hintWsId))) {
+      wsId = hintWsId;
+    } else if (ownedList.length > 0) {
+      wsId = ownedList[0].id;
+    } else if (memberList.length > 0) {
+      wsId = memberList[0].workspace_id;
     }
 
-    // If user has zero workspaces, create one
+    // If user has zero workspaces, create one — but re-check inside to avoid races.
     if (!wsId) {
       console.log("No workspace found for user, creating one server-side...");
-      const newWsId = crypto.randomUUID();
-      const { error: createErr } = await admin.from("workspaces").insert({
-        id: newWsId,
-        name: brandName || "My Workspace",
-        created_by: userId,
-      });
-
-      if (createErr) {
-        console.warn("Workspace create conflict, re-fetching:", createErr.message);
-        const { data: retryData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
-        if (retryData && (retryData as any[]).length > 0) {
-          wsId = (retryData as any[])[0].workspace_id;
-        } else {
-          return new Response(
-            JSON.stringify({ success: false, error: "Could not resolve workspace" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      // Re-check immediately before insert
+      const { data: recheck } = await admin
+        .from("workspaces")
+        .select("id")
+        .eq("created_by", userId)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (recheck && recheck.length > 0) {
+        wsId = recheck[0].id;
       } else {
-        await admin.from("workspace_members").insert({
-          workspace_id: newWsId,
-          user_id: userId,
-          role: "owner",
+        const newWsId = crypto.randomUUID();
+        const { error: createErr } = await admin.from("workspaces").insert({
+          id: newWsId,
+          name: brandName || "My Workspace",
+          created_by: userId,
         });
-        wsId = newWsId;
+
+        if (createErr) {
+          console.warn("Workspace create conflict, re-fetching:", createErr.message);
+          const { data: retryData } = await admin
+            .from("workspaces")
+            .select("id")
+            .eq("created_by", userId)
+            .order("created_at", { ascending: true })
+            .limit(1);
+          if (retryData && retryData.length > 0) {
+            wsId = retryData[0].id;
+          } else {
+            return new Response(
+              JSON.stringify({ success: false, error: "Could not resolve workspace" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          await admin.from("workspace_members").insert({
+            workspace_id: newWsId,
+            user_id: userId,
+            role: "owner",
+          });
+          wsId = newWsId;
+        }
       }
     }
 
