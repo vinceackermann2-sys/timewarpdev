@@ -551,7 +551,7 @@ const Database = () => {
               onEmployeesTabChange={setEmployeesTab}
             />
           </div>
-          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
+          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-[#f3f5f7]">
             <MobileHeader />
             <div className={onboardingLocked ? "pointer-events-none opacity-60" : ""}>
               <TopBreadcrumb
