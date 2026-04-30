@@ -665,6 +665,7 @@ export function BusinessDNAOnboarding({
           brandData: newBrand,
           productsData: newProducts,
           audiencesData: newAudiences,
+          workspaceId: workspaceIdRef.current || localStorage.getItem("preferred_workspace_id") || undefined,
           brandName,
         },
       });
