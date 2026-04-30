@@ -59,8 +59,9 @@ const App = () => {
                     <Route path="dna" element={<DnaPage />} />
                     <Route path="dna/:brandId" element={<DnaDetailPage />} />
                     <Route path="dna/:brandId/:pillar" element={<DnaDetailPage />} />
-                    <Route path="employees" element={<EmployeesPage />} />
-                    <Route path="agents" element={<AgentsPage />} />
+                    <Route path="employees" element={<Navigate to="/app/workforce?tab=employees" replace />} />
+                    <Route path="agents" element={<Navigate to="/app/workforce?tab=agents" replace />} />
+                    <Route path="workforce" element={<WorkforcePage />} />
                     <Route path="connections" element={<ConnectionsPage />} />
                     <Route path="workspaces" element={<WorkspacesPage />} />
                     <Route path="settings" element={<SettingsPage />} />
