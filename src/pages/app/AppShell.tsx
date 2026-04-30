@@ -58,7 +58,7 @@ function MobileHeader() {
 function OnboardingGate() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { brands, isLoading } = useBusinessDNA();
+  const { brands, products, audiences, isLoading } = useBusinessDNA();
   const { activeWorkspace, isLoading: wsLoading } = useWorkspace();
 
   useEffect(() => {
@@ -66,15 +66,34 @@ function OnboardingGate() {
     if (!activeWorkspace) return;
     // Only force onboarding for the workspace OWNER.
     if (activeWorkspace.role !== "owner") return;
-    if (brands.length > 0) return;
 
-    // Allow the assistant route itself (it hosts the onboarding UI) and
-    // the auth callback / oauth return flows.
+    // Empty workspace → onboarding.
+    const noBrands = brands.length === 0;
+
+    // A brand is considered "empty DNA" if it has no real name/category,
+    // no associated products/audiences, and no manual pillar overrides.
+    const hasMeaningfulBrand = brands.some((b) => {
+      const name = (b.name || "").trim().toLowerCase();
+      const hasName = !!name && name !== "untitled" && name !== "new business";
+      const hasCategory = !!(b.category && b.category.trim());
+      const hasProducts = products.some((p) => p.brandId === b.id);
+      const hasAudiences = audiences.some((a) => a.brandId === b.id);
+      const hasOverrides =
+        !!b.pillarOverrides &&
+        Object.values(b.pillarOverrides).some(
+          (fields) => fields && Object.values(fields).some((v) => (v || "").trim().length > 0),
+        );
+      return hasName || hasCategory || hasProducts || hasAudiences || hasOverrides;
+    });
+
+    if (!noBrands && hasMeaningfulBrand) return;
+
+    // Allow the assistant route itself (it hosts the onboarding UI).
     const path = location.pathname;
     if (path.startsWith("/app/assistant")) return;
 
     navigate("/app/assistant", { replace: true });
-  }, [brands.length, isLoading, wsLoading, activeWorkspace, location.pathname, navigate]);
+  }, [brands, products, audiences, isLoading, wsLoading, activeWorkspace, location.pathname, navigate]);
 
   return null;
 }
