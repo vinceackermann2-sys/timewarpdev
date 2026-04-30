@@ -222,7 +222,7 @@ export function AgentChatView({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const { activeChatId, handleSelectChat, handleNewChat } = useChatPersistence({
+  const { activeChatId, handleSelectChat, handleNewChat, sidebarRefreshKey } = useChatPersistence({
     user,
     activeWorkspaceId,
     selectedAgent,
