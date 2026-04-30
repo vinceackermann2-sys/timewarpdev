@@ -26,7 +26,7 @@ import {
 import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
-import { matchSkill, buildSkillBlock } from "../_shared/skills/_router.ts";
+import { matchSkill, matchSkillSticky, buildSkillBlock } from "../_shared/skills/_router.ts";
 import { workforceTools, executeWorkforceToolCall } from "../_shared/workforce-tools.ts";
 
 const corsHeaders = {
@@ -380,8 +380,11 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             const pageSection = buildPageSection();
             const hasBrowserContext = !!pageContext;
             const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n## Evidence Paths\n- Path 1 Internal History: ${performanceEvidence ? "available" : "sparse"}\n- Path 2 External Benchmark: use connected sources with citations only\n- Path 3 User Feedback: honor explicit constraints and ratings`;
-            // Skill routing (Layer 4a) — match against last user message
-            const matchedSkill = !hasBrowserContext ? matchSkill(lastUserMsg) : null;
+            // Skill routing (Layer 4a) — match against last user message,
+            // and fall back to recent history so multi-turn wizards (agent/
+            // employee creation) stay active when the user replies with a
+            // short SUGGEST chip that carries no trigger keywords.
+            const matchedSkill = !hasBrowserContext ? matchSkillSticky(messages) : null;
             if (matchedSkill) {
               edgeLog("extension-agent", "skill_matched", { slug: matchedSkill.slug, name: matchedSkill.name });
               sendStep(`Loading ${matchedSkill.name} playbook`, "done", "context");
