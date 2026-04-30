@@ -414,7 +414,7 @@ export function SettingsPanel({
         <div className="flex-1 overflow-y-auto px-8 py-4 bg-background">
           {/* SETTINGS TAB */}
           {activeTab === "settings" && (
-            <div className="space-y-8 max-w-xl">
+            <div className="space-y-4 bg-[#fcfcfd]">
               <div>
                 <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><User className="h-4 w-4" /> Profile</h3>
                 <div className="space-y-4">
