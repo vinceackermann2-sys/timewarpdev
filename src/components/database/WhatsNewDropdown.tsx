@@ -56,14 +56,14 @@ export function WhatsNewDropdown({ isCollapsed }: WhatsNewDropdownProps) {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="border-b border-border px-3 pt-3 bg-background">
             <TabsList className="w-full grid grid-cols-2 h-9 bg-muted">
-              <TabsTrigger value="inbox" className="text-xs gap-1.5">
+              <TabsTrigger value="inbox" className="text-xs gap-1.5 bg-white">
                 <Inbox className="h-3.5 w-3.5" />
                 Inbox
                 {inboxItems.some(i => i.unread) && (
                   <span className="ml-1 h-2 w-2 bg-primary rounded-full inline-block" />
                 )}
               </TabsTrigger>
-              <TabsTrigger value="updates" className="text-xs gap-1.5">
+              <TabsTrigger value="updates" className="text-xs gap-1.5 bg-white">
                 <Bell className="h-3.5 w-3.5" />
                 Updates
                 {updateItems.some(i => i.isNew) && (
