@@ -87,6 +87,41 @@ export function matchSkill(message: string): Skill | null {
   return best?.skill ?? null;
 }
 
+/**
+ * Sticky skill matcher for multi-turn flows like Agent / Employee creation
+ * wizards. The user's first message ("create an agent") matches the skill,
+ * but subsequent replies (e.g. clicking a SUGGEST chip like "📥 Lead triage")
+ * carry no trigger keywords — without stickiness the assistant drops the
+ * skill and answers the chip text as a free-form question.
+ *
+ * Strategy:
+ *   1. Match against the latest user message (existing behaviour).
+ *   2. If no direct match, scan up to the last 8 user messages and pick the
+ *      most recent one that matches a skill. This keeps wizards alive across
+ *      short answers without permanently locking the assistant into a skill.
+ *
+ * `messages` may be the raw chat history with role + content (string or
+ * array of multimodal parts).
+ */
+export function matchSkillSticky(messages: any[]): Skill | null {
+  if (!messages || messages.length === 0) return null;
+  const userMsgs: string[] = [];
+  for (let i = messages.length - 1; i >= 0 && userMsgs.length < 8; i--) {
+    const m = messages[i];
+    if (!m || m.role !== "user") continue;
+    const c = m.content;
+    let text = "";
+    if (typeof c === "string") text = c;
+    else if (Array.isArray(c)) text = c.filter((p: any) => p?.type === "text").map((p: any) => p.text).join(" ");
+    if (text) userMsgs.push(text);
+  }
+  for (const text of userMsgs) {
+    const hit = matchSkill(text);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 export function getSkill(slug: string): Skill | null {
   return skills.find((s) => s.slug === slug) ?? null;
 }
