@@ -273,7 +273,14 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         };
-        const parseGatewayEvent = (eventBlock: string, onDelta: (delta: string) => void) => {
+        // Accumulator for streamed function tool calls (OpenAI-style).
+        // Multiple tool calls can arrive interleaved across deltas, keyed by index.
+        type AccumulatedToolCall = { id?: string; name: string; arguments: string };
+        const parseGatewayEvent = (
+          eventBlock: string,
+          onDelta: (delta: string) => void,
+          toolCalls?: Map<number, AccumulatedToolCall>,
+        ) => {
           for (const line of eventBlock.split("\n")) {
             if (!line.startsWith("data: ")) continue;
             const data = line.slice(6).trim();
@@ -282,6 +289,17 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               const parsed = JSON.parse(data);
               const delta = parsed.choices?.[0]?.delta?.content || "";
               if (delta) onDelta(delta);
+              const tcDeltas = parsed.choices?.[0]?.delta?.tool_calls;
+              if (toolCalls && Array.isArray(tcDeltas)) {
+                for (const tc of tcDeltas) {
+                  const idx = typeof tc.index === "number" ? tc.index : 0;
+                  const cur = toolCalls.get(idx) || { name: "", arguments: "" };
+                  if (tc.id) cur.id = tc.id;
+                  if (tc.function?.name) cur.name = tc.function.name;
+                  if (tc.function?.arguments) cur.arguments += tc.function.arguments;
+                  toolCalls.set(idx, cur);
+                }
+              }
             } catch {
               // Ignore malformed partial events
             }
