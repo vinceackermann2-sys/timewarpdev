@@ -398,6 +398,23 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
       );
 
     case "org-chart": {
+      // Recursively prune nodes that have no role AND no name (and no
+      // meaningful descendants). This removes the "Role / — name —"
+      // placeholder cards when the underlying data is empty.
+      const pruneNode = (node: any): any | null => {
+        if (!node || typeof node !== "object") return null;
+        const role = typeof node.role === "string" ? node.role.trim() : "";
+        const name = typeof node.name === "string" ? node.name.trim() : "";
+        const children = Array.isArray(node.children)
+          ? node.children.map(pruneNode).filter(Boolean)
+          : [];
+        if (!role && !name && children.length === 0) return null;
+        return { ...node, role, name, children };
+      };
+
+      const pruned = pruneNode(field.value);
+      if (!pruned) return null;
+
       const renderNode = (node: any): JSX.Element => (
         <div className="flex flex-col items-center">
           <div className="bg-card border-2 border-border shadow-sm rounded-xl p-3 flex flex-col items-center w-40 text-center">
@@ -424,7 +441,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
       );
       return (
         <div className="w-full overflow-x-auto py-4">
-          <div className="min-w-max">{renderNode(field.value)}</div>
+          <div className="min-w-max">{renderNode(pruned)}</div>
         </div>
       );
     }
