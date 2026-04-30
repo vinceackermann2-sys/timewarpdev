@@ -64,7 +64,9 @@ let _cachedItems: DataItem[] | null = null;
 let _cachedCacheKey: string | null = null;
 
 function getCachedForBrand(brandId: string): DataItem[] | null {
-  if (_cachedItems && _cachedCacheKey && _cachedCacheKey.endsWith(`:${brandId}`)) {
+  // Strict full-key match — partial (`endsWith`) matches risk leaking cached
+  // data across accounts/workspaces when the SPA module is reused.
+  if (_cachedItems && _cachedCacheKey && _cachedCacheKey.endsWith(`:${brandId}`) && _cachedItems.length > 0) {
     return _cachedItems;
   }
   return null;
