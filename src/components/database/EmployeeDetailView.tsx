@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { AIEmployee } from "./EmployeesView";
+import { EmployeeDomainLensPanel } from "./employees/EmployeeDomainLensPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -746,6 +747,30 @@ export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete
                 </Section>
               )}
             </div>
+          )}
+
+          {/* Domain Lens — strategic-thinker fields + supervised agents */}
+          {!isEditing && (
+            <EmployeeDomainLensPanel
+              employeeId={employee.id}
+              initial={{
+                domain_lens: employee.domain_lens ?? null,
+                owns: Array.isArray(employee.owns) ? employee.owns : [],
+                advises_on: Array.isArray(employee.advises_on) ? employee.advises_on : [],
+                does_not_touch: Array.isArray(employee.does_not_touch) ? employee.does_not_touch : [],
+                triggers: employee.triggers ?? null,
+              }}
+              onSaved={(next) => {
+                setEmployee((prev) => ({
+                  ...prev,
+                  domain_lens: next.domain_lens,
+                  owns: next.owns,
+                  advises_on: next.advises_on,
+                  does_not_touch: next.does_not_touch,
+                  triggers: next.triggers,
+                }));
+              }}
+            />
           )}
 
           {/* Quality Score */}

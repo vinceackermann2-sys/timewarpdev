@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
-import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, PenLine, Database, Building2, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Plus, X, Loader2, PenLine, Database, Building2, ChevronDown, ChevronRight, Eye } from "lucide-react";
 
 interface Props {
   onCancel: () => void;
@@ -53,6 +53,14 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
   const [safetyWarnings, setSafetyWarnings] = useState("");
   const [safetyRisks, setSafetyRisks] = useState("");
   const [fileUploaded, setFileUploaded] = useState(false);
+
+  // Domain Lens (new — strategic-thinker filter)
+  const [domainLens, setDomainLens] = useState("");
+  const [owns, setOwns] = useState<string[]>([""]);
+  const [advisesOn, setAdvisesOn] = useState<string[]>([""]);
+  const [doesNotTouch, setDoesNotTouch] = useState<string[]>([""]);
+  const [employeeTriggers, setEmployeeTriggers] = useState("");
+  const [showDomainLens, setShowDomainLens] = useState(false);
 
   // Business data step
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>(activeWorkspaceId || "");
@@ -142,6 +150,10 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       return ctx ? `${p} [Context: ${ctx}]` : p;
     });
 
+    const cleanedOwns = owns.map((s) => s.trim()).filter(Boolean);
+    const cleanedAdvises = advisesOn.map((s) => s.trim()).filter(Boolean);
+    const cleanedDoesNotTouch = doesNotTouch.map((s) => s.trim()).filter(Boolean);
+
     const { error } = await supabase.from("ai_employees").insert({
       user_id: session.user.id,
       workspace_id: wsId ? wsId : null,
@@ -154,6 +166,12 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
       sop_safety_notes: [safetyWarnings.trim(), safetyRisks.trim()].filter(Boolean).join("\n\n") || null,
       sop_revision_history: [{ version: "1.0", date: new Date().toISOString().split("T")[0], notes: "Initial creation" }],
       linked_business_id: selectedBusinessId,
+      // Domain Lens (per the new /app architecture)
+      domain_lens: domainLens.trim() || null,
+      owns: cleanedOwns,
+      advises_on: cleanedAdvises,
+      does_not_touch: cleanedDoesNotTouch,
+      triggers: employeeTriggers.trim() || null,
     });
 
     setSaving(false);
@@ -273,6 +291,69 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
               </div>
               <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             </button>
+
+            {/* Domain Lens (optional, collapsible) — strategic-thinker filter
+                that scopes how this employee sees every decision. */}
+            <div className="rounded-lg border border-border/60 bg-muted/20">
+              <button
+                type="button"
+                onClick={() => setShowDomainLens((v) => !v)}
+                className="w-full flex items-center gap-3 p-3 text-left"
+              >
+                <Eye className="h-4 w-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">Add a domain lens (optional)</p>
+                  <p className="text-xs text-muted-foreground">Define what they own, advise on, and don't touch.</p>
+                </div>
+                {showDomainLens
+                  ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+              </button>
+              {showDomainLens && (
+                <div className="px-4 pb-4 space-y-4 animate-fade-in">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      The filter they see every decision through
+                    </Label>
+                    <Textarea
+                      value={domainLens}
+                      onChange={(e) => setDomainLens(e.target.value)}
+                      placeholder="e.g. Every decision through acquisition cost + brand ROI"
+                      rows={2}
+                    />
+                  </div>
+                  <WizardLensList
+                    label="Owns (authority)"
+                    values={owns}
+                    setValues={setOwns}
+                    placeholder="e.g. Marketing channels"
+                  />
+                  <WizardLensList
+                    label="Advises on (input only)"
+                    values={advisesOn}
+                    setValues={setAdvisesOn}
+                    placeholder="e.g. Pricing"
+                  />
+                  <WizardLensList
+                    label="Doesn't touch"
+                    values={doesNotTouch}
+                    setValues={setDoesNotTouch}
+                    placeholder="e.g. Engineering"
+                  />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                      What activates this employee
+                    </Label>
+                    <Textarea
+                      value={employeeTriggers}
+                      onChange={(e) => setEmployeeTriggers(e.target.value)}
+                      placeholder="e.g. Weekly campaign performance review, or whenever CAC moves > 10%"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -524,6 +605,59 @@ export function CreateEmployeeWizard({ onCancel, onCreated, orbPalettes }: Props
             </Button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Tiny helper for the optional Domain Lens list editors in step 0. */
+function WizardLensList({
+  label,
+  values,
+  setValues,
+  placeholder,
+}: {
+  label: string;
+  values: string[];
+  setValues: (v: string[]) => void;
+  placeholder: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <div className="space-y-1.5">
+        {values.map((v, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <Input
+              value={v}
+              onChange={(e) => {
+                const copy = [...values];
+                copy[i] = e.target.value;
+                setValues(copy);
+              }}
+              placeholder={placeholder}
+              className="h-8 text-xs"
+            />
+            {values.length > 1 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => setValues(values.filter((_, idx) => idx !== i))}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1"
+          onClick={() => setValues([...values, ""])}
+        >
+          <Plus className="h-3 w-3" /> Add
+        </Button>
       </div>
     </div>
   );

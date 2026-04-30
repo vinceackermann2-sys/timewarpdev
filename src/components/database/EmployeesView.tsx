@@ -30,6 +30,13 @@ export interface AIEmployee {
   workspace_id: string | null;
   user_id: string;
   linked_business_id: string | null;
+  // Domain Lens (added per the new /app architecture — see migration
+  // 20260430120000_add_ai_agents_and_employee_domain_lens.sql).
+  domain_lens: string | null;
+  owns: string[];
+  advises_on: string[];
+  does_not_touch: string[];
+  triggers: string | null;
 }
 
 const ORB_PALETTES = [
