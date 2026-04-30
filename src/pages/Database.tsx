@@ -637,6 +637,14 @@ const Database = () => {
                 <EmployeesHubView
                   activeTab={employeesTab}
                   onTabChange={setEmployeesTab}
+                  onCreateWithTimeWarp={(kind) => {
+                    setInitialAssistantMessage(
+                      kind === "agent"
+                        ? "I want to create a new AI agent. Help me design it — ask me what tasks it should handle, then propose a name, role, and a Standard Operating Procedure I can approve."
+                        : "I want to hire a new AI employee. Help me design them — ask me what role they should fill, then propose a name, responsibilities, and a Standard Operating Procedure I can approve.",
+                    );
+                    handleViewChange("employees");
+                  }}
                 />
               )}
             </main>
