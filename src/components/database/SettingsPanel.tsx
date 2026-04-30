@@ -598,7 +598,7 @@ export function SettingsPanel({
 
           {/* PLANS TAB */}
           {activeTab === "plans" && (
-            <div className="space-y-6">
+            <div className="space-y-4 bg-[#fcfcfd]">
               <PlanUsageSummary fallbackPlan={currentPlan} userId={authUser?.id} />
 
               <div className="flex justify-center">
