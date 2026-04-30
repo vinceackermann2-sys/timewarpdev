@@ -23,7 +23,7 @@ const empty = (type: FieldType): any => {
     case "typography":
       return { family: "", weight: "" };
     case "org-chart":
-      return { role: "Role", name: "", children: [] };
+      return { role: "", name: "", children: [] };
     case "2x2-grid":
       return { xLabel: "", yLabel: "", points: [] };
     case "tam-sam-som":
