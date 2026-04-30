@@ -19,12 +19,19 @@ export type DashboardCardsSsePayload = {
   tabs?: string[];
 };
 
+export type CreatedEntityPayload = {
+  kind: "agent" | "employee";
+  id?: string;
+  name?: string;
+};
+
 export type AgentSseHandlers = {
   onProgressStep?: (step: AgentSseProgressStep) => void;
   onContentDelta?: (delta: string) => void;
   onResult?: (evt: { content?: string; continuation?: boolean; liveSourceRegistry?: LiveSourceRegistry; replyContract?: "direct" | "live_lookup" | "strategic_plan" }) => void;
   onLiveSources?: (registry: LiveSourceRegistry) => void;
   onDashboardCards?: (evt: DashboardCardsSsePayload) => void;
+  onCreatedEntity?: (evt: CreatedEntityPayload) => void;
   onErrorMessage?: (message: string) => void;
 };
 
@@ -59,6 +66,8 @@ export async function consumeAgentChatSseStream(
           handlers.onDashboardCards(evt as DashboardCardsSsePayload);
         } else if (evt.type === "live_sources" && evt.registry && handlers.onLiveSources) {
           handlers.onLiveSources(evt.registry as LiveSourceRegistry);
+        } else if (evt.type === "created_entity" && handlers.onCreatedEntity) {
+          handlers.onCreatedEntity(evt as CreatedEntityPayload);
         } else if (evt.type === "result" && handlers.onResult) {
           handlers.onResult(evt);
         } else if (evt.type === "error") {
