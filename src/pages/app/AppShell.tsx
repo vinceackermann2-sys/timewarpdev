@@ -97,7 +97,7 @@ function OnboardingGate() {
     if (path.startsWith("/app/assistant")) return;
 
     navigate("/app/assistant", { replace: true });
-  }, [brands, products, audiences, isLoading, wsLoading, activeWorkspace, location.pathname, navigate]);
+  }, [brands, products, audiences, isLoading, wsLoading, activeWorkspace, loadedWorkspaceId, location.pathname, navigate]);
 
   return null;
 }
