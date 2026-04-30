@@ -478,6 +478,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       } catch {}
       setPrevBrands(brandsLight);
       loadedWorkspaceRef.current = activeWorkspaceId;
+      setLoadedWorkspaceId(activeWorkspaceId);
       setIsLoading(false);
 
       // PHASE 2: Load products + audiences in the background
