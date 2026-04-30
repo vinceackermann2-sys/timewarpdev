@@ -66,12 +66,11 @@ type NavItem = {
 const WORKSPACE_NAV: NavItem[] = [
   { to: "/app/assistant", label: "Assistant", icon: Bot },
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/app/workforce", label: "Workforce", icon: Users },
 ];
 
 const MANAGE_NAV: NavItem[] = [
   { to: "/app/dna", label: "Business DNA", icon: Dna },
-  { to: "/app/employees", label: "Employees", icon: Users },
-  { to: "/app/agents", label: "Agents", icon: Zap },
   { to: "/app/connections", label: "Connectors", icon: Cable },
 ];
 
