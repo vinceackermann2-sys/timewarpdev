@@ -386,32 +386,14 @@ export function SettingsPanel({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <div className="px-8 pt-8 pb-2 bg-background">
-          <h2 className="text-2xl font-bold tracking-tight">
-            {activeTab === "settings" && "Account Settings"}
-            {activeTab === "workspace" && (selectedWsId && selectedWs ? (
-              <span className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedWsId(null); setEditingName(false); }}>
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                {editingName ? (
-                  <div className="flex items-center gap-2">
-                    <Input value={editName} onChange={e => setEditName(e.target.value)}
-                      onKeyDown={async e => { if (e.key === "Enter" && editName.trim()) { await renameWorkspace(selectedWsId!, editName.trim()); setEditingName(false); } if (e.key === "Escape") setEditingName(false); }}
-                      className="h-8 text-lg font-bold" autoFocus />
-                  </div>
-                ) : (
-                  <>{selectedWs.workspaceName}
-                    {isOwnerOfSelected && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditName(selectedWs.workspaceName); setEditingName(true); }}><Pencil className="h-3 w-3" /></Button>}
-                  </>
-                )}
-                <span className={cn("text-xs font-medium", ROLE_CONFIG[selectedWs.role].color)}>({ROLE_CONFIG[selectedWs.role].label})</span>
-              </span>
-            ) : "Workspaces")}
-            {activeTab === "plans" && "Plans & Billing"}
-            {activeTab === "connections" && "Connections"}
-          </h2>
-        </div>
+        {(activeTab === "settings" || activeTab === "connections") && (
+          <div className="px-8 pt-8 pb-2 bg-background">
+            <h2 className="text-2xl font-bold tracking-tight">
+              {activeTab === "settings" && "Account Settings"}
+              {activeTab === "connections" && "Connections"}
+            </h2>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-8 py-4 bg-background">
           {/* SETTINGS TAB */}
