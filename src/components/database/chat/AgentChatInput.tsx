@@ -105,6 +105,14 @@ export function AgentChatInput({
   graphicsSubContent: React.ReactNode;
   employeesSubContent: React.ReactNode;
 }) {
+  // Re-detect the extension whenever the user opens the Plus dropup so the
+  // "Computer" row reflects the current state without requiring a full reload.
+  useEffect(() => {
+    if (isDropupOpen && !extensionConnected) {
+      onRetryExtensionDetection?.();
+    }
+  }, [isDropupOpen, extensionConnected, onRetryExtensionDetection]);
+
   return (
     <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-background">
       <input
