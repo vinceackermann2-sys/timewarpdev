@@ -222,7 +222,7 @@ export function AgentChatView({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const { activeChatId, handleSelectChat, handleNewChat } = useChatPersistence({
+  const { activeChatId, handleSelectChat, handleNewChat, sidebarRefreshKey } = useChatPersistence({
     user,
     activeWorkspaceId,
     selectedAgent,
@@ -1058,7 +1058,7 @@ export function AgentChatView({
 
       {showHistory && !isMobileChatView && !isOnboardingActive && (
         <div className="hidden md:block shrink-0 h-[calc(100%-16px)] my-2 mr-2">
-          <ChatHistorySidebar activeChatId={activeChatId} onSelectChat={handleSelectChat} onNewChat={handleNewChat} />
+          <ChatHistorySidebar activeChatId={activeChatId} onSelectChat={handleSelectChat} onNewChat={handleNewChat} refreshKey={sidebarRefreshKey} />
         </div>
       )}
 
@@ -1070,6 +1070,7 @@ export function AgentChatView({
             </SheetHeader>
             <ChatHistorySidebar
               activeChatId={activeChatId}
+              refreshKey={sidebarRefreshKey}
               onSelectChat={(session) => {
                 handleSelectChat(session);
                 setShowHistory(false);

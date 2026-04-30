@@ -20,6 +20,8 @@ interface Props {
   activeChatId: string | null;
   onSelectChat: (session: ChatSession) => void;
   onNewChat: () => void;
+  /** Bumped by parent whenever a session is created/updated to force a refresh. */
+  refreshKey?: number | string;
 }
 
 function formatDate(dateStr: string) {
@@ -29,7 +31,7 @@ function formatDate(dateStr: string) {
   return format(d, "MMM d");
 }
 
-export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Props) {
+export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat, refreshKey }: Props) {
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -43,14 +45,21 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
     }
     setIsLoading(true);
     try {
-      // ALWAYS scope to the current user. Chat history is per-user (not per-workspace)
-      // so users see their own conversations regardless of which workspace is active.
-      const query = supabase
+      // Per-workspace scoping: show chats belonging to the active workspace.
+      // Also include the user's personal (workspace_id = null) chats so nothing
+      // disappears for users who haven't picked a workspace yet.
+      let query = supabase
         .from("agent_chat_sessions")
-        .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at")
+        .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at, workspace_id, user_id")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(50);
+
+      if (activeWorkspaceId) {
+        query = query.or(`workspace_id.eq.${activeWorkspaceId},workspace_id.is.null`);
+      } else {
+        query = query.is("workspace_id", null);
+      }
 
       const { data, error } = await query;
       if (error) {
@@ -68,7 +77,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
 
   useEffect(() => {
     loadSessions();
-  }, [loadSessions]);
+  }, [loadSessions, refreshKey, activeChatId]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
