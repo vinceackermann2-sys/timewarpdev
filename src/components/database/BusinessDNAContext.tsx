@@ -99,6 +99,11 @@ interface BusinessDNAContextType {
   audiences: AudienceEntry[];
   setAudiences: React.Dispatch<React.SetStateAction<AudienceEntry[]>>;
   isLoading: boolean;
+  /** The workspace id that the current brands/products/audiences were loaded for.
+   *  `undefined` means no load has completed yet. Use this to gate onboarding
+   *  redirects so we don't act on a stale/empty list before the right workspace
+   *  has had a chance to load. */
+  loadedWorkspaceId: string | null | undefined;
   activeWorkspaceId: string | null;
   setActiveWorkspaceId: (id: string | null) => void;
   deleteBrand: (brandId: string) => Promise<void>;
@@ -408,6 +413,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [prevProducts, setPrevProducts] = useState<ProductEntry[]>([]);
   const [prevAudiences, setPrevAudiences] = useState<AudienceEntry[]>([]);
   const loadedWorkspaceRef = useRef<string | null | undefined>(undefined);
+  const [loadedWorkspaceId, setLoadedWorkspaceId] = useState<string | null | undefined>(undefined);
 
   // Keep in sync with workspace changes (event-driven, no polling)
   useEffect(() => {
@@ -472,6 +478,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       } catch {}
       setPrevBrands(brandsLight);
       loadedWorkspaceRef.current = activeWorkspaceId;
+      setLoadedWorkspaceId(activeWorkspaceId);
       setIsLoading(false);
 
       // PHASE 2: Load products + audiences in the background
@@ -514,6 +521,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setPrevAudiences(a);
     setActiveWorkspaceId(wsId);
     loadedWorkspaceRef.current = wsId;
+    setLoadedWorkspaceId(wsId);
     setIsLoading(false);
     return { brands: b, products: p, audiences: a };
   };
@@ -753,6 +761,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       products, setProducts: setProductsState,
       audiences, setAudiences: setAudiencesState,
       isLoading,
+      loadedWorkspaceId,
       activeWorkspaceId,
       setActiveWorkspaceId,
       deleteBrand,
