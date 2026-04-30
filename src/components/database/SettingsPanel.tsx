@@ -441,14 +441,14 @@ export function SettingsPanel({
           {/* WORKSPACE TAB — render the standalone Workspaces view for visual parity */}
           {activeTab === "workspace" && (
             <div className="-mx-8 -my-4 h-full min-h-0">
-              <WorkspacesView />
+              <WorkspacesView hideFooter />
             </div>
           )}
 
           {/* PLANS TAB — render the standalone Pricing page for visual parity */}
           {activeTab === "plans" && (
             <div className="-mx-8 -my-4">
-              <PricingPage />
+              <PricingPage embedded />
             </div>
           )}
 

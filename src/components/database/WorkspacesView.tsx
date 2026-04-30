@@ -19,9 +19,10 @@ import { cn } from "@/lib/utils";
 
 interface WorkspacesViewProps {
   onBack?: () => void;
+  hideFooter?: boolean;
 }
 
-export function WorkspacesView({ onBack }: WorkspacesViewProps) {
+export function WorkspacesView({ onBack, hideFooter = false }: WorkspacesViewProps) {
   const { user } = useAuth();
   const {
     workspaces,
@@ -194,9 +195,11 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
       </div>
 
       {/* Footer */}
-      <div className="mt-16">
-        <WorkspaceFooter compact />
-      </div>
+      {!hideFooter && (
+        <div className="mt-16">
+          <WorkspaceFooter compact />
+        </div>
+      )}
 
     </div>
   );

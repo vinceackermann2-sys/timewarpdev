@@ -245,7 +245,7 @@ function PlanCard({
   );
 }
 
-export default function PricingPage() {
+export default function PricingPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | undefined>();
@@ -336,12 +336,14 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
-          <ArrowLeft className="h-4 w-4" />
-          Back to home
-        </Link>
-      </div>
+      {!embedded && (
+        <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
+          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
+        </div>
+      )}
 
       <div className="max-w-6xl mx-auto px-4 pb-20 space-y-12">
         {/* Header */}
