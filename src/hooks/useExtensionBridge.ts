@@ -41,23 +41,66 @@ export function useExtensionBridge() {
       if (event.source !== window) return;
       const data = event.data;
 
-      if (data === "TIMEWARP_PONG") {
-        console.log("[ExtBridge] ✅ PONG received! Extension connected.");
+      // 🔍 DIAGNOSTIC: log anything that smells like the extension so we can
+      // see exactly what protocol it speaks. Safe — only runs in browser.
+      try {
+        const asStr = typeof data === "string" ? data : JSON.stringify(data);
+        if (asStr && /TIMEWARP|TW_|timewarp/i.test(asStr) && asStr.length < 500) {
+          console.log("[ExtBridge] 📥 message:", data);
+        }
+      } catch {
+        /* noop */
+      }
+
+      // Accept multiple connection-confirmation shapes so we work with any
+      // version of the extension protocol.
+      const stringPongs = new Set([
+        "TIMEWARP_PONG",
+        "TW_PONG",
+        "PONG",
+        "TIMEWARP_EXTENSION_READY",
+        "TIMEWARP_READY",
+      ]);
+      const objectPongTypes = new Set([
+        "TIMEWARP_PONG",
+        "TW_PONG",
+        "PONG",
+        "TIMEWARP_EXTENSION_READY",
+        "TIMEWARP_READY",
+        "TIMEWARP_HELLO",
+        "TIMEWARP_CONNECTED",
+        "TIMEWARP_INIT",
+      ]);
+
+      if (typeof data === "string" && stringPongs.has(data)) {
+        console.log("[ExtBridge] ✅ PONG (string):", data);
         setExtensionConnected(true);
         setDetecting(false);
         return;
       }
 
       if (typeof data === "object" && data !== null) {
-        const { type } = data;
+        const { type, source } = data as { type?: string; source?: string };
 
-        if (type === "TIMEWARP_PONG") {
-          console.log("[ExtBridge] ✅ PONG received (object)! Extension connected.");
+        // Some extensions tag every message with source: "timewarp-extension"
+        if (typeof source === "string" && /timewarp/i.test(source)) {
+          if (!stringPongs.has(type ?? "")) {
+            console.log("[ExtBridge] ✅ Extension source detected:", source);
+            setExtensionConnected(true);
+            setDetecting(false);
+          }
+        }
+
+        if (type && objectPongTypes.has(type)) {
+          console.log("[ExtBridge] ✅ PONG (object):", type);
           setExtensionConnected(true);
           setDetecting(false);
         }
 
         if (type === "TIMEWARP_PAGE_CONTEXT") {
+          // Receiving any real payload also implies the extension is here.
+          setExtensionConnected(true);
+          setDetecting(false);
           const resolver = resolversRef.current.get("page_context");
           if (resolver) {
             resolver(data.payload as PageContext);
@@ -66,6 +109,8 @@ export function useExtensionBridge() {
         }
 
         if (type === "TIMEWARP_ACTION_RESULT") {
+          setExtensionConnected(true);
+          setDetecting(false);
           const resolver = resolversRef.current.get("action_result");
           if (resolver) {
             resolver(data.payload as ActionResult);
@@ -75,6 +120,8 @@ export function useExtensionBridge() {
 
         if (type === "TIMEWARP_GROUP_READY") {
           console.log("[ExtBridge] ✅ Tab group ready.");
+          setExtensionConnected(true);
+          setDetecting(false);
           const resolver = resolversRef.current.get("group_ready");
           if (resolver) {
             resolver(true);
