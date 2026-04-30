@@ -26,8 +26,6 @@ import AssistantPage from "./pages/app/AssistantPage";
 import DashboardPage from "./pages/app/DashboardPage";
 import DnaPage from "./pages/app/DnaPage";
 import DnaDetailPage from "./pages/app/DnaDetailPage";
-import EmployeesPage from "./pages/app/EmployeesPage";
-import AgentsPage from "./pages/app/AgentsPage";
 import WorkforcePage from "./pages/app/WorkforcePage";
 import ConnectionsPage from "./pages/app/ConnectionsPage";
 import WorkspacesPage from "./pages/app/WorkspacesPage";
