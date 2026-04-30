@@ -223,9 +223,12 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
                 ? `No ${labelPlural.toLowerCase()} yet`
                 : `Select a ${labelSingular}`}
             </h2>
-            <p className="text-sm text-muted-foreground max-w-sm mb-5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground/80 mb-3">
+              {tagline}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-md mb-5">
               {items.length === 0
-                ? `Create your first ${labelSingular} with TimeWarp — describe what you want done and TimeWarp will set it up for you.`
+                ? emptyHelp
                 : `Choose a ${labelSingular} from the list to view its details, SOP, and activity.`}
             </p>
             <button
