@@ -761,6 +761,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       products, setProducts: setProductsState,
       audiences, setAudiences: setAudiencesState,
       isLoading,
+      loadedWorkspaceId,
       activeWorkspaceId,
       setActiveWorkspaceId,
       deleteBrand,
