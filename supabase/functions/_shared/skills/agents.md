@@ -2,7 +2,7 @@
 name: Agents
 pillars: Operations, Growth, Product, Strategy
 surface: assistant-chat
-trigger: build an agent, create an agent, make an agent, set up an agent, agent that monitors, agent that tracks, agent that answers, agent for, automate this, I want an agent, agent to handle, agent to manage, deploy an agent, configure an agent, agent that triages, agent that scrapes, agent that checks, agent that sends, agent that runs, agent workflow, automated task, automation for, I need something to watch, monitor this for me, watch this channel, auto-respond, auto-triage, background task, set and forget, agent that does
+trigger: build an agent, build agent, create an agent, create agent, create my agent, new agent, add agent, make an agent, make agent, set up an agent, setup agent, agent that monitors, agent that tracks, agent that answers, agent for, automate this, I want an agent, agent to handle, agent to manage, deploy an agent, configure an agent, agent that triages, agent that scrapes, agent that checks, agent that sends, agent that runs, agent workflow, automated task, automation for, I need something to watch, monitor this for me, watch this channel, auto-respond, auto-triage, background task, set and forget, agent that does
 ---
 
 # Agents
@@ -54,6 +54,23 @@ If any of these four are missing, the agent will fail silently or make bad calls
 ---
 
 ## Agent Build Playbook
+
+## Creation Wizard — Generic Requests
+
+If the user says they want to create/build/set up an agent but does **not** specify the exact repeatable task, trigger, and integration, do **not** invent an agent from Business DNA.
+
+Start a setup wizard instead. Ask exactly one high-leverage setup question using a `[SUGGEST:]` tag. Work through these in order, only skipping answers already explicit in the user's message or Business DNA:
+1. What task should the agent automate?
+2. What trigger should start it — event, schedule, threshold, or manual?
+3. Which connected integration/source should it use?
+4. What should it produce or update when it finishes?
+5. What is it explicitly not allowed to do?
+
+For generic Workforce CTA messages like “I want to create an agent — walk me through…”, your first response must be only a short setup sentence plus the first `[SUGGEST:]` question. Do not propose a full agent yet. Do not ask for confirmation to build until the required fields are known.
+
+Example first response:
+`Let's set up the agent properly before creating it.`
+`[SUGGEST:What should this agent automate first?::📥 Lead triage|💬 Slack/message monitoring|📊 Daily performance reporting|🛠️ A custom workflow]`
 
 ### Step 1 — Define the trigger
 
