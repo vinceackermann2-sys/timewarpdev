@@ -130,5 +130,5 @@ export function useChatPersistence({
     setSessionMemoryOpen(false);
   };
 
-  return { activeChatId, handleSelectChat, handleNewChat, saveChatSession };
+  return { activeChatId, handleSelectChat, handleNewChat, saveChatSession, sidebarRefreshKey };
 }
