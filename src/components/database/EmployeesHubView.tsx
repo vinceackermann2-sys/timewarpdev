@@ -66,6 +66,12 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
 
   const labelPlural = activeTab === "agents" ? "Agents" : "Employees";
   const labelSingular = activeTab === "agents" ? "agent" : "employee";
+  const tagline = activeTab === "agents"
+    ? "Pure executors. One trigger, a step-by-step SOP, and a hard safety boundary."
+    : "Strategic thinkers that sit above agents — a domain lens, owned scope, and the agents they supervise.";
+  const emptyHelp = activeTab === "agents"
+    ? "Describe the trigger (event, schedule, or threshold) and the outcome. TimeWarp will draft the SOP, the integrations it needs, and the escalation path."
+    : "Pick the domain (CMO, COO, Head of Sales…). TimeWarp will define what they own vs. advise on vs. don't touch, and the agents they should supervise.";
 
   const handleDelete = async (id: string) => {
     await supabase.from("ai_employees" as any).delete().eq("id", id);
@@ -217,9 +223,12 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
                 ? `No ${labelPlural.toLowerCase()} yet`
                 : `Select a ${labelSingular}`}
             </h2>
-            <p className="text-sm text-muted-foreground max-w-sm mb-5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground/80 mb-3">
+              {tagline}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-md mb-5">
               {items.length === 0
-                ? `Create your first ${labelSingular} with TimeWarp — describe what you want done and TimeWarp will set it up for you.`
+                ? emptyHelp
                 : `Choose a ${labelSingular} from the list to view its details, SOP, and activity.`}
             </p>
             <button
