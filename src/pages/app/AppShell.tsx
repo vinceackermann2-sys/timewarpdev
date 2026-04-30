@@ -238,7 +238,7 @@ export default function AppShell() {
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">
           <AppSidebar userEmail={user.email || ""} />
-          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
+          <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-[#f3f5f7]">
             <MobileHeader />
             <AppTopBreadcrumb />
             <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-border bg-background">
