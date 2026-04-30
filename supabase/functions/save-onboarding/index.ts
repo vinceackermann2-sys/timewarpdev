@@ -43,49 +43,77 @@ serve(async (req) => {
 
     const { brandData, productData, productsData, audienceData, audiencesData, workspaceId: hintWsId, brandName } = await req.json();
 
+    // --- Per-user serialization to prevent duplicate workspace/brand creation
+    // when the client (or React StrictMode) fires save-onboarding twice.
+    // Real dedup happens via re-checks + idempotent guards below. ---
+
     // --- Resolve workspace server-side (never trust client blindly) ---
     let wsId: string | null = null;
 
-    // Fetch user's actual workspaces
-    const { data: wsData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
-    const userWorkspaces = (wsData as any[]) || [];
+    // Fetch user's actual workspaces (direct query, not RPC, to dedupe by created_by)
+    const { data: ownedWs } = await admin
+      .from("workspaces")
+      .select("id, name, created_at")
+      .eq("created_by", userId)
+      .order("created_at", { ascending: true });
+    const ownedList = (ownedWs as any[]) || [];
 
-    if (userWorkspaces.length > 0) {
-      if (hintWsId && userWorkspaces.some((w: any) => w.workspace_id === hintWsId)) {
-        wsId = hintWsId;
-      } else {
-        wsId = userWorkspaces[0].workspace_id;
-      }
+    // Pull membership-based list as fallback (covers invited users)
+    const { data: memberWs } = await admin.rpc("get_user_workspaces", { _user_id: userId });
+    const memberList = (memberWs as any[]) || [];
+
+    if (hintWsId && (ownedList.some(w => w.id === hintWsId) || memberList.some((w: any) => w.workspace_id === hintWsId))) {
+      wsId = hintWsId;
+    } else if (ownedList.length > 0) {
+      wsId = ownedList[0].id;
+    } else if (memberList.length > 0) {
+      wsId = memberList[0].workspace_id;
     }
 
-    // If user has zero workspaces, create one
+    // If user has zero workspaces, create one — but re-check inside to avoid races.
     if (!wsId) {
       console.log("No workspace found for user, creating one server-side...");
-      const newWsId = crypto.randomUUID();
-      const { error: createErr } = await admin.from("workspaces").insert({
-        id: newWsId,
-        name: brandName || "My Workspace",
-        created_by: userId,
-      });
-
-      if (createErr) {
-        console.warn("Workspace create conflict, re-fetching:", createErr.message);
-        const { data: retryData } = await admin.rpc("get_user_workspaces", { _user_id: userId });
-        if (retryData && (retryData as any[]).length > 0) {
-          wsId = (retryData as any[])[0].workspace_id;
-        } else {
-          return new Response(
-            JSON.stringify({ success: false, error: "Could not resolve workspace" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      // Re-check immediately before insert
+      const { data: recheck } = await admin
+        .from("workspaces")
+        .select("id")
+        .eq("created_by", userId)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (recheck && recheck.length > 0) {
+        wsId = recheck[0].id;
       } else {
-        await admin.from("workspace_members").insert({
-          workspace_id: newWsId,
-          user_id: userId,
-          role: "owner",
+        const newWsId = crypto.randomUUID();
+        const { error: createErr } = await admin.from("workspaces").insert({
+          id: newWsId,
+          name: brandName || "My Workspace",
+          created_by: userId,
         });
-        wsId = newWsId;
+
+        if (createErr) {
+          console.warn("Workspace create conflict, re-fetching:", createErr.message);
+          const { data: retryData } = await admin
+            .from("workspaces")
+            .select("id")
+            .eq("created_by", userId)
+            .order("created_at", { ascending: true })
+            .limit(1);
+          if (retryData && retryData.length > 0) {
+            wsId = retryData[0].id;
+          } else {
+            return new Response(
+              JSON.stringify({ success: false, error: "Could not resolve workspace" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          await admin.from("workspace_members").insert({
+            workspace_id: newWsId,
+            user_id: userId,
+            role: "owner",
+          });
+          wsId = newWsId;
+        }
       }
     }
 
@@ -100,65 +128,91 @@ serve(async (req) => {
 
     const brandId = brandData?.id || `brand-${Date.now()}`;
 
-    // Insert brand
-    const { data: brandInsert, error: brandErr } = await admin.from("user_business_data").insert({
-      ...basePayload,
-      data_type: "brand",
-      title: brandData?.name || "My Business",
-      content: JSON.stringify(brandData),
-      metadata: { brandId, dna_segment: "brand", dna_pillars: ["brand"] },
-    }).select("id").single();
+    const brandTitle = brandData?.name || "My Business";
 
-    if (brandErr) {
-      console.error("Brand insert failed:", brandErr);
-      // 23505 = unique_violation — workspace already has a business
-      const isDuplicate = (brandErr as any)?.code === "23505"
-        || /one_brand_per_workspace|duplicate key/i.test(brandErr.message || "");
-      if (isDuplicate) {
+    // Idempotency: if a brand with the same title already exists in this workspace,
+    // return it instead of inserting a duplicate. Onboarding can fire twice in
+    // React StrictMode or if the user double-clicks.
+    const { data: existingBrand } = await admin
+      .from("user_business_data")
+      .select("id, metadata")
+      .eq("user_id", userId)
+      .eq("workspace_id", wsId)
+      .eq("data_type", "brand")
+      .eq("title", brandTitle)
+      .maybeSingle();
+
+    let brandRowId: string | null = existingBrand?.id ?? null;
+    let didCreateBrand = false;
+
+    if (!brandRowId) {
+      const { data: brandInsert, error: brandErr } = await admin.from("user_business_data").insert({
+        ...basePayload,
+        data_type: "brand",
+        title: brandTitle,
+        content: JSON.stringify(brandData),
+        metadata: { brandId, dna_segment: "brand", dna_pillars: ["brand"] },
+      }).select("id").single();
+
+      if (brandErr) {
+        console.error("Brand insert failed:", brandErr);
+        const isDuplicate = (brandErr as any)?.code === "23505"
+          || /one_brand_per_workspace|duplicate key/i.test(brandErr.message || "");
+        if (isDuplicate) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              code: "WORKSPACE_HAS_BUSINESS",
+              error: "This workspace already has a business. Create a new workspace to add another business.",
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         return new Response(
-          JSON.stringify({
-            success: false,
-            code: "WORKSPACE_HAS_BUSINESS",
-            error: "This workspace already has a business. Create a new workspace to add another business.",
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "Failed to save brand: " + brandErr.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to save brand: " + brandErr.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      brandRowId = brandInsert?.id ?? null;
+      didCreateBrand = true;
+    } else {
+      console.log("Brand already exists for workspace, skipping duplicate insert:", brandRowId);
     }
 
-    // Insert products — 9-pillar model: 1 product per business
-    const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 1);
-    for (const prod of allProducts) {
-      const { error: productErr } = await admin.from("user_business_data").insert({
-        ...basePayload,
-        data_type: "product",
-        title: prod?.name || "Imported Product",
-        content: JSON.stringify(prod),
-        metadata: { brandId, dna_segment: "product", dna_pillars: ["product"] },
-      });
-      if (productErr) {
-        console.error("Product insert failed:", productErr);
+    // Insert products — 9-pillar model: 1 product per business.
+    // Skip entirely if brand already existed (idempotent re-run).
+    if (didCreateBrand) {
+      const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 1);
+      for (const prod of allProducts) {
+        const { error: productErr } = await admin.from("user_business_data").insert({
+          ...basePayload,
+          data_type: "product",
+          title: prod?.name || "Imported Product",
+          content: JSON.stringify(prod),
+          metadata: { brandId, dna_segment: "product", dna_pillars: ["product"] },
+        });
+        if (productErr) {
+          console.error("Product insert failed:", productErr);
+        }
       }
-    }
 
-    // Insert audiences — 9-pillar model: 1 audience per business
-    const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 1);
-    for (const aud of allAudiences) {
-      if (!aud) continue;
-      const { error: audErr } = await admin.from("user_business_data").insert({
-        ...basePayload,
-        data_type: "audience",
-        title: aud?.name || "Target Audience",
-        content: JSON.stringify(aud),
-        metadata: { brandId, dna_segment: "audience", dna_pillars: ["audience"] },
-      });
-      if (audErr) {
-        console.error("Audience insert failed:", audErr);
+      // Insert audiences — 9-pillar model: 1 audience per business
+      const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 1);
+      for (const aud of allAudiences) {
+        if (!aud) continue;
+        const { error: audErr } = await admin.from("user_business_data").insert({
+          ...basePayload,
+          data_type: "audience",
+          title: aud?.name || "Target Audience",
+          content: JSON.stringify(aud),
+          metadata: { brandId, dna_segment: "audience", dna_pillars: ["audience"] },
+        });
+        if (audErr) {
+          console.error("Audience insert failed:", audErr);
+        }
       }
+    } else {
+      console.log("Skipping product/audience insert — brand already existed (idempotent re-run).");
     }
 
     // Rename workspace to brand name only for the first business
@@ -175,7 +229,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, workspaceId: wsId, brandRowId: brandInsert?.id || null }),
+      JSON.stringify({ success: true, workspaceId: wsId, brandRowId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
