@@ -99,6 +99,11 @@ interface BusinessDNAContextType {
   audiences: AudienceEntry[];
   setAudiences: React.Dispatch<React.SetStateAction<AudienceEntry[]>>;
   isLoading: boolean;
+  /** The workspace id that the current brands/products/audiences were loaded for.
+   *  `undefined` means no load has completed yet. Use this to gate onboarding
+   *  redirects so we don't act on a stale/empty list before the right workspace
+   *  has had a chance to load. */
+  loadedWorkspaceId: string | null | undefined;
   activeWorkspaceId: string | null;
   setActiveWorkspaceId: (id: string | null) => void;
   deleteBrand: (brandId: string) => Promise<void>;
