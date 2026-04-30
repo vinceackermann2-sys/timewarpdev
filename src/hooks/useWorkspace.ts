@@ -212,7 +212,15 @@ export function useWorkspace() {
       _name: trimmedName,
     });
 
-    if (error) throw error;
+    if (error) {
+      const msg = (error as any)?.message || "";
+      if (msg.includes("OWNED_WORKSPACE_LIMIT_REACHED")) {
+        throw new Error(
+          "You can own a maximum of 5 workspaces. Delete one first, or ask to be invited as a member of additional workspaces (no limit on those)."
+        );
+      }
+      throw error;
+    }
 
     invalidateWorkspaces();
     return data;
