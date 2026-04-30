@@ -58,12 +58,16 @@ function MobileHeader() {
 function OnboardingGate() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { brands, products, audiences, isLoading } = useBusinessDNA();
+  const { brands, products, audiences, isLoading, loadedWorkspaceId } = useBusinessDNA();
   const { activeWorkspace, isLoading: wsLoading } = useWorkspace();
 
   useEffect(() => {
     if (isLoading || wsLoading) return;
     if (!activeWorkspace) return;
+    // Wait until DNA has actually loaded for THIS workspace before deciding —
+    // otherwise we may act on a stale empty list from a previous workspace id
+    // and incorrectly push the user back into onboarding.
+    if (loadedWorkspaceId !== activeWorkspace.workspaceId) return;
     // Only force onboarding for the workspace OWNER.
     if (activeWorkspace.role !== "owner") return;
 
