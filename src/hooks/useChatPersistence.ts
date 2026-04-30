@@ -28,6 +28,7 @@ export function useChatPersistence({
   setSessionMemoryOpen: Dispatch<SetStateAction<boolean>>;
 }) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saveChatSession = useCallback(
