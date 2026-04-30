@@ -196,6 +196,7 @@ async function loadBrandsLight(workspaceId?: string | null, session?: { user: { 
       name: row.title || "Untitled",
       category: "",
       lastUpdated: (row as any).created_at || new Date().toISOString(),
+      agentName: typeof meta.agentName === "string" ? meta.agentName : undefined,
       _rowId: row.id,
       _light: true,
     } as BrandEntry & { _rowId: string; _light: boolean });
