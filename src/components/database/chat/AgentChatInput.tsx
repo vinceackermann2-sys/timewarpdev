@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import { useEffect, type ReactNode, type RefObject } from "react";
 import {
   ArrowUp,
   ChevronDown,
