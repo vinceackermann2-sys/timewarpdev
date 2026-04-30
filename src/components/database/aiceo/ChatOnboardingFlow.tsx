@@ -598,7 +598,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       {
         role: "assistant",
         content:
-          "Welcome 👋 Let's set up your business so I can act as your CEO.\n\nWhat's your company website?",
+          "Welcome 👋 Let's set up your business for an unfair advantage.\n\nWhat's your company website? Paste your URL and I'll start bending time.",
       },
       ...(activeUrl ? [{ role: "user" as const, content: activeUrl }] : []),
       {
@@ -646,17 +646,20 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12 space-y-6">
         {/* Greeting bubble */}
         <AssistantBubble>
-          <div className="flex items-center gap-3 mb-2">
-            <BusinessBrainOrb size={32} />
-            <div>
-              <p className="text-[15px] font-semibold text-foreground">Welcome 👋</p>
-              <p className="text-[13px] text-muted-foreground">
-                Let's set up your business so I can act as your CEO.
-              </p>
-            </div>
+          <div className="mb-2">
+            <p className="text-[15px] font-semibold text-foreground">
+              <Typewriter text="Welcome 👋" speed={28} />
+            </p>
+            <p className="text-[13px] text-muted-foreground">
+              <Typewriter text="Let's set up your business for an unfair advantage." speed={18} delay={300} />
+            </p>
           </div>
           <p className="text-[14px] text-foreground">
-            What's your company website? Paste any URL and I'll do the research for you.
+            <Typewriter
+              text="What's your company website? Paste your URL and I'll start bending time."
+              speed={16}
+              delay={1400}
+            />
           </p>
         </AssistantBubble>
 
@@ -1001,8 +1004,8 @@ function AssistantBubble({ children }: { children: React.ReactNode }) {
       transition={{ duration: 0.25 }}
       className="flex items-start gap-3"
     >
-      <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shrink-0">
-        <img src="/favicon.png" alt="AI CEO" className="w-5 h-5 rounded-full object-cover" />
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+        <BusinessBrainOrb size={32} />
       </div>
       <div className="flex-1 min-w-0 bg-card border border-border rounded-2xl rounded-tl-md p-4 shadow-sm">
         {children}
@@ -1037,4 +1040,35 @@ function UserActionCard({ children, wide }: { children: React.ReactNode; wide?: 
       {children}
     </motion.div>
   );
+}
+
+function Typewriter({
+  text,
+  speed = 18,
+  delay = 0,
+}: {
+  text: string;
+  speed?: number;
+  delay?: number;
+}) {
+  const [shown, setShown] = useState("");
+  useEffect(() => {
+    let i = 0;
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = setTimeout(() => {
+      if (cancelled) return;
+      interval = setInterval(() => {
+        i += 1;
+        setShown(text.slice(0, i));
+        if (i >= text.length && interval) clearInterval(interval);
+      }, speed);
+    }, delay);
+    return () => {
+      cancelled = true;
+      clearTimeout(start);
+      if (interval) clearInterval(interval);
+    };
+  }, [text, speed, delay]);
+  return <span>{shown}</span>;
 }
