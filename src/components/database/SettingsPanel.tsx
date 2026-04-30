@@ -77,7 +77,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   const remaining = totalNum === Infinity ? "∞" : String(Math.max(0, totalNum - used));
 
   return (
-    <div className="rounded-xl border border-border p-5 bg-background">
+    <div className="rounded-xl border border-border p-5 space-y-4 bg-gray-100">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
