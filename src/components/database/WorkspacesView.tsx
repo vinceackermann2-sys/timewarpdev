@@ -195,9 +195,11 @@ export function WorkspacesView({ onBack, hideFooter = false }: WorkspacesViewPro
       </div>
 
       {/* Footer */}
-      <div className="mt-16">
-        <WorkspaceFooter compact />
-      </div>
+      {!hideFooter && (
+        <div className="mt-16">
+          <WorkspaceFooter compact />
+        </div>
+      )}
 
     </div>
   );
