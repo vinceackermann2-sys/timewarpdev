@@ -85,6 +85,14 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
     ? "Describe the trigger (event, schedule, or threshold) and the outcome. TimeWarp will draft the SOP, the integrations it needs, and the escalation path."
     : "Pick the domain (CMO, COO, Head of Sales…). TimeWarp will define what they own vs. advise on vs. don't touch, and the agents they should supervise.";
 
+  const rowSubtitle = (item: AIEmployee | AIAgent) => {
+    if (activeTab === "agents") {
+      const agent = item as AIAgent;
+      return agent.trigger_schedule || agent.trigger_condition || agent.trigger_type;
+    }
+    return (item as AIEmployee).role;
+  };
+
   const handleDelete = async (id: string) => {
     await supabase.from("ai_employees" as any).delete().eq("id", id);
     setSelectedId(null);
@@ -208,7 +216,7 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
                       <BusinessBrainOrb size={24} />
                       <div className="min-w-0 flex-1">
                         <p className={cn("text-sm truncate", isSel ? "font-medium" : "")}>{it.name}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{it.role}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{rowSubtitle(it)}</p>
                       </div>
                     </button>
                   </li>
@@ -221,9 +229,16 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
 
       {/* Right detail panel */}
       <main className="flex-1 min-h-0 overflow-y-auto bg-background">
-        {selected ? (
+        {selected ? activeTab === "agents" ? (
+          <AgentDetailView
+            agent={selected as AIAgent}
+            onBack={() => setSelectedId(null)}
+            onDeleted={() => { setSelectedId(null); load(); }}
+            onUpdated={(updated) => setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))}
+          />
+        ) : (
           <EmployeeDetailView
-            employee={selected}
+            employee={selected as AIEmployee}
             onBack={() => setSelectedId(null)}
             onDelete={handleDelete}
           />
