@@ -102,6 +102,20 @@ export function AgentChatMessageList({
                   {(!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
                     <ChatDashboardCards cards={msg.dashboardCards || []} openingSummary={msg.dashboardOpeningSummary} />
                   )}
+                  {msg.createdEntity?.id && (
+                    <a
+                      href={`/app/workforce?tab=${msg.createdEntity.kind === "agent" ? "agents" : "employees"}`}
+                      className="my-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent transition-colors no-underline"
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {msg.createdEntity.kind === "agent" ? "✨ New Agent created" : "✨ New Employee created"}
+                        </span>
+                        <span className="text-sm font-semibold text-foreground">{msg.createdEntity.name}</span>
+                      </div>
+                      <span className="text-xs text-primary">Open →</span>
+                    </a>
+                  )}
                   {cleanedContent && (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}

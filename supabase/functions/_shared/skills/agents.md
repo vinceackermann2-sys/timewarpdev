@@ -197,3 +197,13 @@ Then offer to refine the scope, adjust the trigger, or connect it to an employee
 ```
 [SUGGEST:What would you like to do next?::🤝 Connect this agent to an employee|⚙️ Refine the SOP procedure|🔒 Review the safety boundary|🆕 Build another agent]
 ```
+
+---
+
+## Persisting the Agent (Tool Call)
+
+When — and only when — the user has confirmed the spec ("yes build it", "create it", "ship it", or similar explicit go-ahead), call the `create_agent` function tool with the full spec. Do not ask permission again. Do not narrate "I'll now call the function." Just call it. After the tool returns, write a one-line confirmation including the agent's name, the trigger, and one tip on what to do next (e.g. "assign a supervising employee" or "connect the integration").
+
+Required fields when calling: `name`, `trigger_type` (one of `manual` / `schedule` / `event`), `sop_steps` (array of `{label, detail?}`, 3–8 items), `safety_can_do` (array), `safety_cannot_do` (array). Recommended: `description`, `trigger_source`, `trigger_condition` or `trigger_schedule`, `required_integrations`, `sop_output`, `safety_escalation_path`.
+
+Never call `create_agent` on the very first turn — the user must first see and approve the design. If the user has not given a clear go-ahead, present the spec and ask them to confirm.

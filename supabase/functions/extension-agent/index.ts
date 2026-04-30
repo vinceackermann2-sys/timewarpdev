@@ -27,6 +27,7 @@ import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
 import { matchSkill, buildSkillBlock } from "../_shared/skills/_router.ts";
+import { workforceTools, executeWorkforceToolCall } from "../_shared/workforce-tools.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -272,7 +273,14 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         };
-        const parseGatewayEvent = (eventBlock: string, onDelta: (delta: string) => void) => {
+        // Accumulator for streamed function tool calls (OpenAI-style).
+        // Multiple tool calls can arrive interleaved across deltas, keyed by index.
+        type AccumulatedToolCall = { id?: string; name: string; arguments: string };
+        const parseGatewayEvent = (
+          eventBlock: string,
+          onDelta: (delta: string) => void,
+          toolCalls?: Map<number, AccumulatedToolCall>,
+        ) => {
           for (const line of eventBlock.split("\n")) {
             if (!line.startsWith("data: ")) continue;
             const data = line.slice(6).trim();
@@ -281,6 +289,17 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               const parsed = JSON.parse(data);
               const delta = parsed.choices?.[0]?.delta?.content || "";
               if (delta) onDelta(delta);
+              const tcDeltas = parsed.choices?.[0]?.delta?.tool_calls;
+              if (toolCalls && Array.isArray(tcDeltas)) {
+                for (const tc of tcDeltas) {
+                  const idx = typeof tc.index === "number" ? tc.index : 0;
+                  const cur = toolCalls.get(idx) || { name: "", arguments: "" };
+                  if (tc.id) cur.id = tc.id;
+                  if (tc.function?.name) cur.name = tc.function.name;
+                  if (tc.function?.arguments) cur.arguments += tc.function.arguments;
+                  toolCalls.set(idx, cur);
+                }
+              }
             } catch {
               // Ignore malformed partial events
             }
@@ -398,22 +417,68 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             heartbeat = setInterval(() => {
               send({ type: "progress", step: { label: "Still working on this task...", status: "running", action: "heartbeat", detail: `Task type: ${taskType}` } });
             }, 8000);
-            const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
-                messages: [
-                  { role: "system", content: systemPrompt },
-                  ...messages,
-                ],
-                stream: true,
-              }),
-            });
+            // Workforce tools are only offered in pure chat mode (no browser
+            // pageContext). Browser mode already returns its own JSON action
+            // envelope and shouldn't be confused by extra tool calls.
+            const offerWorkforceTools = !hasBrowserContext;
 
+            const callGateway = async (msgs: any[], includeTools: boolean) => {
+              return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-3-flash-preview",
+                  messages: msgs,
+                  stream: true,
+                  ...(includeTools ? { tools: workforceTools, tool_choice: "auto" } : {}),
+                }),
+              });
+            };
+
+            const consumeStream = async (
+              res: Response,
+              opts: { collectToolCalls: boolean },
+            ): Promise<{ content: string; toolCalls: AccumulatedToolCall[] }> => {
+              const reader = res.body?.getReader();
+              if (!reader) throw new Error("No response body");
+              const decoder = new TextDecoder();
+              let buf = "";
+              let content = "";
+              const toolCallMap = opts.collectToolCalls ? new Map<number, AccumulatedToolCall>() : undefined;
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const blocks = buf.split("\n\n");
+                buf = blocks.pop() || "";
+                for (const block of blocks) {
+                  parseGatewayEvent(block, (delta) => {
+                    content += delta;
+                    send({ type: "content", delta });
+                  }, toolCallMap);
+                }
+              }
+              if (buf.trim()) {
+                parseGatewayEvent(buf, (delta) => {
+                  content += delta;
+                  send({ type: "content", delta });
+                }, toolCallMap);
+              }
+              const toolCalls = toolCallMap
+                ? Array.from(toolCallMap.values()).filter((t) => t.name && t.arguments)
+                : [];
+              return { content, toolCalls };
+            };
+
+            const initialMessages = [
+              { role: "system", content: systemPrompt },
+              ...messages,
+            ];
+
+            const response = await callGateway(initialMessages, offerWorkforceTools);
             if (!response.ok) {
               const status = response.status;
               const errorBody = await response.text().catch(() => "");
@@ -423,32 +488,79 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               throw new Error("AI service unavailable");
             }
 
-            const reader = response.body?.getReader();
-            if (!reader) throw new Error("No response body");
+            const first = await consumeStream(response, { collectToolCalls: offerWorkforceTools });
+            let fullContent = first.content;
 
-            const decoder = new TextDecoder();
-            let buffer = "";
-            let fullContent = "";
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const eventBlocks = buffer.split("\n\n");
-              buffer = eventBlocks.pop() || "";
-              for (const eventBlock of eventBlocks) {
-                parseGatewayEvent(eventBlock, (delta) => {
-                  fullContent += delta;
-                  send({ type: "content", delta });
+            // If the model called create_agent / create_employee, execute it,
+            // then re-prompt the model with the tool result so it produces a
+            // human confirmation.
+            if (first.toolCalls.length > 0) {
+              sendStep("Saving to your workforce", "running", "workforce");
+              const toolResults: { tool_call_id: string; name: string; result: any }[] = [];
+              for (const tc of first.toolCalls) {
+                let parsedArgs: any = {};
+                try { parsedArgs = JSON.parse(tc.arguments); } catch (e) {
+                  console.error("[workforce-tool] failed to parse arguments:", tc.arguments?.slice(0, 200));
+                }
+                const result = await executeWorkforceToolCall(tc.name, parsedArgs, {
+                  supabase,
+                  userId: user.id,
+                  workspaceId,
+                  brandId,
+                });
+                edgeLog("extension-agent", "workforce_tool_executed", {
+                  name: tc.name, ok: result.ok, id: result.id, error: result.error,
+                });
+                if (result.ok) {
+                  send({
+                    type: "created_entity",
+                    kind: result.kind,
+                    id: result.id,
+                    name: result.name,
+                  });
+                }
+                toolResults.push({
+                  tool_call_id: tc.id || `${tc.name}_${Math.random().toString(36).slice(2, 8)}`,
+                  name: tc.name,
+                  result,
                 });
               }
-            }
+              sendStep("Saving to your workforce", "done", "workforce");
 
-            if (buffer.trim()) {
-              parseGatewayEvent(buffer, (delta) => {
-                fullContent += delta;
-                send({ type: "content", delta });
-              });
+              // Re-prompt the model with the assistant tool_calls + tool messages.
+              const followUpMessages: any[] = [
+                ...initialMessages,
+                {
+                  role: "assistant",
+                  content: fullContent || null,
+                  tool_calls: first.toolCalls.map((tc) => ({
+                    id: tc.id || `${tc.name}_call`,
+                    type: "function",
+                    function: { name: tc.name, arguments: tc.arguments },
+                  })),
+                },
+                ...toolResults.map((tr) => ({
+                  role: "tool",
+                  tool_call_id: tr.tool_call_id,
+                  content: JSON.stringify(tr.result),
+                })),
+              ];
+
+              const followUp = await callGateway(followUpMessages, false);
+              if (followUp.ok) {
+                const second = await consumeStream(followUp, { collectToolCalls: false });
+                if (second.content) fullContent = (fullContent ? fullContent + "\n\n" : "") + second.content;
+              } else {
+                // Fall back to a deterministic confirmation line so the user always sees something.
+                const okOnes = toolResults.filter((t) => t.result.ok);
+                if (okOnes.length > 0) {
+                  const line = okOnes
+                    .map((t) => `✅ Created ${t.result.kind} **${t.result.name}**.`)
+                    .join("\n");
+                  fullContent = (fullContent ? fullContent + "\n\n" : "") + line;
+                  send({ type: "content", delta: (fullContent ? "\n\n" : "") + line });
+                }
+              }
             }
 
             let finalContent = runPostflightGuardrails(fullContent, safetySettings);
