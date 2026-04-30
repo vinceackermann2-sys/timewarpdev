@@ -448,7 +448,7 @@ export function SettingsPanel({
           {/* PLANS TAB — render the standalone Pricing page for visual parity */}
           {activeTab === "plans" && (
             <div className="-mx-8 -my-4">
-              <PricingPage />
+              <PricingPage embedded />
             </div>
           )}
 
