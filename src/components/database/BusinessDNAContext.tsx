@@ -521,6 +521,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
     setPrevAudiences(a);
     setActiveWorkspaceId(wsId);
     loadedWorkspaceRef.current = wsId;
+    setLoadedWorkspaceId(wsId);
     setIsLoading(false);
     return { brands: b, products: p, audiences: a };
   };
