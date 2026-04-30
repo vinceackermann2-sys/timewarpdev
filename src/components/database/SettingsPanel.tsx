@@ -505,7 +505,7 @@ export function SettingsPanel({
             const filteredMembers = wsFilter ? wsMemberData.members.filter(m => m.email.toLowerCase().includes(wsFilter.toLowerCase()) || getDisplayName(m.email).toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.members;
             const filteredInvitations = wsFilter ? wsMemberData.invitations.filter(i => i.email.toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.invitations;
             return (
-              <div className="space-y-4">
+              <div className="space-y-4 bg-[#fcfcfd]">
                 <p className="text-muted-foreground text-sm">{selectedWs.workspaceName} · {wsMemberData.members.length} member{wsMemberData.members.length !== 1 ? "s" : ""}</p>
                 <div className="inline-flex items-center p-1 rounded-lg bg-muted border border-border">
                   <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
