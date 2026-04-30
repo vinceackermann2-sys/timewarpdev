@@ -36,28 +36,41 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
   const [isLoading, setIsLoading] = useState(true);
 
   const loadSessions = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setSessions([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
     try {
+      // ALWAYS scope to the current user. Even inside a workspace, chat history
+      // is personal — workspace members must never see each other's chats.
       let query = supabase
         .from("agent_chat_sessions")
         .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at")
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(50);
 
       if (activeWorkspaceId) {
-        // Inside a workspace: show all chats so members see the owner's history.
         query = query.eq("workspace_id", activeWorkspaceId);
       } else {
-        query = query.eq("user_id", user.id).is("workspace_id", null);
+        query = query.is("workspace_id", null);
       }
 
-      const { data } = await query;
-      setSessions((data || []) as ChatSession[]);
+      const { data, error } = await query;
+      if (error) {
+        console.warn("Failed to load chat sessions:", error);
+        setSessions([]);
+      } else {
+        setSessions((data || []) as ChatSession[]);
+      }
     } catch (e) {
       console.warn("Failed to load chat sessions:", e);
+      setSessions([]);
     }
     setIsLoading(false);
-  }, [user, activeWorkspaceId]);
+  }, [user?.id, activeWorkspaceId]);
 
   useEffect(() => {
     loadSessions();
