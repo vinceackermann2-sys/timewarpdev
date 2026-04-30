@@ -245,7 +245,7 @@ function PlanCard({
   );
 }
 
-export default function PricingPage() {
+export default function PricingPage({ embedded = false }: { embedded?: boolean } = {}) {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | undefined>();
