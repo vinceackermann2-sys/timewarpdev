@@ -28,7 +28,7 @@ export function ActionsCard({ isCollapsed }: { isCollapsed: boolean }) {
                 : `${remaining} actions remaining`}
             </p>
           </div>
-          <div className="h-9 w-9 rounded-full bg-[#4D88FF] flex items-center justify-center flex-shrink-0" style={{ boxShadow: "0 4px 16px rgba(77,136,255,0.2)" }}>
+          <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0" style={{ boxShadow: "0 4px 16px rgba(77,136,255,0.2)" }}>
             <WandSparkles className="h-4.5 w-4.5 text-primary-foreground" />
           </div>
         </div>

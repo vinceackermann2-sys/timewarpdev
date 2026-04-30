@@ -36,28 +36,41 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
   const [isLoading, setIsLoading] = useState(true);
 
   const loadSessions = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setSessions([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
     try {
+      // ALWAYS scope to the current user. Even inside a workspace, chat history
+      // is personal — workspace members must never see each other's chats.
       let query = supabase
         .from("agent_chat_sessions")
         .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at")
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(50);
 
       if (activeWorkspaceId) {
-        // Inside a workspace: show all chats so members see the owner's history.
         query = query.eq("workspace_id", activeWorkspaceId);
       } else {
-        query = query.eq("user_id", user.id).is("workspace_id", null);
+        query = query.is("workspace_id", null);
       }
 
-      const { data } = await query;
-      setSessions((data || []) as ChatSession[]);
+      const { data, error } = await query;
+      if (error) {
+        console.warn("Failed to load chat sessions:", error);
+        setSessions([]);
+      } else {
+        setSessions((data || []) as ChatSession[]);
+      }
     } catch (e) {
       console.warn("Failed to load chat sessions:", e);
+      setSessions([]);
     }
     setIsLoading(false);
-  }, [user, activeWorkspaceId]);
+  }, [user?.id, activeWorkspaceId]);
 
   useEffect(() => {
     loadSessions();
@@ -73,7 +86,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
   return (
     <div className="w-64 shrink-0 h-full border border-border/30 bg-card/50 flex flex-col rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-[#E8F0FE]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-[#f3f5f7]">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Chat History</span>
@@ -88,7 +101,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
       </div>
 
       {/* Sessions list */}
-      <div className="flex-1 overflow-y-auto py-2 bg-[#E8F0FE]">
+      <div className="flex-1 overflow-y-auto py-2 opacity-100 shadow-none rounded-none bg-[#f3f5f7]">
         {isLoading ? (
           <div className="px-4 space-y-3 pt-2">
             {[1, 2, 3].map(i => (
@@ -113,7 +126,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
                   className={cn(
                     "w-full text-left px-3 py-2.5 rounded-lg transition-all group",
                     isActive
-                      ? "bg-primary/10 border border-primary/20"
+                      ? "border bg-primary/10 border-white/0"
                       : "hover:bg-muted/50 border border-transparent"
                   )}
                 >

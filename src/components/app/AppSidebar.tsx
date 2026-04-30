@@ -296,8 +296,8 @@ export function AppSidebar({ userEmail }: AppSidebarProps) {
                 profileMenuOpen && "bg-primary/10 text-primary",
                 isCollapsed ? "p-2 flex justify-center" : "p-2 flex items-center gap-2",
               )}>
-                <div className="h-8 w-8 rounded-[14px] bg-[#4a86ff] flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-white">
+                <div className="h-8 w-8 rounded-[14px] bg-primary flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-primary-foreground">
                     {(userEmail || "U").charAt(0).toUpperCase()}
                   </span>
                 </div>

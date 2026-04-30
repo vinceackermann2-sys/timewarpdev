@@ -143,10 +143,10 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
       <DialogContent className="sm:max-w-xl bg-card border-border p-0 gap-0 overflow-hidden rounded-2xl" aria-describedby={undefined}>
         <VisuallyHidden.Root><DialogTitle>Get more Actions</DialogTitle></VisuallyHidden.Root>
         {/* Header */}
-        <div className="text-center pt-8 pb-4 px-6 bg-[#FAFBFF]">
+        <div className="text-center pt-8 pb-4 px-6 bg-background">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <WandSparkles className="h-7 w-7 bg-[#4d91ff]/0 text-primary" />
-            <span className="text-4xl font-bold text-black">
+            <WandSparkles className="h-7 w-7 bg-primary/0 text-primary" />
+            <span className="text-4xl font-bold text-foreground">
               {isUnlimited ? "∞" : remaining} Actions
             </span>
           </div>
@@ -156,7 +156,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pb-2 bg-[#FAFBFF]">
+        <div className="px-6 pb-2 bg-background">
           <div className="flex rounded-xl bg-muted/50 p-1 gap-1">
             {tabs.map((tab) => (
               <button
@@ -165,7 +165,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 className={cn(
                   "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all",
                   activeTab === tab.key
-                    ? "bg-white shadow-sm text-foreground border border-border/50"
+                    ? "bg-card shadow-sm text-foreground border border-border/50"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -176,7 +176,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
         </div>
 
         {/* Tab Content */}
-        <div className="px-6 pb-8 pt-4 min-h-[220px] bg-[#FAFBFF]">
+        <div className="px-6 pb-8 pt-4 min-h-[220px] bg-background">
           {/* Get more Actions */}
           {activeTab === "upgrade" && (
             <div className="space-y-5">
@@ -193,7 +193,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                       type="button"
                       onClick={() => setDropdownOpen(!dropdownOpen)}
                       className={cn(
-                        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background transition-colors",
+                        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-card px-3 py-2 text-sm ring-offset-background transition-colors",
                         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                         !selectedPackId && "text-muted-foreground"
                       )}
@@ -238,7 +238,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
 
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-3">Want more actions every month?</p>
-                <Button variant="outline" onClick={() => window.open("/pricing", "_self")} className="gap-2 bg-white hover:bg-white">
+                <Button variant="outline" onClick={() => window.open("/pricing", "_self")} className="gap-2 bg-card hover:bg-card">
                   View Plans
                 </Button>
               </div>
@@ -264,12 +264,12 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
                 <Input
                   readOnly
                   value={referralLink || "Loading..."}
-                  className="bg-white text-sm"
+                  className="bg-card text-sm"
                 />
                 <Button
                   onClick={handleCopyLink}
                   variant="outline"
-                  className="shrink-0 gap-1.5 bg-white hover:bg-white"
+                  className="shrink-0 gap-1.5 bg-card hover:bg-card"
                   disabled={!referralLink}
                 >
                   {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}

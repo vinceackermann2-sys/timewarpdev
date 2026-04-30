@@ -36,7 +36,7 @@ export function AgentChatSettingsModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose} />
       <div className="relative w-full sm:max-w-4xl h-[85vh] sm:h-[600px] bg-background shadow-2xl border border-border rounded-t-2xl sm:rounded-2xl z-50 animate-in slide-in-from-bottom sm:zoom-in-95 fade-in duration-200 flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-card">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border bg-[#fcfcfd]">
           <div className="w-8" />
           <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
             <h3 className="text-base sm:text-lg font-bold text-foreground">Settings</h3>
@@ -44,7 +44,7 @@ export function AgentChatSettingsModal({
             <select
               value={selectedAgent}
               onChange={(e) => setSelectedAgent(e.target.value)}
-              className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-[#eef2f7]"
+              className="border border-border rounded-lg px-2 sm:px-3 py-1.5 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer max-w-[140px] sm:max-w-none truncate bg-muted"
             >
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.name}>
@@ -59,7 +59,7 @@ export function AgentChatSettingsModal({
         </div>
 
         <div className="flex flex-1 overflow-hidden flex-col sm:flex-row">
-          <div className="sm:w-64 bg-card border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-y-auto shrink-0">
+          <div className="sm:w-64 border-b sm:border-b-0 sm:border-r border-border p-2 sm:p-4 flex sm:flex-col gap-1 overflow-x-auto sm:overflow-y-auto shrink-0 bg-[#fcfcfd]">
             {(
               [
                 { key: "safety", label: "Safety", icon: Shield },
@@ -104,7 +104,7 @@ export function AgentChatSettingsModal({
                   <h4 className="text-sm font-semibold text-foreground mb-4">Manage Employees</h4>
                   <div className="space-y-4">
                     {employees.map((emp) => (
-                      <div key={emp.id} className="border border-border p-4 rounded-xl space-y-3 bg-[#eef2f7]">
+                      <div key={emp.id} className="border border-border p-4 rounded-xl space-y-3 bg-muted">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 mr-4">
                             <input

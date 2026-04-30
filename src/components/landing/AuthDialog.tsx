@@ -287,7 +287,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
                   <Label htmlFor="dialog-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="dialog-email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl" />
+                    <Input id="dialog-email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl bg-white border-white" />
                   </div>
                 </div>
 
@@ -295,7 +295,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
                   <Label htmlFor="dialog-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="dialog-password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl" />
+                    <Input id="dialog-password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-11 rounded-xl bg-white border-white" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -321,7 +321,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
                 <Button
                   type="submit"
-                  className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="w-full h-11 rounded-xl text-primary-foreground bg-[#3c83f6]"
                   disabled={isLoading || (isSignUp && !agreedToTerms)}
                 >
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -331,9 +331,9 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signup", product
 
               <div className="text-center text-sm mt-4">
                 {isSignUp ? (
-                  <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="text-primary hover:underline font-medium">Log in</button></>
+                  <>Already have an account?{" "}<button onClick={() => setIsSignUp(false)} className="hover:underline font-medium text-[#3c83f6]">Log in</button></>
                 ) : (
-                  <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="text-primary hover:underline font-medium">Sign up</button></>
+                  <>Don't have an account?{" "}<button onClick={() => setIsSignUp(true)} className="hover:underline font-medium text-[#3c83f6]">Sign up</button></>
                 )}
               </div>
             </>

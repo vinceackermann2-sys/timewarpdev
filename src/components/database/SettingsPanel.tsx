@@ -77,7 +77,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   const remaining = totalNum === Infinity ? "∞" : String(Math.max(0, totalNum - used));
 
   return (
-    <div className="rounded-xl border border-border p-5 bg-[#E8F0FE]">
+    <div className="rounded-xl border border-border p-5 bg-background">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
@@ -359,9 +359,9 @@ export function SettingsPanel({
   }, [onTabChange]);
 
   return (
-    <div className={cn("flex h-full min-h-0", pageMode && "bg-[#FAFBFF]")}>
+    <div className={cn("flex h-full min-h-0", pageMode && "bg-background")}>
       {/* Sidebar */}
-      <div className="w-60 border-r border-border p-4 flex flex-col gap-1 shrink-0 bg-[#FAFBFF]">
+      <div className="w-60 border-r border-border p-4 flex flex-col gap-1 shrink-0 bg-background">
         {sidebarItems.map((section) => (
           <div key={section.section} className="mb-4">
             <p className="text-xs font-medium text-muted-foreground mb-2 px-3">{section.section}</p>
@@ -384,7 +384,7 @@ export function SettingsPanel({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <div className="px-8 pt-8 pb-2 bg-[#FAFBFF]">
+        <div className="px-8 pt-8 pb-2 bg-background">
           <h2 className="text-2xl font-bold tracking-tight">
             {activeTab === "settings" && "Account Settings"}
             {activeTab === "workspace" && (selectedWsId && selectedWs ? (
@@ -411,7 +411,7 @@ export function SettingsPanel({
           </h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-4 bg-[#FAFBFF]">
+        <div className="flex-1 overflow-y-auto px-8 py-4 bg-background">
           {/* SETTINGS TAB */}
           {activeTab === "settings" && (
             <div className="space-y-8 max-w-xl">
@@ -425,7 +425,7 @@ export function SettingsPanel({
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Email</Label>
-                    <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-[#E8F0FE]">
+                      <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-background">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">{userEmail}</span>
                     </div>
@@ -436,7 +436,7 @@ export function SettingsPanel({
               <Separator />
               <div>
                 <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><Key className="h-4 w-4" /> Security</h3>
-                <div className="rounded-xl border border-border p-5 space-y-4 bg-[#E8F0FE]">
+                <div className="rounded-xl border border-border p-5 space-y-4 bg-background">
                   <div>
                     <h4 className="text-sm font-semibold flex items-center gap-2 mb-1"><Key className="h-3.5 w-3.5" /> Change Password</h4>
                     <p className="text-xs text-muted-foreground mb-4">Update your password to keep your account secure.</p>
@@ -459,7 +459,7 @@ export function SettingsPanel({
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Manage your workspaces and team members.</p>
               <div className="rounded-xl border border-border bg-card">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-[#FAFBFF]">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-background">
                   <span className="text-sm font-medium text-muted-foreground">{workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}</span>
                   {showCreateWs ? (
                     <div className="flex items-center gap-2">
@@ -468,7 +468,7 @@ export function SettingsPanel({
                       <Button size="sm" variant="ghost" onClick={() => { setShowCreateWs(false); setNewWsName(""); }}>Cancel</Button>
                     </div>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-[#E8F0FE]"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-background"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
                   )}
                 </div>
                 {wsLoading ? (
@@ -481,14 +481,14 @@ export function SettingsPanel({
                         <TableRow key={ws.workspaceId}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-white"><Building2 className="h-4 w-4 text-[#4c5767]" /></div>
+                              <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-card"><Building2 className="h-4 w-4 text-muted-foreground" /></div>
                               <div><p className="font-medium text-foreground">{ws.workspaceName}</p><p className="text-xs text-muted-foreground">Created {new Date(ws.createdAt).toLocaleDateString()}</p></div>
                             </div>
                           </TableCell>
                           <TableCell><Badge variant={ws.role === "owner" ? "default" : "secondary"} className="capitalize">{ws.role}</Badge></TableCell>
                           <TableCell><span className="text-sm text-muted-foreground">{ws.memberCount} member{ws.memberCount !== 1 ? "s" : ""}</span></TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground bg-[#FAFBFF]">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
+                            <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground bg-background">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -508,8 +508,8 @@ export function SettingsPanel({
               <div className="space-y-4">
                 <p className="text-muted-foreground text-sm">{selectedWs.workspaceName} · {wsMemberData.members.length} member{wsMemberData.members.length !== 1 ? "s" : ""}</p>
                 <div className="inline-flex items-center p-1 rounded-lg bg-muted border border-border">
-                  <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-white" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
-                  <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "text-foreground shadow-sm bg-white" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
+                  <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
+                  <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <div className="relative flex-1 max-w-sm">
@@ -602,13 +602,13 @@ export function SettingsPanel({
               <PlanUsageSummary fallbackPlan={currentPlan} userId={authUser?.id} />
 
               <div className="flex justify-center">
-                <div className="inline-flex items-center rounded-full p-1 gap-1 bg-[#E8F0FE]">
+                <div className="inline-flex items-center rounded-full p-1 gap-1 bg-background">
                   {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
                     <button
                       key={period}
                       onClick={() => setBilling(period)}
                       className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
-                        billing === period ? "text-foreground shadow-sm bg-[#FAFBFF]" : "text-muted-foreground hover:text-foreground"
+                        billing === period ? "text-foreground shadow-sm bg-background" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {period}
@@ -708,7 +708,7 @@ export function SettingsPanel({
                             disabled={card.loading}
                             className={cn(
                               "w-full text-xs h-9 rounded-full font-semibold mb-4",
-                              card.buttonTone === "outline" && "bg-[#FAFBFF] text-foreground border border-border hover:bg-accent",
+                              card.buttonTone === "outline" && "bg-background text-foreground border border-border hover:bg-accent",
                               card.buttonTone === "dark" && "bg-foreground text-background hover:bg-foreground/90",
                               card.buttonTone === "primary" && "bg-primary text-primary-foreground hover:opacity-90"
                             )}

@@ -378,6 +378,24 @@
   animation: textShimmer 2s linear infinite;
 }
 
+/* Blue text shine — fills text only, sweeps left to right */
+.text-shine-blue {
+  background: linear-gradient(
+    110deg,
+    #1E3A8A 0%,
+    #3B82F6 35%,
+    #93C5FD 50%,
+    #3B82F6 65%,
+    #1E3A8A 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: textShimmer 3s linear infinite;
+}
+
 @keyframes connector-extend-seamless {
   0% { opacity: 0; clip-path: circle(0% at 50% 50%); }
   15% { opacity: 1; clip-path: circle(20% at 50% 50%); }
@@ -489,59 +507,59 @@
 
 @layer base {
   :root {
-    /* Light theme - Blue Corp Pastel */
-    --background: 40 33% 98%;
-    --foreground: 215 25% 15%;
+    /* Light theme - Homepage aesthetic (#fdfcfd / #3B82F6 / gray-100) */
+    --background: 300 20% 99%;          /* #fdfcfd */
+    --foreground: 220 39% 11%;          /* gray-900 */
 
-    --card: 210 40% 99%;
-    --card-foreground: 215 25% 15%;
+    --card: 0 0% 100%;                  /* white */
+    --card-foreground: 220 39% 11%;
 
-    --popover: 210 30% 96%;
-    --popover-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 39% 11%;
 
-    --primary: 217 100% 65%;
+    --primary: 217 91% 60%;             /* #3B82F6 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 40%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 13% 96%;           /* #f2f4f6 surface */
+    --secondary-foreground: 220 39% 11%;
 
-    --muted: 210 20% 88%;
-    --muted-foreground: 215 15% 35%;
+    --muted: 220 13% 96%;               /* #f2f4f6 */
+    --muted-foreground: 220 9% 46%;     /* gray-500 */
 
-    --accent: 217 100% 95%;
-    --accent-foreground: 217 100% 47%;
+    --accent: 217 91% 96%;              /* light blue tint */
+    --accent-foreground: 217 91% 45%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 217 100% 65%;
+    --border: 220 14% 94%;              /* gray-100 */
+    --input: 220 14% 90%;
+    --ring: 217 91% 60%;
 
-    --radius: 0.625rem;
+    --radius: 1rem;                     /* rounded-2xl global */
 
-    /* Status colors - light */
-    --status-success: 142 76% 36%;
+    /* Status */
+    --status-success: 142 71% 45%;
     --status-success-foreground: 0 0% 100%;
     --status-warning: 38 92% 50%;
     --status-warning-foreground: 0 0% 0%;
     --status-error: 0 84% 60%;
     --status-error-foreground: 0 0% 100%;
-    --status-info: 217 100% 65%;
+    --status-info: 217 91% 60%;
     --status-info-foreground: 0 0% 100%;
 
-    /* Portal specific tokens - light */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 80% 95%) 100%);
+    /* Portal/legacy aliases — kept blue-aligned */
+    --portal-accent: 217 91% 60%;
+    --portal-accent-bright: 217 91% 70%;
+    --portal-glow: 217 91% 60%;
+    --portal-bg-gradient: linear-gradient(180deg, hsl(300 20% 99%) 0%, hsl(220 13% 97%) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.05);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(217 91% 50%));
+    --gradient-accent: linear-gradient(135deg, hsl(217 91% 65%), hsl(217 91% 55%));
+    --shadow-glow: 0 0 12px hsl(217 91% 60% / 0.10);
+    --shadow-glow-lg: 0 0 24px hsl(217 91% 60% / 0.15);
 
-    /* Orb tokens - light */
+    /* Orb tokens (unchanged — visual orb identity) */
     --orb-core-start: rgba(255, 255, 255, 1);
     --orb-core-mid1: rgba(209, 227, 255, 1);
     --orb-core-mid2: rgba(133, 176, 255, 1);
@@ -559,142 +577,78 @@
     --orb-shine-mid: rgba(255, 255, 255, 0.9);
     --orb-shine-fade: rgba(255, 255, 255, 0.5);
 
-    /* Browser chrome colors - light */
-    --browser-bg: 210 30% 97%;
-    --browser-header: 210 25% 94%;
+    /* Browser chrome */
+    --browser-bg: 300 20% 99%;
+    --browser-header: 220 13% 96%;
     --browser-dot-red: 0 84% 60%;
     --browser-dot-yellow: 38 92% 50%;
-    --browser-dot-green: 142 76% 36%;
+    --browser-dot-green: 142 71% 45%;
 
-    --sidebar-background: 210 40% 96%;
-    --sidebar-foreground: 215 25% 15%;
-    --sidebar-primary: 217 100% 65%;
+    /* Sidebar */
+    --sidebar-background: 300 20% 99%;
+    --sidebar-foreground: 220 39% 11%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 20% 40%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 217 100% 65%;
+    --sidebar-accent: 220 13% 96%;
+    --sidebar-accent-foreground: 220 39% 11%;
+    --sidebar-border: 220 14% 94%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar: 300 20% 99%;
+
     --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --chart-1: 218 100% 93%;
-    --chart-2: 218 100% 87%;
-    --chart-3: 210 57% 78%;
-    --chart-4: 216 38% 47%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 0 0% 98%;
     --font-serif: Merriweather, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
     --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
-    --shadow-2xs: none;
-    --shadow-xs: none;
-    --shadow-sm: none;
-    --shadow: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --shadow-xl: none;
-    --shadow-2xl: none;
+
+    --chart-1: 217 91% 60%;
+    --chart-2: 217 91% 75%;
+    --chart-3: 220 13% 60%;
+    --chart-4: 220 39% 30%;
+    --chart-5: 220 9% 46%;
+
+    /* Soft, ambient shadows (homepage shadow-sm style) */
+    --shadow-2xs: 0 1px 2px 0 hsl(220 39% 11% / 0.04);
+    --shadow-xs:  0 1px 2px 0 hsl(220 39% 11% / 0.05);
+    --shadow-sm:  0 1px 3px 0 hsl(220 39% 11% / 0.06), 0 1px 2px -1px hsl(220 39% 11% / 0.04);
+    --shadow:     0 2px 6px -1px hsl(220 39% 11% / 0.06), 0 2px 4px -2px hsl(220 39% 11% / 0.04);
+    --shadow-md:  0 4px 10px -2px hsl(220 39% 11% / 0.06), 0 2px 6px -2px hsl(220 39% 11% / 0.04);
+    --shadow-lg:  0 10px 24px -4px hsl(220 39% 11% / 0.08), 0 4px 10px -4px hsl(220 39% 11% / 0.05);
+    --shadow-xl:  0 20px 40px -8px hsl(220 39% 11% / 0.10), 0 8px 16px -6px hsl(220 39% 11% / 0.06);
+    --shadow-2xl: 0 30px 60px -12px hsl(220 39% 11% / 0.18);
+
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
+  /* Dark mode dropped — alias to light tokens to keep any .dark wrappers visually consistent. */
   .dark {
-    /* Dark theme - Blue Corp Pastel */
-    --background: 0 0% 10%;
-    --foreground: 0 0% 98%;
-
-    --card: 215 20% 12%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 215 20% 16%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 217 100% 65%;
+    --background: 300 20% 99%;
+    --foreground: 220 39% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 39% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 39% 11%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 215 15% 35%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 215 15% 30%;
-    --muted-foreground: 210 20% 70%;
-
-    --accent: 215 50% 20%;
-    --accent-foreground: 217 100% 65%;
-
-    --destructive: 0 84% 60%;
+    --secondary: 220 13% 96%;
+    --secondary-foreground: 220 39% 11%;
+    --muted: 220 13% 96%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 217 91% 96%;
+    --accent-foreground: 217 91% 45%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
-
-    --border: 215 20% 25%;
-    --input: 215 20% 25%;
-    --ring: 217 100% 65%;
-
-    /* Status colors - dark */
-    --status-success: 142 70% 45%;
-    --status-success-foreground: 0 0% 100%;
-    --status-warning: 38 92% 50%;
-    --status-warning-foreground: 0 0% 0%;
-    --status-error: 0 84% 60%;
-    --status-error-foreground: 0 0% 100%;
-    --status-info: 217 100% 65%;
-    --status-info-foreground: 0 0% 100%;
-
-    /* Portal specific tokens - dark */
-    --portal-accent: 217 100% 65%;
-    --portal-accent-bright: 217 100% 70%;
-    --portal-glow: 217 100% 65%;
-    --portal-bg-gradient: linear-gradient(135deg, hsl(215 25% 6%) 0%, hsl(210 40% 12%) 50%, hsl(215 50% 15%) 100%);
-
-    --gradient-primary: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(217 100% 65%), hsl(217 100% 60%));
-    --shadow-glow: 0 0 12px hsl(217 100% 65% / 0.08);
-    --shadow-glow-lg: 0 0 24px hsl(217 100% 65% / 0.1);
-
-    /* Orb tokens - dark (same as light to keep orb bright) */
-    --orb-core-start: rgba(255, 255, 255, 1);
-    --orb-core-mid1: rgba(209, 227, 255, 1);
-    --orb-core-mid2: rgba(133, 176, 255, 1);
-    --orb-core-end: rgba(74, 134, 255, 1);
-    --orb-shadow-inner-dark: rgba(0, 0, 0, 0.1);
-    --orb-shadow-inner-light: rgba(255, 255, 255, 0.8);
-    --orb-shadow-outer: rgba(133, 176, 255, 0.3);
-    --orb-glow: rgba(133, 176, 255, 0.3);
-    --orb-trail-dim: rgba(180, 180, 200, 0.3);
-    --orb-trail-mid: rgba(200, 200, 220, 0.6);
-    --orb-trail-bright: rgba(220, 220, 240, 0.9);
-    --orb-trail-peak: rgba(255, 255, 255, 1);
-    --orb-trail-bg: hsl(0 0% 10%);
-    --orb-shine: rgba(255, 255, 255, 1);
-    --orb-shine-mid: rgba(255, 255, 255, 0.9);
-    --orb-shine-fade: rgba(255, 255, 255, 0.5);
-
-    /* Browser chrome colors - dark */
-    --browser-bg: 215 25% 8%;
-    --browser-header: 215 22% 12%;
-    --browser-dot-red: 0 84% 60%;
-    --browser-dot-yellow: 38 92% 50%;
-    --browser-dot-green: 142 70% 45%;
-
-    --sidebar-background: 215 25% 8%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 217 100% 65%;
+    --border: 220 14% 94%;
+    --input: 220 14% 90%;
+    --ring: 217 91% 60%;
+    --sidebar-background: 300 20% 99%;
+    --sidebar-foreground: 220 39% 11%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 100% 60%;
-    --sidebar-accent-foreground: 217 30% 20%;
-    --sidebar-border: 215 20% 25%;
-    --sidebar-ring: 217 100% 65%;
-    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-    --radius: 0.625rem;
-    --chart-1: 218 100% 93%;
-    --chart-2: 218 100% 87%;
-    --chart-3: 210 57% 78%;
-    --chart-4: 216 38% 47%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 240 3% 15%;
-    --shadow-2xs: none;
-    --shadow-xs: none;
-    --shadow-sm: none;
-    --shadow: none;
-    --shadow-md: none;
-    --shadow-lg: none;
-    --shadow-xl: none;
-    --shadow-2xl: none;
+    --sidebar-accent: 220 13% 96%;
+    --sidebar-accent-foreground: 220 39% 11%;
+    --sidebar-border: 220 14% 94%;
+    --sidebar-ring: 217 91% 60%;
+    --sidebar: 300 20% 99%;
   }
 }
 
@@ -747,13 +701,13 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   }
 
   /* Mobile: prevent iOS zoom-on-focus by ensuring inputs are at least 16px */

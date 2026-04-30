@@ -26,6 +26,7 @@ import {
 import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
+import { matchSkill, buildSkillBlock } from "../_shared/skills/_router.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -360,9 +361,16 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             const pageSection = buildPageSection();
             const hasBrowserContext = !!pageContext;
             const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n## Evidence Paths\n- Path 1 Internal History: ${performanceEvidence ? "available" : "sparse"}\n- Path 2 External Benchmark: use connected sources with citations only\n- Path 3 User Feedback: honor explicit constraints and ratings`;
+            // Skill routing (Layer 4a) — match against last user message
+            const matchedSkill = !hasBrowserContext ? matchSkill(lastUserMsg) : null;
+            if (matchedSkill) {
+              edgeLog("extension-agent", "skill_matched", { slug: matchedSkill.slug, name: matchedSkill.name });
+              sendStep(`Loading ${matchedSkill.name} playbook`, "done", "context");
+            }
+            const skillBlock = matchedSkill ? buildSkillBlock(matchedSkill) : "";
             const systemPrompt = hasBrowserContext
               ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
-              : buildChatPrompt(identity, fullContext, replyContract);
+              : buildChatPrompt(identity, fullContext + skillBlock, replyContract);
 
             supabase.from("timewarp_chats").insert({
               user_id: user.id,
@@ -774,6 +782,7 @@ ${responseShape}
 - **No Unsolicited Overviews**: Never start with "Based on your business data..." summaries. Answer the question directly.
 - **No Hedging Without Reasoning**: If you're uncertain, explain why — don't just say "it depends" without clarifying on what.
 - **No Empty Validation**: Every agreement must come with supporting evidence or reasoning.
+- **No Bracket Placeholders**: NEVER ship text containing square-bracket fill-ins like \`[Insert Number]\`, \`[Product Category]\`, \`[Company Name]\`, \`[X%]\`, \`[Date]\`, \`[Your Audience]\`, \`[TBD]\`, etc. If you don't have a real value from the Reference Material or live data, either (a) compute/derive it, (b) state the specific number/name is missing and ask one targeted question, or (c) omit that sentence entirely. Brackets-as-placeholders are a critical failure — your output must read as a finished deliverable, not a template.
 
 ## QUALITY SCORING CRITERIA
 Aim to maximize quality across these dimensions:
@@ -829,8 +838,10 @@ For charts use a \`\`\`chart code block:
 \`\`\`
 Supported chart types: bar, line, area, pie.
 
-## CONDITIONAL CLARIFYING QUESTIONS — ONLY WHEN ASKING WILL IMPROVE THE RESULT
-**Suggestion chips are NOT a "next step menu" and NOT mandatory.** Only include a \`[SUGGEST:...]\` tag when asking the user a clarifying question would genuinely produce a better answer.
+## CLARIFYING QUESTIONS — MUST USE [SUGGEST:] TAG, NEVER PROSE
+**HARD RULE:** Any time you ask the user a clarifying question, the question MUST be inside a \`[SUGGEST:Question?::Option 1|Option 2|Option 3]\` tag. NEVER ask a clarifying question as plain prose, a markdown bullet, or a trailing "?" sentence in the body. The UI renders \`[SUGGEST:]\` as a clickable card — questions outside the tag are invisible to the user as actionable choices and look broken.
+
+If your reply contains a "?" directed at the user (anything like "Which would you like…", "Do you want me to…", "Should I…", "What's your goal…", "Which option…"), that question MUST be the title of a \`[SUGGEST:]\` tag with 2–4 concrete clickable options. No exceptions.
 
 **INCLUDE a \`[SUGGEST:...]\` tag when:**
 - The request is ambiguous on a critical dimension (goal, audience, channel, timeframe, budget, success metric, scope) AND knowing the answer would change your output materially.

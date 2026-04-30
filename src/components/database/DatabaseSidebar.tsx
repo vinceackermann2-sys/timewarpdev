@@ -73,9 +73,10 @@ import { WorkspaceDialog } from "./WorkspaceDialog";
 import { ActionsCard } from "./ActionsCard";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 export type DashboardTab = "Briefing" | "Updates" | "To-Dos" | "Objectives";
 export type DnaPillar = "brand" | "product" | "audience" | "market" | "financial" | "operations" | "people" | "growth" | "strategy";
+export type EmployeesTab = "agents" | "employees";
 
 interface DatabaseSidebarProps {
   currentView: View;
@@ -85,9 +86,11 @@ interface DatabaseSidebarProps {
   onDashboardTabChange?: (tab: DashboardTab) => void;
   activeDnaPillar?: DnaPillar;
   onDnaPillarChange?: (pillar: DnaPillar) => void;
+  activeEmployeesTab?: EmployeesTab;
+  onEmployeesTabChange?: (tab: EmployeesTab) => void;
 }
 
-export function DatabaseSidebar({ currentView, onViewChange, userEmail }: DatabaseSidebarProps) {
+export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeEmployeesTab, onEmployeesTabChange }: DatabaseSidebarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { state, toggleSidebar, setOpen } = useSidebar();
@@ -121,7 +124,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
   return (
     <>
       <Sidebar collapsible="icon" className="border-none rounded-r-xl">
-        <SidebarHeader className="p-2">
+        <SidebarHeader className="p-2 bg-[#f3f5f7] h-12 justify-center">
           <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'justify-between'}`}>
             {!isCollapsed && (
               <Link to="/app" className="flex items-center gap-2">
@@ -168,6 +171,17 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
                   >
                     <LayoutDashboard className="h-4 w-4 shrink-0" />
                     {!isCollapsed && <span>Dashboard</span>}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={currentView === "employeesHub"}
+                    onClick={() => onViewChange("employeesHub")}
+                    tooltip="Employees"
+                    className={currentView === "employeesHub" ? "bg-primary/10 text-primary" : ""}
+                  >
+                    <Users2 className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>Employees</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -324,8 +338,8 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail }: Databa
           <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
             <DropdownMenuTrigger asChild>
               <button className={`w-full rounded-md transition-colors hover:bg-primary/10 hover:text-primary ${profileMenuOpen ? 'bg-primary/10 text-primary' : ''} ${isCollapsed ? 'p-2 flex justify-center' : 'p-2 flex items-center gap-2'}`}>
-                <div className="h-8 w-8 rounded-[14px] bg-[#4a86ff] flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-white">
+                <div className="h-8 w-8 rounded-[14px] bg-primary flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-primary-foreground">
                     {(userEmail || "U").charAt(0).toUpperCase()}
                   </span>
                 </div>

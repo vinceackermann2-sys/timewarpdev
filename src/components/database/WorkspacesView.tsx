@@ -15,6 +15,7 @@ import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
 import { WorkspaceDetailView } from "@/components/database/WorkspaceDetailView";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 interface WorkspacesViewProps {
   onBack?: () => void;
@@ -53,6 +54,19 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
     return "secondary" as const;
   };
 
+  const avatarPalette = [
+    "bg-[#9D75BD]/15 text-[#7A509E]",   // purple
+    "bg-[#7E9BCD]/15 text-[#3F6BAA]",   // blue
+    "bg-[#DE9EB6]/20 text-[#B5567E]",   // pink
+    "bg-[#E8C26B]/20 text-[#9B7A1F]",   // yellow
+    "bg-[#86C19A]/20 text-[#3E8A5C]",   // green
+  ];
+  const colorFor = (id: string) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return avatarPalette[h % avatarPalette.length];
+  };
+
   // Show detail view when managing a workspace
   const managingWs = managingWsId ? workspaces.find(w => w.workspaceId === managingWsId) : null;
   if (managingWs) {
@@ -68,7 +82,7 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-[#FAFBFF]">
+    <div className="flex flex-col h-full overflow-y-auto bg-background">
       {/* Header */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-6">
         {onBack && (
@@ -87,9 +101,9 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
 
       {/* Table */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 flex-1">
-        <div className="rounded-xl border border-border bg-card">
+        <div>
           {/* Toolbar */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center justify-between px-5 py-4">
             <span className="text-sm font-medium text-muted-foreground">
               {workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}
             </span>
@@ -126,22 +140,22 @@ export function WorkspacesView({ onBack }: WorkspacesViewProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Workspace</TableHead>
+                  <TableHead className="rounded-tl-xl">Workspace</TableHead>
                   <TableHead>Your Role</TableHead>
                   <TableHead>Members</TableHead>
-                  <TableHead className="text-right" />
+                  <TableHead className="text-right rounded-tr-xl" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {workspaces.map((ws) => (
                   <TableRow
                     key={ws.workspaceId}
-                    className={ws.workspaceId === activeWorkspaceId ? "bg-muted/40" : ""}
+                    className={cn("rounded-xl overflow-hidden [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl", ws.workspaceId === activeWorkspaceId ? "bg-muted/40" : "")}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-white">
-                          <Building2 className="h-4 w-4 text-[#4c5767]" />
+                        <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center shrink-0", colorFor(ws.workspaceId))}>
+                          <Building2 className="h-4 w-4" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{ws.workspaceName}</p>

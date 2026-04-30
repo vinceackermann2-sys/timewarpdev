@@ -246,7 +246,7 @@ function InsightsRow({ card, tabKind }: { card: DashboardCard; tabKind: TabKind 
         className="w-full flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[hsl(217_100%_60%)] text-black" />
+          <Sparkles className="h-4 w-4 text-[hsl(217_100%_60%)] text-foreground" />
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {headerLabel}
           </span>
@@ -334,7 +334,7 @@ function ExecutionPlan({ card }: { card: DashboardCard }) {
   if (!steps.length) return null;
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-white px-5 py-4">
+    <div className="rounded-2xl border border-border/60 bg-card px-5 py-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground mb-4">
         How to Execution Plan
       </p>
@@ -404,7 +404,7 @@ function ObjectivesBreakdown({ card }: { card: DashboardCard }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-white px-5 py-4 space-y-5">
+    <div className="rounded-2xl border border-border/60 bg-card px-5 py-4 space-y-5">
       <div>
         <p className="text-[13px] font-semibold text-foreground mb-2">Sub-Milestones:</p>
         <ul className="space-y-1.5 pl-1">
@@ -477,7 +477,7 @@ function SourceChip({ card }: { card: DashboardCard }) {
     : null;
 
   return (
-    <div className="px-4 py-2.5 flex items-center gap-2 bg-[#E8F0FE] border-b border-border/40">
+    <div className="px-4 py-2.5 flex items-center gap-2 bg-background border-b border-border/40">
       {sourceMeta.icon ? (
         <img
           src={sourceMeta.icon}
@@ -557,7 +557,7 @@ function EmailRender({ card }: { card: DashboardCard }) {
   const sender = m.senderName || "Unknown sender";
   const init = initialsFrom(sender);
   return (
-    <div className="px-4 py-4 space-y-3 bg-white">
+    <div className="px-4 py-4 space-y-3 bg-card">
       {/* From row */}
       <div className="flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-full bg-[hsl(217_100%_94%)] text-[hsl(217_70%_42%)] flex items-center justify-center text-[12px] font-bold shrink-0">
@@ -593,7 +593,7 @@ function MeetingRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
   const attendees = m.attendees || [];
   return (
-    <div className="px-4 py-4 space-y-3 bg-white">
+    <div className="px-4 py-4 space-y-3 bg-card">
       <p className="text-[14px] font-bold text-foreground leading-snug">
         {m.subject || card.title}
       </p>
@@ -654,7 +654,7 @@ function MessageRender({ card }: { card: DashboardCard }) {
   const displayed = open || !isLong ? text : text.slice(0, 320).trimEnd() + "…";
 
   return (
-    <div className="px-4 py-4 space-y-3 bg-white">
+    <div className="px-4 py-4 space-y-3 bg-card">
       {m.channel && (
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <Hash className="h-3.5 w-3.5" />
@@ -705,7 +705,7 @@ function FileRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
   const ext = fileExt(m.fileName);
   return (
-    <div className="px-4 py-4 space-y-3 bg-white">
+    <div className="px-4 py-4 space-y-3 bg-card">
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-lg bg-[hsl(217_100%_94%)] text-[hsl(217_70%_42%)] flex items-center justify-center text-[10px] font-bold shrink-0">
           {ext}
@@ -736,7 +736,7 @@ function FileRender({ card }: { card: DashboardCard }) {
 function NoteRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
   return (
-    <div className="px-4 py-4 space-y-3 bg-white">
+    <div className="px-4 py-4 space-y-3 bg-card">
       {m.notebook && (
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <StickyNote className="h-3.5 w-3.5" />
@@ -759,7 +759,7 @@ function NoteRender({ card }: { card: DashboardCard }) {
 function DealRender({ card }: { card: DashboardCard }) {
   const m = card.metadata || {};
   return (
-    <div className="px-4 py-4 space-y-3 bg-white">
+    <div className="px-4 py-4 space-y-3 bg-card">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-bold text-foreground leading-snug">
@@ -796,7 +796,7 @@ function DealRender({ card }: { card: DashboardCard }) {
 /* ── System / TimeWarp suggestion fallback (DNA / objectives / general) ── */
 function SystemRender({ card }: { card: DashboardCard }) {
   return (
-    <div className="px-4 py-4 space-y-2 bg-white">
+    <div className="px-4 py-4 space-y-2 bg-card">
       <div className="flex items-center gap-2">
         <BusinessBrainOrb size={18} className="shrink-0" />
         <p className="text-[13px] font-bold text-foreground">TimeWarp Suggestion</p>
@@ -928,7 +928,7 @@ function StickyNoteCard({
       <div className="p-2.5">
         <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="h-5 w-5 rounded-full bg-white/70 border border-white text-[9.5px] font-bold flex items-center justify-center text-foreground/80 shrink-0">
+            <div className="h-5 w-5 rounded-full bg-card/70 border border-white text-[9.5px] font-bold flex items-center justify-center text-foreground/80 shrink-0">
               {initialsFromEmail(note.author_email)}
             </div>
             <span className="text-[10.5px] font-medium text-foreground/70 truncate" title={note.author_email}>
@@ -942,7 +942,7 @@ function StickyNoteCard({
                 type="button"
                 aria-label="Delete note"
                 onClick={() => onDelete(note.id)}
-                className="h-5 w-5 rounded flex items-center justify-center text-foreground/50 hover:text-destructive hover:bg-white/50 transition-colors"
+                className="h-5 w-5 rounded flex items-center justify-center text-foreground/50 hover:text-destructive hover:bg-card/50 transition-colors"
               >
                 <Trash2 className="h-3 w-3" />
               </button>
@@ -1061,7 +1061,7 @@ function StickyNotes({ cardId }: { cardId: string }) {
   }, [loadNotes]);
 
   return (
-    <div className="shrink-0 px-6 pt-4 pb-3 shadow-xl bg-white">
+    <div className="shrink-0 px-6 pt-4 pb-3 shadow-xl bg-card">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1241,9 +1241,9 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
 
   return (
     <TooltipProvider delayDuration={250}>
-      <aside className="hidden md:flex w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-[#FAFBFF] shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in">
+      <aside className="hidden md:flex w-[420px] shrink-0 h-[calc(100%-6rem)] my-12 mx-3 flex-col rounded-2xl border border-border overflow-hidden bg-background shadow-[0_0_10px_2px_hsl(210_20%_85%/0.55)] transition-all duration-300 ease-in-out animate-fade-in">
         {/* ── Top bar ─────────────── */}
-        <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-white">
+        <div className="shrink-0 px-6 pt-5 pb-3 flex items-center justify-between shadow-xl bg-card">
           <div className="flex items-center gap-1">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
@@ -1292,14 +1292,14 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         </div>
 
         {/* ── Title ─────────────────────────────────────────── */}
-        <div className="shrink-0 px-6 pb-5 shadow-xl bg-white">
+        <div className="shrink-0 px-6 pb-5 shadow-xl bg-card">
           <h2 className="text-[22px] font-bold leading-tight text-foreground">
             {card.title}
           </h2>
         </div>
 
         {/* ── Scrollable body ───────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 shadow-xl rounded-none bg-white">
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6 shadow-xl rounded-none bg-card">
           <SourceNativeBlock card={card} tabKind={tabKind} />
           {tabKind !== "Objectives" && <InsightsRow card={card} tabKind={tabKind} />}
           {tabKind === "To-Dos" && <ExecutionPlan card={card} />}
@@ -1310,7 +1310,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
         <StickyNotes cardId={card.id} />
 
         {/* ── Sticky bottom — single personalized action button ─────── */}
-        <div className="shrink-0 px-6 pb-5 pt-2 bg-[#FAFBFF] shadow-xl">
+        <div className="shrink-0 px-6 pb-5 pt-2 bg-background shadow-xl">
           <Button
             size="sm"
             className="w-full h-10 gap-1.5 text-[13px] font-semibold rounded-lg bg-[hsl(217_100%_55%)] hover:bg-[hsl(217_100%_50%)] text-white"

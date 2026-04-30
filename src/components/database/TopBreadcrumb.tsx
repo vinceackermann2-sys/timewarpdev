@@ -8,12 +8,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
 
-type View = "aiceo" | "businessdna" | "employees" | "workspaces" | "connections" | "manage";
+type View = "aiceo" | "businessdna" | "employees" | "employeesHub" | "workspaces" | "connections" | "manage";
 
 const VIEW_LABELS: Record<View, string> = {
   aiceo: "AI CEO",
   businessdna: "Business DNA",
   employees: "Assistant",
+  employeesHub: "Employees",
   workspaces: "Workspaces",
   connections: "Connectors",
   manage: "Dashboard",
@@ -54,7 +55,7 @@ export function TopBreadcrumb({ currentView, activeBrandId, activeDnaPillar, onS
   );
 
   return (
-    <div className="hidden md:flex items-center gap-2 px-4 h-12 text-sm shrink-0 bg-[#F0F5FF]">
+    <div className="hidden md:flex items-center gap-2 px-4 h-12 text-sm shrink-0 bg-[#f3f5f7]">
       {showSkeleton ? (
         <div className="flex items-center gap-2">
           <Skeleton className="h-5 w-32 rounded-md" />

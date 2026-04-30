@@ -86,11 +86,11 @@ export function useExtensionBridge() {
 
     window.addEventListener("message", handleMessage);
 
-    console.log("[ExtBridge] Sending TIMEWARP_PING...");
+    console.debug("[ExtBridge] Sending TIMEWARP_PING...");
     window.postMessage("TIMEWARP_PING", "*");
 
     const timeout = setTimeout(() => {
-      console.log("[ExtBridge] ⏰ Detection timeout - no PONG received");
+      console.debug("[ExtBridge] Detection timeout — extension not detected (expected if not installed)");
       setDetecting(false);
     }, 3000);
 

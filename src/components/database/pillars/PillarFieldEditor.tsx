@@ -128,7 +128,7 @@ export function PillarFieldEditor({ field, baseValue, override, autoOpen, onSave
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={rows}
-        className="text-sm resize-y bg-white"
+        className="text-sm resize-y bg-card"
         onKeyDown={(e) => {
           if (e.key === "Escape") handleCancel();
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave();

@@ -90,7 +90,7 @@ export function TransitionOverlay({ isVisible, role, task, onComplete }: Transit
         </div>
 
         {/* Task Preview */}
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
+        <div className="p-4 rounded-xl bg-card/5 border border-white/10 text-left">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Task</p>
           <p className="text-sm text-foreground line-clamp-3">{task}</p>
         </div>

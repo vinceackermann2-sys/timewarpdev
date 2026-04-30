@@ -99,9 +99,9 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
       {/* Guardrail Cards */}
       <div className="space-y-3">
         {/* Integrity */}
-        <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[#E8F0FE]">
+        <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[#f3f5f7]">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-[#dbe6ff]/0">
               <Lock className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
@@ -118,9 +118,9 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
         </div>
 
         {/* Focus */}
-        <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[#E8F0FE]">
+        <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[#f3f5f7]">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-[#dbe6ff]/0">
               <Focus className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
@@ -137,9 +137,9 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
         </div>
 
         {/* Prompt Injection */}
-        <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[#E8F0FE]">
+        <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[#f3f5f7]">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-[#dbe6ff]/0">
               <ShieldAlert className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
@@ -162,10 +162,10 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
         {/* Moderation Guardrails */}
         <button
           onClick={() => setModDialogOpen(true)}
-          className="w-full flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 transition-colors text-left bg-[#E8F0FE]"
+          className="w-full flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 transition-colors text-left bg-[#f3f5f7]"
         >
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-[#dbe6ff]/0">
               <Filter className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>
@@ -185,10 +185,10 @@ export function SettingsView({ activeBrandId }: { activeBrandId: string }) {
         {/* Custom Guardrails */}
         <button
           onClick={() => setCustomDialogOpen(true)}
-          className="w-full flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 transition-colors text-left bg-[#E8F0FE]"
+          className="w-full flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 transition-colors text-left bg-[#f3f5f7]"
         >
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-[#dbe6ff]/0">
               <Plus className="h-4.5 w-4.5 text-foreground" />
             </div>
             <div>

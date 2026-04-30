@@ -164,7 +164,7 @@ function CardShell({
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      className={`group relative border border-border/60 rounded-2xl px-4 sm:px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left shadow-none opacity-100 bg-[#e7effe] ${dimmed ? "opacity-60" : ""}`}
+      className={`group relative border border-border/60 rounded-2xl px-4 sm:px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 hover:border-border cursor-pointer text-left shadow-none opacity-100 bg-[#dbe6ff] ${dimmed ? "opacity-60" : ""}`}
     >
       {/* Header: source logo (or leading control) ↔ accent */}
       {(topLeft || leadingControl || topRight || delta) && (
@@ -216,7 +216,7 @@ function PillCTA({ label, onClick }: { label: string; onClick: () => void }) {
     <Button
       size="sm"
       variant="outline"
-      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 text-foreground/80 hover:text-foreground bg-white hover:bg-white active:bg-white focus:bg-white opacity-100"
+      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 opacity-100 bg-primary text-white"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
     >
       {label}
@@ -442,7 +442,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
         </div>
       }
       middle={
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#E8F0FE]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-background">
           <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
           <div className="flex items-end justify-between gap-3">
             <div className="flex items-baseline gap-1.5 min-w-0">
@@ -453,7 +453,7 @@ function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => vo
               {label}
             </span>
           </div>
-          <div className="h-1.5 w-full rounded-full overflow-hidden bg-white">
+          <div className="h-1.5 w-full rounded-full overflow-hidden bg-card">
             <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: `${pct}%` }} />
           </div>
           {card.momentumIndicator?.display && (() => {
@@ -511,7 +511,7 @@ function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
 
       {/* Objective progress block */}
       {isObjective && (
-        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-[#E8F0FE]">
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-background">
           <Skeleton className="h-2.5 w-24" />
           <div className="flex items-end justify-between gap-3">
             <Skeleton className="h-6 w-20" />
@@ -817,9 +817,9 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   }, [activeTab, filteredCards, detailCard]);
 
   return (
-    <div className="h-full flex relative overflow-hidden bg-[#FAFBFF]">
+    <div className="h-full flex relative overflow-hidden bg-background">
       {/* Left vertical tab menu */}
-      <aside className="w-52 shrink-0 border-r border-border/60 bg-[#fafbff] flex flex-col py-4 px-3 gap-0.5">
+      <aside className="w-52 shrink-0 border-r border-border/60 bg-background flex flex-col py-4 px-3 gap-0.5">
         <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Dashboard
         </div>
@@ -832,7 +832,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-2.5 py-2 text-sm font-medium rounded-md transition-colors text-left ${
                 isActive
-                  ? "bg-primary/10 text-primary"
+                  ? "bg-[#f3f5f7] text-[#101828]"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
@@ -843,7 +843,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         })}
       </aside>
       <div className="flex-1 min-w-0 flex flex-col">
-      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-[#fafbff]">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-background">
 
         <div className="flex items-start justify-between mb-4 gap-4">
           <div className="min-w-0 flex-1">
@@ -855,7 +855,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
             )}
           </div>
           {activeBrand && (
-            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 shrink-0 bg-white hover:bg-white active:bg-white focus:bg-white hover:text-black shadow-none opacity-100 text-black" onClick={handleRefresh} disabled={loading}>
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 shrink-0 shadow-none opacity-100 bg-primary text-white" onClick={handleRefresh} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Update
             </Button>
@@ -877,7 +877,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           </div>
           <input
             type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-white border-border shadow-none"
+            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-card border-border shadow-none"
             placeholder="Search cards..."
           />
         </div>

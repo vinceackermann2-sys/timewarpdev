@@ -469,7 +469,7 @@ Provide a structured analysis including: platform, content type (post, profile, 
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-3.0-flash",
+            model: "google/gemini-3-flash-preview",
             messages: [
               { role: "system", content: `Classify the following content into one or more Business DNA pillars. Return ONLY a JSON array of pillar IDs that genuinely match. Pillars: brand (identity/voice/values), product (features/pricing/USPs), audience (personas/pain points/segments), market (competitors/TAM/trends/SWOT), financial (revenue/costs/margins/CAC/LTV), operations (processes/SOPs/tech stack/KPIs), people (org/hiring/culture/team), growth (channels/funnels/campaigns/ads/retention), strategy (vision/OKRs/milestones/roadmap). Only include pillars with genuine signal. Return [] if nothing matches.` },
               { role: "user", content: `Title: ${dataTitle}\n\nContent:\n${(extractedText || analysis || "").slice(0, 4000)}` }
@@ -516,8 +516,10 @@ Provide a structured analysis including: platform, content type (post, profile, 
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("analyze-content error occurred");
-    return new Response(JSON.stringify({ success: false, error: "An internal error occurred" }), {
+    const msg = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error("analyze-content error:", msg, stack);
+    return new Response(JSON.stringify({ success: false, error: msg || "An internal error occurred" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

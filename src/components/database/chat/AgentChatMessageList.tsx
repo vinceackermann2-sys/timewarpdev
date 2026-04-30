@@ -54,6 +54,12 @@ export function AgentChatMessageList({
                 : []
             : [];
 
+        // Strip trailing unclosed/empty markdown code fences that render as a blank grey box
+        const cleanedContent = (msg.content || "")
+          .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
+          .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
+          .trimEnd();
+
         return (
           <div
             key={msg.id}
@@ -61,8 +67,10 @@ export function AgentChatMessageList({
           >
             <div
               className={cn(
-                "max-w-[80%] rounded-2xl px-5 py-3 text-sm flex flex-col",
-                msg.role === "user" ? "bg-[#e5e7eb] text-foreground rounded-br-md" : "rounded-bl-md text-foreground",
+                "max-w-[80%] text-sm flex flex-col",
+                msg.role === "user"
+                  ? "rounded-2xl rounded-br-md bg-[#3B82F6]/10 text-foreground px-4 py-2.5"
+                  : "rounded-2xl rounded-bl-md text-foreground px-1 py-1",
               )}
             >
               {msg.role === "assistant" ? (
@@ -94,7 +102,7 @@ export function AgentChatMessageList({
                   {(!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
                     <ChatDashboardCards cards={msg.dashboardCards || []} openingSummary={msg.dashboardOpeningSummary} />
                   )}
-                  {msg.content && (
+                  {cleanedContent && (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -147,6 +155,15 @@ export function AgentChatMessageList({
                           ) {
                             return <>{children}</>;
                           }
+                          // Hide empty <pre> blocks (e.g., from stray/unclosed ``` fences)
+                          const innerText = (() => {
+                            try {
+                              const c = children as any;
+                              const raw = c?.props?.children;
+                              return typeof raw === "string" ? raw.trim() : Array.isArray(raw) ? raw.join("").trim() : "";
+                            } catch { return ""; }
+                          })();
+                          if (!innerText) return null;
                           return <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4 text-[13px]">{children}</pre>;
                         },
                         table: ({ children }) => (
@@ -155,12 +172,12 @@ export function AgentChatMessageList({
                           </div>
                         ),
                         thead: ({ children }) => <thead className="bg-muted/50 border-b border-border/50">{children}</thead>,
-                        th: ({ children }) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px]">{children}</th>,
-                        td: ({ children }) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80">{children}</td>,
+                        th: ({ children }) => <th className="px-4 py-2.5 text-left font-semibold text-foreground text-[13px] shadow-none">{children}</th>,
+                        td: ({ children }) => <td className="px-4 py-2.5 border-t border-border/30 text-foreground/80 bg-white">{children}</td>,
                         a: buildLiveCitationAnchor(msg.liveSourceRegistry),
                       }}
                     >
-                      {msg.content}
+                      {cleanedContent}
                     </ReactMarkdown>
                   )}
                   {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
@@ -245,9 +262,15 @@ export function AgentChatMessageList({
               ) : (
                 <>
                   {(() => {
-                    let display = msg.content;
-                    const graphicIdx = display.indexOf("\n\n🎨 Output format:");
-                    if (graphicIdx !== -1) display = display.slice(0, graphicIdx);
+                    let display = msg.displayContent ?? msg.content;
+                    // Strip graphic-format scaffolding (header may appear at start or mid-message)
+                    const graphicHeaderIdx = display.indexOf("🎨 Output format:");
+                    if (graphicHeaderIdx !== -1) {
+                      const before = display.slice(0, graphicHeaderIdx).trimEnd();
+                      // Try to recover the user's actual ask between the header block and the footer reminder
+                      const sepMatch = display.match(/---\n\n([\s\S]*?)\n\n---\n\n🎨 Reminder/);
+                      display = sepMatch ? (before ? `${before}\n\n${sepMatch[1].trim()}` : sepMatch[1].trim()) : before;
+                    }
                     const refIdx = display.indexOf("\n\n--- http");
                     if (refIdx !== -1) display = display.slice(0, refIdx);
                     return display;

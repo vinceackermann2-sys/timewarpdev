@@ -241,7 +241,7 @@ export default function AppShell() {
           <SidebarInset className="flex h-full min-h-0 flex-col flex-1 overflow-hidden bg-sidebar">
             <MobileHeader />
             <AppTopBreadcrumb />
-            <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-[#d1d5db] bg-background">
+            <main className="flex-1 min-h-0 overflow-hidden rounded-tl-2xl border-t border-l border-border bg-background">
               <Outlet context={outletContext} />
             </main>
           </SidebarInset>

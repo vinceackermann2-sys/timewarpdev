@@ -168,7 +168,7 @@ function PlanCard({
   const benefits = PLAN_BENEFITS[planKey];
 
   return (
-    <div className="relative rounded-3xl border border-border bg-card p-8 flex flex-col shadow-sm">
+    <div className="relative rounded-3xl border border-border p-8 flex flex-col shadow-sm bg-white">
       {/* Badge top right */}
       {badge && (
         <div className="absolute top-6 right-6">
@@ -211,7 +211,7 @@ function PlanCard({
         className={cn(
           "w-full h-12 rounded-full font-semibold mb-8",
           buttonVariant === "primary" && !buttonGradient && "bg-foreground text-background hover:bg-foreground/90",
-          buttonVariant === "outline" && "text-foreground border border-border bg-[#FAFBFF]",
+          buttonVariant === "outline" && "text-foreground border border-border bg-background",
           buttonVariant === "dark" && "bg-foreground text-background hover:bg-foreground/90",
           buttonGradient && "bg-primary text-primary-foreground hover:opacity-90 border-0 hover:no-underline"
         )}
@@ -335,7 +335,7 @@ export default function PricingPage() {
     : "USD / month\nbilled annually";
 
   return (
-    <div className="min-h-screen bg-[#FAFBFF]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
           <ArrowLeft className="h-4 w-4" />
@@ -351,7 +351,7 @@ export default function PricingPage() {
 
         {/* Billing toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#E8F0FE]">
+          <div className="inline-flex items-center rounded-full p-1.5 gap-1 border border-border bg-[#f3f5f7]">
             {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
               <button
                 key={period}
@@ -359,7 +359,7 @@ export default function PricingPage() {
                 className={cn(
                   "px-6 py-2 rounded-full text-sm font-medium transition-all capitalize",
                   billing === period
-                    ? "shadow-sm bg-white text-black"
+                    ? "shadow-sm bg-card text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -430,7 +430,7 @@ export default function PricingPage() {
                     type="button"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className={cn(
-                      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background transition-colors",
+                      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-card px-3 py-2 text-sm ring-offset-background transition-colors",
                       "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                       !selectedPackId && "text-muted-foreground"
                     )}

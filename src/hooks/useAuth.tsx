@@ -45,8 +45,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // 2. Bootstrap session safely (deduped, timeout-protected)
-    getSafeSession().then((session) => {
+    getSafeSession().then(async (session) => {
       if (!isMounted) return;
+      // Verify the user still exists server-side. If the JWT references a
+      // deleted/missing user (auth returns 403 user_not_found), force a local
+      // sign-out so we don't keep firing edge functions with a stale token.
+      if (session?.access_token) {
+        try {
+          const { data, error } = await supabase.auth.getUser(session.access_token);
+          const isMissingUser =
+            !!error &&
+            (error.message?.toLowerCase().includes("user") ||
+              (error as { status?: number }).status === 403 ||
+              (error as { status?: number }).status === 401);
+          if (isMissingUser || (!error && !data?.user)) {
+            // Purge stale tokens directly — signOut() would also 403 with this token.
+            try {
+              for (const key of Object.keys(localStorage)) {
+                if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
+                  localStorage.removeItem(key);
+                }
+              }
+            } catch {
+              // ignore storage access errors
+            }
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+            if (!isMounted) return;
+            setState({ session: null, user: null, isLoading: false });
+            return;
+          }
+        } catch {
+          // Network/transport issue — keep the session and let edge fns retry.
+        }
+      }
       setState({ session, user: session?.user ?? null, isLoading: false });
     });
 
