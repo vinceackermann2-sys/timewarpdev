@@ -221,7 +221,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       ...m,
       content: cleanContent,
       suggestions: mergedSuggestions,
-      suggestionTitle,
+      suggestionTitle: fallbackTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
       replyContract: replyContractMeta,
