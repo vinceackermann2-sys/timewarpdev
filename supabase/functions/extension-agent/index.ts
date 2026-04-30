@@ -27,6 +27,7 @@ import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
 import { matchSkill, buildSkillBlock } from "../_shared/skills/_router.ts";
+import { workforceTools, executeWorkforceToolCall } from "../_shared/workforce-tools.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
