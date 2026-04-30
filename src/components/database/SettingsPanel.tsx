@@ -456,7 +456,7 @@ export function SettingsPanel({
 
           {/* WORKSPACE TAB — list */}
           {activeTab === "workspace" && !selectedWsId && (
-            <div className="space-y-4">
+            <div className="space-y-4 bg-[#fcfcfd]">
               <p className="text-sm text-muted-foreground">Manage your workspaces and team members.</p>
               <div className="rounded-xl border border-border bg-card">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-background">
