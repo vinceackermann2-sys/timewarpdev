@@ -417,7 +417,7 @@ export function SettingsPanel({
             <div className="space-y-4 bg-[#fcfcfd]">
               <div>
                 <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><User className="h-4 w-4" /> Profile</h3>
-                <div className="space-y-4">
+                <div className="bg-[#fcfcfd]">
                   <div className="space-y-1.5">
                     <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
                     <Input id="fullName" placeholder="Your full name" value={displayName} onChange={(e) => { setDisplayName(e.target.value); setHasChanges(true); }} />
