@@ -82,6 +82,7 @@ export function AgentChatInput({
   isActionMode: boolean;
   setIsActionMode: (v: boolean | ((p: boolean) => boolean)) => void;
   extensionConnected: boolean;
+  onRetryExtensionDetection?: () => void;
   showReference: boolean;
   setShowReference: (v: boolean | ((p: boolean) => boolean)) => void;
   showGraphicsMenu: boolean;
