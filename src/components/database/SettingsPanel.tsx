@@ -16,6 +16,8 @@ import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useW
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
+import { WorkspacesView } from "@/components/database/WorkspacesView";
+import PricingPage from "@/pages/PricingPage";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -384,32 +386,14 @@ export function SettingsPanel({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <div className="px-8 pt-8 pb-2 bg-background">
-          <h2 className="text-2xl font-bold tracking-tight">
-            {activeTab === "settings" && "Account Settings"}
-            {activeTab === "workspace" && (selectedWsId && selectedWs ? (
-              <span className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedWsId(null); setEditingName(false); }}>
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                {editingName ? (
-                  <div className="flex items-center gap-2">
-                    <Input value={editName} onChange={e => setEditName(e.target.value)}
-                      onKeyDown={async e => { if (e.key === "Enter" && editName.trim()) { await renameWorkspace(selectedWsId!, editName.trim()); setEditingName(false); } if (e.key === "Escape") setEditingName(false); }}
-                      className="h-8 text-lg font-bold" autoFocus />
-                  </div>
-                ) : (
-                  <>{selectedWs.workspaceName}
-                    {isOwnerOfSelected && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditName(selectedWs.workspaceName); setEditingName(true); }}><Pencil className="h-3 w-3" /></Button>}
-                  </>
-                )}
-                <span className={cn("text-xs font-medium", ROLE_CONFIG[selectedWs.role].color)}>({ROLE_CONFIG[selectedWs.role].label})</span>
-              </span>
-            ) : "Workspaces")}
-            {activeTab === "plans" && "Plans & Billing"}
-            {activeTab === "connections" && "Connections"}
-          </h2>
-        </div>
+        {(activeTab === "settings" || activeTab === "connections") && (
+          <div className="px-8 pt-8 pb-2 bg-background">
+            <h2 className="text-2xl font-bold tracking-tight">
+              {activeTab === "settings" && "Account Settings"}
+              {activeTab === "connections" && "Connections"}
+            </h2>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-8 py-4 bg-background">
           {/* SETTINGS TAB */}
@@ -454,301 +438,17 @@ export function SettingsPanel({
             </div>
           )}
 
-          {/* WORKSPACE TAB — list */}
-          {activeTab === "workspace" && !selectedWsId && (
-            <div className="space-y-4 bg-[#fcfcfd]">
-              <p className="text-sm text-muted-foreground">Manage your workspaces and team members.</p>
-              <div className="rounded-xl border border-border bg-card">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-background">
-                  <span className="text-sm font-medium text-muted-foreground">{workspaces.length} workspace{workspaces.length !== 1 ? "s" : ""}</span>
-                  {showCreateWs ? (
-                    <div className="flex items-center gap-2">
-                      <Input placeholder="Workspace name" value={newWsName} onChange={(e) => setNewWsName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreateWorkspace()} className="h-9 w-52" autoFocus />
-                      <Button size="sm" onClick={handleCreateWorkspace} disabled={!newWsName.trim()}>Create</Button>
-                      <Button size="sm" variant="ghost" onClick={() => { setShowCreateWs(false); setNewWsName(""); }}>Cancel</Button>
-                    </div>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={() => setShowCreateWs(true)} className="bg-background"><Plus className="h-4 w-4 mr-1" /> New workspace</Button>
-                  )}
-                </div>
-                {wsLoading ? (
-                  <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-                ) : (
-                  <Table>
-                    <TableHeader><TableRow><TableHead>Workspace</TableHead><TableHead>Your Role</TableHead><TableHead>Members</TableHead><TableHead className="text-right" /></TableRow></TableHeader>
-                    <TableBody>
-                      {workspaces.map((ws) => (
-                        <TableRow key={ws.workspaceId}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 bg-card"><Building2 className="h-4 w-4 text-muted-foreground" /></div>
-                              <div><p className="font-medium text-foreground">{ws.workspaceName}</p><p className="text-xs text-muted-foreground">Created {new Date(ws.createdAt).toLocaleDateString()}</p></div>
-                            </div>
-                          </TableCell>
-                          <TableCell><Badge variant={ws.role === "owner" ? "default" : "secondary"} className="capitalize">{ws.role}</Badge></TableCell>
-                          <TableCell><span className="text-sm text-muted-foreground">{ws.memberCount} member{ws.memberCount !== 1 ? "s" : ""}</span></TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => { setSelectedWsId(ws.workspaceId); setWsDetailTab("users"); setWsFilter(""); setShowInviteForm(false); }} className="text-muted-foreground hover:text-foreground bg-background">Manage <ArrowRight className="h-4 w-4 ml-1" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {workspaces.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No workspaces yet. Create one to get started.</TableCell></TableRow>}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
+          {/* WORKSPACE TAB — render the standalone Workspaces view for visual parity */}
+          {activeTab === "workspace" && (
+            <div className="-mx-8 -my-4 h-full min-h-0">
+              <WorkspacesView />
             </div>
           )}
 
-          {/* WORKSPACE TAB — detail */}
-          {activeTab === "workspace" && selectedWsId && selectedWs && (() => {
-            const filteredMembers = wsFilter ? wsMemberData.members.filter(m => m.email.toLowerCase().includes(wsFilter.toLowerCase()) || getDisplayName(m.email).toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.members;
-            const filteredInvitations = wsFilter ? wsMemberData.invitations.filter(i => i.email.toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.invitations;
-            return (
-              <div className="space-y-4 bg-[#fcfcfd]">
-                <p className="text-muted-foreground text-sm">{selectedWs.workspaceName} · {wsMemberData.members.length} member{wsMemberData.members.length !== 1 ? "s" : ""}</p>
-                <div className="inline-flex items-center p-1 rounded-lg bg-muted border border-border">
-                  <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
-                  <button onClick={() => setWsDetailTab("invites")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "invites" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Pending invites</button>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Filter by name or email" value={wsFilter} onChange={(e) => setWsFilter(e.target.value)} className="pl-9 h-9" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isOwnerOfSelected && <Button size="sm" onClick={() => setShowInviteForm(true)}><UserPlus className="h-4 w-4 mr-1.5" /> Invite member</Button>}
-                    {isOwnerOfSelected && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button size="icon" variant="outline" className="h-9 w-9"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setEditName(selectedWs.workspaceName); setEditingName(true); }}><Pencil className="h-4 w-4 mr-2" /> Rename workspace</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={handleDeleteWorkspace}><Trash2 className="h-4 w-4 mr-2" /> Delete workspace</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
-                </div>
-                {showInviteForm && (
-                  <div className="flex items-center gap-2 p-4 rounded-xl border border-border bg-muted/30">
-                    <Input placeholder="name@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleInvite()} className="flex-1 h-9" autoFocus />
-                    <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as Role)}>
-                      <SelectTrigger className="w-[110px] h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="editor">Editor</SelectItem></SelectContent>
-                    </Select>
-                    <Button size="sm" onClick={handleInvite} disabled={isSending}>{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}</Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setShowInviteForm(false); setInviteEmail(""); }}><X className="h-4 w-4" /></Button>
-                  </div>
-                )}
-                <div className="rounded-xl border border-border bg-card">
-                  {loadingMembers ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-                  ) : wsDetailTab === "users" ? (
-                    <Table>
-                      <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Account type</TableHead><TableHead>Date added</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {filteredMembers.map((member) => {
-                          const isCurrentUser = member.email === userEmail || (member.email === "unknown" && member.role === "owner");
-                          const displayMemberName = isCurrentUser ? `${getDisplayName(userEmail || member.email)} (You)` : getDisplayName(member.email);
-                          const displayEmail = isCurrentUser ? userEmail : (member.email !== "unknown" ? member.email : "");
-                          const initials = displayMemberName.replace(" (You)", "").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-                          return (
-                            <TableRow key={member.id}>
-                              <TableCell>
-                                <div className="flex items-center gap-3">
-                                  <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0"><span className="text-xs font-semibold text-muted-foreground">{initials}</span></div>
-                                  <div><p className="font-medium text-foreground text-sm">{displayMemberName}</p>{displayEmail && <p className="text-xs text-muted-foreground">{displayEmail}</p>}</div>
-                                </div>
-                              </TableCell>
-                              <TableCell><Badge variant={member.role === "owner" ? "default" : "secondary"} className="capitalize">{member.role === "owner" ? "Owner" : "Editor"}</Badge></TableCell>
-                              <TableCell><span className="text-sm text-muted-foreground">{new Date(member.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></TableCell>
-                              <TableCell className="text-right">
-                                {isOwnerOfSelected && member.role !== "owner" && !isCurrentUser && (
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveMember(member.id)}><Trash2 className="h-4 w-4" /></Button>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        {filteredMembers.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No members found.</TableCell></TableRow>}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <Table>
-                      <TableHeader><TableRow><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Invited</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {filteredInvitations.map((inv) => (
-                          <TableRow key={inv.id}>
-                            <TableCell><span className="text-sm font-medium">{inv.email}</span></TableCell>
-                            <TableCell><Badge variant="secondary" className="capitalize">{inv.role}</Badge></TableCell>
-                            <TableCell><span className="text-sm text-muted-foreground">{new Date(inv.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></TableCell>
-                            <TableCell className="text-right">
-                              {isOwnerOfSelected && <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleCancelInvite(inv.id)}><X className="h-4 w-4" /></Button>}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {filteredInvitations.length === 0 && <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No pending invitations.</TableCell></TableRow>}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* PLANS TAB */}
+          {/* PLANS TAB — render the standalone Pricing page for visual parity */}
           {activeTab === "plans" && (
-            <div className="space-y-4 bg-[#fcfcfd]">
-              <PlanUsageSummary fallbackPlan={currentPlan} userId={authUser?.id} />
-
-              <div className="flex justify-center">
-                <div className="inline-flex items-center rounded-full p-1 gap-1 bg-background">
-                  {(["monthly", "quarterly", "annually"] as BillingPeriod[]).map((period) => (
-                    <button
-                      key={period}
-                      onClick={() => setBilling(period)}
-                      className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
-                        billing === period ? "text-foreground shadow-sm bg-background" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {period}
-                      {period === "annually" && <span className="ml-1 text-[10px] text-primary font-semibold">-20%</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {(() => {
-                const isFree = !currentPlan;
-                const periodSuffix = billing === "monthly" ? "USD / mo\nbilled monthly"
-                  : billing === "quarterly" ? "USD / mo\nbilled quarterly"
-                  : "USD / mo\nbilled annually";
-                type CardPlan = "free" | "co_founder" | "aristotle";
-                const cards: Array<{
-                  key: CardPlan;
-                  title: string;
-                  price: string;
-                  suffix?: string;
-                  badge?: { label: string; tone: "popular" | "active" } | null;
-                  buttonLabel: string;
-                  buttonTone: "outline" | "dark" | "primary";
-                  onClick: () => void;
-                  loading?: boolean;
-                }> = [
-                  {
-                    key: "free",
-                    title: "Free",
-                    price: "€0",
-                    badge: isFree ? { label: "Your Plan", tone: "active" } : null,
-                    buttonLabel: isFree ? "Current Plan" : "Downgrade",
-                    buttonTone: "outline",
-                    onClick: () => { if (!isFree) handleManageSubscription(); },
-                  },
-                  {
-                    key: "co_founder",
-                    title: "Co Founder",
-                    price: `$${prices.co_founder}`,
-                    suffix: periodSuffix,
-                    badge: currentPlan === "co_founder" ? { label: "Your Plan", tone: "active" } : null,
-                    buttonLabel: getPlanButtonLabel("co_founder"),
-                    buttonTone: "dark",
-                    onClick: () => handleGetStarted("co_founder"),
-                    loading: loadingPlan === "co_founder",
-                  },
-                  {
-                    key: "aristotle",
-                    title: "Aristotle",
-                    price: `$${prices.aristotle}`,
-                    suffix: periodSuffix,
-                    badge: currentPlan === "aristotle"
-                      ? { label: "Your Plan", tone: "active" }
-                      : { label: "Most Popular", tone: "popular" },
-                    buttonLabel: getPlanButtonLabel("aristotle"),
-                    buttonTone: "primary",
-                    onClick: () => handleGetStarted("aristotle"),
-                    loading: loadingPlan === "aristotle",
-                  },
-                ];
-
-                return (
-                  <div className="grid grid-cols-3 gap-4 items-stretch">
-                    {cards.map((card) => {
-                      const benefits = PLAN_BENEFITS[card.key];
-                      return (
-                        <div key={card.key} className="relative rounded-2xl border border-border bg-card p-5 flex flex-col shadow-sm">
-                          {card.badge && (
-                            <div className="absolute top-4 right-4">
-                              <Badge
-                                className={cn(
-                                  "px-2.5 py-0.5 text-[10px] font-medium rounded-full",
-                                  card.badge.tone === "popular" && "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/10",
-                                  card.badge.tone === "active" && "bg-green-500/10 text-green-600 border border-green-500/20 hover:bg-green-500/10"
-                                )}
-                              >
-                                {card.badge.label}
-                              </Badge>
-                            </div>
-                          )}
-
-                          <h4 className="text-base font-bold">{card.title}</h4>
-                          <p className="text-xs text-muted-foreground mb-4 min-h-[32px]">{benefits.tagline}</p>
-
-                          <div className="mb-5 flex items-end gap-2">
-                            <span className="text-3xl font-bold tracking-tight leading-none">{card.price}</span>
-                            {card.suffix && (
-                              <div className="text-[10px] text-muted-foreground leading-tight pb-0.5">
-                                {card.suffix.split("\n").map((l, i) => <div key={i}>{l}</div>)}
-                              </div>
-                            )}
-                          </div>
-
-                          <Button
-                            size="sm"
-                            onClick={card.onClick}
-                            disabled={card.loading}
-                            className={cn(
-                              "w-full text-xs h-9 rounded-full font-semibold mb-4",
-                              card.buttonTone === "outline" && "bg-background text-foreground border border-border hover:bg-accent",
-                              card.buttonTone === "dark" && "bg-foreground text-background hover:bg-foreground/90",
-                              card.buttonTone === "primary" && "bg-primary text-primary-foreground hover:opacity-90"
-                            )}
-                            variant="default"
-                          >
-                            {card.loading ? <Loader2 className="h-3 w-3 animate-spin" /> : card.buttonLabel}
-                          </Button>
-
-                          <ul className="space-y-2 mt-auto">
-                            {benefits.bullets.map((bullet, i) => {
-                              const isHeader = bullet.endsWith(":");
-                              if (isHeader) {
-                                return (
-                                  <li key={i} className="text-xs font-semibold text-foreground pt-0.5">
-                                    {bullet}
-                                  </li>
-                                );
-                              }
-                              return (
-                                <li key={i} className="flex items-start gap-2">
-                                  <Check className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" strokeWidth={2.5} />
-                                  <span className="text-xs text-foreground/80">{bullet}</span>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-
-              {currentPlan && (
-                <div className="text-center">
-                  <Button variant="link" size="sm" className="text-muted-foreground" onClick={handleManageSubscription}>
-                    Manage subscription →
-                  </Button>
-                </div>
-              )}
+            <div className="-mx-8 -my-4">
+              <PricingPage />
             </div>
           )}
 
