@@ -268,6 +268,7 @@ export default function AppShell() {
 
   return (
     <BusinessDNAProvider>
+      <OnboardingGate />
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">
           <AppSidebar userEmail={user.email || ""} />
