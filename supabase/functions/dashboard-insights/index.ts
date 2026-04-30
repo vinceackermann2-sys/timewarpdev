@@ -1047,7 +1047,15 @@ Return ONLY a valid JSON object, no markdown fences.`;
     if (!aiResponse.ok) {
       const errText = await aiResponse.text().catch(() => "");
       console.error("AI gateway error:", aiResponse.status, errText.slice(0, 200));
-      throw new Error(`AI service error: ${aiResponse.status}`);
+      const err: any = new Error(
+        aiResponse.status === 402
+          ? "Your Lovable AI workspace is out of credits. Add funds in Settings → Workspace → Usage."
+          : aiResponse.status === 429
+            ? "AI rate limit reached. Please try again in a moment."
+            : `AI service error: ${aiResponse.status}`,
+      );
+      err.status = aiResponse.status;
+      throw err;
     }
 
     const aiData = await aiResponse.json();
@@ -1265,8 +1273,12 @@ Return ONLY a valid JSON object, no markdown fences.`;
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    const status =
+      (error as any)?.status === 402 ? 402 :
+      (error as any)?.status === 429 ? 429 :
+      msg === "Unauthorized" ? 401 : 500;
     return new Response(JSON.stringify({ error: msg }), {
-      status: msg === "Unauthorized" ? 401 : 500,
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
