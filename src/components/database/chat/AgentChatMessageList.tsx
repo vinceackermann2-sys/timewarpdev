@@ -54,8 +54,15 @@ export function AgentChatMessageList({
                 : []
             : [];
 
-        // Strip trailing unclosed/empty markdown code fences that render as a blank grey box
+        // Strip trailing unclosed/empty markdown code fences that render as a blank grey box,
+        // and strip [SUGGEST:...] / [PLAN_ACTION:...] tags (with optional surrounding code-fence
+        // or inline-code wrapping) so they never flash in the markdown view while streaming.
         const cleanedContent = (msg.content || "")
+          // Fenced code blocks that contain only a SUGGEST/PLAN_ACTION tag
+          .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*\[(?:SUGGEST|PLAN_ACTION):[\s\S]*?\]\s*\n?\s*```/g, "")
+          // Inline-code-wrapped or bare SUGGEST/PLAN_ACTION tags
+          .replace(/`{0,3}\*{0,2}\[(?:SUGGEST|PLAN_ACTION):[\s\S]*?\]\*{0,2}`{0,3}/g, "")
+          // Leftover empty/unclosed fences
           .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
           .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
           .trimEnd();
