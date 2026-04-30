@@ -413,6 +413,7 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
   const [prevProducts, setPrevProducts] = useState<ProductEntry[]>([]);
   const [prevAudiences, setPrevAudiences] = useState<AudienceEntry[]>([]);
   const loadedWorkspaceRef = useRef<string | null | undefined>(undefined);
+  const [loadedWorkspaceId, setLoadedWorkspaceId] = useState<string | null | undefined>(undefined);
 
   // Keep in sync with workspace changes (event-driven, no polling)
   useEffect(() => {
