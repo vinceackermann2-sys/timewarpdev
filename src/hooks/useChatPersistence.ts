@@ -49,6 +49,9 @@ export function useChatPersistence({
 
       try {
         if (chatId) {
+          // Defense-in-depth: only update if this session belongs to the
+          // current user. Prevents any stale activeChatId from a previous
+          // account/workspace from overwriting another user's chat.
           await supabase
             .from("agent_chat_sessions")
             .update({
@@ -57,7 +60,8 @@ export function useChatPersistence({
               title,
               assistant_memory: sessionMemory ?? "",
             })
-            .eq("id", chatId);
+            .eq("id", chatId)
+            .eq("user_id", user.id);
         } else {
           const { data } = await supabase.from("agent_chat_sessions").insert(payload as any).select("id").maybeSingle();
           if (data?.id) setActiveChatId(data.id);
@@ -66,8 +70,14 @@ export function useChatPersistence({
         console.warn("Failed to save chat session:", e);
       }
     },
-    [user, activeWorkspaceId, selectedAgent, sessionMemory],
+    [user?.id, activeWorkspaceId, selectedAgent, sessionMemory],
   );
+
+  // When the user signs out / switches account or workspace, drop the active
+  // chat id so we never update or display another user's session.
+  useEffect(() => {
+    setActiveChatId(null);
+  }, [user?.id, activeWorkspaceId]);
 
   useEffect(() => {
     setMessages((prev) => {
