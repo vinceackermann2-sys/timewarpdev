@@ -157,10 +157,12 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
   // Context
   let contextAvailable = false;
   let reloadData: () => Promise<{ brands: BrandEntry[]; products: ProductEntry[]; audiences: AudienceEntry[] }> = async () => ({ brands: [], products: [], audiences: [] });
+  let activeWorkspaceId: string | null = null;
   let setBrands: React.Dispatch<React.SetStateAction<BrandEntry[]>> = () => {};
   try {
     const ctx = useBusinessDNA();
     reloadData = ctx.reloadData;
+    activeWorkspaceId = ctx.activeWorkspaceId;
     setBrands = ctx.setBrands;
     contextAvailable = true;
   } catch { /* no provider */ }
@@ -469,6 +471,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
           brandData: newBrand,
           productsData: newProducts,
           audiencesData: newAudiences,
+          workspaceId: activeWorkspaceId || localStorage.getItem("preferred_workspace_id") || undefined,
           brandName,
         },
       });
