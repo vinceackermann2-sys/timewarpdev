@@ -1001,8 +1001,8 @@ function AssistantBubble({ children }: { children: React.ReactNode }) {
       transition={{ duration: 0.25 }}
       className="flex items-start gap-3"
     >
-      <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shrink-0">
-        <img src="/favicon.png" alt="AI CEO" className="w-5 h-5 rounded-full object-cover" />
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+        <BusinessBrainOrb size={32} />
       </div>
       <div className="flex-1 min-w-0 bg-card border border-border rounded-2xl rounded-tl-md p-4 shadow-sm">
         {children}
