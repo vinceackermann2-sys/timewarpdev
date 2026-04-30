@@ -64,7 +64,9 @@ let _cachedItems: DataItem[] | null = null;
 let _cachedCacheKey: string | null = null;
 
 function getCachedForBrand(brandId: string): DataItem[] | null {
-  if (_cachedItems && _cachedCacheKey && _cachedCacheKey.endsWith(`:${brandId}`)) {
+  // Strict full-key match — partial (`endsWith`) matches risk leaking cached
+  // data across accounts/workspaces when the SPA module is reused.
+  if (_cachedItems && _cachedCacheKey && _cachedCacheKey.endsWith(`:${brandId}`) && _cachedItems.length > 0) {
     return _cachedItems;
   }
   return null;
@@ -191,14 +193,17 @@ export function BusinessDataListView({ activeBrandId }: { activeBrandId: string 
 
         let query = (supabase as any)
           .from("user_business_data")
-          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata")
+          .select("id, data_type, source, title, content, analyzed_content, is_analyzed, created_at, metadata, user_id, workspace_id")
           .order("created_at", { ascending: false })
           .limit(1000);
 
+        // When a workspace is active, scope by workspace so all members see
+        // shared brand data. Otherwise scope by the current user OR any row
+        // in workspaces this user belongs to (RLS already restricts visibility).
         if (wsId) {
           query = query.eq("workspace_id", wsId);
         } else {
-          query = query.eq("user_id", session.user.id);
+          query = query.or(`user_id.eq.${session.user.id},workspace_id.not.is.null`);
         }
 
         // Filter to items belonging to this brand

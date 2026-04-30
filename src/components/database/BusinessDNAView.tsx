@@ -382,11 +382,17 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
         "market", "financial", "operations", "people", "growth", "strategy",
         "brand_dna", "product_dna", "audience_dna",
       ];
-      const { data } = await (supabase as any)
+      const wsId = localStorage.getItem("preferred_workspace_id");
+      let pillarQuery = (supabase as any)
         .from("user_business_data")
         .select("data_type, content, metadata")
-        .eq("user_id", session.user.id)
         .in("data_type", extendedTypes);
+      if (wsId) {
+        pillarQuery = pillarQuery.eq("workspace_id", wsId);
+      } else {
+        pillarQuery = pillarQuery.eq("user_id", session.user.id);
+      }
+      const { data } = await pillarQuery;
       if (cancelled || !data) return;
       const next: Record<string, any> = {};
       // Map *_dna types back to their pillar id (brand/product/audience)
