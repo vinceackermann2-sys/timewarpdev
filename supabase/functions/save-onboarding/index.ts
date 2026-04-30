@@ -129,34 +129,55 @@ serve(async (req) => {
 
     const brandId = brandData?.id || `brand-${Date.now()}`;
 
-    // Insert brand
-    const { data: brandInsert, error: brandErr } = await admin.from("user_business_data").insert({
-      ...basePayload,
-      data_type: "brand",
-      title: brandData?.name || "My Business",
-      content: JSON.stringify(brandData),
-      metadata: { brandId, dna_segment: "brand", dna_pillars: ["brand"] },
-    }).select("id").single();
+    const brandTitle = brandData?.name || "My Business";
 
-    if (brandErr) {
-      console.error("Brand insert failed:", brandErr);
-      // 23505 = unique_violation — workspace already has a business
-      const isDuplicate = (brandErr as any)?.code === "23505"
-        || /one_brand_per_workspace|duplicate key/i.test(brandErr.message || "");
-      if (isDuplicate) {
+    // Idempotency: if a brand with the same title already exists in this workspace,
+    // return it instead of inserting a duplicate. Onboarding can fire twice in
+    // React StrictMode or if the user double-clicks.
+    const { data: existingBrand } = await admin
+      .from("user_business_data")
+      .select("id, metadata")
+      .eq("user_id", userId)
+      .eq("workspace_id", wsId)
+      .eq("data_type", "brand")
+      .eq("title", brandTitle)
+      .maybeSingle();
+
+    let brandRowId: string | null = existingBrand?.id ?? null;
+    let didCreateBrand = false;
+
+    if (!brandRowId) {
+      const { data: brandInsert, error: brandErr } = await admin.from("user_business_data").insert({
+        ...basePayload,
+        data_type: "brand",
+        title: brandTitle,
+        content: JSON.stringify(brandData),
+        metadata: { brandId, dna_segment: "brand", dna_pillars: ["brand"] },
+      }).select("id").single();
+
+      if (brandErr) {
+        console.error("Brand insert failed:", brandErr);
+        const isDuplicate = (brandErr as any)?.code === "23505"
+          || /one_brand_per_workspace|duplicate key/i.test(brandErr.message || "");
+        if (isDuplicate) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              code: "WORKSPACE_HAS_BUSINESS",
+              error: "This workspace already has a business. Create a new workspace to add another business.",
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         return new Response(
-          JSON.stringify({
-            success: false,
-            code: "WORKSPACE_HAS_BUSINESS",
-            error: "This workspace already has a business. Create a new workspace to add another business.",
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "Failed to save brand: " + brandErr.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to save brand: " + brandErr.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      brandRowId = brandInsert?.id ?? null;
+      didCreateBrand = true;
+    } else {
+      console.log("Brand already exists for workspace, skipping duplicate insert:", brandRowId);
     }
 
     // Insert products — 9-pillar model: 1 product per business
