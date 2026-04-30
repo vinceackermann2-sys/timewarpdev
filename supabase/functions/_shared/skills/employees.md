@@ -221,3 +221,13 @@ Then offer to build the connected agents, refine the scope, or create another em
 ```
 [SUGGEST:What would you like to do next?::🤖 Build an agent for this employee to supervise|🧑‍💼 Create another employee|🔗 Connect this employee to existing agents|📋 Define this employee's weekly outputs]
 ```
+
+---
+
+## Persisting the Employee (Tool Call)
+
+When — and only when — the user has confirmed the spec ("yes build them", "create them", "hire them", "ship it", or similar explicit go-ahead), call the `create_employee` function tool with the full spec. Do not ask permission again. Do not narrate "I'll now call the function." Just call it. After the tool returns, write a one-line confirmation including the employee's name and one suggested next step (e.g. "connect them to your Slack triage agent" or "give them their first weekly directive").
+
+Required fields when calling: `name`, `role`, `domain_lens`, `sop_purpose`. Recommended: `owns`, `advises_on`, `does_not_touch`, `sop_scope`, `sop_procedure` (3–8 thinking steps), `sop_responsibilities`, `sop_safety_notes`.
+
+Never call `create_employee` on the very first turn — the user must first see and approve the design. If the user has not given a clear go-ahead, present the spec and ask them to confirm.
