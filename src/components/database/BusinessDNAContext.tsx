@@ -249,6 +249,14 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
     const { error } = await supabase.from("user_business_data").update(payload).eq("id", existingRowId);
     if (error) console.error(`Failed to update ${dataType}:`, error.message);
   } else {
+    // Hard guard: never insert a brand-DNA row without a workspace_id.
+    // Orphan rows become invisible to the workspace-scoped loader and force
+    // the user back through onboarding. The caller must resolve a workspace
+    // first (save-onboarding does this server-side).
+    if (!resolvedWorkspaceId) {
+      console.warn(`[DNA] Skipping insert of ${dataType} "${entity.name}" — no workspace_id resolved (would be invisible).`);
+      return;
+    }
     const { error } = await supabase.from("user_business_data").insert(payload);
     if (error) console.error(`Failed to insert ${dataType}:`, error.message);
   }
