@@ -86,25 +86,51 @@ export function useExtensionBridge() {
 
     window.addEventListener("message", handleMessage);
 
-    console.debug("[ExtBridge] Sending TIMEWARP_PING...");
-    window.postMessage("TIMEWARP_PING", "*");
+    // Check sync marker the extension may have set on the page already
+    // (covers the case where the content script ran before React mounted).
+    try {
+      // @ts-expect-error - injected by extension content script
+      if (window.__TIMEWARP_EXTENSION__ === true) {
+        console.log("[ExtBridge] ✅ Extension marker detected on window.");
+        setExtensionConnected(true);
+        setDetecting(false);
+      }
+    } catch {
+      /* noop */
+    }
+
+    // Ping repeatedly with backoff so we don't miss the extension's listener
+    // if it loads slightly after this hook mounts.
+    const pingDelays = [0, 150, 400, 900, 1600, 2500];
+    const pingTimers = pingDelays.map((d) =>
+      setTimeout(() => {
+        console.debug(`[ExtBridge] Sending TIMEWARP_PING (t+${d}ms)...`);
+        window.postMessage("TIMEWARP_PING", "*");
+        window.postMessage({ type: "TIMEWARP_PING" }, "*");
+      }, d),
+    );
 
     const timeout = setTimeout(() => {
       console.debug("[ExtBridge] Detection timeout — extension not detected (expected if not installed)");
       setDetecting(false);
-    }, 3000);
+    }, 4000);
 
     return () => {
       window.removeEventListener("message", handleMessage);
       clearTimeout(timeout);
+      pingTimers.forEach(clearTimeout);
     };
   }, []);
 
   const retryDetection = useCallback(() => {
     setDetecting(true);
-    setExtensionConnected(false);
     window.postMessage("TIMEWARP_PING", "*");
-    setTimeout(() => setDetecting(false), 3000);
+    window.postMessage({ type: "TIMEWARP_PING" }, "*");
+    setTimeout(() => {
+      window.postMessage("TIMEWARP_PING", "*");
+      window.postMessage({ type: "TIMEWARP_PING" }, "*");
+    }, 300);
+    setTimeout(() => setDetecting(false), 2000);
   }, []);
 
   const getPageContext = useCallback((): Promise<PageContext> => {

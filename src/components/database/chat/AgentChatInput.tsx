@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import { useEffect, type ReactNode, type RefObject } from "react";
 import {
   ArrowUp,
   ChevronDown,
@@ -39,6 +39,7 @@ export function AgentChatInput({
   isActionMode,
   setIsActionMode,
   extensionConnected,
+  onRetryExtensionDetection,
   showReference,
   setShowReference,
   showGraphicsMenu,
@@ -81,6 +82,7 @@ export function AgentChatInput({
   isActionMode: boolean;
   setIsActionMode: (v: boolean | ((p: boolean) => boolean)) => void;
   extensionConnected: boolean;
+  onRetryExtensionDetection?: () => void;
   showReference: boolean;
   setShowReference: (v: boolean | ((p: boolean) => boolean)) => void;
   showGraphicsMenu: boolean;
@@ -103,6 +105,14 @@ export function AgentChatInput({
   graphicsSubContent: React.ReactNode;
   employeesSubContent: React.ReactNode;
 }) {
+  // Re-detect the extension whenever the user opens the Plus dropup so the
+  // "Computer" row reflects the current state without requiring a full reload.
+  useEffect(() => {
+    if (isDropupOpen && !extensionConnected) {
+      onRetryExtensionDetection?.();
+    }
+  }, [isDropupOpen, extensionConnected, onRetryExtensionDetection]);
+
   return (
     <footer className="shrink-0 p-3 sm:p-4 md:p-6 w-full max-w-3xl mx-auto relative z-20 bg-background">
       <input
