@@ -28,6 +28,7 @@ import DnaPage from "./pages/app/DnaPage";
 import DnaDetailPage from "./pages/app/DnaDetailPage";
 import EmployeesPage from "./pages/app/EmployeesPage";
 import AgentsPage from "./pages/app/AgentsPage";
+import WorkforcePage from "./pages/app/WorkforcePage";
 import ConnectionsPage from "./pages/app/ConnectionsPage";
 import WorkspacesPage from "./pages/app/WorkspacesPage";
 import SettingsPage from "./pages/app/SettingsPage";
