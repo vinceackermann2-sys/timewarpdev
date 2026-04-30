@@ -1041,3 +1041,34 @@ function UserActionCard({ children, wide }: { children: React.ReactNode; wide?: 
     </motion.div>
   );
 }
+
+function Typewriter({
+  text,
+  speed = 18,
+  delay = 0,
+}: {
+  text: string;
+  speed?: number;
+  delay?: number;
+}) {
+  const [shown, setShown] = useState("");
+  useEffect(() => {
+    let i = 0;
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = setTimeout(() => {
+      if (cancelled) return;
+      interval = setInterval(() => {
+        i += 1;
+        setShown(text.slice(0, i));
+        if (i >= text.length && interval) clearInterval(interval);
+      }, speed);
+    }, delay);
+    return () => {
+      cancelled = true;
+      clearTimeout(start);
+      if (interval) clearInterval(interval);
+    };
+  }, [text, speed, delay]);
+  return <span>{shown}</span>;
+}
