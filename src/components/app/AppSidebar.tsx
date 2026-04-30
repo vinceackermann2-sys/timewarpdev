@@ -40,7 +40,6 @@ import {
   Cable,
   LayoutDashboard,
   Users,
-  Zap,
   CreditCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
