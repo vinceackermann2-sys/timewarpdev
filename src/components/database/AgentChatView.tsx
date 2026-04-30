@@ -980,6 +980,7 @@ export function AgentChatView({
 
         {!isOnboardingActive && (
         <AgentChatInput
+          composerOverlay={composerSuggestionOverlay}
           dropupRef={dropupRef}
           fileInputRef={fileInputRef}
           chatInputRef={chatInputRef}
