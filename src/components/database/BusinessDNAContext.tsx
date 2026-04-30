@@ -196,6 +196,7 @@ async function loadBrandsLight(workspaceId?: string | null, session?: { user: { 
       name: row.title || "Untitled",
       category: "",
       lastUpdated: (row as any).created_at || new Date().toISOString(),
+      agentName: typeof meta.agentName === "string" ? meta.agentName : undefined,
       _rowId: row.id,
       _light: true,
     } as BrandEntry & { _rowId: string; _light: boolean });
@@ -219,6 +220,17 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
     brandId = entity.brandId;
   }
 
+  // Persist agentName in metadata for brand rows so the lightweight loader
+  // (which doesn't parse `content`) can surface it in headers/breadcrumbs.
+  const metadata: Record<string, any> | undefined = brandId
+    ? {
+        brandId,
+        ...(dataType === "brand" && typeof entity.agentName === "string" && entity.agentName.trim()
+          ? { agentName: entity.agentName.trim() }
+          : {}),
+      }
+    : undefined;
+
   const payload: any = {
     user_id: session.user.id,
     data_type: dataType,
@@ -226,7 +238,7 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
     title: entity.name || "Untitled",
     content: JSON.stringify(entity),
     is_analyzed: true,
-    metadata: brandId ? { brandId } : undefined,
+    metadata,
   };
 
   if (resolvedWorkspaceId) {
