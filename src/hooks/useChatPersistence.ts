@@ -73,12 +73,6 @@ export function useChatPersistence({
     [user?.id, activeWorkspaceId, selectedAgent, sessionMemory],
   );
 
-  // When the user signs out / switches account or workspace, drop the active
-  // chat id so we never update or display another user's session.
-  useEffect(() => {
-    setActiveChatId(null);
-  }, [user?.id, activeWorkspaceId]);
-
   useEffect(() => {
     setMessages((prev) => {
       let changed = false;
