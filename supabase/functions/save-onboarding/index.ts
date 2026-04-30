@@ -44,9 +44,8 @@ serve(async (req) => {
     const { brandData, productData, productsData, audienceData, audiencesData, workspaceId: hintWsId, brandName } = await req.json();
 
     // --- Per-user serialization to prevent duplicate workspace/brand creation
-    // when the client (or React StrictMode) fires save-onboarding twice. ---
-    const lockKey = await admin.rpc("acquire_user_onboarding_lock", { _user_id: userId }).catch(() => null);
-    // Lock is best-effort; the real dedup happens via re-checks + unique guards below.
+    // when the client (or React StrictMode) fires save-onboarding twice.
+    // Real dedup happens via re-checks + idempotent guards below. ---
 
     // --- Resolve workspace server-side (never trust client blindly) ---
     let wsId: string | null = null;
