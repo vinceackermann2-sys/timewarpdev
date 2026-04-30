@@ -275,9 +275,14 @@ export function useWorkspace() {
 
   const deleteWorkspace = useCallback(async (wsId: string) => {
     await supabase.from("workspace_invitations").delete().eq("workspace_id", wsId);
-    await supabase.from("workspace_members").delete().eq("workspace_id", wsId);
+
+    // Delete the workspace before removing member rows. Workspace deletion RLS
+    // verifies the current user is still an owner; deleting membership first can
+    // strand an owned workspace with no visible members, making its DNA vanish.
     const { error } = await supabase.from("workspaces").delete().eq("id", wsId);
     if (error) throw error;
+
+    await supabase.from("workspace_members").delete().eq("workspace_id", wsId);
     if (activeWorkspaceId === wsId) {
       localStorage.removeItem("preferred_workspace_id");
       setActiveWorkspaceId(null);
