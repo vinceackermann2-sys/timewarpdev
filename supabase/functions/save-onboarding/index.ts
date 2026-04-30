@@ -111,6 +111,19 @@ serve(async (req) => {
 
     if (brandErr) {
       console.error("Brand insert failed:", brandErr);
+      // 23505 = unique_violation — workspace already has a business
+      const isDuplicate = (brandErr as any)?.code === "23505"
+        || /one_brand_per_workspace|duplicate key/i.test(brandErr.message || "");
+      if (isDuplicate) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            code: "WORKSPACE_HAS_BUSINESS",
+            error: "This workspace already has a business. Create a new workspace to add another business.",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
         JSON.stringify({ success: false, error: "Failed to save brand: " + brandErr.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
