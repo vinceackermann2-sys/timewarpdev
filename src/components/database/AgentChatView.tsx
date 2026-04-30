@@ -1070,6 +1070,7 @@ export function AgentChatView({
             </SheetHeader>
             <ChatHistorySidebar
               activeChatId={activeChatId}
+              refreshKey={sidebarRefreshKey}
               onSelectChat={(session) => {
                 handleSelectChat(session);
                 setShowHistory(false);
