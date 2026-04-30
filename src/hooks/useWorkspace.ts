@@ -52,12 +52,18 @@ async function fetchWorkspaces(userId: string): Promise<WorkspaceInfo[]> {
     return mapWorkspaces(wsData as any[]);
   }
 
-  await new Promise((r) => setTimeout(r, 250));
-  const { data: retryData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
-  if (retryData && (retryData as any[]).length > 0) {
-    return mapWorkspaces(retryData as any[]);
+  // Brief retry — the signup trigger creates a default workspace asynchronously.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await new Promise((r) => setTimeout(r, 300));
+    const { data: retryData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
+    if (retryData && (retryData as any[]).length > 0) {
+      return mapWorkspaces(retryData as any[]);
+    }
   }
 
+  // Last resort: create a workspace. The RPC enforces a per-user cap, but we
+  // intentionally avoid this path for fresh signups (the trigger handles it)
+  // to prevent races where multiple components all create a workspace.
   const { data: createdWorkspaceId, error: createError } = await supabase.rpc("create_workspace", {
     _name: "My Workspace",
   });
