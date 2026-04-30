@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 
-import { BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
+import { BusinessDNAProvider, useBusinessDNA } from "@/components/database/BusinessDNAContext";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { AppTopBreadcrumb } from "@/components/app/AppTopBreadcrumb";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
