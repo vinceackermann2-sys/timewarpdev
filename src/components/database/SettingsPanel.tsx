@@ -436,7 +436,7 @@ export function SettingsPanel({
               <Separator />
               <div>
                 <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><Key className="h-4 w-4" /> Security</h3>
-                <div className="rounded-xl border border-border p-5 space-y-4 bg-background">
+                <div className="rounded-xl border border-border p-5 space-y-4 bg-gray-100">
                   <div>
                     <h4 className="text-sm font-semibold flex items-center gap-2 mb-1"><Key className="h-3.5 w-3.5" /> Change Password</h4>
                     <p className="text-xs text-muted-foreground mb-4">Update your password to keep your account secure.</p>
