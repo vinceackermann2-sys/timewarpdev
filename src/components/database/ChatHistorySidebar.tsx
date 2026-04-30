@@ -43,20 +43,14 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat }: Pr
     }
     setIsLoading(true);
     try {
-      // ALWAYS scope to the current user. Even inside a workspace, chat history
-      // is personal — workspace members must never see each other's chats.
-      let query = supabase
+      // ALWAYS scope to the current user. Chat history is per-user (not per-workspace)
+      // so users see their own conversations regardless of which workspace is active.
+      const query = supabase
         .from("agent_chat_sessions")
         .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(50);
-
-      if (activeWorkspaceId) {
-        query = query.eq("workspace_id", activeWorkspaceId);
-      } else {
-        query = query.is("workspace_id", null);
-      }
 
       const { data, error } = await query;
       if (error) {
