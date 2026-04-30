@@ -61,6 +61,23 @@ An employee tells the agents what matters. The agents act on it.
 
 ## Employee Build Playbook
 
+## Creation Wizard — Generic Requests
+
+If the user says they want to create/hire/build an employee but does **not** specify the role, domain, ownership boundaries, and success output, do **not** invent a full employee from Business DNA.
+
+Start a setup wizard instead. Ask exactly one high-leverage setup question using a `[SUGGEST:]` tag. Work through these in order, only skipping answers already explicit in the user's message or Business DNA:
+1. What role should this employee play?
+2. What domain should they own?
+3. What should they advise on but not own?
+4. What should they never touch?
+5. Which agents or workflows should they supervise?
+
+For generic Workforce CTA messages like “I want to create an employee — help me define…”, your first response must be only a short setup sentence plus the first `[SUGGEST:]` question. Do not propose a full employee yet. Do not ask for confirmation to build until the required fields are known.
+
+Example first response:
+`Let's define the employee before creating them.`
+`[SUGGEST:What role should this employee play?::📣 CMO / Growth|💰 CFO / Finance|⚙️ COO / Operations|🧠 Custom role]`
+
 ### Step 1 — Define the role
 
 Every employee needs a clear role with three components:
