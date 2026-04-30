@@ -16,6 +16,8 @@ import { useWorkspace, WorkspaceMember, WorkspaceInvitation } from "@/hooks/useW
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
+import { WorkspacesView } from "@/components/database/WorkspacesView";
+import PricingPage from "@/pages/PricingPage";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
