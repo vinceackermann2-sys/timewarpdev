@@ -20,6 +20,8 @@ interface Props {
   activeChatId: string | null;
   onSelectChat: (session: ChatSession) => void;
   onNewChat: () => void;
+  /** Bumped by parent whenever a session is created/updated to force a refresh. */
+  refreshKey?: number | string;
 }
 
 function formatDate(dateStr: string) {
