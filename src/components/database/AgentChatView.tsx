@@ -999,6 +999,7 @@ export function AgentChatView({
           isActionMode={isActionMode}
           setIsActionMode={setIsActionMode}
           extensionConnected={extensionConnected}
+          onRetryExtensionDetection={retryDetection}
           showReference={showReference}
           setShowReference={setShowReference}
           showGraphicsMenu={showGraphicsMenu}
