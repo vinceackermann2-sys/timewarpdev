@@ -1273,8 +1273,12 @@ Return ONLY a valid JSON object, no markdown fences.`;
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    const status =
+      (error as any)?.status === 402 ? 402 :
+      (error as any)?.status === 429 ? 429 :
+      msg === "Unauthorized" ? 401 : 500;
     return new Response(JSON.stringify({ error: msg }), {
-      status: msg === "Unauthorized" ? 401 : 500,
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
