@@ -47,6 +47,38 @@ function MobileHeader() {
   );
 }
 
+/**
+ * OnboardingGate — every workspace must contain at least one business.
+ * If the active workspace has zero brands AND the current user is its owner
+ * (workspace members aren't expected to onboard — they collaborate on the
+ * owner's business), force them into the chat-driven onboarding at
+ * /app/assistant. This prevents bypassing onboarding via direct nav to
+ * /app, /app/dashboard, /app/settings, etc.
+ */
+function OnboardingGate() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { brands, isLoading } = useBusinessDNA();
+  const { activeWorkspace, isLoading: wsLoading } = useWorkspace();
+
+  useEffect(() => {
+    if (isLoading || wsLoading) return;
+    if (!activeWorkspace) return;
+    // Only force onboarding for the workspace OWNER.
+    if (activeWorkspace.role !== "owner") return;
+    if (brands.length > 0) return;
+
+    // Allow the assistant route itself (it hosts the onboarding UI) and
+    // the auth callback / oauth return flows.
+    const path = location.pathname;
+    if (path.startsWith("/app/assistant")) return;
+
+    navigate("/app/assistant", { replace: true });
+  }, [brands.length, isLoading, wsLoading, activeWorkspace, location.pathname, navigate]);
+
+  return null;
+}
+
 function AuthGuardLoading() {
   return (
     <div className="h-screen overflow-hidden flex w-full bg-background">
