@@ -19,9 +19,10 @@ import { cn } from "@/lib/utils";
 
 interface WorkspacesViewProps {
   onBack?: () => void;
+  hideFooter?: boolean;
 }
 
-export function WorkspacesView({ onBack }: WorkspacesViewProps) {
+export function WorkspacesView({ onBack, hideFooter = false }: WorkspacesViewProps) {
   const { user } = useAuth();
   const {
     workspaces,
