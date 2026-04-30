@@ -646,17 +646,20 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12 space-y-6">
         {/* Greeting bubble */}
         <AssistantBubble>
-          <div className="flex items-center gap-3 mb-2">
-            <BusinessBrainOrb size={32} />
-            <div>
-              <p className="text-[15px] font-semibold text-foreground">Welcome 👋</p>
-              <p className="text-[13px] text-muted-foreground">
-                Let's set up your business so I can act as your CEO.
-              </p>
-            </div>
+          <div className="mb-2">
+            <p className="text-[15px] font-semibold text-foreground">
+              <Typewriter text="Welcome 👋" speed={28} />
+            </p>
+            <p className="text-[13px] text-muted-foreground">
+              <Typewriter text="Let's set up your business for an unfair advantage." speed={18} delay={300} />
+            </p>
           </div>
           <p className="text-[14px] text-foreground">
-            What's your company website? Paste any URL and I'll do the research for you.
+            <Typewriter
+              text="What's your company website? Paste your URL and I'll start bending time."
+              speed={16}
+              delay={1400}
+            />
           </p>
         </AssistantBubble>
 
