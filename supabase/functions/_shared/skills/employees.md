@@ -2,7 +2,7 @@
 name: Employees
 pillars: People, Strategy, Operations, Growth
 surface: assistant-chat
-trigger: build an employee, create an employee, hire an employee, make an employee, I need an employee, AI employee, AI CMO, AI CFO, AI CTO, AI head of, AI director of, AI manager, AI strategist, AI analyst, AI advisor, AI assistant for, virtual employee, build me a CMO, build me a CFO, design an employee, employee that thinks, employee that plans, employee that advises, employee that learns, employee that helps, strategic employee, planning employee, advisory role, give me a thinking partner, I need someone to think about, I want an AI to help me think, employee persona, build a role
+trigger: build an employee, build employee, create an employee, create employee, create my employee, new employee, add employee, hire an employee, hire employee, make an employee, make employee, I need an employee, AI employee, AI CMO, AI CFO, AI CTO, AI head of, AI director of, AI manager, AI strategist, AI analyst, AI advisor, AI assistant for, virtual employee, build me a CMO, build me a CFO, design an employee, employee that thinks, employee that plans, employee that advises, employee that learns, employee that helps, strategic employee, planning employee, advisory role, give me a thinking partner, I need someone to think about, I want an AI to help me think, employee persona, build a role
 ---
 
 # Employees
