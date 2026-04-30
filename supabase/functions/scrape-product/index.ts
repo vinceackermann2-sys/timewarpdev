@@ -679,7 +679,7 @@ serve(async (req) => {
     const discoverWaitMs = isDiscoverMode ? 1500 : 3000;
 
     if (!skipHomepageScrape) {
-      await sendProgress("Scraping homepage", 15);
+      await sendProgress("Opening the portals", 15);
       const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
         method: "POST",
         headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
@@ -790,7 +790,7 @@ serve(async (req) => {
     } else if (isCompanyUrl) {
       try {
         console.log("Company URL — mapping site for product pages...");
-        await sendProgress("Mapping site for products", 45);
+        await sendProgress("Found your universe", 45);
         const mapLimit = isDiscoverMode ? 80 : 200;
         const [mapRes1, mapRes2, mapRes3] = await Promise.allSettled([
           fetch("https://api.firecrawl.dev/v1/map", {
@@ -909,7 +909,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                   })
                   .slice(0, maxPages);
                 console.log("AI selected", selected.length, "product pages:", selected);
-                await sendProgress("Scanning product pages", 70);
+                await sendProgress("Getting down to earth", 70);
                 // Scrape all pages in parallel
                 // In discover mode: skip AI extraction, just get images + title from page metadata
                 // In core/extract mode: do full AI extraction per page
