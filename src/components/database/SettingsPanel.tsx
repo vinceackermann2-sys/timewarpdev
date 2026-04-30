@@ -425,7 +425,7 @@ export function SettingsPanel({
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Email</Label>
-                      <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-background">
+                      <div className="flex items-center gap-2.5 p-3 rounded-md border-input bg-background border-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">{userEmail}</span>
                     </div>
