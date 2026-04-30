@@ -180,35 +180,40 @@ serve(async (req) => {
       console.log("Brand already exists for workspace, skipping duplicate insert:", brandRowId);
     }
 
-    // Insert products — 9-pillar model: 1 product per business
-    const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 1);
-    for (const prod of allProducts) {
-      const { error: productErr } = await admin.from("user_business_data").insert({
-        ...basePayload,
-        data_type: "product",
-        title: prod?.name || "Imported Product",
-        content: JSON.stringify(prod),
-        metadata: { brandId, dna_segment: "product", dna_pillars: ["product"] },
-      });
-      if (productErr) {
-        console.error("Product insert failed:", productErr);
+    // Insert products — 9-pillar model: 1 product per business.
+    // Skip entirely if brand already existed (idempotent re-run).
+    if (didCreateBrand) {
+      const allProducts = (productsData || (productData ? [productData] : [])).slice(0, 1);
+      for (const prod of allProducts) {
+        const { error: productErr } = await admin.from("user_business_data").insert({
+          ...basePayload,
+          data_type: "product",
+          title: prod?.name || "Imported Product",
+          content: JSON.stringify(prod),
+          metadata: { brandId, dna_segment: "product", dna_pillars: ["product"] },
+        });
+        if (productErr) {
+          console.error("Product insert failed:", productErr);
+        }
       }
-    }
 
-    // Insert audiences — 9-pillar model: 1 audience per business
-    const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 1);
-    for (const aud of allAudiences) {
-      if (!aud) continue;
-      const { error: audErr } = await admin.from("user_business_data").insert({
-        ...basePayload,
-        data_type: "audience",
-        title: aud?.name || "Target Audience",
-        content: JSON.stringify(aud),
-        metadata: { brandId, dna_segment: "audience", dna_pillars: ["audience"] },
-      });
-      if (audErr) {
-        console.error("Audience insert failed:", audErr);
+      // Insert audiences — 9-pillar model: 1 audience per business
+      const allAudiences = (audiencesData || (audienceData ? [audienceData] : [])).slice(0, 1);
+      for (const aud of allAudiences) {
+        if (!aud) continue;
+        const { error: audErr } = await admin.from("user_business_data").insert({
+          ...basePayload,
+          data_type: "audience",
+          title: aud?.name || "Target Audience",
+          content: JSON.stringify(aud),
+          metadata: { brandId, dna_segment: "audience", dna_pillars: ["audience"] },
+        });
+        if (audErr) {
+          console.error("Audience insert failed:", audErr);
+        }
       }
+    } else {
+      console.log("Skipping product/audience insert — brand already existed (idempotent re-run).");
     }
 
     // Rename workspace to brand name only for the first business
