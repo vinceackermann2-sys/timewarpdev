@@ -77,7 +77,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   const remaining = totalNum === Infinity ? "∞" : String(Math.max(0, totalNum - used));
 
   return (
-    <div className="rounded-xl border border-border p-5 bg-background">
+    <div className="rounded-xl border border-border p-5 space-y-4 bg-gray-100">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Current Plan</p>
@@ -414,10 +414,10 @@ export function SettingsPanel({
         <div className="flex-1 overflow-y-auto px-8 py-4 bg-background">
           {/* SETTINGS TAB */}
           {activeTab === "settings" && (
-            <div className="space-y-8 max-w-xl">
+            <div className="space-y-4 bg-[#fcfcfd]">
               <div>
                 <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><User className="h-4 w-4" /> Profile</h3>
-                <div className="space-y-4">
+                <div className="bg-[#fcfcfd]">
                   <div className="space-y-1.5">
                     <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
                     <Input id="fullName" placeholder="Your full name" value={displayName} onChange={(e) => { setDisplayName(e.target.value); setHasChanges(true); }} />
@@ -425,7 +425,7 @@ export function SettingsPanel({
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">Email</Label>
-                      <div className="flex items-center gap-2.5 p-3 rounded-md border border-input bg-background">
+                      <div className="flex items-center gap-2.5 p-3 rounded-md border-input bg-background border-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">{userEmail}</span>
                     </div>
@@ -436,7 +436,7 @@ export function SettingsPanel({
               <Separator />
               <div>
                 <h3 className="text-base font-semibold flex items-center gap-2 mb-4"><Key className="h-4 w-4" /> Security</h3>
-                <div className="rounded-xl border border-border p-5 space-y-4 bg-background">
+                <div className="rounded-xl border border-border p-5 space-y-4 bg-gray-100">
                   <div>
                     <h4 className="text-sm font-semibold flex items-center gap-2 mb-1"><Key className="h-3.5 w-3.5" /> Change Password</h4>
                     <p className="text-xs text-muted-foreground mb-4">Update your password to keep your account secure.</p>
@@ -456,7 +456,7 @@ export function SettingsPanel({
 
           {/* WORKSPACE TAB — list */}
           {activeTab === "workspace" && !selectedWsId && (
-            <div className="space-y-4">
+            <div className="space-y-4 bg-[#fcfcfd]">
               <p className="text-sm text-muted-foreground">Manage your workspaces and team members.</p>
               <div className="rounded-xl border border-border bg-card">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-background">
@@ -505,7 +505,7 @@ export function SettingsPanel({
             const filteredMembers = wsFilter ? wsMemberData.members.filter(m => m.email.toLowerCase().includes(wsFilter.toLowerCase()) || getDisplayName(m.email).toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.members;
             const filteredInvitations = wsFilter ? wsMemberData.invitations.filter(i => i.email.toLowerCase().includes(wsFilter.toLowerCase())) : wsMemberData.invitations;
             return (
-              <div className="space-y-4">
+              <div className="space-y-4 bg-[#fcfcfd]">
                 <p className="text-muted-foreground text-sm">{selectedWs.workspaceName} · {wsMemberData.members.length} member{wsMemberData.members.length !== 1 ? "s" : ""}</p>
                 <div className="inline-flex items-center p-1 rounded-lg bg-muted border border-border">
                   <button onClick={() => setWsDetailTab("users")} className={`px-5 py-1.5 text-sm font-medium rounded-md transition-all ${wsDetailTab === "users" ? "text-foreground shadow-sm bg-card" : "text-muted-foreground hover:text-foreground"}`}>Users</button>
@@ -598,7 +598,7 @@ export function SettingsPanel({
 
           {/* PLANS TAB */}
           {activeTab === "plans" && (
-            <div className="space-y-6">
+            <div className="space-y-4 bg-[#fcfcfd]">
               <PlanUsageSummary fallbackPlan={currentPlan} userId={authUser?.id} />
 
               <div className="flex justify-center">
