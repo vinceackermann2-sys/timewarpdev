@@ -2,13 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { ActionGateProvider } from "@/hooks/useActionGate";
 import { AuthProvider } from "@/hooks/useAuth";
+
 import TimewarpOG from "./pages/TimewarpOG";
 import Auth from "./pages/Auth";
-import Database from "./pages/Database";
 import AiCeo from "./pages/AiCeo";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -19,22 +19,54 @@ import Support from "./pages/Support";
 import DataDeletion from "./pages/DataDeletion";
 import SuperchargeDna from "./pages/SuperchargeDna";
 
+// New /app/* nested-route shell + pages (replaces the old monolithic
+// Database.tsx state-machine page).
+import AppShell from "./pages/app/AppShell";
+import AssistantPage from "./pages/app/AssistantPage";
+import DashboardPage from "./pages/app/DashboardPage";
+import DnaPage from "./pages/app/DnaPage";
+import DnaDetailPage from "./pages/app/DnaDetailPage";
+import EmployeesPage from "./pages/app/EmployeesPage";
+import AgentsPage from "./pages/app/AgentsPage";
+import ConnectionsPage from "./pages/app/ConnectionsPage";
+import WorkspacesPage from "./pages/app/WorkspacesPage";
+import SettingsPage from "./pages/app/SettingsPage";
+
 const queryClient = new QueryClient();
 
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
               <ActionGateProvider>
                 <Routes>
                   <Route path="/" element={<AiCeo />} />
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/app" element={<Database />} />
+
+                  {/* /app/* — nested routes under AppShell (auth guard,
+                       BusinessDNAProvider, sidebar, OAuth/purchase/referral
+                       handlers all live in AppShell). */}
+                  <Route path="/app" element={<AppShell />}>
+                    <Route index element={<Navigate to="assistant" replace />} />
+                    <Route path="assistant" element={<AssistantPage />} />
+                    <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="dna" element={<DnaPage />} />
+                    <Route path="dna/:brandId" element={<DnaDetailPage />} />
+                    <Route path="dna/:brandId/:pillar" element={<DnaDetailPage />} />
+                    <Route path="employees" element={<EmployeesPage />} />
+                    <Route path="agents" element={<AgentsPage />} />
+                    <Route path="connections" element={<ConnectionsPage />} />
+                    <Route path="workspaces" element={<WorkspacesPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    {/* Anything else under /app falls back to assistant. */}
+                    <Route path="*" element={<Navigate to="assistant" replace />} />
+                  </Route>
+
                   <Route path="/supercharge-dna" element={<SuperchargeDna />} />
                   <Route path="/timewarp-og" element={<TimewarpOG />} />
                   <Route path="/invite" element={<InviteAccept />} />
@@ -43,13 +75,14 @@ const App = () => {
                   <Route path="/terms" element={<TermsOfPurchase />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/data-deletion" element={<DataDeletion />} />
+
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </ActionGateProvider>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
