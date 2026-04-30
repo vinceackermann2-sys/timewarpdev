@@ -58,153 +58,6 @@ export type Database = {
           },
         ]
       }
-      ai_agent_runs: {
-        Row: {
-          agent_id: string
-          error: string | null
-          finished_at: string | null
-          id: string
-          message: string | null
-          output: Json | null
-          started_at: string
-          status: string
-          step_label: string | null
-          trigger_kind: string
-          user_id: string
-        }
-        Insert: {
-          agent_id: string
-          error?: string | null
-          finished_at?: string | null
-          id?: string
-          message?: string | null
-          output?: Json | null
-          started_at?: string
-          status?: string
-          step_label?: string | null
-          trigger_kind?: string
-          user_id: string
-        }
-        Update: {
-          agent_id?: string
-          error?: string | null
-          finished_at?: string | null
-          id?: string
-          message?: string | null
-          output?: Json | null
-          started_at?: string
-          status?: string
-          step_label?: string | null
-          trigger_kind?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_agent_runs_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "ai_agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_agents: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          last_run_at: string | null
-          linked_business_id: string | null
-          name: string
-          required_integrations: Json
-          run_count: number
-          safety_can_do: Json
-          safety_cannot_do: Json
-          safety_escalation_path: string | null
-          sop_output: string | null
-          sop_steps: Json
-          status: string
-          supervisor_employee_id: string | null
-          trigger_condition: string | null
-          trigger_schedule: string | null
-          trigger_source: string | null
-          trigger_type: string
-          updated_at: string
-          user_id: string
-          workspace_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          last_run_at?: string | null
-          linked_business_id?: string | null
-          name: string
-          required_integrations?: Json
-          run_count?: number
-          safety_can_do?: Json
-          safety_cannot_do?: Json
-          safety_escalation_path?: string | null
-          sop_output?: string | null
-          sop_steps?: Json
-          status?: string
-          supervisor_employee_id?: string | null
-          trigger_condition?: string | null
-          trigger_schedule?: string | null
-          trigger_source?: string | null
-          trigger_type?: string
-          updated_at?: string
-          user_id: string
-          workspace_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          last_run_at?: string | null
-          linked_business_id?: string | null
-          name?: string
-          required_integrations?: Json
-          run_count?: number
-          safety_can_do?: Json
-          safety_cannot_do?: Json
-          safety_escalation_path?: string | null
-          sop_output?: string | null
-          sop_steps?: Json
-          status?: string
-          supervisor_employee_id?: string | null
-          trigger_condition?: string | null
-          trigger_schedule?: string | null
-          trigger_source?: string | null
-          trigger_type?: string
-          updated_at?: string
-          user_id?: string
-          workspace_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_agents_linked_business_id_fkey"
-            columns: ["linked_business_id"]
-            isOneToOne: false
-            referencedRelation: "user_business_data"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_agents_supervisor_employee_id_fkey"
-            columns: ["supervisor_employee_id"]
-            isOneToOne: false
-            referencedRelation: "ai_employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_agents_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_business_learning_events: {
         Row: {
           agent_surface: string
@@ -293,15 +146,11 @@ export type Database = {
       }
       ai_employees: {
         Row: {
-          advises_on: Json
           created_at: string
-          does_not_touch: Json
-          domain_lens: string | null
           id: string
           linked_business_id: string | null
           name: string
           orb_colors: Json | null
-          owns: Json
           role: string
           sop_definitions: Json | null
           sop_documentation: string | null
@@ -314,21 +163,16 @@ export type Database = {
           sop_scope: string | null
           sop_title: string | null
           status: string
-          triggers: string | null
           updated_at: string
           user_id: string
           workspace_id: string | null
         }
         Insert: {
-          advises_on?: Json
           created_at?: string
-          does_not_touch?: Json
-          domain_lens?: string | null
           id?: string
           linked_business_id?: string | null
           name: string
           orb_colors?: Json | null
-          owns?: Json
           role: string
           sop_definitions?: Json | null
           sop_documentation?: string | null
@@ -341,21 +185,16 @@ export type Database = {
           sop_scope?: string | null
           sop_title?: string | null
           status?: string
-          triggers?: string | null
           updated_at?: string
           user_id: string
           workspace_id?: string | null
         }
         Update: {
-          advises_on?: Json
           created_at?: string
-          does_not_touch?: Json
-          domain_lens?: string | null
           id?: string
           linked_business_id?: string | null
           name?: string
           orb_colors?: Json | null
-          owns?: Json
           role?: string
           sop_definitions?: Json | null
           sop_documentation?: string | null
@@ -368,7 +207,6 @@ export type Database = {
           sop_scope?: string | null
           sop_title?: string | null
           status?: string
-          triggers?: string | null
           updated_at?: string
           user_id?: string
           workspace_id?: string | null
