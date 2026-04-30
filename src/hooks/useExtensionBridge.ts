@@ -41,23 +41,66 @@ export function useExtensionBridge() {
       if (event.source !== window) return;
       const data = event.data;
 
-      if (data === "TIMEWARP_PONG") {
-        console.log("[ExtBridge] ✅ PONG received! Extension connected.");
+      // 🔍 DIAGNOSTIC: log anything that smells like the extension so we can
+      // see exactly what protocol it speaks. Safe — only runs in browser.
+      try {
+        const asStr = typeof data === "string" ? data : JSON.stringify(data);
+        if (asStr && /TIMEWARP|TW_|timewarp/i.test(asStr) && asStr.length < 500) {
+          console.log("[ExtBridge] 📥 message:", data);
+        }
+      } catch {
+        /* noop */
+      }
+
+      // Accept multiple connection-confirmation shapes so we work with any
+      // version of the extension protocol.
+      const stringPongs = new Set([
+        "TIMEWARP_PONG",
+        "TW_PONG",
+        "PONG",
+        "TIMEWARP_EXTENSION_READY",
+        "TIMEWARP_READY",
+      ]);
+      const objectPongTypes = new Set([
+        "TIMEWARP_PONG",
+        "TW_PONG",
+        "PONG",
+        "TIMEWARP_EXTENSION_READY",
+        "TIMEWARP_READY",
+        "TIMEWARP_HELLO",
+        "TIMEWARP_CONNECTED",
+        "TIMEWARP_INIT",
+      ]);
+
+      if (typeof data === "string" && stringPongs.has(data)) {
+        console.log("[ExtBridge] ✅ PONG (string):", data);
         setExtensionConnected(true);
         setDetecting(false);
         return;
       }
 
       if (typeof data === "object" && data !== null) {
-        const { type } = data;
+        const { type, source } = data as { type?: string; source?: string };
 
-        if (type === "TIMEWARP_PONG") {
-          console.log("[ExtBridge] ✅ PONG received (object)! Extension connected.");
+        // Some extensions tag every message with source: "timewarp-extension"
+        if (typeof source === "string" && /timewarp/i.test(source)) {
+          if (!stringPongs.has(type ?? "")) {
+            console.log("[ExtBridge] ✅ Extension source detected:", source);
+            setExtensionConnected(true);
+            setDetecting(false);
+          }
+        }
+
+        if (type && objectPongTypes.has(type)) {
+          console.log("[ExtBridge] ✅ PONG (object):", type);
           setExtensionConnected(true);
           setDetecting(false);
         }
 
         if (type === "TIMEWARP_PAGE_CONTEXT") {
+          // Receiving any real payload also implies the extension is here.
+          setExtensionConnected(true);
+          setDetecting(false);
           const resolver = resolversRef.current.get("page_context");
           if (resolver) {
             resolver(data.payload as PageContext);
@@ -66,6 +109,8 @@ export function useExtensionBridge() {
         }
 
         if (type === "TIMEWARP_ACTION_RESULT") {
+          setExtensionConnected(true);
+          setDetecting(false);
           const resolver = resolversRef.current.get("action_result");
           if (resolver) {
             resolver(data.payload as ActionResult);
@@ -75,6 +120,8 @@ export function useExtensionBridge() {
 
         if (type === "TIMEWARP_GROUP_READY") {
           console.log("[ExtBridge] ✅ Tab group ready.");
+          setExtensionConnected(true);
+          setDetecting(false);
           const resolver = resolversRef.current.get("group_ready");
           if (resolver) {
             resolver(true);
@@ -86,12 +133,17 @@ export function useExtensionBridge() {
 
     window.addEventListener("message", handleMessage);
 
-    // Check sync marker the extension may have set on the page already
+    // Check sync markers the extension may have set on the page already
     // (covers the case where the content script ran before React mounted).
     try {
-      // @ts-expect-error - injected by extension content script
-      if (window.__TIMEWARP_EXTENSION__ === true) {
-        console.log("[ExtBridge] ✅ Extension marker detected on window.");
+      const w = window as unknown as Record<string, unknown>;
+      if (
+        w.__TIMEWARP_EXTENSION__ === true ||
+        w.__TIMEWARP__ === true ||
+        w.timewarpExtension === true ||
+        document.documentElement.hasAttribute("data-timewarp-extension")
+      ) {
+        console.log("[ExtBridge] ✅ Extension marker detected on window/dom.");
         setExtensionConnected(true);
         setDetecting(false);
       }
@@ -99,21 +151,40 @@ export function useExtensionBridge() {
       /* noop */
     }
 
+    const sendPing = () => {
+      // Cover every reasonable shape the extension's content script might listen for.
+      const variants: Array<unknown> = [
+        "TIMEWARP_PING",
+        "TW_PING",
+        "PING",
+        { type: "TIMEWARP_PING" },
+        { type: "TW_PING" },
+        { type: "PING", source: "timewarp-app" },
+        { source: "timewarp-app", type: "TIMEWARP_PING" },
+      ];
+      for (const v of variants) {
+        try {
+          window.postMessage(v, "*");
+        } catch {
+          /* noop */
+        }
+      }
+    };
+
     // Ping repeatedly with backoff so we don't miss the extension's listener
     // if it loads slightly after this hook mounts.
-    const pingDelays = [0, 150, 400, 900, 1600, 2500];
+    const pingDelays = [0, 150, 400, 900, 1600, 2500, 4000];
     const pingTimers = pingDelays.map((d) =>
       setTimeout(() => {
-        console.debug(`[ExtBridge] Sending TIMEWARP_PING (t+${d}ms)...`);
-        window.postMessage("TIMEWARP_PING", "*");
-        window.postMessage({ type: "TIMEWARP_PING" }, "*");
+        console.debug(`[ExtBridge] Sending PING variants (t+${d}ms)...`);
+        sendPing();
       }, d),
     );
 
     const timeout = setTimeout(() => {
       console.debug("[ExtBridge] Detection timeout — extension not detected (expected if not installed)");
       setDetecting(false);
-    }, 4000);
+    }, 5000);
 
     return () => {
       window.removeEventListener("message", handleMessage);
@@ -124,13 +195,19 @@ export function useExtensionBridge() {
 
   const retryDetection = useCallback(() => {
     setDetecting(true);
-    window.postMessage("TIMEWARP_PING", "*");
-    window.postMessage({ type: "TIMEWARP_PING" }, "*");
-    setTimeout(() => {
-      window.postMessage("TIMEWARP_PING", "*");
-      window.postMessage({ type: "TIMEWARP_PING" }, "*");
-    }, 300);
-    setTimeout(() => setDetecting(false), 2000);
+    const variants: Array<unknown> = [
+      "TIMEWARP_PING",
+      "TW_PING",
+      "PING",
+      { type: "TIMEWARP_PING" },
+      { type: "TW_PING" },
+      { source: "timewarp-app", type: "TIMEWARP_PING" },
+    ];
+    const fire = () => variants.forEach((v) => window.postMessage(v, "*"));
+    fire();
+    setTimeout(fire, 300);
+    setTimeout(fire, 800);
+    setTimeout(() => setDetecting(false), 2500);
   }, []);
 
   const getPageContext = useCallback((): Promise<PageContext> => {
