@@ -124,7 +124,7 @@ export function DatabaseSidebar({ currentView, onViewChange, userEmail, activeEm
   return (
     <>
       <Sidebar collapsible="icon" className="border-none rounded-r-xl">
-        <SidebarHeader className="p-2">
+        <SidebarHeader className="p-2 bg-[#f3f5f7] h-12 justify-center">
           <div className={`flex items-center ${isCollapsed ? 'flex-col gap-2' : 'justify-between'}`}>
             {!isCollapsed && (
               <Link to="/app" className="flex items-center gap-2">
