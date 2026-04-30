@@ -34,6 +34,8 @@ export interface ChatMessage {
   planSavedToDb?: boolean;
   planEvidenceSources?: string[];
   planConfidence?: "high" | "medium" | "low" | "unknown";
+  /** Set when the assistant created an agent or employee on this turn (Option A tool call). */
+  createdEntity?: { kind: "agent" | "employee"; id?: string; name?: string };
 }
 
 export type ChatTaskStep = NonNullable<ChatMessage["taskSteps"]>[number];

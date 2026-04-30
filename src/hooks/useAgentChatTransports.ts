@@ -152,6 +152,15 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
           extensionLiveReg = registry;
           syncTaskSteps(streaming);
         },
+        onCreatedEntity: (evt) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId
+                ? { ...m, createdEntity: { kind: evt.kind, id: evt.id, name: evt.name } }
+                : m,
+            ),
+          );
+        },
         onResult: (evt) => {
           if (evt.content) streaming = evt.content;
           if (evt.replyContract === "direct" || evt.replyContract === "live_lookup" || evt.replyContract === "strategic_plan") {
