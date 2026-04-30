@@ -123,7 +123,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
 
   // Discover (scrape) state
   const [progress, setProgress] = useState(0);
-  const [progressStage, setProgressStage] = useState("Initializing…");
+  const [progressStage, setProgressStage] = useState("Warping…");
   const progressTargetRef = useRef(0);
   const progressDisplayRef = useRef(0);
   const [scrapeError, setScrapeError] = useState<string | null>(null);
@@ -138,11 +138,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
 
   // Forging / persistence
   const [forgingTodos, setForgingTodos] = useState<{ label: string; done: boolean }[]>([
-    { label: "Analyzing business", done: true },
-    { label: "Confirming offerings", done: false },
-    { label: "Forging DNA", done: false },
-    { label: "Confirming data", done: false },
-    { label: "Saving DNA", done: false },
+    { label: "Confirmed arrival", done: true },
+    { label: "Establishing friendship", done: false },
+    { label: "Receiving Alien-Tech", done: false },
+    { label: "Unfair advantage received", done: false },
+    { label: "That's it - be careful", done: false },
   ]);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const [createdBrandId, setCreatedBrandId] = useState<string | null>(null);
@@ -550,11 +550,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       setSelectedProductIdx(0);
     }
     setForgingTodos([
-      { label: "Analyzing business", done: true },
-      { label: "Confirming offerings", done: false },
-      { label: "Forging DNA", done: false },
-      { label: "Confirming data", done: false },
-      { label: "Saving DNA", done: false },
+      { label: "Confirmed arrival", done: true },
+      { label: "Establishing friendship", done: false },
+      { label: "Receiving Alien-Tech", done: false },
+      { label: "Unfair advantage received", done: false },
+      { label: "That's it - be careful", done: false },
     ]);
     setPhase("forging");
   }, [selectedProductIdx, discoveredProducts.length]);
