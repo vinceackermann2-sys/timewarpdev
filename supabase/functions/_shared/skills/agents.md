@@ -2,7 +2,7 @@
 name: Agents
 pillars: Operations, Growth, Product, Strategy
 surface: assistant-chat
-trigger: build an agent, create an agent, make an agent, set up an agent, agent that monitors, agent that tracks, agent that answers, agent for, automate this, I want an agent, agent to handle, agent to manage, deploy an agent, configure an agent, agent that triages, agent that scrapes, agent that checks, agent that sends, agent that runs, agent workflow, automated task, automation for, I need something to watch, monitor this for me, watch this channel, auto-respond, auto-triage, background task, set and forget, agent that does
+trigger: build an agent, build agent, create an agent, create agent, create my agent, new agent, add agent, make an agent, make agent, set up an agent, setup agent, agent that monitors, agent that tracks, agent that answers, agent for, automate this, I want an agent, agent to handle, agent to manage, deploy an agent, configure an agent, agent that triages, agent that scrapes, agent that checks, agent that sends, agent that runs, agent workflow, automated task, automation for, I need something to watch, monitor this for me, watch this channel, auto-respond, auto-triage, background task, set and forget, agent that does
 ---
 
 # Agents
