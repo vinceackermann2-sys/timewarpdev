@@ -322,7 +322,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
 
     (async () => {
       // Phase 1: deep extraction
-      markTodo("Confirming offerings");
+      markTodo("Establishing friendship");
       const selectedUrl = selectedProductIdx != null ? discoveredProducts[selectedProductIdx]?.url : undefined;
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
@@ -337,10 +337,10 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         return;
       }
 
-      markTodo("Forging DNA");
+      markTodo("Receiving Alien-Tech");
       const extracted = extractData.extracted || {};
       const redditUsed = extractData.redditEnriched && Array.isArray(extractData.redditUrls) && extractData.redditUrls.length > 0;
-      if (redditUsed) markTodo("Confirming data"); else markTodo("Confirming data");
+      if (redditUsed) markTodo("Unfair advantage received"); else markTodo("Unfair advantage received");
 
       const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
       const brandId = `brand-${Date.now()}`;
@@ -477,7 +477,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         setPersistenceError(saveData?.error || "Failed to save brand. Please try again.");
         return;
       }
-      markTodo("Saving DNA");
+      markTodo("That's it - be careful");
 
       if (saveData.workspaceId) {
         localStorage.setItem("preferred_workspace_id", saveData.workspaceId);
