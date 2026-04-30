@@ -26,8 +26,7 @@ import AssistantPage from "./pages/app/AssistantPage";
 import DashboardPage from "./pages/app/DashboardPage";
 import DnaPage from "./pages/app/DnaPage";
 import DnaDetailPage from "./pages/app/DnaDetailPage";
-import EmployeesPage from "./pages/app/EmployeesPage";
-import AgentsPage from "./pages/app/AgentsPage";
+import WorkforcePage from "./pages/app/WorkforcePage";
 import ConnectionsPage from "./pages/app/ConnectionsPage";
 import WorkspacesPage from "./pages/app/WorkspacesPage";
 import SettingsPage from "./pages/app/SettingsPage";
@@ -58,8 +57,9 @@ const App = () => {
                     <Route path="dna" element={<DnaPage />} />
                     <Route path="dna/:brandId" element={<DnaDetailPage />} />
                     <Route path="dna/:brandId/:pillar" element={<DnaDetailPage />} />
-                    <Route path="employees" element={<EmployeesPage />} />
-                    <Route path="agents" element={<AgentsPage />} />
+                    <Route path="employees" element={<Navigate to="/app/workforce?tab=employees" replace />} />
+                    <Route path="agents" element={<Navigate to="/app/workforce?tab=agents" replace />} />
+                    <Route path="workforce" element={<WorkforcePage />} />
                     <Route path="connections" element={<ConnectionsPage />} />
                     <Route path="workspaces" element={<WorkspacesPage />} />
                     <Route path="settings" element={<SettingsPage />} />
