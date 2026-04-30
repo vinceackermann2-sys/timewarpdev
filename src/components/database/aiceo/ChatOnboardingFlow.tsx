@@ -598,7 +598,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       {
         role: "assistant",
         content:
-          "Welcome 👋 Let's set up your business so I can act as your CEO.\n\nWhat's your company website?",
+          "Welcome 👋 Let's set up your business for an unfair advantage.\n\nWhat's your company website? Paste your URL and I'll start bending time.",
       },
       ...(activeUrl ? [{ role: "user" as const, content: activeUrl }] : []),
       {
