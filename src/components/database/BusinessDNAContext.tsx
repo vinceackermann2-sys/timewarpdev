@@ -167,9 +167,10 @@ async function loadBrandsLight(workspaceId?: string | null, session?: { user: { 
 
   // When inside a workspace, show all brands in that workspace so members
   // see the owner's businesses. Otherwise scope to the current user.
+  const baseSelect = "id, title, metadata, created_at, workspace_id";
   let query = supabase
     .from("user_business_data")
-    .select("id, title, metadata, created_at")
+    .select(baseSelect)
     .eq("data_type", "brand")
     .eq("source", "business-dna")
     .order("created_at", { ascending: false });
@@ -180,8 +181,33 @@ async function loadBrandsLight(workspaceId?: string | null, session?: { user: { 
     query = query.eq("user_id", session.user.id);
   }
 
-  const { data, error } = await query;
-  if (error || !data) return [];
+  let { data, error } = await query;
+  if (error) return [];
+
+  // Self-healing: if a workspace is selected but it has zero brands, the user
+  // may have a stale preferred_workspace_id (e.g. pointing at an empty new
+  // workspace). Fall back to any brand they own so onboarding isn't replayed.
+  if (workspaceId && (!data || data.length === 0)) {
+    const fallback = await supabase
+      .from("user_business_data")
+      .select(baseSelect)
+      .eq("data_type", "brand")
+      .eq("source", "business-dna")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false });
+    if (fallback.data && fallback.data.length > 0) {
+      data = fallback.data;
+      // Realign preferred_workspace_id to wherever the user's brand actually lives.
+      const recoveredWs = (fallback.data[0] as any)?.workspace_id;
+      if (recoveredWs && typeof recoveredWs === "string") {
+        try {
+          localStorage.setItem("preferred_workspace_id", recoveredWs);
+          window.dispatchEvent(new CustomEvent("workspace_changed"));
+        } catch {}
+      }
+    }
+  }
+  if (!data) return [];
 
   // Dedupe by logical brandId (metadata.brandId), keep most recent
   const seen = new Set<string>();
@@ -249,6 +275,14 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
     const { error } = await supabase.from("user_business_data").update(payload).eq("id", existingRowId);
     if (error) console.error(`Failed to update ${dataType}:`, error.message);
   } else {
+    // Hard guard: never insert a brand-DNA row without a workspace_id.
+    // Orphan rows become invisible to the workspace-scoped loader and force
+    // the user back through onboarding. The caller must resolve a workspace
+    // first (save-onboarding does this server-side).
+    if (!resolvedWorkspaceId) {
+      console.warn(`[DNA] Skipping insert of ${dataType} "${entity.name}" — no workspace_id resolved (would be invisible).`);
+      return;
+    }
     const { error } = await supabase.from("user_business_data").insert(payload);
     if (error) console.error(`Failed to insert ${dataType}:`, error.message);
   }
