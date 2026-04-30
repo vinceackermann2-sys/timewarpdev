@@ -39,6 +39,7 @@ export function AgentChatInput({
   isActionMode,
   setIsActionMode,
   extensionConnected,
+  onRetryExtensionDetection,
   showReference,
   setShowReference,
   showGraphicsMenu,
