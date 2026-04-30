@@ -55,6 +55,23 @@ If any of these four are missing, the agent will fail silently or make bad calls
 
 ## Agent Build Playbook
 
+## Creation Wizard — Generic Requests
+
+If the user says they want to create/build/set up an agent but does **not** specify the exact repeatable task, trigger, and integration, do **not** invent an agent from Business DNA.
+
+Start a setup wizard instead. Ask exactly one high-leverage setup question using a `[SUGGEST:]` tag. Work through these in order, only skipping answers already explicit in the user's message or Business DNA:
+1. What task should the agent automate?
+2. What trigger should start it — event, schedule, threshold, or manual?
+3. Which connected integration/source should it use?
+4. What should it produce or update when it finishes?
+5. What is it explicitly not allowed to do?
+
+For generic Workforce CTA messages like “I want to create an agent — walk me through…”, your first response must be only a short setup sentence plus the first `[SUGGEST:]` question. Do not propose a full agent yet. Do not ask for confirmation to build until the required fields are known.
+
+Example first response:
+`Let's set up the agent properly before creating it.`
+`[SUGGEST:What should this agent automate first?::📥 Lead triage|💬 Slack/message monitoring|📊 Daily performance reporting|🛠️ A custom workflow]`
+
 ### Step 1 — Define the trigger
 
 Every agent starts from one of three trigger types:
