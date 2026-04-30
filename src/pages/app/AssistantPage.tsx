@@ -19,8 +19,8 @@ export default function AssistantPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { onboardingUrl } = useOutletContext<AppShellOutletContext>();
-  const { brands, isLoading } = useBusinessDNA();
-  const { activeWorkspace } = useWorkspace();
+  const { brands, isLoading, loadedWorkspaceId } = useBusinessDNA();
+  const { activeWorkspace, isLoading: wsLoading } = useWorkspace();
 
   const [initialMessage, setInitialMessage] = useState<string | null>(
     (location.state as { initialMessage?: string } | null)?.initialMessage ?? null,
@@ -28,8 +28,14 @@ export default function AssistantPage() {
   const [hasSettled, setHasSettled] = useState(false);
 
   useEffect(() => {
-    if (!isLoading) setHasSettled(true);
-  }, [isLoading]);
+    // Wait for both workspace AND business DNA to finish loading for the
+    // CURRENT active workspace before deciding to show onboarding. This
+    // prevents flashing onboarding on a stale/empty brands list.
+    if (isLoading || wsLoading) return;
+    if (!activeWorkspace) return;
+    if (loadedWorkspaceId !== activeWorkspace.workspaceId) return;
+    setHasSettled(true);
+  }, [isLoading, wsLoading, activeWorkspace, loadedWorkspaceId]);
 
   // Workspace members who aren't owners must NEVER see onboarding —
   // they collaborate on the owner's business.
