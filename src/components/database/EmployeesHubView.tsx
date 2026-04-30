@@ -8,6 +8,8 @@ import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import { EmployeeDetailView } from "./EmployeeDetailView";
 import type { AIEmployee } from "./EmployeesView";
 import type { EmployeesTab } from "./DatabaseSidebar";
+import { AgentDetailView } from "./agents/AgentDetailView";
+import { normalizeAgentRow, type AIAgent } from "./agents/types";
 import { cn } from "@/lib/utils";
 
 interface EmployeesHubViewProps {
@@ -19,7 +21,7 @@ interface EmployeesHubViewProps {
 export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp }: EmployeesHubViewProps) {
   const { user, isLoading: authLoading } = useAuth();
   const { activeWorkspaceId, isLoading: workspaceLoading } = useWorkspace();
-  const [items, setItems] = useState<AIEmployee[]>([]);
+  const [items, setItems] = useState<Array<AIEmployee | AIAgent>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -30,13 +32,15 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
     setIsLoading(true);
     try {
       let query = supabase
-        .from("ai_employees" as any)
+        .from((activeTab === "agents" ? "ai_agents" : "ai_employees") as any)
         .select("*")
         .order("created_at", { ascending: false });
       if (activeWorkspaceId) query = query.eq("workspace_id", activeWorkspaceId);
       else query = query.eq("user_id", user.id);
       const { data, error } = await query;
-      if (!error && data) setItems(data as unknown as AIEmployee[]);
+      if (!error && data) {
+        setItems(activeTab === "agents" ? (data as any[]).map(normalizeAgentRow) : (data as unknown as AIEmployee[]));
+      }
     } catch (e) {
       console.warn("Failed to load employees:", e);
     }
@@ -57,10 +61,18 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
     return items.filter(
       (it) =>
         it.name.toLowerCase().includes(q) ||
-        it.role.toLowerCase().includes(q) ||
-        (it.sop_title || "").toLowerCase().includes(q),
+        (activeTab === "agents"
+          ? [
+              (it as AIAgent).description,
+              (it as AIAgent).trigger_type,
+              (it as AIAgent).trigger_source,
+              (it as AIAgent).trigger_condition,
+              (it as AIAgent).trigger_schedule,
+            ]
+          : [(it as AIEmployee).role, (it as AIEmployee).sop_title]
+        ).some((v) => String(v || "").toLowerCase().includes(q)),
     );
-  }, [items, search]);
+  }, [activeTab, items, search]);
 
   const selected = items.find((i) => i.id === selectedId) || null;
 
