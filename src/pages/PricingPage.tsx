@@ -56,7 +56,7 @@ const ACTION_PACKS = [
 const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }> = {
   free: {
     tagline: "Try us out, see what lands",
-    bullets: ["10 Actions", "1 AI Employee", "1 business"],
+    bullets: ["10 Actions", "1 AI Employee", "Up to 50 AI employees & agents"],
   },
   co_founder: {
     tagline: "For early-stage founders getting started",
