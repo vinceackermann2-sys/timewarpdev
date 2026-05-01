@@ -44,7 +44,7 @@ export function useProviderConnections(activeBrandId?: string | null, activeWork
     } catch (err) {
       console.error("Check connection error:", err);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => {
     void checkConnection();
