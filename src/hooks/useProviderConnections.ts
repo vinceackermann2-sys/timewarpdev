@@ -16,7 +16,7 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Prom
   return fetch(url, init);
 }
 
-export function useProviderConnections(activeBrandId?: string | null) {
+export function useProviderConnections(activeBrandId?: string | null, activeWorkspaceId?: string | null) {
   const [connectedProviders, setConnectedProviders] = useState<Record<string, boolean>>({});
   const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
