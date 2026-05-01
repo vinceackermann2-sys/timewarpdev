@@ -83,6 +83,7 @@ export function useProviderConnections(activeBrandId?: string | null, activeWork
           returnPath: window.location.pathname,
           origin: window.location.origin,
           brandId: activeBrandId,
+          workspaceId: activeWorkspaceId ?? null,
         }),
       });
       const data = await response.json();
