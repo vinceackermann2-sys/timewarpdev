@@ -440,6 +440,7 @@ export function AgentChatView({
 
   const handleSendMessage = async () => {
     if (isSending) return;
+    cancelledRef.current = false;
     const inputText = chatInputRef.current?.innerText?.trim() || "";
     if (!inputText && uploadedFiles.length === 0) return;
 
