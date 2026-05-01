@@ -9,6 +9,13 @@ type IntentCategory =
 export interface QuestionGateInput {
   message: string;
   profileContext?: string;
+  /**
+   * Full conversation history (oldest → newest). When the prior assistant
+   * turn ended with one or more [SUGGEST:...] tags, the gate treats the
+   * current user message as an ANSWER to that question and tells the AI to
+   * continue executing the original request rather than re-asking.
+   */
+  history?: Array<{ role: string; content: string }>;
 }
 
 export interface QuestionGateResult {
@@ -17,6 +24,20 @@ export interface QuestionGateResult {
   missingSlots: string[];
   mandatoryQuestions: string[];
   canPartialAnswer: boolean;
+  /**
+   * True when the prior assistant message ended with [SUGGEST:...] —
+   * i.e. the user's current message is filling a missing slot from a
+   * pending question, not opening a new request.
+   */
+  isAnswerToPriorQuestion: boolean;
+  /**
+   * The user's most recent ORIGINAL request (the last user message before
+   * the question/answer back-and-forth started).  Used to remind the AI
+   * what task it's still trying to complete.
+   */
+  originalRequest: string | null;
+  /** The text of the prior assistant question(s), for context. */
+  priorQuestionText: string | null;
 }
 
 const CATEGORY_RULES: Array<{
@@ -124,17 +145,108 @@ function hasSignal(slot: string, message: string, profileContext: string): boole
   }
 }
 
+/**
+ * Detect if the prior assistant turn ended with a clarifying question (i.e.
+ * contains a [SUGGEST:...] tag). When true, the current user message is
+ * almost certainly an ANSWER to that question — the AI must use it to fill
+ * the missing slot and continue the ORIGINAL request, not treat it as a
+ * fresh prompt.
+ */
+function detectAnswerToPriorQuestion(
+  history: Array<{ role: string; content: string }>,
+): { isAnswer: boolean; priorQuestionText: string | null; originalRequest: string | null } {
+  if (!history || history.length < 2) {
+    return { isAnswer: false, priorQuestionText: null, originalRequest: null };
+  }
+  // Walk back from the end, skipping the current user message.  The first
+  // role we hit walking backwards from index length-2 is what came before
+  // the current user message.
+  let lastAssistantIdx = -1;
+  for (let i = history.length - 2; i >= 0; i--) {
+    if (history[i].role === "assistant") {
+      lastAssistantIdx = i;
+      break;
+    }
+  }
+  if (lastAssistantIdx === -1) {
+    return { isAnswer: false, priorQuestionText: null, originalRequest: null };
+  }
+  const priorAssistant = history[lastAssistantIdx]?.content || "";
+  const hasSuggestTag = /\[SUGGEST:/i.test(priorAssistant);
+  if (!hasSuggestTag) {
+    return { isAnswer: false, priorQuestionText: null, originalRequest: null };
+  }
+
+  // Walk further back to find the user's ORIGINAL request — the user
+  // message that triggered this question loop.  We accept the earliest
+  // user message in the most recent contiguous question/answer chain
+  // (i.e. keep walking back through prior assistant questions + user
+  // answers until we hit a user message preceded by an assistant message
+  // that did NOT end with [SUGGEST:...]).
+  let originalRequest: string | null = null;
+  let i = lastAssistantIdx - 1;
+  while (i >= 0) {
+    const turn = history[i];
+    if (turn.role === "user") {
+      originalRequest = turn.content;
+      const before = history[i - 1];
+      if (!before || before.role !== "assistant") break;
+      // Was that earlier assistant turn ALSO a question? If yes, keep
+      // walking back to find the true original request.
+      if (!/\[SUGGEST:/i.test(before.content || "")) break;
+      i -= 2;
+    } else {
+      i -= 1;
+    }
+  }
+
+  // Truncate the prior question text — only the [SUGGEST:title::...] body
+  // matters for the AI's awareness, but we send the whole reply for now.
+  const priorQuestionText = priorAssistant.length > 1200
+    ? priorAssistant.slice(0, 1200) + "…"
+    : priorAssistant;
+
+  return { isAnswer: true, priorQuestionText, originalRequest };
+}
+
 export function runQuestionGate(input: QuestionGateInput): QuestionGateResult {
   const message = String(input.message || "");
   const profileContext = String(input.profileContext || "");
+  const history = input.history || [];
   const intent = inferIntent(message);
+
+  const priorState = detectAnswerToPriorQuestion(history);
+
   if (intent === "general") {
-    return { intent, complete: true, missingSlots: [], mandatoryQuestions: [], canPartialAnswer: true };
+    return {
+      intent,
+      complete: true,
+      missingSlots: [],
+      mandatoryQuestions: [],
+      canPartialAnswer: true,
+      isAnswerToPriorQuestion: priorState.isAnswer,
+      originalRequest: priorState.originalRequest,
+      priorQuestionText: priorState.priorQuestionText,
+    };
   }
 
   const rule = CATEGORY_RULES.find((r) => r.intent === intent)!;
-  const missingSlots = rule.requiredSlots.filter((slot) => !hasSignal(slot, message, profileContext));
-  const mandatoryQuestions = missingSlots.map((slot) => rule.questionBySlot[slot]).filter(Boolean);
+
+  // When this is a reply to a prior question, check ALL prior user answers
+  // PLUS the current message PLUS DNA context for slot signals — the user
+  // may have already answered some slots in earlier turns of this loop.
+  const accumulatedUserText = history
+    .filter((h) => h.role === "user")
+    .map((h) => h.content)
+    .join(" ");
+  const sourceMessage = `${message} ${accumulatedUserText}`;
+
+  const missingSlots = rule.requiredSlots.filter(
+    (slot) => !hasSignal(slot, sourceMessage, profileContext),
+  );
+  const mandatoryQuestions = missingSlots
+    .map((slot) => rule.questionBySlot[slot])
+    .filter(Boolean);
 
   return {
     intent,
@@ -142,21 +254,114 @@ export function runQuestionGate(input: QuestionGateInput): QuestionGateResult {
     missingSlots,
     mandatoryQuestions,
     canPartialAnswer: missingSlots.length <= 2,
+    isAnswerToPriorQuestion: priorState.isAnswer,
+    originalRequest: priorState.originalRequest,
+    priorQuestionText: priorState.priorQuestionText,
   };
 }
 
 export function formatQuestionGatePromptBlock(result: QuestionGateResult): string {
-  if (result.complete || result.intent === "general" || result.mandatoryQuestions.length === 0) return "";
-  const firstQuestion = result.mandatoryQuestions[0];
-  return `
-## Pre-Flight: Ask These First
-Intent category: ${result.intent}
-Missing slots: ${result.missingSlots.join(", ")}
-Partial answer allowed: ${result.canPartialAnswer ? "yes" : "no"}
+  // ── CASE A: user is REPLYING to a prior clarifying question ─────────────
+  // Whether or not we still have missing slots, the AI must NOT lose track
+  // of the original request.  We output a context block reminding it.
+  if (result.isAnswerToPriorQuestion) {
+    const lines: string[] = [
+      "## Pre-Flight: Continuing a Pending Request",
+      "",
+      "The user's CURRENT message is an ANSWER to a clarifying question you asked them in the prior turn — it is NOT a new request.",
+      "",
+    ];
+    if (result.originalRequest) {
+      lines.push(
+        `Original request (still active — finish this): ${result.originalRequest.trim().slice(0, 600)}`,
+        "",
+      );
+    }
+    if (result.priorQuestionText) {
+      lines.push(
+        "Prior question you asked (the user is now answering it):",
+        result.priorQuestionText.trim().slice(0, 600),
+        "",
+      );
+    }
+    lines.push(
+      "Rules — apply ALL of them:",
+      "  1. DO NOT answer the question yourself or merely acknowledge the user's answer.",
+      "  2. DO NOT restart, re-introduce yourself, or summarize what we've discussed.",
+      "  3. DO use the answer to fill in the missing context, then EXECUTE the original request now.",
+      "  4. If you still need more info to finish (≤2 slots), ask ONLY the remaining missing question(s) at the END, with one [SUGGEST:Question?::A|B|C] tag per question.",
+      "  5. If everything you need is already there, deliver the full output for the original request — no more questions.",
+    );
+    if (!result.complete && result.mandatoryQuestions.length > 0) {
+      lines.push(
+        "",
+        `Slots still missing: ${result.missingSlots.join(", ")}`,
+        `Remaining clarifying question(s) you may still ask (only if truly needed):`,
+        ...result.mandatoryQuestions.slice(0, 3).map((q, i) => `  ${i + 1}. ${q}`),
+      );
+    }
+    return lines.join("\n");
+  }
 
-Ask exactly ONE blocking clarifying question first in this reply:
-1. ${firstQuestion}
+  // ── CASE B: this is a NEW request needing clarification ─────────────────
+  if (
+    result.complete ||
+    result.intent === "general" ||
+    result.mandatoryQuestions.length === 0
+  ) {
+    return "";
+  }
 
-End the reply with exactly one [SUGGEST:...] tag for that same question.
-`.trim();
+  // Allow up to 3 questions in a single turn when canPartialAnswer is true.
+  // The UI now renders one card per [SUGGEST:...] block, so multiple
+  // questions become multiple stacked slides — no UX downgrade.
+  const askCount = result.canPartialAnswer
+    ? Math.min(3, result.mandatoryQuestions.length)
+    : 1;
+  const questionsToAsk = result.mandatoryQuestions.slice(0, askCount);
+
+  const lines: string[] = [
+    "## Pre-Flight: Ask These First",
+    `Intent category: ${result.intent}`,
+    `Missing slots: ${result.missingSlots.join(", ")}`,
+    `Partial answer allowed: ${result.canPartialAnswer ? "yes" : "no"}`,
+    "",
+    askCount === 1
+      ? "Ask exactly ONE blocking clarifying question first in this reply:"
+      : `Ask ${askCount} blocking clarifying questions in this reply (the UI will render one card per question — keep them tight):`,
+    ...questionsToAsk.map((q, i) => `  ${i + 1}. ${q}`),
+    "",
+    askCount === 1
+      ? "End the reply with exactly one [SUGGEST:Question?::A|B|C] tag for that question."
+      : `End the reply with ${askCount} separate [SUGGEST:Question?::A|B|C] tags — one per question, in the same order. Each tag must include 2-4 sensible default answer options the user can pick from.`,
+  ];
+  return lines.join("\n");
+}
+
+/**
+ * Convenience helper for callers that want to inject the answer-context
+ * block independently of the question-gate result (e.g. when the gate
+ * itself didn't trigger but the prior turn still had a SUGGEST).
+ */
+export function buildAnswerContextBlock(
+  history: Array<{ role: string; content: string }>,
+): string {
+  const state = detectAnswerToPriorQuestion(history);
+  if (!state.isAnswer) return "";
+  const lines: string[] = [
+    "## Pre-Flight: Continuing a Pending Request",
+    "",
+    "The user's CURRENT message is an ANSWER to a clarifying question you asked in the prior turn — it is NOT a new request.",
+  ];
+  if (state.originalRequest) {
+    lines.push(
+      "",
+      `Original request (still active — finish this): ${state.originalRequest.trim().slice(0, 600)}`,
+    );
+  }
+  lines.push(
+    "",
+    "Use the answer to fill missing context, then EXECUTE the original request. Do NOT answer the question yourself, do NOT re-introduce, do NOT restart.",
+  );
+  return lines.join("\n");
 }

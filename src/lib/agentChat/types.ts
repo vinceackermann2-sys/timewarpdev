@@ -1,4 +1,5 @@
 import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
+import type { SuggestionGroup } from "@/lib/parseSuggestions";
 
 export interface ChatMessage {
   id: string;
@@ -23,6 +24,13 @@ export interface ChatMessage {
   reportContent?: string;
   reportSavedToDb?: boolean;
   suggestions?: string[];
+  /**
+   * Per-question groups (one per [SUGGEST:...] block). When present, the UI
+   * renders one card per question — used when the assistant asks multiple
+   * clarifying questions in a single reply.  Falls back to the flat
+   * `suggestions` + `suggestionTitle` for the legacy single-card path.
+   */
+  suggestionQuestions?: SuggestionGroup[];
   planActionPayloads?: Record<string, string>;
   evidenceAudit?: { status: "pass" | "warn"; score: number; warnings: string[] };
   replyContract?: "direct" | "live_lookup" | "strategic_plan";

@@ -124,7 +124,18 @@ serve(async (req) => {
       brandId,
       workspaceId,
     });
-    const questionGate = runQuestionGate({ message: lastUserMsg, profileContext });
+    const questionGate = runQuestionGate({
+      message: lastUserMsg,
+      profileContext,
+      // Pass the full conversation so the gate can detect when the user is
+      // ANSWERING a prior clarifying question (and remind the AI to keep
+      // working on the original request rather than treating the answer as
+      // a brand-new prompt).
+      history: Array.isArray(messages)
+        ? (messages as Array<{ role: string; content: string }>)
+            .map((m) => ({ role: String(m.role), content: String(m.content || "") }))
+        : [],
+    });
     const questionGateBlock = formatQuestionGatePromptBlock(questionGate);
     const dnaRoute = await runDnaContextRouter(supabase, user.id, workspaceId, brandId, lastUserMsg, replyContract);
     const dnaRouterBlock = formatDnaRouterBlock(dnaRoute);

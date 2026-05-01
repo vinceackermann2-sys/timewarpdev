@@ -188,14 +188,34 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
 
-    const { content: sugCleanContent, suggestions, title: suggestionTitle, planActions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
     if (suggestions.length === 0) {
       console.warn("[suggestions] No [SUGGEST:...] tag detected in assistant reply. Tail:", (fullContent || "").slice(-300));
     } else {
-      console.log("[suggestions] parsed", { count: suggestions.length, title: suggestionTitle, suggestions });
+      console.log("[suggestions] parsed", { count: suggestions.length, groups: questions.length, title: suggestionTitle, suggestions });
     }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
+    // Fold derived plan actions into the first question group so they
+    // surface alongside the AI-authored options on the legacy single-card
+    // path. When the AI asks multiple questions, the parser already
+    // produces multiple groups — preserve them as-is.
+    const mergedQuestions = (() => {
+      if (questions.length === 0 && derivedPlanActions.length > 0) {
+        return [{ suggestions: derivedPlanActions.map((a) => a.label).slice(0, 4) }];
+      }
+      if (questions.length > 0 && derivedPlanActions.length > 0) {
+        const first = questions[0];
+        return [
+          {
+            ...first,
+            suggestions: [...first.suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4),
+          },
+          ...questions.slice(1),
+        ];
+      }
+      return questions;
+    })();
     let mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
     let fallbackTitle: string | undefined = suggestionTitle;
     // Fallback: if the user asked to create an agent/employee but the model
@@ -228,6 +248,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       ...m,
       content: cleanContent,
       suggestions: mergedSuggestions,
+      suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
       suggestionTitle: fallbackTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
@@ -594,15 +615,31 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
-    const { content: sugCleanContent, suggestions, title: suggestionTitle, planActions } = extractSuggestions(accumulatedContent || "Task completed.");
+    const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(accumulatedContent || "Task completed.");
     if (suggestions.length === 0) {
       console.warn("[suggestions:employee] No [SUGGEST:...] tag detected. Tail:", (accumulatedContent || "").slice(-300));
     } else {
-      console.log("[suggestions:employee] parsed", { count: suggestions.length, title: suggestionTitle, suggestions });
+      console.log("[suggestions:employee] parsed", { count: suggestions.length, groups: questions.length, title: suggestionTitle, suggestions });
     }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
     const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
+    const mergedQuestions = (() => {
+      if (questions.length === 0 && derivedPlanActions.length > 0) {
+        return [{ suggestions: derivedPlanActions.map((a) => a.label).slice(0, 4) }];
+      }
+      if (questions.length > 0 && derivedPlanActions.length > 0) {
+        const first = questions[0];
+        return [
+          {
+            ...first,
+            suggestions: [...first.suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4),
+          },
+          ...questions.slice(1),
+        ];
+      }
+      return questions;
+    })();
     const actionPayloads: Record<string, string> = {};
     const keyFor = (label: string) => label.replace(/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u, "").trim();
     for (const pa of planActions || []) {
@@ -618,6 +655,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       ...m,
       content: cleanContent,
       suggestions: mergedSuggestions,
+      suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
       suggestionTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,

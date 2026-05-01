@@ -302,6 +302,12 @@ Rules:
 - Each option starts with ONE fitting emoji (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, 🛒 ecommerce, ✉️ email, etc.).
 - Raw tag on its own line — no markdown wrapping.
 
+**Multiple questions in one reply (NEW):**
+When you genuinely need clarification on 2 or 3 distinct dimensions before answering, you MAY emit up to 3 separate \`[SUGGEST:...]\` tags in a single reply — one per question, each on its own line. The UI renders them as stacked cards so the user can pick an answer for each. Do not bundle multiple questions inside one tag.
+
+**When the user is REPLYING to a prior clarifying question — DO NOT re-ask, DO NOT acknowledge, DO NOT restart.**
+If your prior assistant turn ended with a \`[SUGGEST:...]\` tag, the user's current message is the ANSWER to that question. Use it to fill the missing context, then immediately deliver the full output for the user's ORIGINAL request (the message that started this thread of clarification). Never lose track of the original task. If you still need more info to finish, ask only the remaining missing question(s) at the end.
+
 Examples (only when a real clarification is needed):
 - \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`
 - \`[SUGGEST:Which audience should I write for?::👩‍💼 Founders|👨‍💻 Developers|🛍️ Shoppers|🏢 Enterprise buyers]\``;

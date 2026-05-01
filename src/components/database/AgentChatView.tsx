@@ -890,9 +890,10 @@ export function AgentChatView({
           return (
             <div className="absolute inset-x-3 sm:inset-x-4 md:inset-x-6 bottom-3 sm:bottom-4 md:bottom-6 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <AssistantSuggestions
-                suggestions={lastAssistant.suggestions!}
-                variant="overlay"
+                questions={lastAssistant.suggestionQuestions}
+                suggestions={lastAssistant.suggestions}
                 title={lastAssistant.suggestionTitle}
+                variant="overlay"
                 onSelect={(suggestion) => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
                   const mapped = lastAssistant.planActionPayloads?.[suggestion];
@@ -904,14 +905,6 @@ export function AgentChatView({
                 }}
                 onDismiss={() => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
-                }}
-                onCustom={(value) => {
-                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
-                  if (chatInputRef.current) {
-                    chatInputRef.current.innerText = value;
-                    chatInputRef.current.focus();
-                  }
-                  setTimeout(() => void handleSendMessage(), 0);
                 }}
               />
             </div>

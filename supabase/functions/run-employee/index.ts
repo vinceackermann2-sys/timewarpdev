@@ -19,6 +19,7 @@ import {
   buildEmployeeChatPrompt,
 } from "../_shared/run-employee/prompts.ts";
 import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
+import { buildAnswerContextBlock } from "../_shared/question-gate.ts";
 import { formatSessionMemoryBlock } from "../_shared/session-memory-context.ts";
 import { sanitizeAssistantAgainstLiveContext } from "../_shared/live-response-guard.ts";
 import {
@@ -150,6 +151,18 @@ serve(async (req) => {
 
     const lastUserMsg = extractLastUserMessage(messages ?? []);
     const replyContract = classifyAssistantReplyContract(lastUserMsg);
+    // Detect if the user is REPLYING to a prior clarifying question.  When
+    // they are, we inject a pre-flight block reminding the AI to keep
+    // executing the original request rather than treating the answer as a
+    // fresh prompt.  Empty string when not applicable.
+    const answerContextBlock = buildAnswerContextBlock(
+      Array.isArray(messages)
+        ? (messages as Array<{ role: string; content: string }>).map((m) => ({
+            role: String(m.role),
+            content: String(m.content || ""),
+          }))
+        : [],
+    );
     const connectionLookupQuery = typeof connectionQuery === "string" && connectionQuery.trim().length > 0
       ? connectionQuery.trim()
       : lastUserMsg;
@@ -264,7 +277,9 @@ serve(async (req) => {
       emitContent?: (delta: string) => void,
     ) => {
       const fullContext =
-        `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdownAppend}`;
+        `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdownAppend}${
+          answerContextBlock ? `\n\n${answerContextBlock}` : ""
+        }`;
       const systemPrompt = isBrowserMode
         ? buildBrowserSystemPrompt(employee, identity, fullContext, pageContext, safetySettings)
         : buildEmployeeChatPrompt(employee, identity, fullContext, safetySettings, replyContract);
