@@ -234,10 +234,11 @@ export async function getValidAccessToken(
 export async function getAnyMicrosoftToken(
   supabaseAdmin: any,
   userId: string,
+  workspaceId?: string | null,
 ): Promise<string | null> {
   const subs = ["microsoft", "microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
   for (const p of subs) {
-    const token = await getValidAccessToken(supabaseAdmin, userId, p);
+    const token = await getValidAccessToken(supabaseAdmin, userId, p, workspaceId);
     if (token) return token;
   }
   return null;
