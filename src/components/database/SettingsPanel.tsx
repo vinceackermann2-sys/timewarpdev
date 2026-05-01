@@ -455,6 +455,13 @@ export function SettingsPanel({
             </div>
           )}
 
+          {/* SAFETY TAB — account-wide guardrails applied across every AI */}
+          {activeTab === "safety" && (
+            <div className="max-w-2xl">
+              <AccountSafetyView />
+            </div>
+          )}
+
           {/* CONNECTIONS TAB */}
           {activeTab === "connections" && (
             <div className="h-full min-h-0 -mx-8 -mt-2 -mb-4">
