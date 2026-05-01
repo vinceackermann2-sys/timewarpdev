@@ -1,17 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  BarChart3,
   Bot,
-  FileText,
   PanelRightClose,
   PanelRightOpen,
-  PieChart,
-  Presentation,
   Search,
   Settings,
-  Table2,
-  Users,
-  X,
 } from "lucide-react";
 import { ChatHistorySidebar } from "./ChatHistorySidebar";
 import { useExtensionBridge } from "@/hooks/useExtensionBridge";
@@ -21,7 +14,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/agentChat/types";
 import { isExplicitEmployeeComputerRequest } from "@/lib/agentChat/computerModePatterns";
 import { useAgentChatTransports } from "@/hooks/useAgentChatTransports";
@@ -33,7 +25,7 @@ import { useEmployeeManagement } from "@/hooks/useEmployeeManagement";
 import { useChatPersistence } from "@/hooks/useChatPersistence";
 import { processFiles, type UploadedFileChip } from "@/lib/agentChat/fileProcessing";
 import { appendGraphicInstructionsToUserContent } from "@/lib/agentChat/graphicInstructions";
-import { runGraphicGate } from "@/lib/agentChat/graphicGate";
+import { detectUserRequestedGraphicType } from "@/lib/agentChat/graphicGate";
 import { createFetchWithTimeout } from "@/lib/agentChat/fetchWithTimeout";
 import { insertReferenceIntoChatInput } from "@/lib/agentChat/mentionHelpers";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
@@ -89,12 +81,9 @@ export function AgentChatView({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<string>("");
-  const [showEmployeesMenu, setShowEmployeesMenu] = useState(false);
   const [isActionMode, setIsActionMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
-  const [showGraphicsMenu, setShowGraphicsMenu] = useState(false);
-  const [selectedGraphic, setSelectedGraphic] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileChip[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
@@ -507,18 +496,9 @@ export function AgentChatView({
         }
       }
     }
-    let resolvedGraphic = selectedGraphic;
-    if (!resolvedGraphic) {
-      const gate = runGraphicGate(inputText);
-      if (gate.suggestGraphic && gate.autoApply && gate.graphicType) {
-        resolvedGraphic = gate.graphicType;
-        toast.message(`Auto-generating ${gate.graphicType.toLowerCase()} output for this request.`);
-      } else if (gate.suggestGraphic && gate.graphicType) {
-        userContent += `\n\nIf a ${gate.graphicType.toLowerCase()} would clarify this answer, include the appropriate code block.`;
-      }
-    }
+    const explicitGraphic = detectUserRequestedGraphicType(inputText);
     const displayContent = userContent;
-    userContent = appendGraphicInstructionsToUserContent(userContent, resolvedGraphic);
+    userContent = appendGraphicInstructionsToUserContent(userContent, explicitGraphic);
 
     const resolveEmployeeContext = (): { id: string; name: string; role: string }[] | undefined => {
       if (selectedChatEmployees.length > 0) return [...selectedChatEmployees];
@@ -551,7 +531,6 @@ export function AgentChatView({
     if (chatInputRef.current) chatInputRef.current.innerHTML = "";
     setUploadedFiles([]);
     setReferencedUrls([]);
-    setSelectedGraphic(null);
     setMentionState({ active: false, node: null, startOffset: 0, endOffset: 0 });
 
     const assistantId = crypto.randomUUID();
@@ -704,16 +683,12 @@ export function AgentChatView({
     function handleClickOutside(event: MouseEvent) {
       if (dropupRef.current && !dropupRef.current.contains(event.target as Node)) {
         setIsDropupOpen(false);
-        setShowEmployeesMenu(false);
         setShowReference(false);
-        setShowGraphicsMenu(false);
       }
     }
     if (isDropupOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropupOpen]);
-
-  const activeSubMenu = showReference ? "reference" : showGraphicsMenu ? "graphics" : showEmployeesMenu ? "employees" : null;
 
   const referenceSubContent = (
     <div className="py-2" onClick={(e) => e.stopPropagation()}>
@@ -763,86 +738,6 @@ export function AgentChatView({
             ))}
           </div>
         )}
-      </div>
-    </div>
-  );
-
-  const graphicsSubContent = (
-    <div className="py-2 px-2">
-      {[
-        { label: "Document", icon: FileText, desc: "Generate a formatted document" },
-        { label: "Graph", icon: BarChart3, desc: "Create a data visualization" },
-        { label: "Analytics", icon: PieChart, desc: "Build an analytics report" },
-        { label: "Spreadsheet", icon: Table2, desc: "Generate a spreadsheet" },
-        { label: "Slide", icon: Presentation, desc: "Create a presentation slide" },
-      ].map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          onClick={() => {
-            setSelectedGraphic(item.label);
-            setIsDropupOpen(false);
-            setShowGraphicsMenu(false);
-          }}
-          className={cn(
-            "w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors flex items-center gap-3",
-            selectedGraphic === item.label ? "bg-primary/10 text-primary" : "text-muted-foreground",
-          )}
-        >
-          <item.icon className="w-4 h-4 shrink-0" />
-          <div className="flex flex-col">
-            <span className={cn("font-medium", selectedGraphic === item.label ? "text-primary" : "text-foreground")}>{item.label}</span>
-            <span className="text-xs text-muted-foreground">{item.desc}</span>
-          </div>
-          {selectedGraphic === item.label && (
-            <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">Selected</span>
-          )}
-        </button>
-      ))}
-    </div>
-  );
-
-  const employeesSubContent = (
-    <div className="py-2 px-2">
-      <div className="max-h-64 overflow-y-auto">
-        {employees.length > 0 ? (
-          employees.map((emp) => (
-            <button
-              key={emp.id}
-              type="button"
-              onClick={() => {
-                const empData = { id: emp.id, name: emp.name, role: emp.role };
-                if (!selectedChatEmployees.find((e) => e.id === emp.id)) {
-                  setSelectedChatEmployees([empData]);
-                }
-                setIsDropupOpen(false);
-                setShowEmployeesMenu(false);
-                setTimeout(() => void autoRunEmployee(empData), 100);
-              }}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-muted-foreground flex flex-col"
-            >
-              <span className="font-medium text-foreground">{emp.name}</span>
-              <span className="text-xs text-muted-foreground">{emp.role}</span>
-            </button>
-          ))
-        ) : (
-          <div className="px-3 py-2 text-sm text-muted-foreground text-center">No employees added</div>
-        )}
-      </div>
-      <div className="border-t border-border mt-1 pt-1">
-        <button
-          type="button"
-          onClick={() => {
-            setIsSettingsOpen(true);
-            setSettingsTab("employees");
-            setIsDropupOpen(false);
-            setShowEmployeesMenu(false);
-          }}
-          className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 rounded-lg transition-colors text-primary font-medium flex items-center gap-2"
-        >
-          <Settings className="w-3 h-3" />
-          Manage Employees
-        </button>
       </div>
     </div>
   );
@@ -1003,10 +898,10 @@ export function AgentChatView({
           setSessionMemory={setSessionMemory}
           uploadedFiles={uploadedFiles}
           setUploadedFiles={setUploadedFiles}
+          employees={employees}
           selectedChatEmployees={selectedChatEmployees}
           setSelectedChatEmployees={setSelectedChatEmployees}
-          selectedGraphic={selectedGraphic}
-          setSelectedGraphic={setSelectedGraphic}
+          onQuickRunEmployee={(emp) => void autoRunEmployee(emp)}
           isActionMode={isActionMode}
           setIsActionMode={setIsActionMode}
           extensionConnected={extensionConnected}
@@ -1020,18 +915,13 @@ export function AgentChatView({
           setIsSettingsOpen={setIsSettingsOpen}
           isSending={isSending}
           mentionState={mentionState}
-          setMentionState={setMentionState}
-          referenceUrlInput={referenceUrlInput}
-          setReferenceUrlInput={setReferenceUrlInput}
           searchResults={searchResults}
           onInsertReference={onInsertReferenceFromInput}
           onSend={() => void handleSendMessage()}
           onCancel={handleCancelMessage}
           onInputForMention={handleMentionInput}
-          activeSubMenu={activeSubMenu}
+          showReference={showReference}
           referenceSubContent={referenceSubContent}
-          graphicsSubContent={graphicsSubContent}
-          employeesSubContent={employeesSubContent}
         />
         )}
 

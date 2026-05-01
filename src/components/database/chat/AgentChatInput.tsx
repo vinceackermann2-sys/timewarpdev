@@ -1,15 +1,5 @@
 import { useEffect, type ReactNode, type RefObject } from "react";
-import {
-  ArrowUp,
-  ChevronDown,
-  FileUp,
-  Monitor,
-  Palette,
-  Square,
-  StickyNote,
-  User,
-  X,
-} from "lucide-react";
+import { ArrowUp, FileUp, Monitor, Square, StickyNote, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -32,10 +22,10 @@ export function AgentChatInput({
   setSessionMemory,
   uploadedFiles,
   setUploadedFiles,
+  employees,
   selectedChatEmployees,
   setSelectedChatEmployees,
-  selectedGraphic,
-  setSelectedGraphic,
+  onQuickRunEmployee,
   isActionMode,
   setIsActionMode,
   extensionConnected,
@@ -49,7 +39,6 @@ export function AgentChatInput({
   setIsSettingsOpen,
   isSending,
   mentionState,
-  setMentionState,
   referenceUrlInput,
   setReferenceUrlInput,
   searchResults,
@@ -57,10 +46,8 @@ export function AgentChatInput({
   onSend,
   onCancel,
   onInputForMention,
-  activeSubMenu,
+  showReference,
   referenceSubContent,
-  graphicsSubContent,
-  employeesSubContent,
 }: {
   composerOverlay?: ReactNode;
   dropupRef: RefObject<HTMLDivElement | null>;
@@ -75,14 +62,16 @@ export function AgentChatInput({
   setSessionMemory: (v: string) => void;
   uploadedFiles: FileChip[];
   setUploadedFiles: React.Dispatch<React.SetStateAction<FileChip[]>>;
+  employees: { id: string; name: string; role: string }[];
   selectedChatEmployees: { id: string; name: string; role: string }[];
   setSelectedChatEmployees: React.Dispatch<React.SetStateAction<{ id: string; name: string; role: string }[]>>;
-  selectedGraphic: string | null;
-  setSelectedGraphic: (v: string | null) => void;
+  /** Run employee's browser SOP without typing a message (extension + computer path). */
+  onQuickRunEmployee?: (emp: { id: string; name: string; role: string }) => void;
   isActionMode: boolean;
   setIsActionMode: (v: boolean | ((p: boolean) => boolean)) => void;
   extensionConnected: boolean;
   onRetryExtensionDetection?: () => void;
+  /** True when @mention opened the reference picker */
   showReference: boolean;
   setShowReference: (v: boolean | ((p: boolean) => boolean)) => void;
   showGraphicsMenu: boolean;
@@ -92,7 +81,6 @@ export function AgentChatInput({
   setIsSettingsOpen: (v: boolean) => void;
   isSending: boolean;
   mentionState: MentionState;
-  setMentionState: (v: MentionState) => void;
   referenceUrlInput: string;
   setReferenceUrlInput: (v: string) => void;
   searchResults: { id: string; url: string; name: string; logo: string }[];
@@ -100,10 +88,7 @@ export function AgentChatInput({
   onSend: () => void;
   onCancel: () => void;
   onInputForMention: () => void;
-  activeSubMenu: "reference" | "graphics" | "employees" | null;
   referenceSubContent: React.ReactNode;
-  graphicsSubContent: React.ReactNode;
-  employeesSubContent: React.ReactNode;
 }) {
   // Re-detect the extension whenever the user opens the Plus dropup so the
   // "Computer" row reflects the current state without requiring a full reload.
@@ -139,7 +124,7 @@ export function AgentChatInput({
           >
             <StickyNote className="h-3.5 w-3.5 shrink-0" />
             <span className="flex-1 text-left">Session memory</span>
-            <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform", sessionMemoryOpen && "rotate-180")} />
+            <span className="text-muted-foreground text-xs">{sessionMemoryOpen ? "▾" : "▸"}</span>
           </button>
           {sessionMemoryOpen && (
             <Textarea
@@ -151,24 +136,50 @@ export function AgentChatInput({
           )}
         </div>
 
-        {(uploadedFiles.length > 0 ||
-          selectedChatEmployees.length > 0 ||
-          selectedGraphic ||
-          (isActionMode && extensionConnected)) && (
+        {employees.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-1 pb-2 text-xs text-muted-foreground border-b border-border/30 mb-1">
+            <label htmlFor="chat-employee-select" className="shrink-0">
+              Employee
+            </label>
+            <select
+              id="chat-employee-select"
+              className="flex-1 min-w-[140px] max-w-[240px] rounded-lg border border-border/60 bg-card text-foreground text-xs py-1.5 px-2"
+              value={selectedChatEmployees[0]?.id ?? ""}
+              onChange={(e) => {
+                const id = e.target.value;
+                if (!id) {
+                  setSelectedChatEmployees([]);
+                  return;
+                }
+                const emp = employees.find((x) => x.id === id);
+                if (emp) setSelectedChatEmployees([{ id: emp.id, name: emp.name, role: emp.role }]);
+              }}
+            >
+              <option value="">None</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
+              ))}
+            </select>
+            {selectedChatEmployees[0] && onQuickRunEmployee && (
+              <button
+                type="button"
+                onClick={() => onQuickRunEmployee(selectedChatEmployees[0])}
+                className="shrink-0 rounded-lg border border-border/60 bg-muted/40 px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70"
+              >
+                Run SOP
+              </button>
+            )}
+          </div>
+        )}
+
+        {(uploadedFiles.length > 0 || (isActionMode && extensionConnected)) && (
           <div className="flex flex-wrap gap-1.5 px-1 pb-2">
             {isActionMode && extensionConnected && (
               <div className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5">
                 <Monitor className="w-3.5 h-3.5 text-foreground" />
                 <span className="text-xs font-medium text-foreground">Computer ON</span>
-              </div>
-            )}
-            {selectedGraphic && (
-              <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2">
-                <Palette className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-medium text-primary">{selectedGraphic}</span>
-                <button type="button" onClick={() => setSelectedGraphic(null)} className="text-primary/60 hover:text-primary">
-                  <X className="w-3 h-3" />
-                </button>
               </div>
             )}
             {uploadedFiles.map((file) => (
@@ -179,18 +190,6 @@ export function AgentChatInput({
                 <FileUp className="w-3.5 h-3.5 text-foreground" />
                 <span className="text-xs font-medium text-foreground max-w-[120px] truncate">{file.name}</span>
                 <button type="button" onClick={() => setUploadedFiles((fs) => fs.filter((f) => f.id !== file.id))} className="text-foreground/60 hover:text-foreground">
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            {selectedChatEmployees.map((emp) => (
-              <div
-                key={emp.id}
-                className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5 animate-in fade-in slide-in-from-bottom-2"
-              >
-                <User className="w-3.5 h-3.5 text-foreground" />
-                <span className="text-xs font-medium text-foreground max-w-[120px] truncate">{emp.name}</span>
-                <button type="button" onClick={() => setSelectedChatEmployees((es) => es.filter((e) => e.id !== emp.id))} className="text-foreground/60 hover:text-foreground">
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -208,24 +207,13 @@ export function AgentChatInput({
                   extensionConnected={extensionConnected}
                   isActionMode={isActionMode}
                   setIsActionMode={setIsActionMode}
-                  showReference={showReference}
-                  setShowReference={setShowReference}
-                  showGraphicsMenu={showGraphicsMenu}
-                  setShowGraphicsMenu={setShowGraphicsMenu}
-                  showEmployeesMenu={showEmployeesMenu}
-                  setShowEmployeesMenu={setShowEmployeesMenu}
                   setIsDropupOpen={setIsDropupOpen}
                   setIsSettingsOpen={setIsSettingsOpen}
-                  referenceSubContent={referenceSubContent}
-                  graphicsSubContent={graphicsSubContent}
-                  employeesSubContent={employeesSubContent}
                 />
               </div>
-              {activeSubMenu && (
-                <div className="ml-2 w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border animate-in slide-in-from-left-2 fade-in duration-150">
-                  {activeSubMenu === "reference" && referenceSubContent}
-                  {activeSubMenu === "graphics" && graphicsSubContent}
-                  {activeSubMenu === "employees" && employeesSubContent}
+              {showReference && (
+                <div className="ml-2 w-72 max-h-[60vh] overflow-y-auto bg-card rounded-2xl shadow-xl border border-border animate-in slide-in-from-left-2 fade-in duration-150 py-2">
+                  {referenceSubContent}
                 </div>
               )}
             </div>
@@ -236,9 +224,6 @@ export function AgentChatInput({
             onOpenChange={(open) => {
               if (!open) {
                 setIsDropupOpen(false);
-                setShowEmployeesMenu(false);
-                setShowReference(false);
-                setShowGraphicsMenu(false);
               }
             }}
           >
@@ -253,31 +238,16 @@ export function AgentChatInput({
                   extensionConnected={extensionConnected}
                   isActionMode={isActionMode}
                   setIsActionMode={setIsActionMode}
-                  showReference={showReference}
-                  setShowReference={setShowReference}
-                  showGraphicsMenu={showGraphicsMenu}
-                  setShowGraphicsMenu={setShowGraphicsMenu}
-                  showEmployeesMenu={showEmployeesMenu}
-                  setShowEmployeesMenu={setShowEmployeesMenu}
                   setIsDropupOpen={setIsDropupOpen}
                   setIsSettingsOpen={setIsSettingsOpen}
+                  mentionActive={mentionState.active}
                   referenceSubContent={referenceSubContent}
-                  graphicsSubContent={graphicsSubContent}
-                  employeesSubContent={employeesSubContent}
                 />
               </div>
             </SheetContent>
           </Sheet>
 
-          <AgentChatPlusTrigger
-            isMobile={isMobileChatView}
-            isDropupOpen={isDropupOpen}
-            setIsDropupOpen={setIsDropupOpen}
-            isActionMode={isActionMode}
-            setShowEmployeesMenu={setShowEmployeesMenu}
-            setShowReference={setShowReference}
-            setShowGraphicsMenu={setShowGraphicsMenu}
-          />
+          <AgentChatPlusTrigger isMobile={isMobileChatView} isDropupOpen={isDropupOpen} setIsDropupOpen={setIsDropupOpen} isActionMode={isActionMode} />
 
           <div className="flex-1 flex items-center px-3 py-1">
             <div
@@ -285,7 +255,7 @@ export function AgentChatInput({
               contentEditable
               suppressContentEditableWarning
               className="flex-1 bg-transparent border-none outline-none text-foreground text-base min-w-[120px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text cursor-text"
-              data-placeholder="Ask me anything..."
+              data-placeholder="Ask anything… Type @ to cite a website."
               onInput={() => {
                 onInputForMention();
               }}

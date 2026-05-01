@@ -1,10 +1,11 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
+import { extractAssistantSources } from "@/lib/agentChat/parseAssistantSources";
 import { extractSuggestions } from "@/lib/parseSuggestions";
 import { buildMultimodalContent } from "@/lib/agentChat/multimodal";
 import { buildConnectionTaskSteps, upsertChatTaskStep } from "@/lib/agentChat/connectionSteps";
-import { generateTaskReport } from "@/lib/agentChat/taskReport";
+import { buildChatTaskSummaryPreview, generateTaskReport } from "@/lib/agentChat/taskReport";
 import { extractPlanArtifact } from "@/lib/agentChat/planArtifacts";
 import { extractPlanActions } from "@/lib/agentChat/planActionExtractor";
 import { runEvidenceAudit } from "@/lib/agentChat/evidenceAudit";
@@ -195,6 +196,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       console.log("[suggestions] parsed", { count: suggestions.length, groups: questions.length, title: suggestionTitle, suggestions });
     }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
+    const { content: contentNoSources, attribution: dataSourceAttribution } = extractAssistantSources(cleanContent);
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
     // Fold derived plan actions into the first question group so they
     // surface alongside the AI-authored options on the legacy single-card
@@ -243,10 +245,11 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       actionPayloads[pa.label] = pa.prefill;
       actionPayloads[keyFor(pa.label)] = pa.prefill;
     }
-    const evidenceAudit = runEvidenceAudit(cleanContent, [userMsg.content || "", sessionMemory || ""]);
+    const evidenceAudit = runEvidenceAudit(contentNoSources, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
-      content: cleanContent,
+      content: contentNoSources,
+      dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
       suggestionTitle: fallbackTitle,
@@ -449,10 +452,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       const endTime = new Date();
       const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
       const report = generateTaskReport(selectedAgent || "AI Agent", userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
+      const preview = buildChatTaskSummaryPreview(stepLogs);
+      const bubble = [preview, finalMessage || `Task completed — ${durationSec}s`].filter(Boolean).join("\n\n");
 
       setMessages(prev => prev.map(m => m.id === assistantId ? {
         ...m,
-        content: finalMessage || `Task completed — ${durationSec}s`,
+        content: bubble,
         taskSteps: [...(taskSteps || [])],
         isStreaming: false,
         reportContent: report,
@@ -622,6 +627,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       console.log("[suggestions:employee] parsed", { count: suggestions.length, groups: questions.length, title: suggestionTitle, suggestions });
     }
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
+    const { content: contentNoSources, attribution: dataSourceAttribution } = extractAssistantSources(cleanContent);
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
     const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
     const mergedQuestions = (() => {
@@ -650,10 +656,11 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       actionPayloads[pa.label] = pa.prefill;
       actionPayloads[keyFor(pa.label)] = pa.prefill;
     }
-    const evidenceAudit = runEvidenceAudit(cleanContent, [userMsg.content || "", sessionMemory || ""]);
+    const evidenceAudit = runEvidenceAudit(contentNoSources, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
-      content: cleanContent,
+      content: contentNoSources,
+      dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
       suggestionTitle,
@@ -879,10 +886,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       const endTime = new Date();
       const durationSec = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
       const report = generateTaskReport(emp.name, userMsg.content, stepLogs, startTime, endTime, durationSec, finalMessage);
+      const preview = buildChatTaskSummaryPreview(stepLogs);
+      const bubble = [preview, finalMessage || `Task completed — ${durationSec}s`].filter(Boolean).join("\n\n");
 
       setMessages(prev => prev.map(m => m.id === assistantId ? {
         ...m,
-        content: finalMessage || `Task completed — ${durationSec}s`,
+        content: bubble,
         taskSteps: [...taskSteps!],
         isStreaming: false,
         reportContent: report,

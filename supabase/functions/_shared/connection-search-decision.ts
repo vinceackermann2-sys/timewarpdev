@@ -29,6 +29,12 @@ const CONNECTION_TRIGGER_PATTERNS = [
   /\b(project|launch|initiative|milestone|rollout)\b.{0,50}\b(delayed|behind|late|slipped|overdue|blocked|stuck|at risk|off track|status)\b/i,
   /\b(status|health)\b.{0,30}\b(project|initiative|launch|program|workstream)\b/i,
   /\b(blocker|blocked|blocking|hold\s*up|snag)\b.{0,40}\b(project|team|launch|delivery|release)\b/i,
+  /\b(my|our)\s+(pipeline|pipelines|forecast|forecasts|quota|quotas|open\s+deals?|closed\s+won|deals?\s+in\s+progress)\b/i,
+  /\b(what'?s?\s+in\s+my|show\s+me\s+my|pull\s+my|list\s+my)\s+(crm|hubspot|pipeline|deals?|contacts?)\b/i,
+  /\b(from|in)\s+(hubspot|salesforce|stripe|my\s+crm)\b/i,
+  /\b(last|recent)\s+(payment|charge|invoice|subscription|refund|payout)\b/i,
+  /\b(synced|sync|integration)\b.{0,40}\b(email|mail|calendar|drive|slack|hubspot|crm)\b/i,
+  /\b(anything|something)\s+new\s+in\s+(slack|email|inbox|crm|hubspot)\b/i,
 ];
 
 export function shouldSearchConnections(query: string): { shouldSearch: boolean; reason: string } {

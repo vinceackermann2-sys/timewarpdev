@@ -27,8 +27,18 @@ import { loadAccountSafetySettings, mergeSafetySettings } from "../_shared/accou
 import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
-import { matchSkill, matchSkillSticky, buildSkillBlock } from "../_shared/skills/_router.ts";
+import {
+  buildSkillsBlock,
+  matchSkillsForMessage,
+  matchSkillSticky,
+} from "../_shared/skills/_router.ts";
 import { workforceTools, executeWorkforceToolCall } from "../_shared/workforce-tools.ts";
+import { buildDataBackedRoutingBlock } from "../_shared/data-backed-evidence.ts";
+import {
+  extractWebSearchQuery,
+  fetchPublicWebSnapshot,
+  shouldFetchPublicWebContext,
+} from "../_shared/public-web-snapshot.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -180,7 +190,12 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       );
 
       const pageSection = buildPageSection();
-      const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n## Evidence Paths\n- Path 1 Internal History: ${performanceEvidence ? "available" : "sparse"}\n- Path 2 External Benchmark: use connected sources with citations only\n- Path 3 User Feedback: honor explicit constraints and ratings`;
+      const browserDataBacked = buildDataBackedRoutingBlock({
+        replyContract,
+        liveLookupRan: initialConnectionDecision.shouldSearch,
+        webSnapshotRan: false,
+      });
+      const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n${browserDataBacked}`;
       const systemPrompt = buildBrowserActionPrompt(pageSection, identity, fullContext, safetySettings);
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -394,17 +409,36 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             const answerTopic = queryTopic || topic;
             const pageSection = buildPageSection();
             const hasBrowserContext = !!pageContext;
-            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n## Evidence Paths\n- Path 1 Internal History: ${performanceEvidence ? "available" : "sparse"}\n- Path 2 External Benchmark: use connected sources with citations only\n- Path 3 User Feedback: honor explicit constraints and ratings`;
-            // Skill routing (Layer 4a) — match against last user message,
-            // and fall back to recent history so multi-turn wizards (agent/
-            // employee creation) stay active when the user replies with a
-            // short SUGGEST chip that carries no trigger keywords.
-            const matchedSkill = !hasBrowserContext ? matchSkillSticky(messages) : null;
-            if (matchedSkill) {
-              edgeLog("extension-agent", "skill_matched", { slug: matchedSkill.slug, name: matchedSkill.name });
-              sendStep(`Loading ${matchedSkill.name} playbook`, "done", "context");
+            const webScheduled = !hasBrowserContext && shouldFetchPublicWebContext(lastUserMsg, replyContract);
+            let publicWebBlock = "";
+            if (webScheduled) {
+              sendStep("Public web snapshot", "running", "context");
+              const wq = extractWebSearchQuery(lastUserMsg);
+              const snap = await fetchPublicWebSnapshot(wq || answerTopic || topic || lastUserMsg);
+              if (snap) {
+                publicWebBlock = `\n\n## External tier — web research (this turn)\n${snap}\n\n_Use only the URLs and text above for competitive/public claims. If the block says Firecrawl or fallback failed, say so — do not invent sources._\n`;
+              }
+              sendStep("Public web snapshot", "done", "context");
             }
-            const skillBlock = matchedSkill ? buildSkillBlock(matchedSkill) : "";
+            const dataBackedBlock = buildDataBackedRoutingBlock({
+              replyContract,
+              liveLookupRan: initialConnectionDecision.shouldSearch,
+              webSnapshotRan: webScheduled,
+            });
+            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${publicWebBlock}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n${dataBackedBlock}`;
+            // Skill routing — multi-skill match on last message; sticky fallback
+            // keeps agent/employee wizards alive when the user sends a short
+            // SUGGEST chip with no trigger keywords.
+            let matchedSkills = !hasBrowserContext ? matchSkillsForMessage(lastUserMsg, 3) : [];
+            if (!hasBrowserContext && matchedSkills.length === 0) {
+              const sticky = matchSkillSticky(messages);
+              if (sticky) matchedSkills = [sticky];
+            }
+            if (matchedSkills.length > 0) {
+              edgeLog("extension-agent", "skills_matched", { slugs: matchedSkills.map((s) => s.slug) });
+              sendStep(`Loading ${matchedSkills.length} playbook${matchedSkills.length > 1 ? "s" : ""}`, "done", "context");
+            }
+            const skillBlock = buildSkillsBlock(matchedSkills);
             const systemPrompt = hasBrowserContext
               ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
               : buildChatPrompt(identity, fullContext + skillBlock, replyContract);
@@ -902,7 +936,8 @@ ${responseShape}
 6. Never mention "RAG", "knowledge files", or "knowledge base".
 7. **NEVER fabricate or invent business data.** If the Reference Material does not contain specific numbers, do NOT make them up. Ask the user to provide them.
 8. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering.
-9. When the user asks for a pitch, presentation, report, document, graph, chart, analytics output, spreadsheet, or any creative deliverable, ALWAYS base the content on the business's brand, product, and audience data from the Reference Material. Treat every request as being about THIS business unless the user explicitly says otherwise. Never create generic content.
+9. When the user **explicitly** asks for a pitch, presentation, report, document, graph, chart, analytics output, spreadsheet, or any structured visual deliverable, base the content on the business's brand, product, and audience data from the Reference Material. Treat every such request as being about THIS business unless the user explicitly says otherwise.
+10. When an **External tier — web research** block appears (Firecrawl or fallback), use it for web-style and competitive research. If it is missing, empty, or says retrieval failed / API not configured, say so — do not fabricate URLs, quotes, or SERP results.
 
 ## ANTI-PATTERNS — NEVER DO THESE
 - **No Blind Agreement**: Never say "Great idea!" without explaining why with data. Evaluate every suggestion objectively.
@@ -935,9 +970,13 @@ Aim to maximize quality across these dimensions:
 - When comparing options, ALWAYS use a table with pros/cons or criteria columns
 
 ## VISUAL OUTPUT RULES — CRITICAL
-**Do NOT generate \`\`\`chart, \`\`\`slide, \`\`\`document, \`\`\`spreadsheet, or \`\`\`analytics code blocks UNLESS the user's message explicitly contains a "🎨 Output format:" instruction requesting a specific visual format.** If there is no such instruction, respond with plain markdown text only. Never proactively create graphics, slides, charts, or visual outputs on your own initiative.
+**Do NOT generate** \`\`\`chart\`\`\`, \`\`\`mermaid\`\`\`, \`\`\`slide\`\`\`, \`\`\`document\`\`\`, \`\`\`spreadsheet\`\`\`, or \`\`\`analytics\`\`\` code blocks unless:
+- The user **explicitly** asked for that kind of output in this thread (e.g. "make a chart", "build a slide", "export a spreadsheet"), **or**
+- The user's message contains **"🎨 Output format:"** (injected when they chose a structured visual format).
 
-When the user's message DOES contain "🎨 Output format:", follow these rules:
+If a visual would help but the user did **not** ask for one, **ask in one short sentence** whether they want it — do not invent diagrams or decks unprompted.
+
+When you ARE allowed to output visuals, follow these rules:
 
 For slides use a \`\`\`slide code block. **VARY the layout per slide** — choose from "stat-callout", "bullets", "two-column" (with "left_column" and "right_column" arrays), or "title-only" based on what fits the content. Do NOT use the same template every time. When the user asks for a deck, presentation, or multiple slides, output MULTIPLE separate \`\`\`slide blocks back-to-back (typically 3-7), each with a layout that fits its content:
 \`\`\`slide
@@ -967,6 +1006,20 @@ For charts use a \`\`\`chart code block:
 {"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
 \`\`\`
 Supported chart types: bar, line, area, pie.
+
+## Data source badges (UI) — REQUIRED WHEN DATA-BACKED
+When your reply is **data-backed** (facts, metrics, live tool results, DNA, web snapshot, dashboard/KPIs, learning comparisons, or actionable recommendations tied to this business), end the message with **exactly one** fenced block in this form (last content in the message, after prose and any [SUGGEST:] tags):
+
+\`\`\`assistant_sources
+{"data_backed":true,"sources":[{"tier":"internal","key":"dna","label":"Business DNA"}]}
+\`\`\`
+
+- \`tier\`: **internal** | **external** | **feedback** (only these strings).
+- \`key\`: short id — internal: \`dna\`, \`rag\`, \`files\`, \`gmail\`, \`drive\`, \`calendar\`, \`hubspot\`, \`slack\`, \`stripe\`, \`m365\`, \`dashboard\`, \`kpi\`, \`skills\`, \`learning\`; external: \`web\`; feedback: \`user\`, \`session\`.
+- \`label\`: 2–5 words for the UI tooltip.
+- Include **only** tiers you actually relied on for this answer. If you used **web research** (Firecrawl or fallback block above), include \`{"tier":"external","key":"web","label":"Firecrawl web"}\` or \`{"tier":"external","key":"web","label":"Web snapshot"}\` matching what appeared in context.
+- If the message is pure chit-chat with no factual grounding, use \`{"data_backed":false,"sources":[]}\`.
+- Do not duplicate this block; do not put narrative inside the fence — JSON only.
 
 ## CLARIFYING QUESTIONS — MUST USE [SUGGEST:] TAG, NEVER PROSE
 **HARD RULE:** Any time you ask the user a clarifying question, the question MUST be inside a \`[SUGGEST:Question?::Option 1|Option 2|Option 3]\` tag. NEVER ask a clarifying question as plain prose, a markdown bullet, or a trailing "?" sentence in the body. The UI renders \`[SUGGEST:]\` as a clickable card — questions outside the tag are invisible to the user as actionable choices and look broken.

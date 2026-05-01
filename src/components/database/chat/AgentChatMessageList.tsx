@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { buildLiveCitationAnchor } from "@/components/chat/liveCitationAnchor";
 import type { ChatMessage } from "@/lib/agentChat/types";
+import { extractAssistantSources } from "@/lib/agentChat/parseAssistantSources";
+import { AssistantSourceBadges } from "./AssistantSourceBadges";
 import { TaskReportViewer } from "./TaskReportViewer";
 
 export function AgentChatMessageList({
@@ -54,18 +56,33 @@ export function AgentChatMessageList({
                 : []
             : [];
 
-        // Strip trailing unclosed/empty markdown code fences that render as a blank grey box,
-        // and strip [SUGGEST:...] / [PLAN_ACTION:...] tags (with optional surrounding code-fence
-        // or inline-code wrapping) so they never flash in the markdown view while streaming.
-        const cleanedContent = (msg.content || "")
-          // Fenced code blocks that contain only a SUGGEST/PLAN_ACTION tag
+        const rawContent = msg.content || "";
+        let markdownForAssistant = rawContent;
+        let sourcesFromFence: ReturnType<typeof extractAssistantSources>["attribution"] = null;
+        if (msg.role === "assistant" && !msg.isStreaming) {
+          const parsed = extractAssistantSources(rawContent);
+          markdownForAssistant = parsed.content;
+          sourcesFromFence = parsed.attribution;
+        }
+        // Strip [SUGGEST:...] / [PLAN_ACTION:...] (and fences) so they never flash in markdown;
+        // then strip trailing unclosed/empty code fences.
+        const cleanedContent = markdownForAssistant
           .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*\[(?:SUGGEST|PLAN_ACTION):[\s\S]*?\]\s*\n?\s*```/g, "")
-          // Inline-code-wrapped or bare SUGGEST/PLAN_ACTION tags
           .replace(/`{0,3}\*{0,2}\[(?:SUGGEST|PLAN_ACTION):[\s\S]*?\]\*{0,2}`{0,3}/g, "")
-          // Leftover empty/unclosed fences
           .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
           .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
           .trimEnd();
+
+        const sourceAttribution =
+          msg.role === "assistant" && !msg.isStreaming
+            ? msg.dataSourceAttribution?.dataBacked && msg.dataSourceAttribution.sources.length > 0
+              ? msg.dataSourceAttribution
+              : sourcesFromFence?.dataBacked && sourcesFromFence.sources.length > 0
+                ? sourcesFromFence
+                : msg.replyContract === "live_lookup"
+                  ? { dataBacked: true, sources: [{ tier: "internal" as const, key: "live", label: "Connected apps" }] }
+                  : null
+            : null;
 
         return (
           <div
@@ -156,6 +173,9 @@ export function AgentChatMessageList({
                           if (className?.includes("language-slide")) {
                             return <InlineSlide jsonString={text} />;
                           }
+                          if (className?.includes("language-assistant_sources")) {
+                            return null;
+                          }
                           const isBlock = className?.includes("language-");
                           return isBlock ? (
                             <code className={cn("block", className)}>{children}</code>
@@ -175,6 +195,9 @@ export function AgentChatMessageList({
                             cls.includes("language-slide")
                           ) {
                             return <>{children}</>;
+                          }
+                          if (cls.includes("language-assistant_sources")) {
+                            return null;
                           }
                           // Hide empty <pre> blocks (e.g., from stray/unclosed ``` fences)
                           const innerText = (() => {
@@ -201,6 +224,7 @@ export function AgentChatMessageList({
                       {cleanedContent}
                     </ReactMarkdown>
                   )}
+                  {sourceAttribution && <AssistantSourceBadges attribution={sourceAttribution} />}
                   {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
                     <div className="flex items-center gap-3 py-2">
                       <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold" />

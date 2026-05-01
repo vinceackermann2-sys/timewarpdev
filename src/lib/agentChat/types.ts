@@ -1,4 +1,5 @@
 import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
+import type { DataSourceAttribution } from "@/lib/agentChat/parseAssistantSources";
 import type { SuggestionGroup } from "@/lib/parseSuggestions";
 
 export interface ChatMessage {
@@ -44,6 +45,8 @@ export interface ChatMessage {
   planConfidence?: "high" | "medium" | "low" | "unknown";
   /** Set when the assistant created an agent or employee on this turn (Option A tool call). */
   createdEntity?: { kind: "agent" | "employee"; id?: string; name?: string };
+  /** Parsed from ```assistant_sources``` — shown as icon row when data_backed. */
+  dataSourceAttribution?: DataSourceAttribution | null;
 }
 
 export type ChatTaskStep = NonNullable<ChatMessage["taskSteps"]>[number];

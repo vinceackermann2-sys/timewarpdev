@@ -1,16 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-  FileUp,
-  Globe,
-  Monitor,
-  Palette,
-  Plus,
-  Settings,
-  Users,
-} from "lucide-react";
+import { ExternalLink, FileUp, Monitor, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EDGE_EXT_URL =
@@ -22,17 +11,11 @@ type Props = {
   extensionConnected: boolean;
   isActionMode: boolean;
   setIsActionMode: (v: boolean | ((p: boolean) => boolean)) => void;
-  showReference: boolean;
-  setShowReference: (v: boolean | ((p: boolean) => boolean)) => void;
-  showGraphicsMenu: boolean;
-  setShowGraphicsMenu: (v: boolean | ((p: boolean) => boolean)) => void;
-  showEmployeesMenu: boolean;
-  setShowEmployeesMenu: (v: boolean | ((p: boolean) => boolean)) => void;
   setIsDropupOpen: (v: boolean | ((p: boolean) => boolean)) => void;
   setIsSettingsOpen: (v: boolean) => void;
-  referenceSubContent: ReactNode;
-  graphicsSubContent: ReactNode;
-  employeesSubContent: ReactNode;
+  /** Mobile: show reference URL picker when user types @ */
+  mentionActive?: boolean;
+  referenceSubContent?: ReactNode;
 };
 
 export function AgentChatPlusMenu({
@@ -41,17 +24,10 @@ export function AgentChatPlusMenu({
   extensionConnected,
   isActionMode,
   setIsActionMode,
-  showReference,
-  setShowReference,
-  showGraphicsMenu,
-  setShowGraphicsMenu,
-  showEmployeesMenu,
-  setShowEmployeesMenu,
   setIsDropupOpen,
   setIsSettingsOpen,
+  mentionActive,
   referenceSubContent,
-  graphicsSubContent,
-  employeesSubContent,
 }: Props) {
   const isMobile = layout === "mobile";
   const row = (extra?: string) =>
@@ -60,15 +36,12 @@ export function AgentChatPlusMenu({
       !isMobile && "rounded-lg",
       extra,
     );
-  const closeMenus = () => {
-    setShowEmployeesMenu(false);
-    setShowReference(false);
-    setShowGraphicsMenu(false);
-  };
 
   if (isMobile) {
     return (
       <>
+        {mentionActive && referenceSubContent ? <div className="px-1 pb-3 border-b border-border mb-1">{referenceSubContent}</div> : null}
+
         <button
           type="button"
           onClick={() => {
@@ -80,66 +53,6 @@ export function AgentChatPlusMenu({
           <FileUp className="w-4 h-4 text-muted-foreground" />
           Upload Files
         </button>
-
-        <div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowReference(!showReference);
-              setShowEmployeesMenu(false);
-              setShowGraphicsMenu(false);
-            }}
-            className={row("justify-between")}
-          >
-            <div className="flex items-center gap-3">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              Reference (@)
-            </div>
-            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showReference && "rotate-180")} />
-          </button>
-          {showReference && referenceSubContent}
-        </div>
-
-        <div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowGraphicsMenu(!showGraphicsMenu);
-              setShowReference(false);
-              setShowEmployeesMenu(false);
-            }}
-            className={row("justify-between")}
-          >
-            <div className="flex items-center gap-3">
-              <Palette className="w-4 h-4 text-muted-foreground" />
-              Graphics
-            </div>
-            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showGraphicsMenu && "rotate-180")} />
-          </button>
-          {showGraphicsMenu && graphicsSubContent}
-        </div>
-
-        <div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowEmployeesMenu(!showEmployeesMenu);
-              setShowReference(false);
-              setShowGraphicsMenu(false);
-            }}
-            className={row("justify-between")}
-          >
-            <div className="flex items-center gap-3">
-              <Users className="w-4 h-4 text-muted-foreground" />
-              Employees
-            </div>
-            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", showEmployeesMenu && "rotate-180")} />
-          </button>
-          {showEmployeesMenu && employeesSubContent}
-        </div>
 
         {!extensionConnected ? (
           <a
@@ -192,7 +105,6 @@ export function AgentChatPlusMenu({
     );
   }
 
-  /* Desktop: flat rows; sub-menus fly out from parent */
   return (
     <>
       <button
@@ -207,57 +119,6 @@ export function AgentChatPlusMenu({
         Upload Files
       </button>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowReference(!showReference);
-          setShowEmployeesMenu(false);
-          setShowGraphicsMenu(false);
-        }}
-        className={cn(row("justify-between"), showReference && "bg-muted/50")}
-      >
-        <div className="flex items-center gap-3">
-          <Globe className="w-4 h-4 text-muted-foreground" />
-          Reference (@)
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-      </button>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowGraphicsMenu(!showGraphicsMenu);
-          setShowReference(false);
-          setShowEmployeesMenu(false);
-        }}
-        className={cn(row("justify-between"), showGraphicsMenu && "bg-muted/50")}
-      >
-        <div className="flex items-center gap-3">
-          <Palette className="w-4 h-4 text-muted-foreground" />
-          Graphics
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-      </button>
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowEmployeesMenu(!showEmployeesMenu);
-          setShowReference(false);
-          setShowGraphicsMenu(false);
-        }}
-        className={cn(row("justify-between"), showEmployeesMenu && "bg-muted/50")}
-      >
-        <div className="flex items-center gap-3">
-          <Users className="w-4 h-4 text-muted-foreground" />
-          Employees
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground" />
-      </button>
-
       {!extensionConnected ? (
         <a
           href={EDGE_EXT_URL}
@@ -265,7 +126,6 @@ export function AgentChatPlusMenu({
           rel="noopener noreferrer"
           onClick={() => {
             setIsDropupOpen(false);
-            closeMenus();
           }}
           className={row("justify-between")}
         >
@@ -284,7 +144,6 @@ export function AgentChatPlusMenu({
           onClick={() => {
             setIsActionMode(!isActionMode);
             setIsDropupOpen(false);
-            closeMenus();
           }}
           className={row("justify-between")}
         >
@@ -303,7 +162,6 @@ export function AgentChatPlusMenu({
         onClick={() => {
           setIsSettingsOpen(true);
           setIsDropupOpen(false);
-          closeMenus();
         }}
         className={row()}
       >
@@ -320,17 +178,11 @@ export function AgentChatPlusTrigger({
   isDropupOpen,
   setIsDropupOpen,
   isActionMode,
-  setShowEmployeesMenu,
-  setShowReference,
-  setShowGraphicsMenu,
 }: {
   isMobile: boolean;
   isDropupOpen: boolean;
   setIsDropupOpen: (v: boolean | ((p: boolean) => boolean)) => void;
   isActionMode: boolean;
-  setShowEmployeesMenu: (v: boolean) => void;
-  setShowReference: (v: boolean) => void;
-  setShowGraphicsMenu: (v: boolean) => void;
 }) {
   return (
     <div
@@ -343,11 +195,6 @@ export function AgentChatPlusTrigger({
         type="button"
         onClick={() => {
           setIsDropupOpen(!isDropupOpen);
-          if (isDropupOpen) {
-            setShowEmployeesMenu(false);
-            setShowReference(false);
-            setShowGraphicsMenu(false);
-          }
         }}
         className={cn(
           "p-2.5 rounded-full transition-all active:scale-95 flex items-center justify-center",

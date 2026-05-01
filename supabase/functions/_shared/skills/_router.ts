@@ -122,6 +122,36 @@ export function matchSkillSticky(messages: any[]): Skill | null {
   return null;
 }
 
+/** Match up to N skills by trigger overlap (longer trigger wins). */
+export function matchSkillsForMessage(message: string, maxSkills = 3): Skill[] {
+  if (!message) return [];
+  const lower = message.toLowerCase();
+  const scored: { skill: Skill; score: number }[] = [];
+  for (const skill of skills) {
+    let best = 0;
+    for (const trigger of skill.triggers) {
+      if (!trigger) continue;
+      if (lower.includes(trigger)) best = Math.max(best, trigger.length);
+    }
+    if (best > 0) scored.push({ skill, score: best });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const out: Skill[] = [];
+  const seen = new Set<string>();
+  for (const { skill } of scored) {
+    if (out.length >= maxSkills) break;
+    if (seen.has(skill.slug)) continue;
+    seen.add(skill.slug);
+    out.push(skill);
+  }
+  return out;
+}
+
+export function buildSkillsBlock(matched: Skill[]): string {
+  if (matched.length === 0) return "";
+  return matched.map(buildSkillBlock).join("\n");
+}
+
 export function getSkill(slug: string): Skill | null {
   return skills.find((s) => s.slug === slug) ?? null;
 }
