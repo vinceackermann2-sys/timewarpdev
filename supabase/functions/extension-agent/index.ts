@@ -73,15 +73,6 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    // Check and increment action usage
-    const { data: actionResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
-    const result = actionResult as any;
-    if (result && !result.allowed) {
-      return new Response(JSON.stringify({ error: result.reason || "Action limit reached. Upgrade your plan." }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     let jsonBody: unknown;
     try {
       jsonBody = await req.json();
@@ -96,6 +87,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: parsedBody.error }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check and increment action usage against the active workspace's shared pool
+    const requestedWorkspaceId = (jsonBody as any)?.workspaceId ?? null;
+    const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
+    const usage = await consumeWorkspaceAction(supabase, user.id, requestedWorkspaceId);
+    if (!usage.allowed) {
+      return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const { messages: rawMessages, pageContext, brandId: rawBrandId, workspaceId: rawWorkspaceId, browserMode, sessionMemory, taskType = "chat" } = parsedBody.data;
