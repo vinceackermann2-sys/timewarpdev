@@ -58,7 +58,7 @@ export function AgentChatView({
   const { brands } = useBusinessDNA();
   const { extensionConnected, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay, cancelPending } = useExtensionBridge();
 
-  useProviderConnections(activeBrandId ?? undefined);
+  useProviderConnections(activeBrandId ?? undefined, activeWorkspaceId ?? undefined);
 
   const agents = brands.map((b) => ({ id: b.id, name: b.agentName || b.name || "AI" }));
 

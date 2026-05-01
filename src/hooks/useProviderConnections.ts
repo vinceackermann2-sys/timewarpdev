@@ -16,7 +16,7 @@ async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Prom
   return fetch(url, init);
 }
 
-export function useProviderConnections(activeBrandId?: string | null) {
+export function useProviderConnections(activeBrandId?: string | null, activeWorkspaceId?: string | null) {
   const [connectedProviders, setConnectedProviders] = useState<Record<string, boolean>>({});
   const [connectingProvider, setConnectingProvider] = useState<string | false>(false);
 
@@ -33,7 +33,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
           Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ action: "check-status" }),
+        body: JSON.stringify({ action: "check-status", workspaceId: activeWorkspaceId ?? null }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -44,7 +44,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
     } catch (err) {
       console.error("Check connection error:", err);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => {
     void checkConnection();
@@ -83,6 +83,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
           returnPath: window.location.pathname,
           origin: window.location.origin,
           brandId: activeBrandId,
+          workspaceId: activeWorkspaceId ?? null,
         }),
       });
       const data = await response.json();
@@ -107,7 +108,7 @@ export function useProviderConnections(activeBrandId?: string | null) {
           Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ provider, action: "disconnect" }),
+        body: JSON.stringify({ provider, action: "disconnect", workspaceId: activeWorkspaceId ?? null }),
       });
       setConnectedProviders((prev) => {
         const next = { ...prev };

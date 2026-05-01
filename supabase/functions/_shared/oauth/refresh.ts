@@ -129,14 +129,15 @@ async function refreshSlack(refreshToken: string): Promise<RefreshResult> {
   return data;
 }
 
-async function markConnectionExpired(supabaseAdmin: any, userId: string, provider: string, reason: string) {
+async function markConnectionExpired(supabaseAdmin: any, userId: string, provider: string, reason: string, workspaceId?: string | null) {
   try {
-    // Mark the user_connections row so the UI can show a reconnect prompt.
-    await supabaseAdmin
+    const upd = supabaseAdmin
       .from("user_connections")
       .update({ status: "expired", metadata: { expired_at: new Date().toISOString(), reason } })
       .eq("user_id", userId)
       .eq("provider", provider);
+    if (workspaceId) upd.eq("workspace_id", workspaceId);
+    await upd;
     console.warn(`[oauth-refresh] Marked ${provider} as expired for user ${userId}: ${reason}`);
   } catch (e) {
     console.error(`[oauth-refresh] Failed to mark connection expired:`, e);
@@ -152,13 +153,16 @@ export async function getValidAccessToken(
   supabaseAdmin: any,
   userId: string,
   provider: string,
+  workspaceId?: string | null,
 ): Promise<string | null> {
-  const { data: tokenRow, error } = await supabaseAdmin
+  const query = supabaseAdmin
     .from("user_oauth_tokens")
     .select("*")
     .eq("user_id", userId)
-    .eq("provider", provider)
-    .maybeSingle();
+    .eq("provider", provider);
+  if (workspaceId) query.eq("workspace_id", workspaceId);
+  const { data: rows, error } = await query.order("updated_at", { ascending: false }).limit(1);
+  const tokenRow = rows?.[0];
 
   if (error || !tokenRow) return null;
 
@@ -170,11 +174,9 @@ export async function getValidAccessToken(
 
   // Need to refresh — but no refresh_token means we can't.
   if (!tokenRow.refresh_token) {
-    // For Slack without rotation, access_token may simply not expire — return it.
     if (provider === "slack" && !expiresAt) return tokenRow.access_token;
-    // Stripe Connect access tokens do not expire — return as-is even if expiresAt is set unexpectedly.
     if (provider === "stripe") return tokenRow.access_token;
-    await markConnectionExpired(supabaseAdmin, userId, provider, "no refresh token stored");
+    await markConnectionExpired(supabaseAdmin, userId, provider, "no refresh token stored", workspaceId ?? tokenRow.workspace_id);
     return null;
   }
 
@@ -197,9 +199,8 @@ export async function getValidAccessToken(
   }
 
   if (!refreshed.access_token) {
-    // Refresh genuinely failed (revoked, invalid_grant, etc.) — mark expired.
     const reason = refreshed.error || refreshed.error_description || "refresh_failed";
-    await markConnectionExpired(supabaseAdmin, userId, provider, reason);
+    await markConnectionExpired(supabaseAdmin, userId, provider, reason, workspaceId ?? tokenRow.workspace_id);
     return null;
   }
 
@@ -218,8 +219,7 @@ export async function getValidAccessToken(
         token_expires_at: newExpiresAt,
         updated_at: new Date().toISOString(),
       })
-      .eq("user_id", userId)
-      .eq("provider", provider);
+      .eq("id", tokenRow.id);
   } catch (e) {
     console.error(`[oauth-refresh] Failed to persist refreshed token for ${provider}:`, e);
     // We still have a valid token — return it even if persistence failed.
@@ -234,10 +234,11 @@ export async function getValidAccessToken(
 export async function getAnyMicrosoftToken(
   supabaseAdmin: any,
   userId: string,
+  workspaceId?: string | null,
 ): Promise<string | null> {
   const subs = ["microsoft", "microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
   for (const p of subs) {
-    const token = await getValidAccessToken(supabaseAdmin, userId, p);
+    const token = await getValidAccessToken(supabaseAdmin, userId, p, workspaceId);
     if (token) return token;
   }
   return null;

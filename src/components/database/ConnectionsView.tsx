@@ -20,6 +20,7 @@ import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 import logoGmail from "@/assets/logo-gmail.svg";
 import logoStripe from "@/assets/logo-stripe.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 interface Integration {
   id: string;
@@ -154,6 +155,7 @@ function ConnectionCard({
 }
 
 export function ConnectionsView() {
+  const { activeWorkspaceId } = useWorkspace();
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusLoaded, setStatusLoaded] = useState(false);
@@ -173,7 +175,7 @@ export function ConnectionsView() {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", workspaceId: activeWorkspaceId ?? null }),
         }
       );
 
@@ -186,7 +188,7 @@ export function ConnectionsView() {
     }
     setIsLoading(false);
     setStatusLoaded(true);
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
@@ -223,7 +225,7 @@ export function ConnectionsView() {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin }),
+          body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, workspaceId: activeWorkspaceId ?? null }),
         }
       );
 
@@ -254,7 +256,7 @@ export function ConnectionsView() {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: providerId, action: "disconnect" }),
+          body: JSON.stringify({ provider: providerId, action: "disconnect", workspaceId: activeWorkspaceId ?? null }),
         }
       );
 

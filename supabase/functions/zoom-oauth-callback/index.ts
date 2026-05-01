@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+import { upsertOauthToken, upsertConnection } from "../_shared/connector-upsert.ts";
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -26,6 +27,7 @@ serve(async (req) => {
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
     const logicalBrandId = state.logicalBrandId || state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     frontendUrl = state.origin || frontendUrl;
 
     if (!userId) throw new Error("No userId in state");
@@ -73,30 +75,28 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: "zoom",
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        token_expires_at: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
-          : null,
-        scopes: tokenData.scope || null,
-        provider_user_id: profile.id || null,
-        provider_email: profile.email || null,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "zoom",
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      token_expires_at: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+        : null,
+      scopes: tokenData.scope || null,
+      provider_user_id: profile.id || null,
+      provider_email: profile.email || null,
+    });
 
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: "zoom",
-        status: "connected",
-        brand_id: brandId,
-        metadata: { email: profile.email, displayName: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "zoom",
+      status: "connected",
+      brand_id: brandId,
+      metadata: { email: profile.email, displayName: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() },
+    });
 
     const brandParam = logicalBrandId ? `&brandId=${encodeURIComponent(logicalBrandId)}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=zoom${brandParam}`, 302);

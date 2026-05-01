@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+import { upsertOauthToken, upsertConnection } from "../_shared/connector-upsert.ts";
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -25,6 +26,7 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     if (!userId) throw new Error("No userId in state");
 
     if (!state.nonce || !state.hmac) throw new Error("Missing CSRF nonce");
@@ -75,28 +77,26 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: "stripe",
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        scopes: tokenData.scope || null,
-        provider_user_id: stripeUserId,
-        provider_email: providerEmail,
-        token_expires_at: null,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "stripe",
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      scopes: tokenData.scope || null,
+      provider_user_id: stripeUserId,
+      provider_email: providerEmail,
+      token_expires_at: null,
+    });
 
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: "stripe",
-        status: "connected",
-        brand_id: brandId,
-        metadata: { stripe_user_id: stripeUserId, email: providerEmail, displayName },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "stripe",
+      status: "connected",
+      brand_id: brandId,
+      metadata: { stripe_user_id: stripeUserId, email: providerEmail, displayName },
+    });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=stripe${brandParam}`, 302);
