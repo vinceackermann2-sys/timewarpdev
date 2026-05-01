@@ -383,7 +383,8 @@ export function AgentChatView({
     user,
     supabase,
     fetchWithTimeout,
-    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
+    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay, cancelPending },
+    cancelledRef,
   });
   const { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode } = transport;
 
