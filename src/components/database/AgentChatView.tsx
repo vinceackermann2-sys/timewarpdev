@@ -163,6 +163,7 @@ export function AgentChatView({
       const elapsed = Date.now() - lastActivityRef.current;
       if (elapsed < STALL_TIMEOUT_MS) return;
       stalledRef.current = true;
+      cancelledRef.current = true;
       const assistantId = activeAssistantIdRef.current;
       if (abortControllerRef.current) {
         try {
@@ -172,6 +173,9 @@ export function AgentChatView({
         }
         abortControllerRef.current = null;
       }
+      try { cancelPending?.(); } catch { /* noop */ }
+      try { signalStop("agent"); } catch { /* noop */ }
+      try { updateOverlay({ visible: false }); } catch { /* noop */ }
       if (assistantId) {
         setMessages((prev) =>
           prev.map((m) => {
