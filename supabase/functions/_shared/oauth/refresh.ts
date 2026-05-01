@@ -129,14 +129,15 @@ async function refreshSlack(refreshToken: string): Promise<RefreshResult> {
   return data;
 }
 
-async function markConnectionExpired(supabaseAdmin: any, userId: string, provider: string, reason: string) {
+async function markConnectionExpired(supabaseAdmin: any, userId: string, provider: string, reason: string, workspaceId?: string | null) {
   try {
-    // Mark the user_connections row so the UI can show a reconnect prompt.
-    await supabaseAdmin
+    const upd = supabaseAdmin
       .from("user_connections")
       .update({ status: "expired", metadata: { expired_at: new Date().toISOString(), reason } })
       .eq("user_id", userId)
       .eq("provider", provider);
+    if (workspaceId) upd.eq("workspace_id", workspaceId);
+    await upd;
     console.warn(`[oauth-refresh] Marked ${provider} as expired for user ${userId}: ${reason}`);
   } catch (e) {
     console.error(`[oauth-refresh] Failed to mark connection expired:`, e);
