@@ -388,11 +388,12 @@ export function SettingsPanel({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        {(activeTab === "settings" || activeTab === "connections") && (
+        {(activeTab === "settings" || activeTab === "connections" || activeTab === "safety") && (
           <div className="px-8 pt-8 pb-2 bg-background">
             <h2 className="text-2xl font-bold tracking-tight">
               {activeTab === "settings" && "Account Settings"}
               {activeTab === "connections" && "Connections"}
+              {activeTab === "safety" && "Safety"}
             </h2>
           </div>
         )}
