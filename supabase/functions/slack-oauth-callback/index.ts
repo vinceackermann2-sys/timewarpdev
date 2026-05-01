@@ -64,31 +64,28 @@ serve(async (req) => {
     });
 
     // Store tokens
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: "slack",
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        scopes: tokenData.scope || null,
-        provider_user_id: tokenData.authed_user?.id || null,
-        provider_email: null,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "slack",
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      scopes: tokenData.scope || null,
+      provider_user_id: tokenData.authed_user?.id || null,
+      provider_email: null,
+    });
 
     // Get team info for metadata
     const teamName = tokenData.team?.name || "Slack Workspace";
 
-    // Update user_connections scoped to brand
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: "slack",
-        status: "connected",
-        brand_id: brandId,
-        metadata: { team: teamName, team_id: tokenData.team?.id },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "slack",
+      status: "connected",
+      brand_id: brandId,
+      metadata: { team: teamName, team_id: tokenData.team?.id },
+    });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=slack${brandParam}`, 302);
