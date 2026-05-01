@@ -197,7 +197,7 @@ export function AgentChatInput({
               contentEditable
               suppressContentEditableWarning
               className="flex-1 bg-transparent border-none outline-none text-foreground text-base min-w-[120px] max-h-[120px] overflow-y-auto whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:cursor-text cursor-text"
-              data-placeholder="Ask anything… Type @ to cite a website."
+              data-placeholder="Ask anything…"
               onInput={() => {
                 onInputForMention();
               }}
