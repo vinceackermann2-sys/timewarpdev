@@ -638,7 +638,9 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     const emp = userMsg.employees?.[0];
     if (!emp) { toast.error("Select an employee to use Computer mode"); return; }
 
-    await signalStart(emp.id, emp.name);
+    const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
+    const startUrl = urlMatch ? urlMatch[0] : undefined;
+    await signalStart(emp.id, emp.name, { startUrl, focusGroup: true });
     updateOverlay({ visible: true, employeeName: emp.name, currentStep: "Starting..." });
 
     let stepCount = 0;
