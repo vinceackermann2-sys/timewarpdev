@@ -17,22 +17,16 @@ const PRODUCT_TO_PLAN: Record<string, string> = {
   "prod_U5iAwdPTbESFEa": "timewarp_og",
   "prod_U5iBwG21WwMlvs": "timewarp_og",
   "prod_U5iCei9C5DGcAg": "timewarp_og",
-  // One-time OG payment product
   "prod_UEo19ZSxK1lrq7": "timewarp_og",
 };
 
-// TimeWarp OG one-time price ID (used in create-checkout)
 const OG_ONE_TIME_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
-
-const ACTIVE_DB_STATUSES = new Set(["active", "trialing", "past_due"]);
 const ACTIVE_STRIPE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const supabaseClient = createClient(
+  const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     { auth: { persistSession: false } }
@@ -44,160 +38,104 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({
-        subscribed: false, plan: null, product_id: null, subscription_end: null,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+      return new Response(JSON.stringify({ subscribed: false, plan: null, product_id: null, subscription_end: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
     }
 
+    let body: any = {};
+    try { body = await req.json(); } catch { /* GET-style invocation */ }
+    const workspaceId: string | null = body?.workspaceId ?? null;
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user?.email) {
-      console.warn("[check-subscription] Auth failed:", userError?.message ?? "no user");
-      return new Response(JSON.stringify({
-        subscribed: false, plan: null, product_id: null, subscription_end: null,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+      return new Response(JSON.stringify({ subscribed: false, plan: null, product_id: null, subscription_end: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
     }
     const user = userData.user;
 
-    // Read current DB subscription
-    const { data: storedSubscription } = await supabaseClient
-      .from("user_subscriptions")
-      .select("plan, status, bonus_actions, actions_used")
+    if (!workspaceId) {
+      return new Response(JSON.stringify({ error: "workspaceId is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
+    }
+
+    // Confirm user is a member of the workspace
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
       .eq("user_id", user.id)
-      .order("updated_at", { ascending: false })
-      .limit(1)
+      .maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Not a workspace member" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
+    }
+
+    // Read current DB record
+    const { data: stored } = await supabase
+      .from("workspace_subscriptions")
+      .select("plan, status, stripe_customer_id, stripe_subscription_id, subscription_end")
+      .eq("workspace_id", workspaceId)
       .maybeSingle();
 
-    const fallbackPlan = storedSubscription && ACTIVE_DB_STATUSES.has(storedSubscription.status)
-      ? storedSubscription.plan
-      : null;
+    const fallbackPlan = stored && ACTIVE_STRIPE_STATUSES.has(stored.status) ? stored.plan : null;
+    const fallbackEnd = stored?.subscription_end ?? null;
 
+    // If we have a Stripe subscription id stored, verify it directly
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
-    if (customers.data.length === 0) {
-      return new Response(JSON.stringify({
-        subscribed: Boolean(fallbackPlan),
-        plan: fallbackPlan,
-        product_id: null,
-        subscription_end: null,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    const customerId = customers.data[0].id;
-
-    // Check for active recurring subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "all",
-      limit: 10,
-    });
-
-    const activeSubscription = subscriptions.data.find((s) =>
-      ACTIVE_STRIPE_STATUSES.has(s.status)
-    );
-
-    let plan = fallbackPlan;
+    let plan: string | null = fallbackPlan;
     let productId: string | null = null;
-    let subscriptionEnd: string | null = null;
+    let subscriptionEnd: string | null = fallbackEnd;
+    let stripeCustomerId: string | null = stored?.stripe_customer_id ?? null;
+    let stripeSubscriptionId: string | null = stored?.stripe_subscription_id ?? null;
+    let subscribed = !!fallbackPlan;
 
-    if (activeSubscription) {
+    if (stripeSubscriptionId) {
       try {
-        const endTs = (activeSubscription as any).current_period_end;
-        if (endTs && typeof endTs === "number" && endTs > 0) {
-          subscriptionEnd = new Date(endTs * 1000).toISOString();
+        const sub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        if (ACTIVE_STRIPE_STATUSES.has(sub.status)) {
+          subscribed = true;
+          productId = sub.items.data[0]?.price.product as string | null;
+          plan = (productId ? PRODUCT_TO_PLAN[productId] : null) || plan;
+          const endTs = (sub as any).current_period_end;
+          if (endTs) subscriptionEnd = new Date(endTs * 1000).toISOString();
+        } else {
+          subscribed = false;
+          plan = null;
         }
-      } catch (_) {
-        console.warn("Failed to parse subscription end date");
-      }
-      productId = activeSubscription.items.data[0]?.price.product as string | null;
-      plan = (productId ? PRODUCT_TO_PLAN[productId] : null) || fallbackPlan;
-    }
-
-    // Check for one-time OG payment if no active subscription found
-    if (!activeSubscription) {
-      const sessions = await stripe.checkout.sessions.list({
-        customer: customerId,
-        limit: 10,
-      });
-
-      const ogSession = sessions.data.find(
-        (s) =>
-          s.payment_status === "paid" &&
-          s.mode === "payment" &&
-          s.line_items === undefined // need to expand
-      );
-
-      // Check sessions for OG one-time payment
-      for (const session of sessions.data) {
-        if (session.payment_status === "paid" && session.mode === "payment") {
-          // Retrieve with line items to check for OG price
-          const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-            expand: ["line_items"],
-          });
-          const priceId = fullSession.line_items?.data?.[0]?.price?.id;
-          const sessionProductId = fullSession.line_items?.data?.[0]?.price?.product as string | undefined;
-          if (priceId === OG_ONE_TIME_PRICE_ID || (sessionProductId && PRODUCT_TO_PLAN[sessionProductId] === "timewarp_og")) {
-            plan = "timewarp_og";
-            productId = sessionProductId || null;
-            // OG is 3-month access from payment date
-            const paidAt = fullSession.created ? new Date(fullSession.created * 1000) : new Date();
-            const expiresAt = new Date(paidAt);
-            expiresAt.setMonth(expiresAt.getMonth() + 3);
-            subscriptionEnd = expiresAt.toISOString();
-            break;
-          }
-        }
+      } catch (e) {
+        console.warn("[check-subscription] stored sub id invalid:", (e as Error).message);
       }
     }
 
-    // Sync plan to user_subscriptions DB
+    // Persist
     if (plan) {
-      const upsertData: Record<string, any> = {
-        user_id: user.id,
+      await supabase.from("workspace_subscriptions").upsert({
+        workspace_id: workspaceId,
         plan,
         status: "active",
+        stripe_customer_id: stripeCustomerId,
+        stripe_subscription_id: stripeSubscriptionId,
+        subscription_end: subscriptionEnd,
         updated_at: new Date().toISOString(),
-      };
-
-      if (storedSubscription) {
-        // Update existing row, preserve bonus_actions and actions_used
-        await supabaseClient
-          .from("user_subscriptions")
-          .update({ plan, status: "active", updated_at: new Date().toISOString() })
-          .eq("user_id", user.id);
-      } else {
-        // Insert new row
-        await supabaseClient
-          .from("user_subscriptions")
-          .insert({
-            user_id: user.id,
-            plan,
-            status: "active",
-            actions_used: 0,
-            bonus_actions: 0,
-          });
-      }
-      console.log(`[check-subscription] Synced plan '${plan}' for user ${user.id}`);
+      }, { onConflict: "workspace_id" });
+    } else if (stored) {
+      await supabase.from("workspace_subscriptions")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("workspace_id", workspaceId);
     }
 
     return new Response(JSON.stringify({
-      subscribed: Boolean(activeSubscription || plan),
+      subscribed,
       plan,
       product_id: productId,
       subscription_end: subscriptionEnd,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+      workspace_id: workspaceId,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
   } catch (error) {
-    console.error("check-subscription error occurred", error);
-    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("check-subscription error:", error);
+    return new Response(JSON.stringify({ error: "An internal error occurred" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
   }
 });
