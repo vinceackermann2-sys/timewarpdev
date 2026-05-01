@@ -213,6 +213,7 @@ serve(async (req) => {
         hmac,
         brandId: resolvedBrandId,
         logicalBrandId: requestedBrandId,
+        workspaceId,
       };
 
       if (isMicrosoftSubService(provider)) {
