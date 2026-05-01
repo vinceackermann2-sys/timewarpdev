@@ -308,34 +308,30 @@ serve(async (req) => {
 
       const wpUser = await testRes.json();
 
-      const oauthUpsert = await supabaseAdmin.from("user_oauth_tokens").upsert(
-        {
-          user_id: user.id,
-          provider: "wordpress",
-          access_token: basicAuth,
-          refresh_token: null,
-          scopes: "posts,pages,media",
-          provider_user_id: String(wpUser.id),
-          provider_email: wpUser.email || body.username,
-        },
-        { onConflict: "user_id,provider" },
-      );
+      const oauthUpsert = await upsertOauthToken(supabaseAdmin, {
+        userId: user.id,
+        workspaceId,
+        provider: "wordpress",
+        access_token: basicAuth,
+        refresh_token: null,
+        scopes: "posts,pages,media",
+        provider_user_id: String(wpUser.id),
+        provider_email: wpUser.email || body.username,
+      });
 
       if (oauthUpsert.error) {
         console.error("connect-provider wordpress oauth upsert error", oauthUpsert.error);
         return jsonResponse({ error: "Failed to save WordPress credentials" }, 500);
       }
 
-      const connectionUpsert = await supabaseAdmin.from("user_connections").upsert(
-        {
-          user_id: user.id,
-          provider: "wordpress",
-          status: "connected",
-          brand_id: resolvedBrandId,
-          metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
-        },
-        { onConflict: "user_id,provider" },
-      );
+      const connectionUpsert = await upsertConnection(supabaseAdmin, {
+        userId: user.id,
+        workspaceId,
+        provider: "wordpress",
+        status: "connected",
+        brand_id: resolvedBrandId,
+        metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
+      });
 
       if (connectionUpsert.error) {
         console.error("connect-provider wordpress connection upsert error", connectionUpsert.error);
