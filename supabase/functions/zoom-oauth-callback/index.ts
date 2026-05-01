@@ -27,6 +27,7 @@ serve(async (req) => {
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
     const logicalBrandId = state.logicalBrandId || state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     frontendUrl = state.origin || frontendUrl;
 
     if (!userId) throw new Error("No userId in state");
