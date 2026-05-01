@@ -247,7 +247,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
   const runAgentChatWithBrowser = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const brandRowId = resolveBrandRowId();
-    await signalStart("agent", selectedAgent || "AI Agent");
+    // Hint a startUrl from the user request when one is detectable; falls back
+    // to about:blank inside the bridge. This lets the extension actually open
+    // a fresh grouped tab even on builds that ignore createNewTab without a url.
+    const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
+    const startUrl = urlMatch ? urlMatch[0] : undefined;
+    await signalStart("agent", selectedAgent || "AI Agent", { startUrl, focusGroup: true });
     updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: "Starting..." });
 
     let stepCount = 0;
