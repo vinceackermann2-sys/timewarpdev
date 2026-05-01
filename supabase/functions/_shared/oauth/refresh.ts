@@ -152,13 +152,16 @@ export async function getValidAccessToken(
   supabaseAdmin: any,
   userId: string,
   provider: string,
+  workspaceId?: string | null,
 ): Promise<string | null> {
-  const { data: tokenRow, error } = await supabaseAdmin
+  const query = supabaseAdmin
     .from("user_oauth_tokens")
     .select("*")
     .eq("user_id", userId)
-    .eq("provider", provider)
-    .maybeSingle();
+    .eq("provider", provider);
+  if (workspaceId) query.eq("workspace_id", workspaceId);
+  const { data: rows, error } = await query.order("updated_at", { ascending: false }).limit(1);
+  const tokenRow = rows?.[0];
 
   if (error || !tokenRow) return null;
 
