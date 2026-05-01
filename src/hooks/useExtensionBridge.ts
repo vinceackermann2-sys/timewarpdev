@@ -336,5 +336,6 @@ export function useExtensionBridge() {
     signalStart,
     signalStop,
     updateOverlay,
+    cancelPending,
   };
 }
