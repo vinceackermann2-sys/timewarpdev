@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ActionsDialog } from "@/components/database/ActionsDialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const ACTION_LIMITS: Record<string, number> = {
   co_founder: 100,
@@ -23,20 +24,25 @@ const ActionGateContext = createContext<ActionGateContextType>({
   refreshUsage: () => {},
 });
 
+/**
+ * Action quota is now scoped per WORKSPACE.
+ * All members of the active workspace draw from the same shared pool.
+ */
 export function ActionGateProvider({ children }: { children: ReactNode }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useAuth();
+  const { activeWorkspaceId } = useWorkspace();
 
   const { data: subData } = useQuery({
-    queryKey: ["actions-used", user?.id],
+    queryKey: ["workspace-actions-used", activeWorkspaceId],
     queryFn: async () => {
-      if (!user) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
+      if (!activeWorkspaceId) return { actions_used: 0, bonus_actions: 0, plan: null as string | null };
 
-      const { data } = await supabase
-        .from("user_subscriptions")
+      const { data } = await (supabase as any)
+        .from("workspace_subscriptions")
         .select("actions_used, bonus_actions, plan, status")
-        .eq("user_id", user.id)
+        .eq("workspace_id", activeWorkspaceId)
         .maybeSingle();
       const isActive = data?.status && ["active", "trialing", "past_due"].includes(data.status);
       return {
@@ -45,7 +51,7 @@ export function ActionGateProvider({ children }: { children: ReactNode }) {
         plan: isActive ? (data?.plan as string) ?? null : null,
       };
     },
-    enabled: !!user && !authLoading,
+    enabled: !!user && !authLoading && !!activeWorkspaceId,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -65,7 +71,8 @@ export function ActionGateProvider({ children }: { children: ReactNode }) {
   }, [remaining]);
 
   const refreshUsage = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["actions-used"] });
+    queryClient.invalidateQueries({ queryKey: ["workspace-actions-used"] });
+    queryClient.invalidateQueries({ queryKey: ["workspace-subscription"] });
   }, [queryClient]);
 
   return (
