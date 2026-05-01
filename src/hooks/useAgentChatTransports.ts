@@ -54,7 +54,6 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     cancelledRef,
   } = deps;
 
-  const isCancelled = useCallback(() => !!cancelledRef?.current, [cancelledRef]);
   const throwIfCancelled = useCallback(() => {
     if (cancelledRef?.current) throw new Error("Cancelled");
   }, [cancelledRef]);
