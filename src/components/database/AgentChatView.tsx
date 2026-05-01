@@ -64,7 +64,7 @@ export function AgentChatView({
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
-  const { extensionConnected, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
+  const { extensionConnected, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay, cancelPending } = useExtensionBridge();
 
   useProviderConnections(activeBrandId ?? undefined);
 
@@ -124,6 +124,7 @@ export function AgentChatView({
   }>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const cancelledRef = useRef<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -162,6 +163,7 @@ export function AgentChatView({
       const elapsed = Date.now() - lastActivityRef.current;
       if (elapsed < STALL_TIMEOUT_MS) return;
       stalledRef.current = true;
+      cancelledRef.current = true;
       const assistantId = activeAssistantIdRef.current;
       if (abortControllerRef.current) {
         try {
@@ -171,6 +173,9 @@ export function AgentChatView({
         }
         abortControllerRef.current = null;
       }
+      try { cancelPending?.(); } catch { /* noop */ }
+      try { signalStop("agent"); } catch { /* noop */ }
+      try { updateOverlay({ visible: false }); } catch { /* noop */ }
       if (assistantId) {
         setMessages((prev) =>
           prev.map((m) => {
@@ -382,12 +387,14 @@ export function AgentChatView({
     user,
     supabase,
     fetchWithTimeout,
-    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
+    extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay, cancelPending },
+    cancelledRef,
   });
   const { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode } = transport;
 
   const autoRunEmployee = async (emp: { id: string; name: string; role: string }) => {
     if (isSending) return;
+    cancelledRef.current = false;
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -438,6 +445,7 @@ export function AgentChatView({
 
   const handleSendMessage = async () => {
     if (isSending) return;
+    cancelledRef.current = false;
     const inputText = chatInputRef.current?.innerText?.trim() || "";
     if (!inputText && uploadedFiles.length === 0) return;
 
@@ -603,10 +611,19 @@ export function AgentChatView({
 
   const handleCancelMessage = () => {
     stalledRef.current = true;
+    cancelledRef.current = true;
+    // Abort any in-flight fetch (chat SSE / step request).
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      try { abortControllerRef.current.abort(); } catch { /* noop */ }
       abortControllerRef.current = null;
     }
+    // Resolve any pending extension promises immediately so the loop unwinds.
+    try { cancelPending?.(); } catch { /* noop */ }
+    // Tell the extension to stop and close the grouped tab.
+    try { signalStop("agent"); } catch { /* noop */ }
+    const lastEmp = [...messages].reverse().find((m) => m.employees && m.employees.length > 0)?.employees?.[0];
+    if (lastEmp?.id) { try { signalStop(lastEmp.id); } catch { /* noop */ } }
+    try { updateOverlay({ visible: false }); } catch { /* noop */ }
   };
 
   const handleResumeLongTask = async () => {

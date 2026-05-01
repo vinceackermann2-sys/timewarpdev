@@ -19,9 +19,10 @@ type BrandRow = { id: string; agentName?: string; name?: string; _rowId?: string
 export interface ExtensionBridgeActions {
   getPageContext: () => Promise<any>;
   executeAction: (action: any) => Promise<any>;
-  signalStart: (id: string, name: string) => Promise<boolean>;
+  signalStart: (id: string, name: string, opts?: { startUrl?: string; focusGroup?: boolean }) => Promise<boolean>;
   signalStop: (id: string) => void;
   updateOverlay: (state: { visible: boolean; employeeName?: string; currentStep?: string }) => void;
+  cancelPending?: () => void;
 }
 
 export interface AgentChatTransportDeps {
@@ -35,6 +36,7 @@ export interface AgentChatTransportDeps {
   supabase: SupabaseClient;
   fetchWithTimeout: (url: string, options: RequestInit, timeoutMs?: number) => Promise<Response>;
   extension: ExtensionBridgeActions;
+  cancelledRef?: { current: boolean };
 }
 
 export function useAgentChatTransports(deps: AgentChatTransportDeps) {
@@ -49,7 +51,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     supabase,
     fetchWithTimeout,
     extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
+    cancelledRef,
   } = deps;
+
+  const throwIfCancelled = useCallback(() => {
+    if (cancelledRef?.current) throw new Error("Cancelled");
+  }, [cancelledRef]);
 
   const resolveBrandRowId = useCallback(() => {
     const ab = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
@@ -239,7 +246,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
   const runAgentChatWithBrowser = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const brandRowId = resolveBrandRowId();
-    await signalStart("agent", selectedAgent || "AI Agent");
+    // Hint a startUrl from the user request when one is detectable; falls back
+    // to about:blank inside the bridge. This lets the extension actually open
+    // a fresh grouped tab even on builds that ignore createNewTab without a url.
+    const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
+    const startUrl = urlMatch ? urlMatch[0] : undefined;
+    await signalStart("agent", selectedAgent || "AI Agent", { startUrl, focusGroup: true });
     updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: "Starting..." });
 
     let stepCount = 0;
@@ -258,7 +270,9 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     try {
       while (stepCount < maxSteps) {
+        throwIfCancelled();
         const pageContext = await getPageContext();
+        throwIfCancelled();
         const stepTime = new Date();
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
 
@@ -312,6 +326,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
         let shouldContinue = false;
 
         for (const action of actions) {
+          throwIfCancelled();
           if (stepCount >= maxSteps) break;
           const stepLabel = action.reasoning || action.action;
           const timeStr = formatTime(stepTime);
@@ -355,6 +370,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
           }
 
           let result = await executeAction(action);
+          throwIfCancelled();
 
           if (!result.success && action.action === "extract" && pageContext?.pageContent) {
             result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
@@ -430,7 +446,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       updateOverlay({ visible: false });
       signalStop("agent");
     }
-  }, [setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, selectedAgent, resolveBrandRowId, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask]);
+  }, [setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, selectedAgent, resolveBrandRowId, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask, throwIfCancelled]);
 
   const runEmployeeChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const emp = userMsg.employees?.[0];
@@ -621,7 +637,9 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     const emp = userMsg.employees?.[0];
     if (!emp) { toast.error("Select an employee to use Computer mode"); return; }
 
-    await signalStart(emp.id, emp.name);
+    const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
+    const startUrl = urlMatch ? urlMatch[0] : undefined;
+    await signalStart(emp.id, emp.name, { startUrl, focusGroup: true });
     updateOverlay({ visible: true, employeeName: emp.name, currentStep: "Starting..." });
 
     let stepCount = 0;
@@ -643,7 +661,9 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     try {
       while (stepCount < maxSteps) {
+        throwIfCancelled();
         const pageContext = await getPageContext();
+        throwIfCancelled();
         const stepTime = new Date();
 
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
@@ -716,6 +736,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
         let shouldContinue = false;
 
         for (const action of actions) {
+          throwIfCancelled();
           if (stepCount >= maxSteps) break;
           const stepLabel = action.reasoning || action.action;
           const timeStr = formatTime(stepTime);
@@ -762,6 +783,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
           }
 
           let result = await executeAction(action);
+          throwIfCancelled();
 
           if (!result.success && action.action === "extract" && pageContext?.pageContent) {
             result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
@@ -840,7 +862,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       updateOverlay({ visible: false });
       signalStop(emp.id);
     }
-  }, [setMessages, brands, selectedAgent, fetchWithTimeout, activeWorkspaceId, sessionMemory, user, supabase, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask]);
+  }, [setMessages, brands, selectedAgent, fetchWithTimeout, activeWorkspaceId, sessionMemory, user, supabase, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask, throwIfCancelled]);
 
   return useMemo(
     () => ({ runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode }),
