@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { ArrowUp, FileUp, Monitor, Square, StickyNote, X } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { ArrowUp, FileUp, Monitor, Square, X } from "lucide-react";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
@@ -115,63 +115,6 @@ export function AgentChatInput({
       {composerOverlay}
 
       <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
-        <div className="px-1 pb-1 border-b border-border/40 mb-1">
-          <button
-            type="button"
-            onClick={() => setSessionMemoryOpen((o) => !o)}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
-          >
-            <StickyNote className="h-3.5 w-3.5 shrink-0" />
-            <span className="flex-1 text-left">Session memory</span>
-            <span className="text-muted-foreground text-xs">{sessionMemoryOpen ? "▾" : "▸"}</span>
-          </button>
-          {sessionMemoryOpen && (
-            <Textarea
-              value={sessionMemory}
-              onChange={(e) => setSessionMemory(e.target.value)}
-              placeholder="Notes for this thread: facts, preferences, goals (saved with the chat)."
-              className="mt-1 min-h-[72px] max-h-[160px] resize-y text-sm bg-card"
-            />
-          )}
-        </div>
-
-        {employees.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 px-1 pb-2 text-xs text-muted-foreground border-b border-border/30 mb-1">
-            <label htmlFor="chat-employee-select" className="shrink-0">
-              Employee
-            </label>
-            <select
-              id="chat-employee-select"
-              className="flex-1 min-w-[140px] max-w-[240px] rounded-lg border border-border/60 bg-card text-foreground text-xs py-1.5 px-2"
-              value={selectedChatEmployees[0]?.id ?? ""}
-              onChange={(e) => {
-                const id = e.target.value;
-                if (!id) {
-                  setSelectedChatEmployees([]);
-                  return;
-                }
-                const emp = employees.find((x) => x.id === id);
-                if (emp) setSelectedChatEmployees([{ id: emp.id, name: emp.name, role: emp.role }]);
-              }}
-            >
-              <option value="">None</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
-            </select>
-            {selectedChatEmployees[0] && onQuickRunEmployee && (
-              <button
-                type="button"
-                onClick={() => onQuickRunEmployee(selectedChatEmployees[0])}
-                className="shrink-0 rounded-lg border border-border/60 bg-muted/40 px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/70"
-              >
-                Run SOP
-              </button>
-            )}
-          </div>
-        )}
 
         {(uploadedFiles.length > 0 || (isActionMode && extensionConnected)) && (
           <div className="flex flex-wrap gap-1.5 px-1 pb-2">
