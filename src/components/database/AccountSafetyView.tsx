@@ -64,7 +64,7 @@ export function AccountSafetyView() {
         console.error("[AccountSafetyView] load failed", error);
         toast.error("Could not load safety settings");
       }
-      setSafety(data ? rowToSafety(data as DbRow) : DEFAULT_SAFETY_SETTINGS);
+      setSafety(data ? rowToSafety(data as unknown as DbRow) : DEFAULT_SAFETY_SETTINGS);
       setLoading(false);
     })();
     return () => {
