@@ -923,6 +923,8 @@ export function AgentChatView({
           onCancel={handleCancelMessage}
           onInputForMention={handleMentionInput}
           referenceSubContent={referenceSubContent}
+          referenceUrlInput={referenceUrlInput}
+          setReferenceUrlInput={setReferenceUrlInput}
         />
         )}
 
