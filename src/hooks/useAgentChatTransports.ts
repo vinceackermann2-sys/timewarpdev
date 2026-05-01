@@ -662,7 +662,9 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     try {
       while (stepCount < maxSteps) {
+        throwIfCancelled();
         const pageContext = await getPageContext();
+        throwIfCancelled();
         const stepTime = new Date();
 
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
