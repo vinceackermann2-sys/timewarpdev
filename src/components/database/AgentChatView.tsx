@@ -124,6 +124,7 @@ export function AgentChatView({
   }>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const cancelledRef = useRef<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
