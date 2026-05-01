@@ -20,6 +20,7 @@ import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 import logoGmail from "@/assets/logo-gmail.svg";
 import logoStripe from "@/assets/logo-stripe.svg";
 import { IntegrationRequestDialog } from "@/components/database/IntegrationRequestDialog";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 interface Integration {
   id: string;
