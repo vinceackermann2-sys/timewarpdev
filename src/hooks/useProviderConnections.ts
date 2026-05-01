@@ -108,7 +108,7 @@ export function useProviderConnections(activeBrandId?: string | null, activeWork
           Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ provider, action: "disconnect" }),
+        body: JSON.stringify({ provider, action: "disconnect", workspaceId: activeWorkspaceId ?? null }),
       });
       setConnectedProviders((prev) => {
         const next = { ...prev };
