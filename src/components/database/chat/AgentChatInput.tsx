@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { ArrowUp, FileUp, Monitor, Square, StickyNote, X } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { ArrowUp, FileUp, Monitor, Square, X } from "lucide-react";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
