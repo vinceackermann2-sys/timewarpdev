@@ -566,6 +566,7 @@ export type Database = {
           tab_cards: Json | null
           updated_at: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           brand_id: string
@@ -577,6 +578,7 @@ export type Database = {
           tab_cards?: Json | null
           updated_at?: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           brand_id?: string
@@ -588,6 +590,7 @@ export type Database = {
           tab_cards?: Json | null
           updated_at?: string
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: []
       }
@@ -856,6 +859,7 @@ export type Database = {
           provider: string
           status: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           brand_id?: string | null
@@ -865,6 +869,7 @@ export type Database = {
           provider: string
           status?: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           brand_id?: string | null
@@ -874,6 +879,7 @@ export type Database = {
           provider?: string
           status?: string
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -898,6 +904,7 @@ export type Database = {
           token_expires_at: string | null
           updated_at: string | null
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           access_token: string
@@ -911,6 +918,7 @@ export type Database = {
           token_expires_at?: string | null
           updated_at?: string | null
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           access_token?: string
@@ -924,6 +932,7 @@ export type Database = {
           token_expires_at?: string | null
           updated_at?: string | null
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: []
       }
