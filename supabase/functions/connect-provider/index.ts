@@ -346,25 +346,29 @@ serve(async (req) => {
         return jsonResponse({ error: "Provider is required" }, 400);
       }
 
-      const connectionUpdate = await supabaseAdmin
+      const connectionUpdate = supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
         .eq("provider", provider);
+      if (workspaceId) connectionUpdate.eq("workspace_id", workspaceId);
+      const connRes = await connectionUpdate;
 
-      if (connectionUpdate.error) {
-        console.error("connect-provider disconnect connection error", connectionUpdate.error);
+      if (connRes.error) {
+        console.error("connect-provider disconnect connection error", connRes.error);
         return jsonResponse({ error: "Failed to disconnect provider" }, 500);
       }
 
-      const tokenDelete = await supabaseAdmin
+      const tokenDelete = supabaseAdmin
         .from("user_oauth_tokens")
         .delete()
         .eq("user_id", user.id)
         .eq("provider", provider);
+      if (workspaceId) tokenDelete.eq("workspace_id", workspaceId);
+      const tokRes = await tokenDelete;
 
-      if (tokenDelete.error) {
-        console.error("connect-provider disconnect token error", tokenDelete.error);
+      if (tokRes.error) {
+        console.error("connect-provider disconnect token error", tokRes.error);
         return jsonResponse({ error: "Failed to remove stored credentials" }, 500);
       }
 
