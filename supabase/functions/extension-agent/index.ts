@@ -23,6 +23,7 @@ import {
   validateActionPayload,
   validateBrowserActions,
 } from "../_shared/guardrails.ts";
+import { loadAccountSafetySettings, mergeSafetySettings } from "../_shared/account-safety.ts";
 import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
