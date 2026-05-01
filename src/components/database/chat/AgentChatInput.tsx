@@ -46,7 +46,6 @@ export function AgentChatInput({
   onSend,
   onCancel,
   onInputForMention,
-  showReference,
   referenceSubContent,
 }: {
   composerOverlay?: ReactNode;

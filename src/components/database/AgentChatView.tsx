@@ -920,7 +920,6 @@ export function AgentChatView({
           onSend={() => void handleSendMessage()}
           onCancel={handleCancelMessage}
           onInputForMention={handleMentionInput}
-          showReference={showReference}
           referenceSubContent={referenceSubContent}
         />
         )}
