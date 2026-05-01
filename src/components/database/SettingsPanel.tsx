@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
 import { WorkspacesView } from "@/components/database/WorkspacesView";
 import PricingPage from "@/pages/PricingPage";
+import { AccountSafetyView } from "@/components/database/AccountSafetyView";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
