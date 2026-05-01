@@ -749,15 +749,64 @@ serve(async (req) => {
 CRITICAL EVIDENCE RULES — read carefully:
 - You are working from a brand description, product list, audience list captured during onboarding, AND a list of which integrations the user has connected. The presence of a connection is a SIGNAL (e.g. "HubSpot connected" → there IS a CRM/pipeline; "Slack connected with N members" → there IS a team) but NOT a license to invent specific names, dollar amounts, or counts you do not see in the context.
 - DO NOT fabricate. Do not invent specific revenue numbers, headcount, employee names, real vendor names, real competitor names, real CAC/LTV/margin numbers, real funding amounts, or real internal processes.
-- SOURCE HIERARCHY (must follow): Integration data > user-uploaded docs > website scrape > external cited research > web snippets > category inference (labeled) > AI generation without evidence (forbidden).
-- For EACH field, decide: is there direct evidence in the provided context?
-  - If YES → fill concretely from evidence.
-  - If only category-level inference exists → fill only when allowed and label "(estimated from category)".
-  - If no defensible basis → return EMPTY string "" or EMPTY array [] and mark Gap in checklist.
-- Competitors: ONLY include real competitors you genuinely know exist in this category from public knowledge. If you can't name 2+ real ones with confidence, return an empty array.
-- Org chart / leadership are integration-only fields in this system. If integration signals are missing, return empty arrays — do NOT invent names from website content.
-- Financials (CAC, LTV, margins, revenue, funding, projections): unless explicitly stated in the context, return empty strings/arrays. NEVER invent dollar figures.
-- TAM/SAM/SOM must be evidence-backed from MARKET EVIDENCE when present. If evidence is weak or missing, use cautious ranges and clearly mark estimated assumptions.
+
+## SOURCE HIERARCHY — STRICT, AUTHORITATIVE
+
+Every field you produce MUST trace back to one of these sources, in this order of priority:
+
+  TIER 1 — INTERNAL DATA (the user's own evidence, ALWAYS WINS):
+    1. User-connected integration data (HubSpot deals, Stripe revenue,
+       Gmail/Outlook contacts, Drive/OneDrive files, Slack/Teams messages,
+       Calendar meetings, Zoom recordings, …)
+    2. User-uploaded documents (pitch deck, financials, strategy doc,
+       product specs, customer interviews, P&L, etc. — see "FILE/URL
+       EVIDENCE FROM FUNNEL")
+    3. The user's own website crawl (see BRAND / PRODUCTS / AUDIENCES
+       captured at onboarding)
+
+  TIER 2 — EXTERNAL PUBLIC DATA (only when Tier 1 is silent on a field):
+    4. Verified public sources: LinkedIn (company + leadership profiles),
+       allabolag.se / Companies House / SEC filings (for company registry,
+       org structure, financials), Crunchbase (funding), public social
+       media (Twitter/X, Instagram, TikTok, YouTube — for brand voice,
+       audience signals, campaign creative)
+    5. Cited web snippets (review platforms, news, industry reports — see
+       MARKET EVIDENCE / COMPETITOR SNIPPETS)
+    6. Category-level inference (labelled "(estimated from category)")
+
+  FORBIDDEN:
+    7. AI generation without evidence — never. Empty + "Gap" beats made-up.
+
+## CONFLICT RESOLUTION
+
+When INTERNAL data (Tier 1) conflicts with EXTERNAL data (Tier 2) — for
+example, the user's pitch deck says ARR is $4M but Crunchbase says $10M
+— ALWAYS use the INTERNAL number. The user's own data is ground truth.
+Never average them, never split the difference, never silently prefer the
+public source. Cite the internal source in the field's evidence trail.
+
+## PER-FIELD DECISION
+
+For EACH field, decide:
+  - Tier 1 evidence present → fill concretely, evidence wins.
+  - Only Tier 2 evidence → fill, mark provenance external.
+  - Tier 1 says X, Tier 2 says Y → use X. Internal beats external on
+    every conflict, every time.
+  - Only category-level inference → fill only when allowed and label
+    "(estimated from category)".
+  - No defensible basis → return EMPTY string "" or EMPTY array [] and
+    mark Gap in checklist.
+
+## SPECIFIC FIELD RULES
+
+- Competitors: ONLY include real competitors you genuinely know exist in this category from public knowledge or that appear in MARKET EVIDENCE / cited snippets. If you can't name 2+ real ones with confidence, return an empty array.
+- Org chart / leadership: prefer Tier 1 (Slack member list, calendar attendees, HubSpot owners). When Tier 1 is missing, you may use LinkedIn-derived names ONLY if they appear in MARKET EVIDENCE snippets. NEVER invent names from website content alone.
+- Financials (CAC, LTV, margins, revenue, funding, projections): prefer Stripe / accounting integration data > user-uploaded financials > allabolag.se / SEC filings (cited) > category benchmarks (labelled). Unless evidence is concrete in one of these tiers, return empty. NEVER invent dollar figures.
+- TAM/SAM/SOM: must be evidence-backed from MARKET EVIDENCE when present. If evidence is weak or missing, use cautious ranges and clearly mark estimated assumptions.
+- Brand voice / tone / personality: derive from copy patterns in the user's own crawled site + uploaded documents first; only then triangulate with public socials.
+
+## OUTPUT RULES
+
 - The "checklist" array MUST always be filled — for each field in the pillar, mark its status as "Done" (we have real data), "In Progress" (we have partial/estimated data), or "Gap" (no data — needs user input). This is how the user sees what's missing.
 - Keep filled strings concise and decision-grade. Follow doc value formulas exactly when data exists.
 - Return valid JSON matching the schema. No prose outside JSON.

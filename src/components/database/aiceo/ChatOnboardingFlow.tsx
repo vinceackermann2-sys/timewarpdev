@@ -14,7 +14,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Globe, ArrowRight, Sparkles, Check, AlertCircle, RotateCcw, Telescope,
-  Loader2, CheckCircle2, WandSparkles,
+  Loader2, WandSparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeWithTimeout";
@@ -30,6 +30,8 @@ import { DEFAULT_AUDIENCE } from "@/components/database/AudienceDetailView";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import BrandOrbLogo from "@/components/ui/brand-orb-logo";
 import { cn } from "@/lib/utils";
+import { OnboardingEnrichmentInputs } from "./OnboardingEnrichmentInputs";
+import { ForgingPanel, type ForgingStage } from "./ForgingPanel";
 
 // ─── Helpers (lifted from BusinessDNAOnboarding) ──────────────────────
 const URL_EXAMPLES = [
@@ -84,13 +86,14 @@ interface DiscoveredProduct {
 }
 
 type Phase =
-  | "url"          // waiting for URL
-  | "analyzing"    // scrape-product discover running
-  | "products"     // user picking products
-  | "forging"      // scrape-product core + save-onboarding running
-  | "naming"       // user choosing agent name
-  | "supercharge"  // ask user whether to supercharge DNA with integrations/files
-  | "done";        // navigating away
+  | "url"            // waiting for URL
+  | "analyzing"      // scrape-product discover running
+  | "products"       // user picking products
+  | "enrichInputs"   // upload files / connect integrations BEFORE forging
+  | "forging"        // scrape-product core + save-onboarding running
+  | "naming"         // user choosing agent name
+  | "supercharge"    // ask user whether to supercharge DNA further (still useful for connecting more later)
+  | "done";          // navigating away
 
 interface ChatOnboardingFlowProps {
   /** Optional URL to pre-fill (from landing-page funnel ?url= param). */
@@ -136,14 +139,17 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
   const [selectedProductIdx, setSelectedProductIdx] = useState<number | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
-  // Forging / persistence
-  const [forgingTodos, setForgingTodos] = useState<{ label: string; done: boolean }[]>([
-    { label: "Confirmed arrival", done: true },
-    { label: "Establishing friendship", done: false },
-    { label: "Receiving Alien-Tech", done: false },
-    { label: "Unfair advantage received", done: false },
-    { label: "That's it - be careful", done: false },
-  ]);
+  // Pre-forge enrichment inputs (files + integrations the user added).
+  // These are passed forward into the ForgingPanel so the user sees the
+  // counters update in real time while their data is being read.
+  const [enrichInputsSummary, setEnrichInputsSummary] = useState<{
+    fileCount: number;
+    integrationCount: number;
+  }>({ fileCount: 0, integrationCount: 0 });
+
+  // Forging / persistence — tracked as a single stage so the new
+  // ForgingPanel can show a richer animated UI than the old checklist.
+  const [forgingStage, setForgingStage] = useState<ForgingStage>("crawling");
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
   const [createdBrandId, setCreatedBrandId] = useState<string | null>(null);
   const [createdBrandRowId, setCreatedBrandRowId] = useState<string | null>(null);
@@ -317,14 +323,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
     if (phase !== "forging") return;
     let cancelled = false;
     setPersistenceError(null);
-
-    const markTodo = (label: string) => {
-      setForgingTodos(prev => prev.map(t => t.label === label ? { ...t, done: true } : t));
-    };
+    setForgingStage("crawling");
 
     (async () => {
-      // Phase 1: deep extraction
-      markTodo("Establishing friendship");
+      // Stage: crawling → ingesting (deep extraction reads URL + connector
+      // signals + uploaded files in one pass on the server).
       const selectedUrl = selectedProductIdx != null ? discoveredProducts[selectedProductIdx]?.url : undefined;
 
       const { data: extractData, error: extractError } = await invokeEdgeFunction("scrape-product", {
@@ -339,10 +342,13 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         return;
       }
 
-      markTodo("Receiving Alien-Tech");
+      // Stage: ingesting → enriching → synthesizing.  We don't fake
+      // intermediate stages — just advance through them as the work goes.
+      if (enrichInputsSummary.fileCount > 0 || enrichInputsSummary.integrationCount > 0) {
+        setForgingStage("ingesting");
+      }
+      setForgingStage("enriching");
       const extracted = extractData.extracted || {};
-      const redditUsed = extractData.redditEnriched && Array.isArray(extractData.redditUrls) && extractData.redditUrls.length > 0;
-      if (redditUsed) markTodo("Unfair advantage received"); else markTodo("Unfair advantage received");
 
       const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
       const brandId = `brand-${Date.now()}`;
@@ -466,6 +472,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       const newAudiences = [...parsedAudiences, ...fallbackAudiences];
 
       if (cancelled) return;
+      setForgingStage("synthesizing");
       const { data: saveData, error: saveError } = await supabase.functions.invoke("save-onboarding", {
         body: {
           brandData: newBrand,
@@ -480,7 +487,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         setPersistenceError(saveData?.error || "Failed to save brand. Please try again.");
         return;
       }
-      markTodo("That's it - be careful");
+      setForgingStage("saving");
 
       if (saveData.workspaceId) {
         localStorage.setItem("preferred_workspace_id", saveData.workspaceId);
@@ -523,12 +530,14 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         }
       }
 
+      setForgingStage("done");
       setTimeout(() => {
         if (!cancelled) setPhase("naming");
       }, 600);
     })();
 
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   // ── Handlers ──
@@ -552,15 +561,28 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
     if (selectedProductIdx == null && discoveredProducts.length > 0) {
       setSelectedProductIdx(0);
     }
-    setForgingTodos([
-      { label: "Confirmed arrival", done: true },
-      { label: "Establishing friendship", done: false },
-      { label: "Receiving Alien-Tech", done: false },
-      { label: "Unfair advantage received", done: false },
-      { label: "That's it - be careful", done: false },
-    ]);
-    setPhase("forging");
+    // New flow: before forging, give the user the chance to upload files
+    // and connect integrations so the DNA enrichment has internal data to
+    // ground itself in (not just public website crawl).
+    setPhase("enrichInputs");
   }, [selectedProductIdx, discoveredProducts.length]);
+
+  /** Handler for the new enrichInputs phase — routes into forging. */
+  const handleEnrichInputsContinue = useCallback(
+    (summary: { fileCount: number; integrationCount: number }) => {
+      setEnrichInputsSummary(summary);
+      setForgingStage("crawling");
+      setPhase("forging");
+    },
+    [],
+  );
+
+  /** Handler for the "Skip" button on the enrichInputs phase. */
+  const handleEnrichInputsSkip = useCallback(() => {
+    setEnrichInputsSummary({ fileCount: 0, integrationCount: 0 });
+    setForgingStage("crawling");
+    setPhase("forging");
+  }, []);
 
   const handleFinishNaming = useCallback(async () => {
     const trimmed = agentName.trim();
@@ -836,7 +858,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         )}
 
         {/* Echo selected product */}
-        {(phase === "forging" || phase === "naming" || phase === "done") &&
+        {(phase === "enrichInputs" || phase === "forging" || phase === "naming" || phase === "done") &&
           selectedProductIdx != null && discoveredProducts[selectedProductIdx] && (
             <UserBubble>
               <span className="font-medium">
@@ -845,50 +867,40 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
             </UserBubble>
         )}
 
-        {/* Forging timeline */}
+        {/* Pre-forge enrichment inputs — files + integrations BEFORE forging.
+            Anything the user uploads/connects becomes the highest-priority
+            evidence source the DNA enrichment uses. */}
+        {phase === "enrichInputs" && (
+          <>
+            <AssistantBubble>
+              <p className="text-[14px] text-foreground leading-relaxed">
+                Before I forge your Business DNA — give me anything you've got.  Your data is the strongest signal I can use.  Skip if you'd rather start fast.
+              </p>
+            </AssistantBubble>
+            <UserActionCard wide>
+              <OnboardingEnrichmentInputs
+                onContinue={handleEnrichInputsContinue}
+                onSkip={handleEnrichInputsSkip}
+              />
+            </UserActionCard>
+          </>
+        )}
+
+        {/* Forging — animated data-sources panel (replaces the old checklist). */}
         {phase === "forging" && (
           <AssistantBubble>
-            <div className="rounded-xl border border-black/5 bg-background p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <p className="text-[14px] font-semibold text-foreground">Forging your Business DNA</p>
-              </div>
-              {persistenceError ? (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-red-500">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="text-sm">{persistenceError}</span>
-                  </div>
-                  <button
-                    onClick={() => { setPersistenceError(null); setPhase("forging"); }}
-                    className="self-start flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" /> Retry
-                  </button>
-                </div>
-              ) : (
-                <ul className="space-y-2">
-                  {forgingTodos.map((t, idx) => {
-                    const previousDone = idx === 0 || forgingTodos[idx - 1].done;
-                    const isActive = !t.done && previousDone;
-                    return (
-                      <li key={t.label} className="flex items-center gap-2 text-[13.5px]">
-                        {t.done ? (
-                          <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                        ) : isActive ? (
-                          <Loader2 className="w-4 h-4 text-primary shrink-0 animate-spin" />
-                        ) : (
-                          <div className="w-4 h-4 rounded-full border border-border shrink-0" />
-                        )}
-                        <span className={cn(t.done ? "text-foreground" : "text-muted-foreground")}>
-                          {t.label}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
+            <ForgingPanel
+              stage={forgingStage}
+              fileCount={enrichInputsSummary.fileCount}
+              integrationCount={enrichInputsSummary.integrationCount}
+              url={activeUrl}
+              error={persistenceError}
+              onRetry={() => {
+                setPersistenceError(null);
+                setForgingStage("crawling");
+                setPhase("forging");
+              }}
+            />
           </AssistantBubble>
         )}
 
