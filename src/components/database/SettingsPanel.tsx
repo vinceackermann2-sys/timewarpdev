@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, Users, CreditCard, Key, Loader2, Mail, User, UserPlus, Crown,
   Pencil, Trash2, X, Plus, ArrowLeft, Check, Building2, ArrowRight, Search,
-  MoreHorizontal,
+  MoreHorizontal, Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
