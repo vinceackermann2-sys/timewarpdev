@@ -84,6 +84,8 @@ export function AgentChatView({
   const [isActionMode, setIsActionMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
+  const [showGraphicsMenu, setShowGraphicsMenu] = useState(false);
+  const [showEmployeesMenu, setShowEmployeesMenu] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileChip[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
@@ -921,6 +923,8 @@ export function AgentChatView({
           onCancel={handleCancelMessage}
           onInputForMention={handleMentionInput}
           referenceSubContent={referenceSubContent}
+          referenceUrlInput={referenceUrlInput}
+          setReferenceUrlInput={setReferenceUrlInput}
         />
         )}
 
