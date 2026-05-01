@@ -20,13 +20,14 @@ import {
 } from "./dashboardTypes";
 
 /* ── People avatars (initials) ─────────────────────────────── */
+// Purple, Blue, Green, Yellow, Pink — picked by hashing the person's name
+// so each user keeps a consistent color across renders.
 const AVATAR_PALETTE = [
-  { bg: "bg-[hsl(217_100%_94%)]", text: "text-[hsl(217_70%_42%)]" },
-  { bg: "bg-[hsl(280_70%_94%)]", text: "text-[hsl(280_55%_45%)]" },
-  { bg: "bg-[hsl(25_95%_92%)]", text: "text-[hsl(25_80%_45%)]" },
-  { bg: "bg-[hsl(142_55%_92%)]", text: "text-[hsl(142_55%_32%)]" },
-  { bg: "bg-[hsl(48_100%_92%)]", text: "text-[hsl(37_85%_38%)]" },
-  { bg: "bg-[hsl(0_85%_94%)]", text: "text-[hsl(0_68%_45%)]" },
+  { bg: "bg-[hsl(280_70%_94%)]", text: "text-[hsl(280_55%_45%)]" }, // purple
+  { bg: "bg-[hsl(217_100%_94%)]", text: "text-[hsl(217_70%_42%)]" }, // blue
+  { bg: "bg-[hsl(142_55%_92%)]", text: "text-[hsl(142_55%_32%)]" }, // green
+  { bg: "bg-[hsl(48_100%_92%)]", text: "text-[hsl(37_85%_38%)]" },  // yellow
+  { bg: "bg-[hsl(335_75%_94%)]", text: "text-[hsl(335_60%_45%)]" }, // pink
 ];
 
 function hashPick<T>(seed: string, arr: T[]): T {
@@ -48,6 +49,7 @@ function PeopleAvatars() {
   const meta = (user.user_metadata || {}) as Record<string, any>;
   const avatarUrl: string | undefined = meta.avatar_url || meta.picture;
   const fullName: string = meta.full_name || meta.name || meta.display_name || user.email || "You";
+  const swatch = hashPick(fullName, AVATAR_PALETTE);
   return (
     <div className="flex -space-x-1.5" title={`Viewed by ${fullName}`}>
       {avatarUrl ? (
@@ -57,7 +59,7 @@ function PeopleAvatars() {
           className="w-6 h-6 rounded-full ring-2 ring-card object-cover"
         />
       ) : (
-        <span className="w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold bg-[hsl(217_100%_94%)] text-[hsl(217_70%_42%)]">
+        <span className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${swatch.bg} ${swatch.text}`}>
           {initials(fullName)}
         </span>
       )}
