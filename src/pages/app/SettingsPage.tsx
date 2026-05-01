@@ -9,6 +9,8 @@ const TAB_PARAM_TO_INTERNAL: Record<string, SettingsTab> = {
   workspaces: "workspace",
   plans: "plans",
   billing: "plans",
+  safety: "safety",
+  guardrails: "safety",
   connections: "connections",
 };
 
