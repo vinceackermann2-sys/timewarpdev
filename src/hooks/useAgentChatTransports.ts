@@ -863,7 +863,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       updateOverlay({ visible: false });
       signalStop(emp.id);
     }
-  }, [setMessages, brands, selectedAgent, fetchWithTimeout, activeWorkspaceId, sessionMemory, user, supabase, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask]);
+  }, [setMessages, brands, selectedAgent, fetchWithTimeout, activeWorkspaceId, sessionMemory, user, supabase, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask, throwIfCancelled]);
 
   return useMemo(
     () => ({ runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode }),
