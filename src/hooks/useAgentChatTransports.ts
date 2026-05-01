@@ -447,7 +447,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       updateOverlay({ visible: false });
       signalStop("agent");
     }
-  }, [setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, selectedAgent, resolveBrandRowId, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask]);
+  }, [setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, selectedAgent, resolveBrandRowId, getPageContext, executeAction, signalStart, signalStop, updateOverlay, timeoutForTask, throwIfCancelled]);
 
   const runEmployeeChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const emp = userMsg.employees?.[0];
