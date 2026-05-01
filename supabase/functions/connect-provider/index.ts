@@ -105,6 +105,9 @@ serve(async (req) => {
     const provider = typeof body.provider === "string" ? body.provider : "";
     const action = typeof body.action === "string" ? body.action : "";
     const brandId = typeof body.brandId === "string" ? body.brandId : null;
+    const workspaceId = typeof body.workspaceId === "string" && UUID_REGEX.test(body.workspaceId)
+      ? body.workspaceId
+      : null;
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
