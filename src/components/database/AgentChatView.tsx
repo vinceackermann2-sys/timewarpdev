@@ -605,10 +605,19 @@ export function AgentChatView({
 
   const handleCancelMessage = () => {
     stalledRef.current = true;
+    cancelledRef.current = true;
+    // Abort any in-flight fetch (chat SSE / step request).
     if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+      try { abortControllerRef.current.abort(); } catch { /* noop */ }
       abortControllerRef.current = null;
     }
+    // Resolve any pending extension promises immediately so the loop unwinds.
+    try { cancelPending?.(); } catch { /* noop */ }
+    // Tell the extension to stop and close the grouped tab.
+    try { signalStop("agent"); } catch { /* noop */ }
+    const lastEmp = [...messages].reverse().find((m) => m.employees && m.employees.length > 0)?.employees?.[0];
+    if (lastEmp?.id) { try { signalStop(lastEmp.id); } catch { /* noop */ } }
+    try { updateOverlay({ visible: false }); } catch { /* noop */ }
   };
 
   const handleResumeLongTask = async () => {
