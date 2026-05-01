@@ -31,6 +31,7 @@ import {
   validateActionPayload,
   validateBrowserActions,
 } from "../_shared/guardrails.ts";
+import { loadAccountSafetySettings, mergeSafetySettings } from "../_shared/account-safety.ts";
 import { runEmployeeRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
@@ -137,7 +138,9 @@ serve(async (req) => {
     }
 
     const effectiveBrandId = brandId || employee.linked_business_id;
-    const { identity, safetySettings } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
+    const { identity, safetySettings: brandSafety } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
+    const accountSafety = await loadAccountSafetySettings(supabase, user.id);
+    const safetySettings = mergeSafetySettings(brandSafety, accountSafety);
     const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
       userId: user.id,
       brandId: effectiveBrandId,
