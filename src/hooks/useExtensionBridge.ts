@@ -250,30 +250,70 @@ export function useExtensionBridge() {
     });
   }, []);
 
-  const signalStart = useCallback((employeeId: string, employeeName: string): Promise<boolean> => {
+  const signalStart = useCallback((employeeId: string, employeeName: string, opts?: { startUrl?: string; focusGroup?: boolean }): Promise<boolean> => {
     return new Promise((resolve) => {
       resolversRef.current.set("group_ready", resolve);
-      window.postMessage({
+      // Send multiple shapes so older/newer extension builds all create the
+      // grouped tab. Pass an explicit startUrl (about:blank by default) so the
+      // extension actually opens a new tab inside the group.
+      const startUrl = opts?.startUrl || "https://www.google.com";
+      const focusGroup = opts?.focusGroup ?? true;
+      const payload = {
         type: "TIMEWARP_EMPLOYEE_START",
         employeeId,
         employeeName,
         useTabGroup: true,
         openTab: true,
-        focusGroup: false,
+        createNewTab: true,
+        startUrl,
+        url: startUrl,
+        focusGroup,
+      };
+      window.postMessage(payload, "*");
+      // Some extension builds expect a separate "open tab" command:
+      window.postMessage({
+        type: "TIMEWARP_OPEN_GROUP_TAB",
+        employeeId,
+        employeeName,
+        url: startUrl,
+        focusGroup,
       }, "*");
-      // Fallback: resolve after 3s even if extension doesn't confirm
+      // Fallback: resolve after 5s even if extension doesn't confirm
       setTimeout(() => {
         if (resolversRef.current.has("group_ready")) {
           console.log("[ExtBridge] ⏰ Group ready timeout - proceeding anyway");
           resolversRef.current.delete("group_ready");
           resolve(false);
         }
-      }, 3000);
+      }, 5000);
     });
   }, []);
 
   const signalStop = useCallback((employeeId: string) => {
     window.postMessage({ type: "TIMEWARP_EMPLOYEE_STOP", employeeId, closeTabGroup: true }, "*");
+  }, []);
+
+  /**
+   * Hard-cancel any in-flight extension promises (page_context, action_result,
+   * group_ready) by resolving them immediately with a "cancelled" shape so the
+   * calling loop can break out instantly instead of waiting for timeouts.
+   */
+  const cancelPending = useCallback(() => {
+    const pageResolver = resolversRef.current.get("page_context");
+    if (pageResolver) {
+      resolversRef.current.delete("page_context");
+      pageResolver({});
+    }
+    const actionResolver = resolversRef.current.get("action_result");
+    if (actionResolver) {
+      resolversRef.current.delete("action_result");
+      actionResolver({ success: false, action: "cancel", error: "Cancelled" });
+    }
+    const groupResolver = resolversRef.current.get("group_ready");
+    if (groupResolver) {
+      resolversRef.current.delete("group_ready");
+      groupResolver(false);
+    }
   }, []);
 
   const updateOverlay = useCallback((state: {
