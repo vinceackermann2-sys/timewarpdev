@@ -199,9 +199,8 @@ export async function getValidAccessToken(
   }
 
   if (!refreshed.access_token) {
-    // Refresh genuinely failed (revoked, invalid_grant, etc.) — mark expired.
     const reason = refreshed.error || refreshed.error_description || "refresh_failed";
-    await markConnectionExpired(supabaseAdmin, userId, provider, reason);
+    await markConnectionExpired(supabaseAdmin, userId, provider, reason, workspaceId ?? tokenRow.workspace_id);
     return null;
   }
 
