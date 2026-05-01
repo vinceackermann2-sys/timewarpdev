@@ -26,6 +26,7 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     const logicalBrandId = state.logicalBrandId || state.brandId || null;
     // subProvider determines which granular service this is (e.g. microsoft_outlook)
     // Falls back to "microsoft" for legacy connections
