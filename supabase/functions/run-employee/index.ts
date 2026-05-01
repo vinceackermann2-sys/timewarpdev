@@ -138,7 +138,9 @@ serve(async (req) => {
     }
 
     const effectiveBrandId = brandId || employee.linked_business_id;
-    const { identity, safetySettings } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
+    const { identity, safetySettings: brandSafety } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
+    const accountSafety = await loadAccountSafetySettings(supabase, user.id);
+    const safetySettings = mergeSafetySettings(brandSafety, accountSafety);
     const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
       userId: user.id,
       brandId: effectiveBrandId,
