@@ -95,7 +95,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   );
 }
 
-export type SettingsTab = "settings" | "workspace" | "plans" | "connections";
+export type SettingsTab = "settings" | "workspace" | "plans" | "safety" | "connections";
 type Role = "owner" | "editor";
 type BillingPeriod = "monthly" | "quarterly" | "annually";
 type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
@@ -105,6 +105,7 @@ const sidebarItems = [
     { id: "settings" as SettingsTab, label: "Settings", icon: Settings },
     { id: "workspace" as SettingsTab, label: "Workspace", icon: Users },
     { id: "plans" as SettingsTab, label: "Plans & Billing", icon: CreditCard },
+    { id: "safety" as SettingsTab, label: "Safety", icon: Shield },
   ]},
 ];
 
