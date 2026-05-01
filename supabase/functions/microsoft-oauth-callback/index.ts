@@ -77,31 +77,28 @@ serve(async (req) => {
     });
 
     // Store tokens under the specific sub-provider name
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: subProvider,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        token_expires_at: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
-          : null,
-        scopes: tokenData.scope || null,
-        provider_user_id: profile.id || null,
-        provider_email: profile.mail || profile.userPrincipalName || null,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: subProvider,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      token_expires_at: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+        : null,
+      scopes: tokenData.scope || null,
+      provider_user_id: profile.id || null,
+      provider_email: profile.mail || profile.userPrincipalName || null,
+    });
 
-    // Update user_connections scoped to sub-provider
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: subProvider,
-        status: "connected",
-        brand_id: brandId,
-        metadata: { email: profile.mail || profile.userPrincipalName },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: subProvider,
+      status: "connected",
+      brand_id: brandId,
+      metadata: { email: profile.mail || profile.userPrincipalName },
+    });
 
     const brandParam = logicalBrandId ? `&brandId=${encodeURIComponent(logicalBrandId)}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=${subProvider}${brandParam}`, 302);
