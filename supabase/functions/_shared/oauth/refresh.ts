@@ -174,11 +174,9 @@ export async function getValidAccessToken(
 
   // Need to refresh — but no refresh_token means we can't.
   if (!tokenRow.refresh_token) {
-    // For Slack without rotation, access_token may simply not expire — return it.
     if (provider === "slack" && !expiresAt) return tokenRow.access_token;
-    // Stripe Connect access tokens do not expire — return as-is even if expiresAt is set unexpectedly.
     if (provider === "stripe") return tokenRow.access_token;
-    await markConnectionExpired(supabaseAdmin, userId, provider, "no refresh token stored");
+    await markConnectionExpired(supabaseAdmin, userId, provider, "no refresh token stored", workspaceId ?? tokenRow.workspace_id);
     return null;
   }
 
