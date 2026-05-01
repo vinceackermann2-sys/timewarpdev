@@ -23,6 +23,7 @@ import {
   validateActionPayload,
   validateBrowserActions,
 } from "../_shared/guardrails.ts";
+import { loadAccountSafetySettings, mergeSafetySettings } from "../_shared/account-safety.ts";
 import { extensionAgentRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
@@ -111,7 +112,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const safetySettings = await loadSafetySettings(supabase, brandId);
+    const brandSafetySettings = await loadSafetySettings(supabase, brandId);
+    const accountSafetySettings = await loadAccountSafetySettings(supabase, user.id);
+    const safetySettings = mergeSafetySettings(brandSafetySettings, accountSafetySettings);
     const identity = await loadBusinessIdentity(supabase, user.id, brandId);
     const lastUserMsg = extractLastUserMessage(messages);
     const replyContract = classifyAssistantReplyContract(lastUserMsg);

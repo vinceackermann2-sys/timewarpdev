@@ -927,6 +927,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_safety_settings: {
+        Row: {
+          created_at: string
+          custom_guardrails: Json
+          focus_enabled: boolean
+          integrity_enabled: boolean
+          moderation_categories: Json
+          prompt_injection_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_guardrails?: Json
+          focus_enabled?: boolean
+          integrity_enabled?: boolean
+          moderation_categories?: Json
+          prompt_injection_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_guardrails?: Json
+          focus_enabled?: boolean
+          integrity_enabled?: boolean
+          moderation_categories?: Json
+          prompt_injection_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_subscriptions: {
         Row: {
           actions: number

@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Settings, Users, CreditCard, Key, Loader2, Mail, User, UserPlus, Crown,
   Pencil, Trash2, X, Plus, ArrowLeft, Check, Building2, ArrowRight, Search,
-  MoreHorizontal,
+  MoreHorizontal, Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConnectionsView } from "@/components/database/ConnectionsView";
 import { WorkspacesView } from "@/components/database/WorkspacesView";
 import PricingPage from "@/pages/PricingPage";
+import { AccountSafetyView } from "@/components/database/AccountSafetyView";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -94,7 +95,7 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
   );
 }
 
-export type SettingsTab = "settings" | "workspace" | "plans" | "connections";
+export type SettingsTab = "settings" | "workspace" | "plans" | "safety" | "connections";
 type Role = "owner" | "editor";
 type BillingPeriod = "monthly" | "quarterly" | "annually";
 type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
@@ -104,6 +105,7 @@ const sidebarItems = [
     { id: "settings" as SettingsTab, label: "Settings", icon: Settings },
     { id: "workspace" as SettingsTab, label: "Workspace", icon: Users },
     { id: "plans" as SettingsTab, label: "Plans & Billing", icon: CreditCard },
+    { id: "safety" as SettingsTab, label: "Safety", icon: Shield },
   ]},
 ];
 
@@ -386,11 +388,12 @@ export function SettingsPanel({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        {(activeTab === "settings" || activeTab === "connections") && (
+        {(activeTab === "settings" || activeTab === "connections" || activeTab === "safety") && (
           <div className="px-8 pt-8 pb-2 bg-background">
             <h2 className="text-2xl font-bold tracking-tight">
               {activeTab === "settings" && "Account Settings"}
               {activeTab === "connections" && "Connections"}
+              {activeTab === "safety" && "Safety"}
             </h2>
           </div>
         )}
@@ -449,6 +452,13 @@ export function SettingsPanel({
           {activeTab === "plans" && (
             <div className="-mx-8 -my-4">
               <PricingPage embedded />
+            </div>
+          )}
+
+          {/* SAFETY TAB — account-wide guardrails applied across every AI */}
+          {activeTab === "safety" && (
+            <div className="max-w-2xl">
+              <AccountSafetyView />
             </div>
           )}
 
