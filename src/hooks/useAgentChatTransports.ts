@@ -784,6 +784,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
           }
 
           let result = await executeAction(action);
+          throwIfCancelled();
 
           if (!result.success && action.action === "extract" && pageContext?.pageContent) {
             result = { success: true, action: "extract", data: { content: pageContext.pageContent.slice(0, 5000), fallback: true } };
