@@ -390,6 +390,7 @@ export function AgentChatView({
 
   const autoRunEmployee = async (emp: { id: string; name: string; role: string }) => {
     if (isSending) return;
+    cancelledRef.current = false;
     const {
       data: { session },
     } = await supabase.auth.getSession();
