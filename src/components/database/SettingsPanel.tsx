@@ -332,10 +332,15 @@ export function SettingsPanel({
   // Plans handlers
   const handleGetStarted = async (plan: PlanKey) => {
     if (currentPlan === plan) { handleManageSubscription(); return; }
+    const wsId = localStorage.getItem("preferred_workspace_id");
+    if (!wsId) {
+      toast({ title: "Select a workspace", description: "Plans are per workspace.", variant: "destructive" });
+      return;
+    }
     setLoadingPlan(plan);
     try {
       const priceId = STRIPE_PRICES[billing][plan];
-      const { data, error } = await supabase.functions.invoke("create-checkout", { body: { priceId } });
+      const { data, error } = await supabase.functions.invoke("create-checkout", { body: { priceId, workspaceId: wsId } });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
@@ -343,11 +348,7 @@ export function SettingsPanel({
   };
 
   const handleManageSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+    toast({ title: "Manage from Stripe receipt", description: "Use the link in your Stripe receipt email to update or cancel." });
   };
 
   const getPlanButtonLabel = (plan: PlanKey) => currentPlan === plan ? "Manage Plan" : "Get Started";

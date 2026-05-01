@@ -241,8 +241,9 @@ export default function AppShell() {
 
     const verifyPurchase = async () => {
       try {
+        const wsId = localStorage.getItem("preferred_workspace_id");
         const { data, error } = await supabase.functions.invoke("verify-action-purchase", {
-          body: { sessionId: actionSession },
+          body: { sessionId: actionSession, workspaceId: wsId },
         });
         if (error) throw error;
         if (data?.granted && !data?.already_fulfilled) {

@@ -285,11 +285,16 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
       handleManageSubscription();
       return;
     }
+    const wsId = localStorage.getItem("preferred_workspace_id");
+    if (!wsId) {
+      toast({ title: "Select a workspace", description: "Plans are per workspace — open the app and pick one first.", variant: "destructive" });
+      return;
+    }
     setLoadingPlan(plan);
     try {
       const priceId = STRIPE_PRICES[billing][plan];
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId },
+        body: { priceId, workspaceId: wsId },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");
@@ -301,13 +306,7 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
   };
 
   const handleManageSubscription = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message || "Failed to open subscription management", variant: "destructive" });
-    }
+    toast({ title: "Manage from Stripe receipt", description: "Use the link in your Stripe receipt email to update or cancel." });
   };
 
   const handlePurchasePack = async (priceId: string) => {
@@ -315,10 +314,15 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
       navigate("/auth?mode=signup");
       return;
     }
+    const wsId = localStorage.getItem("preferred_workspace_id");
+    if (!wsId) {
+      toast({ title: "Select a workspace", description: "Action packs are per workspace — open the app and pick one first.", variant: "destructive" });
+      return;
+    }
     setPurchasingPriceId(priceId);
     try {
       const { data, error } = await supabase.functions.invoke("create-action-purchase", {
-        body: { priceId },
+        body: { priceId, workspaceId: wsId },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

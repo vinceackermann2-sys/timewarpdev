@@ -8,37 +8,41 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const supabaseClient = createClient(
+  const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     { auth: { persistSession: false } }
   );
 
   try {
-    const { priceId } = await req.json();
+    const { priceId, workspaceId } = await req.json();
     if (!priceId) throw new Error("priceId is required");
+    if (!workspaceId) throw new Error("workspaceId is required");
 
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data } = await supabase.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    // Verify caller is owner or editor of the workspace
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!membership || !["owner", "editor"].includes(membership.role)) {
+      return new Response(JSON.stringify({ error: "Only owners and editors can purchase a plan" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
     }
 
-    // TimeWarp OG one-time payment price
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customerId = customers.data[0]?.id;
+
     const ONE_TIME_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
     const isOneTime = priceId === ONE_TIME_PRICE_ID;
 
@@ -47,13 +51,16 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: isOneTime ? "payment" : "subscription",
-      success_url: `${req.headers.get("origin")}/app`,
+      success_url: `${req.headers.get("origin")}/app?ws=${workspaceId}`,
       cancel_url: `${req.headers.get("origin")}/pricing`,
+      metadata: { workspace_id: workspaceId, user_id: user.id, type: "plan_purchase" },
+      subscription_data: isOneTime ? undefined : {
+        metadata: { workspace_id: workspaceId, user_id: user.id },
+      },
     });
 
-    // Decrement OG spots when an OG checkout is created
     if (isOneTime) {
-      await supabaseClient.rpc("decrement_og_spots");
+      await supabase.rpc("decrement_og_spots");
     }
 
     return new Response(JSON.stringify({ url: session.url }), {
@@ -61,10 +68,8 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("create-checkout error occurred", error);
-    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("create-checkout error:", error);
+    return new Response(JSON.stringify({ error: "An internal error occurred" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
   }
 });

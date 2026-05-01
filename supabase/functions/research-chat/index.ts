@@ -137,11 +137,11 @@ serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user) {
-        // Check and increment action usage
-        const { data: actionResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
-        const result = actionResult as any;
-        if (result && !result.allowed) {
-          return new Response(JSON.stringify({ error: result.reason || "Action limit reached. Upgrade your plan." }), {
+        // Check and increment action usage against the workspace's shared pool
+        const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
+        const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId);
+        if (!usage.allowed) {
+          return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
             status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }

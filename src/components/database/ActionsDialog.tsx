@@ -98,15 +98,17 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
   };
 
   const handlePurchase = async (priceId: string) => {
+    if (!selectedWsId) {
+      toast.error("Select a workspace first");
+      return;
+    }
     setPurchasingPriceId(priceId);
     try {
       const { data, error } = await supabase.functions.invoke("create-action-purchase", {
-        body: { priceId },
+        body: { priceId, workspaceId: selectedWsId },
       });
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {
       toast.error("Failed to start purchase. Please try again.");
     } finally {

@@ -61,8 +61,13 @@ export function UpgradeGateDialog({ open, onOpenChange }: UpgradeGateDialogProps
   const handlePurchase = async () => {
     setLoading(true);
     try {
+      const wsId = localStorage.getItem("preferred_workspace_id");
+      if (!wsId) {
+        toast({ title: "Select a workspace", description: "Open the app and pick a workspace before purchasing.", variant: "destructive" });
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: TW_OG_PRICE_ID },
+        body: { priceId: TW_OG_PRICE_ID, workspaceId: wsId },
       });
       if (error) throw error;
       if (data?.url) window.open(data.url, "_blank");

@@ -1119,6 +1119,60 @@ export type Database = {
           },
         ]
       }
+      workspace_subscriptions: {
+        Row: {
+          actions_used: number
+          billing_period: Database["public"]["Enums"]["billing_period"]
+          bonus_actions: number
+          created_at: string
+          data_used_bytes: number
+          id: string
+          migrated_from_user: boolean
+          plan: Database["public"]["Enums"]["subscription_plan"] | null
+          source_user_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_end: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actions_used?: number
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          bonus_actions?: number
+          created_at?: string
+          data_used_bytes?: number
+          id?: string
+          migrated_from_user?: boolean
+          plan?: Database["public"]["Enums"]["subscription_plan"] | null
+          source_user_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          actions_used?: number
+          billing_period?: Database["public"]["Enums"]["billing_period"]
+          bonus_actions?: number
+          created_at?: string
+          data_used_bytes?: number
+          id?: string
+          migrated_from_user?: boolean
+          plan?: Database["public"]["Enums"]["subscription_plan"] | null
+          source_user_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       workspaces: {
         Row: {
           created_at: string
@@ -1161,6 +1215,14 @@ export type Database = {
         Args: { _additional_bytes: number; _user_id: string }
         Returns: Json
       }
+      check_workspace_storage_limit: {
+        Args: { _additional_bytes: number; _workspace_id: string }
+        Returns: Json
+      }
+      claim_legacy_plan_into_workspace: {
+        Args: { _workspace_id: string }
+        Returns: Json
+      }
       complete_referral: {
         Args: { _referral_code: string; _referred_user_id: string }
         Returns: Json
@@ -1192,6 +1254,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_workspace_plan: {
+        Args: { _workspace_id: string }
+        Returns: Database["public"]["Enums"]["subscription_plan"]
+      }
+      has_pending_plan_migration: { Args: never; Returns: Json }
       has_workspace_role: {
         Args: {
           _role: Database["public"]["Enums"]["workspace_role"]
@@ -1201,6 +1268,10 @@ export type Database = {
         Returns: boolean
       }
       increment_actions_used: { Args: { _user_id: string }; Returns: Json }
+      increment_workspace_actions: {
+        Args: { _workspace_id: string }
+        Returns: Json
+      }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean

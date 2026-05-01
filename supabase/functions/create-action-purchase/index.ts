@@ -8,57 +8,58 @@ const corsHeaders = {
 };
 
 const VALID_PRICE_IDS = [
-  "price_1TAvQkGKbzbe9CQLJzFOPcBL", // 50 actions - $15
-  "price_1TAvR5GKbzbe9CQLzPPcn891", // 100 actions - $30
-  "price_1TAvS9GKbzbe9CQLmpcVUOLW", // 150 actions - $45
-  "price_1TAvXcGKbzbe9CQLtQgY1kwy", // 200 actions - $60
-  "price_1TBAJTGKbzbe9CQLxrFmBDhw", // 300 actions - $85
-  "price_1TBAJoGKbzbe9CQLnIE5C2IC", // 400 actions - $100
+  "price_1TAvQkGKbzbe9CQLJzFOPcBL",
+  "price_1TAvR5GKbzbe9CQLzPPcn891",
+  "price_1TAvS9GKbzbe9CQLmpcVUOLW",
+  "price_1TAvXcGKbzbe9CQLtQgY1kwy",
+  "price_1TBAJTGKbzbe9CQLxrFmBDhw",
+  "price_1TBAJoGKbzbe9CQLnIE5C2IC",
 ];
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const supabaseClient = createClient(
+  const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
   );
 
   try {
-    const { priceId } = await req.json();
-    if (!priceId || !VALID_PRICE_IDS.includes(priceId)) {
-      throw new Error("Invalid price ID");
-    }
+    const { priceId, workspaceId } = await req.json();
+    if (!priceId || !VALID_PRICE_IDS.includes(priceId)) throw new Error("Invalid price ID");
+    if (!workspaceId) throw new Error("workspaceId is required");
 
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data } = await supabase.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    // Verify caller is owner or editor of the workspace
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!membership || !["owner", "editor"].includes(membership.role)) {
+      return new Response(JSON.stringify({ error: "Only owners and editors can purchase actions" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
     }
+
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" });
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customerId = customers.data[0]?.id;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/app?action_session={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.get("origin")}/app?action_session={CHECKOUT_SESSION_ID}&ws=${workspaceId}`,
       cancel_url: `${req.headers.get("origin")}/app`,
-      metadata: {
-        user_id: user.id,
-        type: "action_purchase",
-      },
+      metadata: { user_id: user.id, workspace_id: workspaceId, type: "action_purchase" },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
@@ -67,9 +68,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("create-action-purchase error:", error);
-    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: "An internal error occurred" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
   }
 });

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { useEffect, useRef } from "react";
 
 export type PlanType = "co_founder" | "aristotle" | "timewarp_og" | null;
@@ -51,75 +52,74 @@ const PLAN_LIMITS = {
   },
 } as const;
 
+/**
+ * Plans are scoped per WORKSPACE — not per user.
+ * Every member of the active workspace sees the same plan and shares its action pool.
+ */
 export function useSubscription() {
   const { user, isLoading: authLoading } = useAuth();
-  const stripeSyncDone = useRef(false);
+  const { activeWorkspaceId } = useWorkspace();
+  const stripeSyncDone = useRef<string | null>(null);
 
-  // Primary: read from DB table
   const { data: subscription, isLoading: queryLoading, refetch } = useQuery({
-    queryKey: ["user-subscription", user?.id],
+    queryKey: ["workspace-subscription", activeWorkspaceId],
     queryFn: async (): Promise<SubscriptionData | null> => {
-      if (!user) return null;
+      if (!activeWorkspaceId) return { subscribed: false, plan: null, product_id: null, subscription_end: null };
 
-      const { data: storedSubscription, error } = await (supabase as any)
-        .from("user_subscriptions")
-        .select("plan, status")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
+      const { data, error } = await (supabase as any)
+        .from("workspace_subscriptions")
+        .select("plan, status, subscription_end")
+        .eq("workspace_id", activeWorkspaceId)
         .maybeSingle();
 
       if (error) {
-        console.warn("Failed to fetch subscription from DB:", error.message);
+        console.warn("Failed to fetch workspace subscription:", error.message);
         return { subscribed: false, plan: null, product_id: null, subscription_end: null };
       }
 
-      if (storedSubscription && ACTIVE_SUBSCRIPTION_STATUSES.has(storedSubscription.status)) {
+      if (data && ACTIVE_SUBSCRIPTION_STATUSES.has(data.status)) {
         return {
           subscribed: true,
-          plan: storedSubscription.plan as PlanType,
-          product_id: (storedSubscription as any).product_id ?? null,
-          subscription_end: (storedSubscription as any).subscription_end ?? null,
+          plan: data.plan as PlanType,
+          product_id: null,
+          subscription_end: (data as any)?.subscription_end ?? null,
         };
       }
 
       return { subscribed: false, plan: null, product_id: null, subscription_end: null };
     },
-    enabled: !!user && !authLoading,
+    enabled: !!user && !authLoading && !!activeWorkspaceId,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  // Sync Stripe → DB at most once per 30 minutes (per session)
+  // Sync Stripe → workspace_subscriptions for the active workspace, at most once per 30 minutes
   useEffect(() => {
-    if (!user || authLoading || stripeSyncDone.current) return;
-    stripeSyncDone.current = true;
+    if (!user || authLoading || !activeWorkspaceId) return;
+    if (stripeSyncDone.current === activeWorkspaceId) return;
+    stripeSyncDone.current = activeWorkspaceId;
 
-    // Skip if we synced recently (within 30 min)
-    const lastSync = sessionStorage.getItem("stripe_sync_ts");
+    const lastSync = sessionStorage.getItem(`stripe_sync_ts_${activeWorkspaceId}`);
     if (lastSync && Date.now() - Number(lastSync) < 30 * 60 * 1000) return;
 
-    const syncFromStripe = async () => {
+    (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("check-subscription");
+        const { data, error } = await supabase.functions.invoke("check-subscription", {
+          body: { workspaceId: activeWorkspaceId },
+        });
         if (error) {
           console.warn("Stripe sync failed:", error.message);
           return;
         }
-        sessionStorage.setItem("stripe_sync_ts", String(Date.now()));
-        if (data?.plan) {
-          refetch();
-        }
+        sessionStorage.setItem(`stripe_sync_ts_${activeWorkspaceId}`, String(Date.now()));
+        if (data?.plan) refetch();
       } catch (err) {
         console.warn("Stripe sync error:", err);
       }
-    };
-
-    syncFromStripe();
-  }, [user, authLoading, refetch]);
+    })();
+  }, [user, authLoading, activeWorkspaceId, refetch]);
 
   const isLoading = authLoading || queryLoading;
-
   const plan = subscription?.plan ?? null;
   const limits = plan ? PLAN_LIMITS[plan] : FREE_LIMITS;
 

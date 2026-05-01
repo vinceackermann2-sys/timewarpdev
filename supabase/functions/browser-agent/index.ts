@@ -24,16 +24,16 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    // Check and increment action usage
-    const { data: actionResult } = await supabase.rpc("increment_actions_used", { _user_id: user.id });
-    const actionCheck = actionResult as any;
-    if (actionCheck && !actionCheck.allowed) {
-      return new Response(JSON.stringify({ error: actionCheck.reason || "Action limit reached. Upgrade your plan." }), {
+    const { messages, pageContext, workspaceId } = await req.json();
+
+    // Check and increment action usage against the workspace's shared pool
+    const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
+    const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId);
+    if (!usage.allowed) {
+      return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const { messages, pageContext } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
