@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+import { upsertOauthToken, upsertConnection } from "../_shared/connector-upsert.ts";
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -25,6 +26,7 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     if (!userId) throw new Error("No userId in state");
 
     // Verify HMAC nonce to prevent state forgery
@@ -62,31 +64,28 @@ serve(async (req) => {
     });
 
     // Store tokens
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: "slack",
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        scopes: tokenData.scope || null,
-        provider_user_id: tokenData.authed_user?.id || null,
-        provider_email: null,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "slack",
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      scopes: tokenData.scope || null,
+      provider_user_id: tokenData.authed_user?.id || null,
+      provider_email: null,
+    });
 
     // Get team info for metadata
     const teamName = tokenData.team?.name || "Slack Workspace";
 
-    // Update user_connections scoped to brand
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: "slack",
-        status: "connected",
-        brand_id: brandId,
-        metadata: { team: teamName, team_id: tokenData.team?.id },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "slack",
+      status: "connected",
+      brand_id: brandId,
+      metadata: { team: teamName, team_id: tokenData.team?.id },
+    });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=slack${brandParam}`, 302);

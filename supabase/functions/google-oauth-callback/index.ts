@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+import { upsertOauthToken, upsertConnection } from "../_shared/connector-upsert.ts";
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -24,6 +25,7 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     const subProvider = state.subProvider || null;
     const providerKey = subProvider || "google";
     if (!userId) throw new Error("No userId in state");
@@ -70,31 +72,28 @@ serve(async (req) => {
     });
 
     // Store tokens keyed by sub-provider or "google"
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: providerKey,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        token_expires_at: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
-          : null,
-        scopes: tokenData.scope || null,
-        provider_user_id: profile.id || null,
-        provider_email: profile.email || null,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: providerKey,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      token_expires_at: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+        : null,
+      scopes: tokenData.scope || null,
+      provider_user_id: profile.id || null,
+      provider_email: profile.email || null,
+    });
 
-    // Update user_connections scoped to brand
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: providerKey,
-        status: "connected",
-        brand_id: brandId,
-        metadata: { email: profile.email, name: profile.name },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: providerKey,
+      status: "connected",
+      brand_id: brandId,
+      metadata: { email: profile.email, name: profile.name },
+    });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=${providerKey}${brandParam}`, 302);

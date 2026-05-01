@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+import { upsertOauthToken, upsertConnection } from "../_shared/connector-upsert.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +106,9 @@ serve(async (req) => {
     const provider = typeof body.provider === "string" ? body.provider : "";
     const action = typeof body.action === "string" ? body.action : "";
     const brandId = typeof body.brandId === "string" ? body.brandId : null;
+    const workspaceId = typeof body.workspaceId === "string" && UUID_REGEX.test(body.workspaceId)
+      ? body.workspaceId
+      : null;
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -129,17 +133,22 @@ serve(async (req) => {
       : null;
 
     if (action === "check-status") {
-      const [connectionsResult, tokensResult] = await Promise.all([
-        supabaseAdmin
-          .from("user_connections")
-          .select("provider, status, brand_id")
-          .eq("user_id", user.id)
-          .eq("status", "connected"),
-        supabaseAdmin
-          .from("user_oauth_tokens")
-          .select("provider, provider_email")
-          .eq("user_id", user.id),
-      ]);
+      const connectionsQuery = supabaseAdmin
+        .from("user_connections")
+        .select("provider, status, brand_id, workspace_id")
+        .eq("user_id", user.id)
+        .eq("status", "connected");
+      const tokensQuery = supabaseAdmin
+        .from("user_oauth_tokens")
+        .select("provider, provider_email, workspace_id")
+        .eq("user_id", user.id);
+
+      if (workspaceId) {
+        connectionsQuery.eq("workspace_id", workspaceId);
+        tokensQuery.eq("workspace_id", workspaceId);
+      }
+
+      const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);
 
       if (connectionsResult.error) {
         console.error("connect-provider check-status connections error", connectionsResult.error);
@@ -205,6 +214,7 @@ serve(async (req) => {
         hmac,
         brandId: resolvedBrandId,
         logicalBrandId: requestedBrandId,
+        workspaceId,
       };
 
       if (isMicrosoftSubService(provider)) {
@@ -298,34 +308,30 @@ serve(async (req) => {
 
       const wpUser = await testRes.json();
 
-      const oauthUpsert = await supabaseAdmin.from("user_oauth_tokens").upsert(
-        {
-          user_id: user.id,
-          provider: "wordpress",
-          access_token: basicAuth,
-          refresh_token: null,
-          scopes: "posts,pages,media",
-          provider_user_id: String(wpUser.id),
-          provider_email: wpUser.email || body.username,
-        },
-        { onConflict: "user_id,provider" },
-      );
+      const oauthUpsert = await upsertOauthToken(supabaseAdmin, {
+        userId: user.id,
+        workspaceId,
+        provider: "wordpress",
+        access_token: basicAuth,
+        refresh_token: null,
+        scopes: "posts,pages,media",
+        provider_user_id: String(wpUser.id),
+        provider_email: wpUser.email || body.username,
+      });
 
       if (oauthUpsert.error) {
         console.error("connect-provider wordpress oauth upsert error", oauthUpsert.error);
         return jsonResponse({ error: "Failed to save WordPress credentials" }, 500);
       }
 
-      const connectionUpsert = await supabaseAdmin.from("user_connections").upsert(
-        {
-          user_id: user.id,
-          provider: "wordpress",
-          status: "connected",
-          brand_id: resolvedBrandId,
-          metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
-        },
-        { onConflict: "user_id,provider" },
-      );
+      const connectionUpsert = await upsertConnection(supabaseAdmin, {
+        userId: user.id,
+        workspaceId,
+        provider: "wordpress",
+        status: "connected",
+        brand_id: resolvedBrandId,
+        metadata: { siteUrl: normalizedUrl, username: body.username, displayName: wpUser.name },
+      });
 
       if (connectionUpsert.error) {
         console.error("connect-provider wordpress connection upsert error", connectionUpsert.error);
@@ -340,25 +346,29 @@ serve(async (req) => {
         return jsonResponse({ error: "Provider is required" }, 400);
       }
 
-      const connectionUpdate = await supabaseAdmin
+      const connectionUpdate = supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
         .eq("provider", provider);
+      if (workspaceId) connectionUpdate.eq("workspace_id", workspaceId);
+      const connRes = await connectionUpdate;
 
-      if (connectionUpdate.error) {
-        console.error("connect-provider disconnect connection error", connectionUpdate.error);
+      if (connRes.error) {
+        console.error("connect-provider disconnect connection error", connRes.error);
         return jsonResponse({ error: "Failed to disconnect provider" }, 500);
       }
 
-      const tokenDelete = await supabaseAdmin
+      const tokenDelete = supabaseAdmin
         .from("user_oauth_tokens")
         .delete()
         .eq("user_id", user.id)
         .eq("provider", provider);
+      if (workspaceId) tokenDelete.eq("workspace_id", workspaceId);
+      const tokRes = await tokenDelete;
 
-      if (tokenDelete.error) {
-        console.error("connect-provider disconnect token error", tokenDelete.error);
+      if (tokRes.error) {
+        console.error("connect-provider disconnect token error", tokRes.error);
         return jsonResponse({ error: "Failed to remove stored credentials" }, 500);
       }
 

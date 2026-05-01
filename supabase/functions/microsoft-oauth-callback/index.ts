@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+import { upsertOauthToken, upsertConnection } from "../_shared/connector-upsert.ts";
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -25,6 +26,7 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     const logicalBrandId = state.logicalBrandId || state.brandId || null;
     // subProvider determines which granular service this is (e.g. microsoft_outlook)
     // Falls back to "microsoft" for legacy connections
@@ -75,31 +77,28 @@ serve(async (req) => {
     });
 
     // Store tokens under the specific sub-provider name
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: subProvider,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        token_expires_at: tokenData.expires_in
-          ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
-          : null,
-        scopes: tokenData.scope || null,
-        provider_user_id: profile.id || null,
-        provider_email: profile.mail || profile.userPrincipalName || null,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: subProvider,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      token_expires_at: tokenData.expires_in
+        ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
+        : null,
+      scopes: tokenData.scope || null,
+      provider_user_id: profile.id || null,
+      provider_email: profile.mail || profile.userPrincipalName || null,
+    });
 
-    // Update user_connections scoped to sub-provider
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: subProvider,
-        status: "connected",
-        brand_id: brandId,
-        metadata: { email: profile.mail || profile.userPrincipalName },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: subProvider,
+      status: "connected",
+      brand_id: brandId,
+      metadata: { email: profile.mail || profile.userPrincipalName },
+    });
 
     const brandParam = logicalBrandId ? `&brandId=${encodeURIComponent(logicalBrandId)}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=${subProvider}${brandParam}`, 302);
