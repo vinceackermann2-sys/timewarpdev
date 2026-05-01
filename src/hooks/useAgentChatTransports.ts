@@ -322,6 +322,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
         let shouldContinue = false;
 
         for (const action of actions) {
+          throwIfCancelled();
           if (stepCount >= maxSteps) break;
           const stepLabel = action.reasoning || action.action;
           const timeStr = formatTime(stepTime);
