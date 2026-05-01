@@ -219,8 +219,7 @@ export async function getValidAccessToken(
         token_expires_at: newExpiresAt,
         updated_at: new Date().toISOString(),
       })
-      .eq("user_id", userId)
-      .eq("provider", provider);
+      .eq("id", tokenRow.id);
   } catch (e) {
     console.error(`[oauth-refresh] Failed to persist refreshed token for ${provider}:`, e);
     // We still have a valid token — return it even if persistence failed.
