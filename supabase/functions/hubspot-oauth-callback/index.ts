@@ -82,18 +82,17 @@ serve(async (req) => {
       : null;
 
     // Store tokens
-    await supabaseAdmin
-      .from("user_oauth_tokens")
-      .upsert({
-        user_id: userId,
-        provider: "hubspot",
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token || null,
-        scopes: tokenData.scope || null,
-        provider_user_id: providerUserId,
-        provider_email: providerEmail,
-        token_expires_at: expiresAt,
-      }, { onConflict: "user_id,provider" });
+    await upsertOauthToken(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "hubspot",
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      scopes: tokenData.scope || null,
+      provider_user_id: providerUserId,
+      provider_email: providerEmail,
+      token_expires_at: expiresAt,
+    });
 
     // Get hub info
     let hubName = "HubSpot";
@@ -107,16 +106,14 @@ serve(async (req) => {
       }
     } catch { /* skip */ }
 
-    // Update user_connections scoped to brand
-    await supabaseAdmin
-      .from("user_connections")
-      .upsert({
-        user_id: userId,
-        provider: "hubspot",
-        status: "connected",
-        brand_id: brandId,
-        metadata: { hub: hubName, email: providerEmail },
-      }, { onConflict: "user_id,provider" });
+    await upsertConnection(supabaseAdmin, {
+      userId,
+      workspaceId,
+      provider: "hubspot",
+      status: "connected",
+      brand_id: brandId,
+      metadata: { hub: hubName, email: providerEmail },
+    });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";
     return Response.redirect(`${frontendUrl}${returnPath}?oauth_success=hubspot${brandParam}`, 302);
