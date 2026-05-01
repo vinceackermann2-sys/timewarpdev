@@ -19,9 +19,10 @@ type BrandRow = { id: string; agentName?: string; name?: string; _rowId?: string
 export interface ExtensionBridgeActions {
   getPageContext: () => Promise<any>;
   executeAction: (action: any) => Promise<any>;
-  signalStart: (id: string, name: string) => Promise<boolean>;
+  signalStart: (id: string, name: string, opts?: { startUrl?: string; focusGroup?: boolean }) => Promise<boolean>;
   signalStop: (id: string) => void;
   updateOverlay: (state: { visible: boolean; employeeName?: string; currentStep?: string }) => void;
+  cancelPending?: () => void;
 }
 
 export interface AgentChatTransportDeps {
@@ -35,6 +36,7 @@ export interface AgentChatTransportDeps {
   supabase: SupabaseClient;
   fetchWithTimeout: (url: string, options: RequestInit, timeoutMs?: number) => Promise<Response>;
   extension: ExtensionBridgeActions;
+  cancelledRef?: { current: boolean };
 }
 
 export function useAgentChatTransports(deps: AgentChatTransportDeps) {
