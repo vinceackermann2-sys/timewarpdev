@@ -26,6 +26,7 @@ serve(async (req) => {
     const userId = state.userId;
     const returnPath = state.returnPath || "/";
     const brandId = state.brandId || null;
+    const workspaceId = state.workspaceId || null;
     if (!userId) throw new Error("No userId in state");
 
     if (!state.nonce || !state.hmac) throw new Error("Missing CSRF nonce");
