@@ -132,17 +132,22 @@ serve(async (req) => {
       : null;
 
     if (action === "check-status") {
-      const [connectionsResult, tokensResult] = await Promise.all([
-        supabaseAdmin
-          .from("user_connections")
-          .select("provider, status, brand_id")
-          .eq("user_id", user.id)
-          .eq("status", "connected"),
-        supabaseAdmin
-          .from("user_oauth_tokens")
-          .select("provider, provider_email")
-          .eq("user_id", user.id),
-      ]);
+      const connectionsQuery = supabaseAdmin
+        .from("user_connections")
+        .select("provider, status, brand_id, workspace_id")
+        .eq("user_id", user.id)
+        .eq("status", "connected");
+      const tokensQuery = supabaseAdmin
+        .from("user_oauth_tokens")
+        .select("provider, provider_email, workspace_id")
+        .eq("user_id", user.id);
+
+      if (workspaceId) {
+        connectionsQuery.eq("workspace_id", workspaceId);
+        tokensQuery.eq("workspace_id", workspaceId);
+      }
+
+      const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);
 
       if (connectionsResult.error) {
         console.error("connect-provider check-status connections error", connectionsResult.error);
