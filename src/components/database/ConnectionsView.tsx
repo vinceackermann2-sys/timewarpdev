@@ -188,7 +188,7 @@ export function ConnectionsView() {
     }
     setIsLoading(false);
     setStatusLoaded(true);
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
