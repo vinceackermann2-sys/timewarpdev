@@ -212,7 +212,8 @@ serve(async (req) => {
     if (insertErr || !runRow) return jsonResponse({ error: insertErr?.message || "Could not start run" }, 500);
     const runId = runRow.id;
 
-    const systemPrompt = buildSystemPrompt(agent, supervisorRole);
+    const accountSafety = await loadAccountSafetySettings(supabase, agent.user_id);
+    const systemPrompt = buildSystemPrompt(agent, supervisorRole, accountSafety);
     const userPrompt = [
       `Trigger kind: ${trigger_kind}`,
       payload ? `Payload: ${JSON.stringify(payload)}` : "Payload: (none — manual run)",
