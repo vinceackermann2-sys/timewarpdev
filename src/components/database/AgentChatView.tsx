@@ -64,7 +64,7 @@ export function AgentChatView({
   const { user } = useAuth();
   const { activeWorkspaceId } = useWorkspace();
   const { brands } = useBusinessDNA();
-  const { extensionConnected, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
+  const { extensionConnected, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay, cancelPending } = useExtensionBridge();
 
   useProviderConnections(activeBrandId ?? undefined);
 
