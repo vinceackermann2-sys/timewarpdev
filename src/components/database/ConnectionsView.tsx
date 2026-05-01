@@ -155,6 +155,7 @@ function ConnectionCard({
 }
 
 export function ConnectionsView() {
+  const { activeWorkspaceId } = useWorkspace();
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [statusLoaded, setStatusLoaded] = useState(false);
