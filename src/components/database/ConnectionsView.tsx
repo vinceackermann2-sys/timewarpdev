@@ -256,7 +256,7 @@ export function ConnectionsView() {
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: providerId, action: "disconnect" }),
+          body: JSON.stringify({ provider: providerId, action: "disconnect", workspaceId: activeWorkspaceId ?? null }),
         }
       );
 
