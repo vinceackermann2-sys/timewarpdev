@@ -51,7 +51,13 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     supabase,
     fetchWithTimeout,
     extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
+    cancelledRef,
   } = deps;
+
+  const isCancelled = useCallback(() => !!cancelledRef?.current, [cancelledRef]);
+  const throwIfCancelled = useCallback(() => {
+    if (cancelledRef?.current) throw new Error("Cancelled");
+  }, [cancelledRef]);
 
   const resolveBrandRowId = useCallback(() => {
     const ab = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
