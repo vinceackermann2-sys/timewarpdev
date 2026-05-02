@@ -47,12 +47,13 @@ export async function runDnaContextRouter(
   message: string,
   replyContract: "direct" | "live_lookup" | "strategic_plan" = "direct",
 ): Promise<DnaContextRoute> {
-  const pillars = replyContract === "strategic_plan"
-    ? (["brand","product","audience","market","financial","operations","people","growth","strategy"] as PillarId[])
-    : classifyPillars(message);
-  if (!pillars.length) {
-    return { primaryPillar: "general", relevantFieldIds: [], contextBlocks: [] };
-  }
+  // Always inject ALL 9 pillars so the assistant has complete Business DNA
+  // visibility on every turn. Keyword-classified pillars are still tracked as
+  // the "primary" pillar for prompting/citations, but field loading is global.
+  const ALL_PILLARS: PillarId[] = ["brand","product","audience","market","financial","operations","people","growth","strategy"];
+  const classified = classifyPillars(message);
+  const pillars = ALL_PILLARS;
+  const primaryPillar: PillarId | "general" = classified[0] || "general";
 
   let query = supabase
     .from("user_business_data")
