@@ -59,16 +59,21 @@ export function AgentChatMessageList({
         const rawContent = msg.content || "";
         let markdownForAssistant = rawContent;
         let sourcesFromFence: ReturnType<typeof extractAssistantSources>["attribution"] = null;
-        if (msg.role === "assistant" && !msg.isStreaming) {
+        if (msg.role === "assistant") {
           const parsed = extractAssistantSources(rawContent);
           markdownForAssistant = parsed.content;
           sourcesFromFence = parsed.attribution;
         }
         // Strip [SUGGEST:...] / [PLAN_ACTION:...] (and fences) so they never flash in markdown;
         // then strip trailing unclosed/empty code fences.
+        // Also strip any unfenced `assistant_sources {...json...}` leak (model not honoring fence) and
+        // any in-progress streaming fragment of an assistant_sources fence.
         const cleanedContent = markdownForAssistant
           .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*\[(?:SUGGEST|PLAN_ACTION):[\s\S]*?\]\s*\n?\s*```/g, "")
           .replace(/`{0,3}\*{0,2}\[(?:SUGGEST|PLAN_ACTION):[\s\S]*?\]\*{0,2}`{0,3}/g, "")
+          .replace(/```assistant_sources[\s\S]*?(?:```|$)/gi, "")
+          .replace(/\bassistant_sources\s*\{[\s\S]*?\}\s*$/i, "")
+          .replace(/\bassistant_sources\s*\{[\s\S]*?"sources"\s*:\s*\[[\s\S]*?\]\s*\}/gi, "")
           .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
           .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
           .trimEnd();
