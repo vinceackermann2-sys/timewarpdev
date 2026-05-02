@@ -72,17 +72,17 @@ export async function runDnaContextRouter(
   for (const row of allRows) {
     const body = String(row?.analyzed_content || row?.content || "");
     if (!body) continue;
+    const isBrandRow = brandId && String(row.id) === String(brandId);
     const lower = body.toLowerCase();
     const matched = fieldIds.filter((id) => lower.includes(`"${id.toLowerCase()}"`) || lower.includes(`${id.toLowerCase()}:`));
-    if (matched.length === 0) continue;
-    if (brandId && String(row.id) === String(brandId)) {
-      contextBlocks.push(`### ${row.title || "Brand Context"}\n${body.slice(0, 2400)}`);
+    if (!isBrandRow && matched.length === 0) continue;
+    if (isBrandRow) {
+      // Brand row goes first with full payload so all 9 pillars are visible.
+      contextBlocks.unshift(`### ${row.title || "Brand Context"} [all pillars]\n${body.slice(0, 6000)}`);
       continue;
     }
-    if (matched.length > 0) {
-      contextBlocks.push(`### ${row.title || row.data_type || "DNA Data"} [${matched.join(", ")}]\n${body.slice(0, 2400)}`);
-    }
-    if (contextBlocks.length >= 6) break;
+    contextBlocks.push(`### ${row.title || row.data_type || "DNA Data"} [${matched.join(", ")}]\n${body.slice(0, 2400)}`);
+    if (contextBlocks.length >= 12) break;
   }
 
   return {
