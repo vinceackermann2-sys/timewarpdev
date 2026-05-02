@@ -133,7 +133,7 @@ export function matchSkillsForMessage(message: string, maxSkills = 3): Skill[] {
   if (!message) return [];
   const lower = message.toLowerCase();
   const scored: { skill: Skill; score: number }[] = [];
-  for (const skill of skills) {
+  for (const skill of getAllSkills()) {
     let best = 0;
     for (const trigger of skill.triggers) {
       if (!trigger) continue;
