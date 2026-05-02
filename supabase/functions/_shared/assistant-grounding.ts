@@ -82,6 +82,13 @@ const CLARIFYING_QUESTIONS_BLOCK = `
 - Do **not** append gratuitous \`[SUGGEST:…]\` menus after a finished answer.
 `.trim();
 
+const OPEN_ENDED_GROWTH_BLOCK = `
+## Open-ended growth asks ("grow my business", "help us scale", …)
+- Answer in the **same turn** with a prioritized plan grounded in Business DNA, dashboard/KPI blocks, and any live rows that **literally** appear above — not with invented emails, deals, or file names.
+- **At most one** optional \`[SUGGEST:…]\` when a single decision (e.g. budget band) would materially change the plan; do **not** chain endless discovery questions.
+- If live connectors returned **no rows** or were skipped, say that plainly — never present specific connector titles as facts.
+`.trim();
+
 const TASK_STATUS_BLOCK = `
 ## Task continuation and completion (user-visible)
 - Treat the thread as **one active task** until the user’s original ask is satisfied or you are genuinely blocked on their input / missing data.
@@ -134,7 +141,7 @@ Authenticity requirements:
 /** Grounding and behavior rules appended to system prompts for assistant chat surfaces. */
 export function buildAssistantGroundingBlock(contract: AssistantReplyContract): string {
   if (contract === "live_lookup") {
-    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
   }
   if (contract === "strategic_plan") {
     return [
@@ -144,6 +151,7 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EPISTEMIC_BLOCK,
       LIVE_DATA_BLOCK,
       EXECUTIVE_LIVE_INVENTORY,
+      OPEN_ENDED_GROWTH_BLOCK,
       CLARIFYING_QUESTIONS_BLOCK,
       TASK_STATUS_BLOCK,
       RESULTS_LEARNING_BLOCK,
@@ -151,5 +159,5 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EVIDENCE_MAP_HINT,
     ].join("\n\n");
   }
-  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
 }

@@ -154,7 +154,8 @@ export function buildSkillsBlock(matched: Skill[]): string {
     "These are **methodology and framing** — not a source of private business facts. " +
     "Still ground every factual claim about this workspace in Business DNA, live connector results, dashboard/KPIs, web snapshot, or user messages.\n" +
     "When a playbook implies **web research, crawling, or connector lookups**, use the **already-injected** blocks above (Connected Sources / External web research / dashboards) in this same reply. " +
-    "Synthesize from what is present; if those sections are empty or say retrieval failed, say so plainly — do not answer as if research ran when it did not.\n\n";
+    "Synthesize from what is present; if those sections are empty or say retrieval failed, say so plainly — do not answer as if research ran when it did not.\n" +
+    "For **vague growth / strategy** asks, deliver a concrete plan first; do **not** chain many `[SUGGEST:…]` discovery rounds — at most one optional clarifier if a single fact would change the plan materially.\n\n";
   return header + matched.map(buildSkillBlock).join("\n");
 }
 

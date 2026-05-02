@@ -1,6 +1,7 @@
 /**
  * Post-check assistant markdown against live connector context to reduce invented file/email titles.
- * Only runs when live search returned concrete hits (not inventory-only / no-match shells).
+ * Runs when live search returned hits (allowlist), and when lookup returned **no** hits or there
+ * are no "### Live Data" rows — to flag lines that still read like fabricated connector items.
  */
 
 function liveSearchReturnedHits(connectionContext: string): boolean {
@@ -9,6 +10,15 @@ function liveSearchReturnedHits(connectionContext: string): boolean {
     return false;
   }
   return /### Live Data from/i.test(connectionContext);
+}
+
+function lookupIndicatesNoRows(connectionContext: string): boolean {
+  if (!connectionContext || connectionContext.length < 40) return false;
+  return /no matches|no matching|nothing matched|lookup outcome:.*no\b|0\s+matches|returned no rows/i.test(connectionContext);
+}
+
+function hasConnectedSourcesSection(connectionContext: string): boolean {
+  return /##\s*Connected Sources/i.test(connectionContext);
 }
 
 /** Pull quoted subjects and bold titles from injected live blocks (matches our search formatters). */
@@ -30,7 +40,7 @@ function buildLiveTitleAllowlist(connectionContext: string): Set<string> {
 }
 
 function lineLooksLiveGrounded(line: string): boolean {
-  return /\b(drive|onedrive|gmail|outlook|email|inbox|file|document|slack|hubspot|deal|meeting|calendar|onenote)\b/i.test(line);
+  return /\b(drive|onedrive|gmail|outlook|email|inbox|file|document|slack|hubspot|deal|meeting|calendar|onenote|thread|message from|subject:|sender)\b/i.test(line);
 }
 
 function sanitizeLineAgainstAllowlist(line: string, allow: Set<string>): string {
@@ -46,20 +56,38 @@ function sanitizeLineAgainstAllowlist(line: string, allow: Set<string>): string 
   });
 }
 
+function scrubFabricatedLiveWhenNoHits(assistantText: string): string {
+  const lower = assistantText.toLowerCase();
+  if (!/\b(gmail|outlook|drive|calendar|slack|hubspot|onedrive|onenote|zoom)\b/.test(lower)) {
+    return assistantText;
+  }
+  if (/>\s*\*No matching rows from connectors/i.test(assistantText)) return assistantText;
+  return `> *No matching rows from connectors were returned for this query. Treat any specific email, file, meeting, or deal titles below as **unverified** unless they also appear in Business DNA or user text — do not present them as live search facts.*\n\n${assistantText}`;
+}
+
 /**
  * If a line cites live tools and contains **Title** not in allowlist, soften wording.
+ * When connectors returned no rows (or no live rows at all), append a guard on suspicious lines.
  */
 export function sanitizeAssistantAgainstLiveContext(
   assistantText: string,
   connectionContext: string,
 ): string {
-  if (!assistantText || !liveSearchReturnedHits(connectionContext)) return assistantText;
+  if (!assistantText) return assistantText;
+  if (!connectionContext || connectionContext.length < 40) return assistantText;
 
-  const allow = buildLiveTitleAllowlist(connectionContext);
-  if (allow.size === 0) return assistantText;
+  if (liveSearchReturnedHits(connectionContext)) {
+    const allow = buildLiveTitleAllowlist(connectionContext);
+    if (allow.size === 0) return assistantText;
+    return assistantText
+      .split("\n")
+      .map((line) => sanitizeLineAgainstAllowlist(line, allow))
+      .join("\n");
+  }
 
-  return assistantText
-    .split("\n")
-    .map((line) => sanitizeLineAgainstAllowlist(line, allow))
-    .join("\n");
+  if (hasConnectedSourcesSection(connectionContext) && (lookupIndicatesNoRows(connectionContext) || !/### Live Data from/i.test(connectionContext))) {
+    return scrubFabricatedLiveWhenNoHits(assistantText);
+  }
+
+  return assistantText;
 }

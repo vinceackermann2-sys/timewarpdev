@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import { extractAssistantSources } from "@/lib/agentChat/parseAssistantSources";
+import { ensureAssistantSourceAttribution } from "@/lib/agentChat/ensureAssistantAttribution";
 import { extractSuggestions } from "@/lib/parseSuggestions";
 import { buildMultimodalContent } from "@/lib/agentChat/multimodal";
 import { buildConnectionTaskSteps, upsertChatTaskStep } from "@/lib/agentChat/connectionSteps";
@@ -204,7 +205,11 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
-    const { content: contentNoSources, attribution: dataSourceAttribution } = extractAssistantSources(cleanContent);
+    const { content: contentNoSources, attribution: parsedAttribution } = extractAssistantSources(cleanContent);
+    const dataSourceAttribution = ensureAssistantSourceAttribution(contentNoSources, parsedAttribution, {
+      replyContract: replyContractMeta,
+      userSnippet: userMsg.content || "",
+    });
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
     // Fold derived plan actions into the first question group so they
     // surface alongside the AI-authored options on the legacy single-card
@@ -637,7 +642,10 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(accumulatedContent || "Task completed.");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
-    const { content: contentNoSources, attribution: dataSourceAttribution } = extractAssistantSources(cleanContent);
+    const { content: contentNoSources, attribution: parsedAttribution } = extractAssistantSources(cleanContent);
+    const dataSourceAttribution = ensureAssistantSourceAttribution(contentNoSources, parsedAttribution, {
+      userSnippet: userMsg.content || "",
+    });
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
     const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
     const mergedQuestions = (() => {

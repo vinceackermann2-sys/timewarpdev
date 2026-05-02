@@ -46,6 +46,13 @@ const CATEGORY_RULES: Array<{
   requiredSlots: string[];
   questionBySlot: Record<string, string>;
 }> = [
+  // Open-ended growth — never force slot-filling; deliver from DNA + stated assumptions.
+  {
+    intent: "general",
+    re: /\b(grow my business|help me grow|grow our business|scale my business|how (do|can) i grow|business growth|grow (this|the) (business|company))\b/i,
+    requiredSlots: [],
+    questionBySlot: {},
+  },
   {
     intent: "campaign_ad_creation",
     re: /\b(campaign|ads?|creative|copy|launch|funnel|performance marketing)\b/i,
@@ -292,6 +299,7 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
       "  4. If you still need more info to finish (≤2 slots), ask ONLY the remaining missing question(s) with `[SUGGEST:Question?::A|B|C]` — after you have applied their latest answer in this reply. Put those tags **after** any partial deliverable you can show; if a remaining question blocks all further work, put that `[SUGGEST:…]` **before** long output.",
       "  5. If everything you need is already there, deliver the **full** output for the original request — no more questions.",
       "  6. If the original request was a plan / roadmap / growth strategy, complete it in one coherent deliverable (including [PLAN_ARTIFACT]…[/PLAN_ARTIFACT] when the system prompt requires it) — do not pivot to unrelated topics.",
+      "  7. **Clarification cap:** If the user has already answered **two** of your `[SUGGEST:…]` questions in this same thread (alternating user/assistant), you **must** deliver the full plan or recommendation **now** with clearly labeled assumptions — **no third round** of `[SUGGEST:…]` unless they changed the goal entirely.",
     );
     if (!result.complete && result.mandatoryQuestions.length > 0) {
       lines.push(
