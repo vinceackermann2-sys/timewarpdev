@@ -35,6 +35,7 @@ import { loadAccountSafetySettings, mergeSafetySettings } from "../_shared/accou
 import { runEmployeeRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
 import { edgeLog, userIdShort } from "../_shared/edge-logger.ts";
 import { resolveDashboardCardsForChat } from "../_shared/dashboard-chat-context.ts";
+import { normalizeChatCompletionDeltaContent } from "../_shared/gateway-stream-delta.ts";
 
 export const runEmployeeCorsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -335,8 +336,8 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
               if (data === "[DONE]") { streamDone = true; break; }
               try {
                 const parsed = JSON.parse(data);
-                const delta = parsed.choices?.[0]?.delta?.content || "";
-                if (delta) { fullContent += delta; emitContent?.(delta); }
+                const delta = normalizeChatCompletionDeltaContent(parsed.choices?.[0]?.delta?.content);
+                if (delta.length > 0) { fullContent += delta; emitContent?.(delta); }
               } catch {}
             }
             if (streamDone) break;
@@ -350,8 +351,8 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
             if (!data || data === "[DONE]") continue;
             try {
               const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content || "";
-              if (delta) { fullContent += delta; emitContent?.(delta); }
+              const delta = normalizeChatCompletionDeltaContent(parsed.choices?.[0]?.delta?.content);
+              if (delta.length > 0) { fullContent += delta; emitContent?.(delta); }
             } catch {}
           }
         }

@@ -39,6 +39,7 @@ import {
   fetchPublicWebSnapshot,
   shouldFetchPublicWebContext,
 } from "../_shared/public-web-snapshot.ts";
+import { normalizeChatCompletionDeltaContent } from "../_shared/gateway-stream-delta.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -320,8 +321,8 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             if (!data || data === "[DONE]") continue;
             try {
               const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content || "";
-              if (delta) onDelta(delta);
+              const delta = normalizeChatCompletionDeltaContent(parsed.choices?.[0]?.delta?.content);
+              if (delta.length > 0) onDelta(delta);
               const tcDeltas = parsed.choices?.[0]?.delta?.tool_calls;
               if (toolCalls && Array.isArray(tcDeltas)) {
                 for (const tc of tcDeltas) {

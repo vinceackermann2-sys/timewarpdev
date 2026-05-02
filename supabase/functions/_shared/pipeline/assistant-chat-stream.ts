@@ -1,3 +1,4 @@
+import { normalizeChatCompletionDeltaContent } from "../gateway-stream-delta.ts";
 import { runPostflightGuardrails } from "../guardrails.ts";
 import { sanitizeAssistantAgainstLiveContext } from "../live-response-guard.ts";
 import { logBusinessLearningEvent } from "../run-employee/business-brain.ts";
@@ -35,8 +36,8 @@ function parseGatewayEvent(
     if (!data || data === "[DONE]") continue;
     try {
       const parsed = JSON.parse(data);
-      const delta = parsed.choices?.[0]?.delta?.content || "";
-      if (delta) onDelta(delta);
+      const delta = normalizeChatCompletionDeltaContent(parsed.choices?.[0]?.delta?.content);
+      if (delta.length > 0) onDelta(delta);
       const tcDeltas = parsed.choices?.[0]?.delta?.tool_calls;
       if (toolCalls && Array.isArray(tcDeltas)) {
         for (const tc of tcDeltas) {

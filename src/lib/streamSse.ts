@@ -5,6 +5,23 @@
 
 import type { LiveSourceRegistry } from "./liveSourceRegistry";
 
+function normalizeSseContentDelta(raw: unknown): string {
+  if (raw == null) return "";
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw)) {
+    return raw
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object" && "text" in (part as object)) {
+          return String((part as { text?: unknown }).text ?? "");
+        }
+        return "";
+      })
+      .join("");
+  }
+  return String(raw);
+}
+
 export type AgentSseProgressStep = {
   label: string;
   status: "running" | "done" | "error";
@@ -68,8 +85,9 @@ export async function consumeAgentChatSseStream(
         const evt = JSON.parse(raw);
         if (evt.type === "progress" && evt.step && handlers.onProgressStep) {
           handlers.onProgressStep(evt.step);
-        } else if (evt.type === "content" && evt.delta && handlers.onContentDelta) {
-          handlers.onContentDelta(evt.delta);
+        } else if (evt.type === "content" && handlers.onContentDelta) {
+          const d = normalizeSseContentDelta((evt as { delta?: unknown }).delta);
+          if (d.length > 0) handlers.onContentDelta(d);
         } else if (evt.type === "dashboard_cards" && handlers.onDashboardCards) {
           handlers.onDashboardCards(evt as DashboardCardsSsePayload);
         } else if (evt.type === "live_sources" && evt.registry && handlers.onLiveSources) {
@@ -101,6 +119,34 @@ export async function consumeAgentChatSseStream(
       }
     }
   }
+  if (buffer.trim()) {
+    const line = buffer.trim();
+    if (line.startsWith("data: ")) {
+      const raw = line.slice(6).trim();
+      if (raw !== "[DONE]") {
+        try {
+          const evt = JSON.parse(raw);
+          if (evt.type === "content" && handlers.onContentDelta) {
+            const d = normalizeSseContentDelta((evt as { delta?: unknown }).delta);
+            if (d.length > 0) handlers.onContentDelta(d);
+          } else if (evt.type === "result" && handlers.onResult) {
+            handlers.onResult(evt);
+          } else if (evt.type === "error") {
+            const msg = evt.error || "Failed";
+            handlers.onErrorMessage?.(msg);
+            throw new Error(msg);
+          }
+        } catch (e: unknown) {
+          const err = e as { message?: string };
+          if (
+            err.message === "Failed"
+            || err.message === "Employee failed"
+            || err.message?.includes("Error")
+          ) throw e;
+        }
+      }
+    }
+  }
 }
 
 /** OpenAI-compatible SSE: `data: {"choices":[{"delta":{"content":"..."}}]}` */
@@ -124,8 +170,8 @@ export async function consumeOpenAiStyleSseStream(
       if (data.trim() === "[DONE]") continue;
       try {
         const parsed = JSON.parse(data);
-        const delta = parsed.choices?.[0]?.delta?.content || "";
-        if (delta) onDelta(delta);
+        const delta = normalizeSseContentDelta(parsed.choices?.[0]?.delta?.content);
+        if (delta.length > 0) onDelta(delta);
       } catch { /* partial JSON */ }
     }
   }
