@@ -29,7 +29,6 @@ import { detectUserRequestedGraphicType } from "@/lib/agentChat/graphicGate";
 import { createFetchWithTimeout } from "@/lib/agentChat/fetchWithTimeout";
 import { insertReferenceIntoChatInput } from "@/lib/agentChat/mentionHelpers";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
-import { AssistantSuggestions } from "./AssistantSuggestions";
 import { ChatOnboardingFlow } from "./aiceo/ChatOnboardingFlow";
 import { AgentChatMessageList } from "./chat/AgentChatMessageList";
 import { AgentChatInput } from "./chat/AgentChatInput";
@@ -79,7 +78,6 @@ export function AgentChatView({
 
   const [isDropupOpen, setIsDropupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [isActionMode, setIsActionMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
@@ -590,6 +588,14 @@ export function AgentChatView({
     setIsSending(false);
   };
 
+  const handleSuggestionChipSelect = ({ text }: { messageId?: string; text: string }) => {
+    if (chatInputRef.current) {
+      chatInputRef.current.innerText = text;
+      chatInputRef.current.focus();
+    }
+    setTimeout(() => void handleSendMessage(), 0);
+  };
+
   const handleCancelMessage = () => {
     stalledRef.current = true;
     cancelledRef.current = true;
@@ -777,38 +783,6 @@ export function AgentChatView({
 
   const isOnboardingActive = !hasMessages && (forceOnboarding || onboardingLocked);
 
-  const composerSuggestionOverlay =
-    !isOnboardingActive && hasMessages
-      ? (() => {
-          const lastAssistant = [...messages].reverse().find(
-            (m) => m.role === "assistant" && !m.isStreaming && m.suggestions && m.suggestions.length > 0,
-          );
-          if (!lastAssistant || dismissedSuggestionIds.has(lastAssistant.id)) return null;
-          return (
-            <div className="absolute inset-x-3 sm:inset-x-4 md:inset-x-6 bottom-3 sm:bottom-4 md:bottom-6 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <AssistantSuggestions
-                questions={lastAssistant.suggestionQuestions}
-                suggestions={lastAssistant.suggestions}
-                title={lastAssistant.suggestionTitle}
-                variant="overlay"
-                onSelect={(suggestion) => {
-                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
-                  const mapped = lastAssistant.planActionPayloads?.[suggestion];
-                  if (chatInputRef.current) {
-                    chatInputRef.current.innerText = mapped || suggestion;
-                    chatInputRef.current.focus();
-                  }
-                  setTimeout(() => void handleSendMessage(), 0);
-                }}
-                onDismiss={() => {
-                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
-                }}
-              />
-            </div>
-          );
-        })()
-      : null;
-
   return (
     <div className="h-full min-h-0 w-full flex relative overflow-hidden bg-background">
       <div className="flex-1 flex h-full min-h-0 flex-col overflow-hidden bg-background">
@@ -881,13 +855,13 @@ export function AgentChatView({
               user={user}
               setMessages={setMessages}
               logPlanLearningEvent={logPlanLearningEvent}
+              onSuggestionChipSelect={handleSuggestionChipSelect}
             />
           )}
         </main>
 
         {!isOnboardingActive && (
         <AgentChatInput
-          composerOverlay={composerSuggestionOverlay}
           dropupRef={dropupRef}
           fileInputRef={fileInputRef}
           chatInputRef={chatInputRef}

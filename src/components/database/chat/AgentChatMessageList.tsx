@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { User } from "@supabase/supabase-js";
 import ReactMarkdown from "react-markdown";
@@ -19,6 +20,7 @@ import type { ChatMessage } from "@/lib/agentChat/types";
 import { extractAssistantSources } from "@/lib/agentChat/parseAssistantSources";
 import { AssistantSourceBadges } from "./AssistantSourceBadges";
 import { TaskReportViewer } from "./TaskReportViewer";
+import { InlineAssistantQuestionChips } from "./InlineAssistantQuestionChips";
 
 export function AgentChatMessageList({
   messages,
@@ -28,6 +30,7 @@ export function AgentChatMessageList({
   user,
   setMessages,
   logPlanLearningEvent,
+  onSuggestionChipSelect,
 }: {
   messages: ChatMessage[];
   messagesEndRef: RefObject<HTMLDivElement | null>;
@@ -36,7 +39,11 @@ export function AgentChatMessageList({
   user: User | null;
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   logPlanLearningEvent: (eventType: "opened" | "completed", metadata?: Record<string, unknown>) => Promise<void>;
+  /** Fills composer and sends when user picks a [SUGGEST:] chip on an assistant message. */
+  onSuggestionChipSelect?: (opts: { messageId: string; text: string }) => void;
 }) {
+  const [dismissedInlineSuggestIds, setDismissedInlineSuggestIds] = useState<Set<string>>(() => new Set());
+
   return (
     <div className="flex-1 min-full px-4 md:px-6 py-6 space-y-5 max-w-3xl mx-auto w-full">
       {messages.map((msg, msgIndex) => {
@@ -229,6 +236,24 @@ export function AgentChatMessageList({
                       {cleanedContent}
                     </ReactMarkdown>
                   )}
+                  {msg.role === "assistant" &&
+                    !msg.isStreaming &&
+                    onSuggestionChipSelect &&
+                    !dismissedInlineSuggestIds.has(msg.id) &&
+                    ((msg.suggestionQuestions && msg.suggestionQuestions.length > 0) ||
+                      (msg.suggestions && msg.suggestions.length > 0)) && (
+                      <InlineAssistantQuestionChips
+                        message={msg}
+                        onChipSelect={(text) => onSuggestionChipSelect({ messageId: msg.id, text })}
+                        onDismiss={() =>
+                          setDismissedInlineSuggestIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(msg.id);
+                            return next;
+                          })
+                        }
+                      />
+                    )}
                   {sourceAttribution && <AssistantSourceBadges attribution={sourceAttribution} />}
                   {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
                     <div className="flex items-center gap-3 py-2">

@@ -73,13 +73,22 @@ const BREVITY_BLOCK = `
 `.trim();
 
 const CLARIFYING_QUESTIONS_BLOCK = `
-## Follow-up questions (not generic “suggestions”)
-- Use \`[SUGGEST:…]\` blocks only for **real clarifying questions** when a decision-critical input is missing — not as a generic “pick a next topic” menu after an unrelated answer.
-- If the user's request is ambiguous, ask **1–3 precise questions** before a final recommendation; scope them to goal, audience, timeframe, budget, channel, constraints, or definition of success.
+## Clarifying questions (\`[SUGGEST:…]\`) — not a “pick what’s next” menu
+- Use \`[SUGGEST:…]\` only when a **decision-critical** answer is missing and would materially change the work.
+- When **Pre-Flight: Ask These First** appears in context, put the required \`[SUGGEST:…]\` line(s) **near the top** of your reply (after at most one short sentence) so the user answers **before** you execute a large deliverable you may have to redo.
+- When you already owe substantive output in the same turn, you may place an additional \`[SUGGEST:…]\` **between** major sections only if the user must choose a fork mid-way; otherwise deliver the owed section first, then ask.
 - If enough evidence exists to answer well, do **not** ask unnecessary questions.
-- If you can still provide partial value safely, give a short provisional answer, then ask targeted follow-ups.
-- When the pre-flight block says the user is **continuing a pending request**, finish the original deliverable first — do not open a new topic.
-- Place \`[SUGGEST:…]\` **only at the end** of the message (after your main reasoning), never before or in the middle of the primary deliverable.
+- When the pre-flight block says the user is **continuing a pending request**, stay on the original task until it is done or truly blocked.
+- Do **not** append gratuitous \`[SUGGEST:…]\` menus after a finished answer.
+`.trim();
+
+const TASK_STATUS_BLOCK = `
+## Task continuation and completion (user-visible)
+- Treat the thread as **one active task** until the user’s original ask is satisfied or you are genuinely blocked on their input / missing data.
+- When **Pre-Flight: Continuing a Pending Request** appears, the latest user line is **not** a new topic — apply it, then continue the original work in the same reply.
+- When you **fully delivered** what they asked for this turn, end with a short **Status** line: **Task complete** — one sentence on what you delivered.
+- When work is **not** finished (need their answer, connector returned nothing, or multi-step work remains), end with **Still in progress:** one sentence stating what is left.
+- Never use **Task complete** if a promised lookup or deliverable is still missing.
 `.trim();
 
 const RESULTS_LEARNING_BLOCK = `
@@ -125,7 +134,7 @@ Authenticity requirements:
 /** Grounding and behavior rules appended to system prompts for assistant chat surfaces. */
 export function buildAssistantGroundingBlock(contract: AssistantReplyContract): string {
   if (contract === "live_lookup") {
-    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
   }
   if (contract === "strategic_plan") {
     return [
@@ -136,10 +145,11 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       LIVE_DATA_BLOCK,
       EXECUTIVE_LIVE_INVENTORY,
       CLARIFYING_QUESTIONS_BLOCK,
+      TASK_STATUS_BLOCK,
       RESULTS_LEARNING_BLOCK,
       STRATEGIC_PLAN_BLOCK,
       EVIDENCE_MAP_HINT,
     ].join("\n\n");
   }
-  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
 }

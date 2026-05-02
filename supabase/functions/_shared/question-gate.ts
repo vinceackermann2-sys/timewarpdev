@@ -289,7 +289,7 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
       "  1. Start with **one explicit sentence** that states how you are using the user's latest answer (quote or paraphrase it), then continue — do not skip acknowledging what they chose or typed.",
       "  2. DO NOT restart, re-introduce yourself, or treat this as a brand-new topic; stay on the original request until it is finished or you must ask a remaining clarifier.",
       "  3. Immediately apply their answer to fill missing context, then **execute** the original request (main deliverable) in the same reply when possible.",
-      "  4. If you still need more info to finish (≤2 slots), ask ONLY the remaining missing question(s) at the **end**, with one [SUGGEST:Question?::A|B|C] tag per question.",
+      "  4. If you still need more info to finish (≤2 slots), ask ONLY the remaining missing question(s) with `[SUGGEST:Question?::A|B|C]` — after you have applied their latest answer in this reply. Put those tags **after** any partial deliverable you can show; if a remaining question blocks all further work, put that `[SUGGEST:…]` **before** long output.",
       "  5. If everything you need is already there, deliver the **full** output for the original request — no more questions.",
       "  6. If the original request was a plan / roadmap / growth strategy, complete it in one coherent deliverable (including [PLAN_ARTIFACT]…[/PLAN_ARTIFACT] when the system prompt requires it) — do not pivot to unrelated topics.",
     );
@@ -333,14 +333,14 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
     `Partial answer allowed: ${result.canPartialAnswer ? "yes" : "no"}`,
     "",
     askCount === 1
-      ? "Ask exactly ONE blocking clarifying **question** first in this reply (not product suggestions — decision-critical unknowns only):"
-      : `Ask ${askCount} blocking clarifying **questions** in this reply (the UI renders one card per question as follow-ups — keep them tight):`,
+      ? "Ask exactly ONE blocking clarifying **question** in this reply (decision-critical unknowns only — not a generic “what next” menu):"
+      : `Ask ${askCount} blocking clarifying **questions** in this reply (one decision per tag — keep them tight):`,
     ...questionsToAsk.map((q, i) => `  ${i + 1}. ${q}`),
     "",
-    "Do **not** put [SUGGEST:…] tags in the middle of the main answer. Finish any substantive reply first, then place [SUGGEST:…] **only at the very end** so the user sees questions after your reasoning, not during it.",
+    "Put the required `[SUGGEST:Question?::A|B|C]` line(s) **near the top** of this reply (after at most one short sentence). The user must see and answer these **before** you spend tokens on a full deliverable you might have to redo.",
     askCount === 1
-      ? "End with exactly one [SUGGEST:Question?::A|B|C] tag (question text + 2–4 short answer chips)."
-      : `End with ${askCount} separate [SUGGEST:Question?::A|B|C] tags — one per question, in order; each with 2–4 chips.`,
+      ? "Use exactly one `[SUGGEST:Question?::A|B|C]` tag (2–4 chips)."
+      : `Use ${askCount} separate \`[SUGGEST:…]\` tags — one per question, in order; each with 2–4 chips.`,
   ];
   return lines.join("\n");
 }

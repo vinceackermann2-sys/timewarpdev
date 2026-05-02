@@ -152,7 +152,9 @@ export function buildSkillsBlock(matched: Skill[]): string {
   const header =
     "## Skill playbooks matched this turn\n" +
     "These are **methodology and framing** — not a source of private business facts. " +
-    "Still ground every factual claim about this workspace in Business DNA, live connector results, dashboard/KPIs, web snapshot, or user messages.\n\n";
+    "Still ground every factual claim about this workspace in Business DNA, live connector results, dashboard/KPIs, web snapshot, or user messages.\n" +
+    "When a playbook implies **web research, crawling, or connector lookups**, use the **already-injected** blocks above (Connected Sources / External web research / dashboards) in this same reply. " +
+    "Synthesize from what is present; if those sections are empty or say retrieval failed, say so plainly — do not answer as if research ran when it did not.\n\n";
   return header + matched.map(buildSkillBlock).join("\n");
 }
 
