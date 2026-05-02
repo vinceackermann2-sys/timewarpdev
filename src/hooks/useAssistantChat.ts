@@ -54,7 +54,7 @@ export interface AgentChatTransportDeps {
   cancelledRef?: { current: boolean };
 }
 
-export function useAgentChatTransports(deps: AgentChatTransportDeps) {
+export function useAssistantChat(deps: AgentChatTransportDeps) {
   const {
     messages,
     setMessages,
@@ -118,7 +118,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
 
     const response = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
       {
         method: "POST",
         headers: {
@@ -147,6 +147,8 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     const contentType = response.headers.get("content-type") || "";
     let fullContent = "";
     let replyContractMeta: "direct" | "live_lookup" | "strategic_plan" | undefined;
+    const toolCallsMeta: { name: string; args: Record<string, unknown> }[] = [];
+    let postFlightMeta: { score: number; confidence: string; warnings: string[] } | undefined;
 
     if (contentType.includes("text/event-stream")) {
       let streaming = "";
@@ -155,6 +157,16 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
         onContentDelta: (delta) => {
           streaming += delta;
           syncTaskSteps(streaming);
+        },
+        onToolCall: (evt) => {
+          if (evt.name) toolCallsMeta.push({ name: evt.name, args: evt.args || {} });
+        },
+        onPostFlight: (evt) => {
+          postFlightMeta = {
+            score: evt.score,
+            confidence: evt.confidence,
+            warnings: evt.warnings || [],
+          };
         },
         onDashboardCards: (evt) => {
           setMessages((prev) =>
@@ -269,6 +281,8 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       suggestionTitle: fallbackTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
+      evidenceEnforcement: typeof postFlightMeta !== "undefined" ? postFlightMeta : undefined,
+      memoryOps: toolCallsMeta.length > 0 ? toolCallsMeta : undefined,
       replyContract: replyContractMeta,
       taskSteps: [...taskSteps],
       elapsedSeconds:
@@ -321,7 +335,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
 
         const response = await fetchWithTimeout(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extension-agent`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
           {
             method: "POST",
             headers: {
@@ -544,7 +558,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       needsContinuation = false;
 
       const response = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
         {
           method: "POST",
           headers: {
@@ -739,7 +753,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
 
         const response = await fetchWithTimeout(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
           {
             method: "POST",
             headers: {

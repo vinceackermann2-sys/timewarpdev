@@ -41,6 +41,8 @@ project_id = "ohvxqlxugqlzzbmfypiy"
     verify_jwt = false
   [functions.run-employee]
     verify_jwt = false
+  [functions.assistant-chat]
+    verify_jwt = false
   [functions.supercharge-dna]
     verify_jwt = false
   [functions.assistant-insight-feedback]

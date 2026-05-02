@@ -49,33 +49,39 @@ function parseFrontmatter(raw: string): { fm: SkillFrontmatter; body: string } {
 // /tmp/build_skills.mjs whenever skills change) and load from there.
 import { SKILL_BUNDLE } from "./_skills_bundle.ts";
 
-const skills: Skill[] = [];
+let skillsCache: Skill[] | null = null;
 
-for (const [slug, raw] of Object.entries(SKILL_BUNDLE)) {
-  try {
-    const { fm, body } = parseFrontmatter(raw);
-    skills.push({
-      slug,
-      name: fm.name || slug,
-      pillars: fm.pillars || [],
-      surface: fm.surface || "assistant-chat",
-      triggers: (fm.trigger as any) || [],
-      body,
-      raw,
-    });
-  } catch (e) {
-    console.warn(`[skill-router] failed to parse ${slug}:`, (e as Error).message);
+/** JIT: parse the precompiled bundle on first matcher use (faster cold start than eager init). */
+function getAllSkills(): Skill[] {
+  if (skillsCache) return skillsCache;
+  const skills: Skill[] = [];
+  for (const [slug, raw] of Object.entries(SKILL_BUNDLE)) {
+    try {
+      const { fm, body } = parseFrontmatter(raw);
+      skills.push({
+        slug,
+        name: fm.name || slug,
+        pillars: fm.pillars || [],
+        surface: fm.surface || "assistant-chat",
+        triggers: (fm.trigger as any) || [],
+        body,
+        raw,
+      });
+    } catch (e) {
+      console.warn(`[skill-router] failed to parse ${slug}:`, (e as Error).message);
+    }
   }
+  skillsCache = skills;
+  console.log(`[skill-router] loaded ${skills.length} skills from bundle (lazy)`);
+  return skills;
 }
-
-console.log(`[skill-router] loaded ${skills.length} skills from bundle`);
 
 // --- Matching ---
 export function matchSkill(message: string): Skill | null {
   if (!message) return null;
   const lower = message.toLowerCase();
   let best: { skill: Skill; score: number } | null = null;
-  for (const skill of skills) {
+  for (const skill of getAllSkills()) {
     for (const trigger of skill.triggers) {
       if (!trigger) continue;
       if (lower.includes(trigger)) {
@@ -160,11 +166,11 @@ export function buildSkillsBlock(matched: Skill[]): string {
 }
 
 export function getSkill(slug: string): Skill | null {
-  return skills.find((s) => s.slug === slug) ?? null;
+  return getAllSkills().find((s) => s.slug === slug) ?? null;
 }
 
 export function listSkills(): Skill[] {
-  return skills;
+  return getAllSkills();
 }
 
 // Build the inject block for the system prompt.

@@ -37,6 +37,25 @@ export const extensionAgentRequestSchema = z.object({
 
 export type ExtensionAgentRequest = z.infer<typeof extensionAgentRequestSchema>;
 
+/** Unified assistant-chat: agent surface + optional employee (same fields as extension-agent ∪ run-employee). */
+export const assistantChatRequestSchema = z.object({
+  employee_id: z.string().min(1).optional().nullable(),
+  messages: z.array(messagePart).default([]),
+  pageContext: z.any().optional().nullable(),
+  brandId: z.string().optional().nullable(),
+  workspaceId: z.string().optional().nullable(),
+  browserMode: z.boolean().optional(),
+  sessionMemory: z.string().optional().nullable(),
+  taskType: z.enum(["chat", "crawl", "enrichment"]).optional(),
+  skip_action: z.boolean().optional(),
+  continuationContent: z.string().optional().nullable(),
+  connectionQuery: z.string().optional().nullable(),
+  continuationKey: z.string().min(8).max(128).optional().nullable(),
+  continuationIndex: z.number().int().min(0).max(100).optional(),
+});
+
+export type AssistantChatRequest = z.infer<typeof assistantChatRequestSchema>;
+
 export const assistantInsightFeedbackRequestSchema = z.object({
   businessId: z.string().min(1),
   workspaceId: z.string().uuid().nullable().optional(),

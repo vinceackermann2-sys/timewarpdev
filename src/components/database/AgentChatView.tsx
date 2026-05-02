@@ -16,7 +16,7 @@ import { useBusinessDNA } from "./BusinessDNAContext";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
 import type { ChatMessage } from "@/lib/agentChat/types";
 import { isExplicitEmployeeComputerRequest } from "@/lib/agentChat/computerModePatterns";
-import { useAgentChatTransports } from "@/hooks/useAgentChatTransports";
+import { useAssistantChat } from "@/hooks/useAssistantChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
@@ -368,7 +368,7 @@ export function AgentChatView({
 
   const fetchWithTimeout = useMemo(() => createFetchWithTimeout(abortControllerRef), []);
 
-  const transport = useAgentChatTransports({
+  const transport = useAssistantChat({
     messages,
     setMessages,
     brands,

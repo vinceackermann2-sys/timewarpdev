@@ -568,7 +568,7 @@ export async function logBusinessLearningEvent(
     workspaceId?: string;
     businessId?: string;
     employeeId?: string;
-    agentSurface: "run-employee" | "extension-agent";
+    agentSurface: "run-employee" | "extension-agent" | "assistant-chat";
     mode: "chat" | "browser";
     userMessage: string;
     assistantResponse: string;

@@ -6,6 +6,7 @@ export {
   consumeOpenAiStyleSseStream,
   type AgentSseHandlers,
   type AgentSseProgressStep,
+  type PostFlightSsePayload,
 } from "./streamSse";
 
 export { consumeNdjsonStream } from "./streamNdjson";

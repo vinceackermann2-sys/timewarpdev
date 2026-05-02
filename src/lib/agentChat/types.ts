@@ -40,6 +40,10 @@ export interface ChatMessage {
   suggestionQuestions?: SuggestionGroup[];
   planActionPayloads?: Record<string, string>;
   evidenceAudit?: { status: "pass" | "warn"; score: number; warnings: string[] };
+  /** Server post-flight evidence enforcement (assistant-chat SSE). */
+  evidenceEnforcement?: { score: number; confidence: string; warnings: string[] };
+  /** Tool invocations surfaced from the assistant-chat stream (e.g. memory_write). */
+  memoryOps?: { name: string; args: Record<string, unknown> }[];
   replyContract?: "direct" | "live_lookup" | "strategic_plan";
   /** Optional personal title for the suggestions card (set by AI via [SUGGEST:Title::A|B|C]). */
   suggestionTitle?: string;

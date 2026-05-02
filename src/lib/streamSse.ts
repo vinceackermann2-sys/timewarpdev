@@ -25,6 +25,12 @@ export type CreatedEntityPayload = {
   name?: string;
 };
 
+export type PostFlightSsePayload = {
+  score: number;
+  confidence: string;
+  warnings: string[];
+};
+
 export type AgentSseHandlers = {
   onProgressStep?: (step: AgentSseProgressStep) => void;
   onContentDelta?: (delta: string) => void;
@@ -32,6 +38,8 @@ export type AgentSseHandlers = {
   onLiveSources?: (registry: LiveSourceRegistry) => void;
   onDashboardCards?: (evt: DashboardCardsSsePayload) => void;
   onCreatedEntity?: (evt: CreatedEntityPayload) => void;
+  onToolCall?: (evt: { name: string; args: Record<string, unknown> }) => void;
+  onPostFlight?: (evt: PostFlightSsePayload) => void;
   onErrorMessage?: (message: string) => void;
 };
 
@@ -68,6 +76,14 @@ export async function consumeAgentChatSseStream(
           handlers.onLiveSources(evt.registry as LiveSourceRegistry);
         } else if (evt.type === "created_entity" && handlers.onCreatedEntity) {
           handlers.onCreatedEntity(evt as CreatedEntityPayload);
+        } else if (evt.type === "tool_call" && handlers.onToolCall) {
+          handlers.onToolCall({
+            name: String((evt as { name?: string }).name || ""),
+            args: ((evt as { args?: Record<string, unknown> }).args || {}) as Record<string, unknown>,
+          });
+        } else if (evt.type === "post_flight" && handlers.onPostFlight) {
+          const en = (evt as { enforcement?: PostFlightSsePayload }).enforcement;
+          if (en && typeof en.score === "number") handlers.onPostFlight(en);
         } else if (evt.type === "result" && handlers.onResult) {
           handlers.onResult(evt);
         } else if (evt.type === "error") {
