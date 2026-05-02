@@ -21,26 +21,45 @@ function hasConnectedSourcesSection(connectionContext: string): boolean {
   return /##\s*Connected Sources/i.test(connectionContext);
 }
 
-/** Pull quoted subjects and bold titles from injected live blocks (matches our search formatters). */
+/** Normalize for substring checks (lowercase, collapse whitespace). */
+function normCtx(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Pull subjects, file names, channel titles, etc. from injected live blocks
+ * (matches search formatters in connections.ts + live-source-citations).
+ */
 function buildLiveTitleAllowlist(connectionContext: string): Set<string> {
   const allow = new Set<string>();
   const add = (s: string) => {
-    const t = s.trim().toLowerCase();
-    if (t.length >= 3 && t.length <= 200) allow.add(t);
+    const t = normCtx(s);
+    if (t.length >= 3 && t.length <= 220) allow.add(t);
   };
 
-  const subjRe = /SUBJECT:\s*"([^"]+)"/gi;
   let m: RegExpExecArray | null;
+
+  const subjRe = /SUBJECT:\s*["'\u201c]([^"'\u201d]+)["'\u201d]/gi;
   while ((m = subjRe.exec(connectionContext)) !== null) add(m[1]);
+
+  const subjPlain = /SUBJECT:\s*([^\n|]+)/gi;
+  while ((m = subjPlain.exec(connectionContext)) !== null) {
+    const v = m[1].replace(/^["'\s]+|["'\s]+$/g, "");
+    if (v && !/^from:\s*$/i.test(v)) add(v);
+  }
 
   const boldRe = /\*\*([^*]+)\*\*/g;
   while ((m = boldRe.exec(connectionContext)) !== null) add(m[1]);
+
+  const tickFile = /`([^`\n]{3,200})`/g;
+  while ((m = tickFile.exec(connectionContext)) !== null) add(m[1]);
 
   return allow;
 }
 
 function lineLooksLiveGrounded(line: string): boolean {
-  return /\b(drive|onedrive|gmail|outlook|email|inbox|file|document|slack|hubspot|deal|meeting|calendar|onenote|thread|message from|subject:|sender)\b/i.test(line);
+  return /\b(drive|onedrive|gmail|outlook|email|inbox|file|document|docs?|sheets?|slides?|slack|hubspot|deal|meeting|calendar|onenote|thread|message from|subject:|sender|zoom|stripe|twsrc_\d+)\b/i
+    .test(line);
 }
 
 function sanitizeLineAgainstAllowlist(line: string, allow: Set<string>): string {
@@ -56,6 +75,22 @@ function sanitizeLineAgainstAllowlist(line: string, allow: Set<string>): string 
   });
 }
 
+/** Catches invented titles written in quotes without bold (common LLM pattern). */
+function annotateUnverifiedQuotesInLiveLine(line: string, ctxNorm: string): string {
+  if (!lineLooksLiveGrounded(line)) return line;
+  return line.replace(/"([^"]{10,240})"/g, (full, inner: string) => {
+    const raw = String(inner).trim();
+    const key = normCtx(raw);
+    if (key.length < 10) return full;
+    if (ctxNorm.includes(key)) return full;
+    for (let i = 0; i <= key.length - 24; i += 8) {
+      const slice = key.slice(i, i + 48);
+      if (slice.length >= 12 && ctxNorm.includes(slice)) return full;
+    }
+    return `"${raw}" _(not found verbatim in Connected Sources above — verify)_`;
+  });
+}
+
 function scrubFabricatedLiveWhenNoHits(assistantText: string): string {
   const lower = assistantText.toLowerCase();
   if (!/\b(gmail|outlook|drive|calendar|slack|hubspot|onedrive|onenote|zoom)\b/.test(lower)) {
@@ -64,6 +99,9 @@ function scrubFabricatedLiveWhenNoHits(assistantText: string): string {
   if (/>\s*\*No matching rows from connectors/i.test(assistantText)) return assistantText;
   return `> *No matching rows from connectors were returned for this query. Treat any specific email, file, meeting, or deal titles below as **unverified** unless they also appear in Business DNA or user text — do not present them as live search facts.*\n\n${assistantText}`;
 }
+
+const LIVE_VERIFY_PREAMBLE =
+  "> *Connected Sources returned rows this turn. Only treat an email/file/meeting name as a **live fact** if that exact label appears in the Connected Sources block above (or is marked verify below).*\n\n";
 
 /**
  * If a line cites live tools and contains **Title** not in allowlist, soften wording.
@@ -78,11 +116,16 @@ export function sanitizeAssistantAgainstLiveContext(
 
   if (liveSearchReturnedHits(connectionContext)) {
     const allow = buildLiveTitleAllowlist(connectionContext);
-    if (allow.size === 0) return assistantText;
-    return assistantText
+    const ctxNorm = normCtx(connectionContext);
+    const body = assistantText
       .split("\n")
       .map((line) => sanitizeLineAgainstAllowlist(line, allow))
+      .map((line) => annotateUnverifiedQuotesInLiveLine(line, ctxNorm))
       .join("\n");
+    if (allow.size === 0) {
+      return `${LIVE_VERIFY_PREAMBLE}> *Could not extract stable title tokens from the live rows for auto-verification — confirm any specific names in your apps before acting.*\n\n${body}`;
+    }
+    return body;
   }
 
   if (hasConnectedSourcesSection(connectionContext) && (lookupIndicatesNoRows(connectionContext) || !/### Live Data from/i.test(connectionContext))) {

@@ -341,7 +341,6 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
         };
 
         (async () => {
-          let heartbeat: ReturnType<typeof setInterval> | null = null;
           try {
             // Short, cool sub-log labels — no echoing the user's question.
             // Use a tightly truncated topic only when it's a clean noun phrase.
@@ -474,9 +473,6 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               sendStep("Building strategic plan...", "running", "response");
             }
             sendStep(craftLabel, "running", "response");
-            heartbeat = setInterval(() => {
-              send({ type: "progress", step: { label: "Still working on this task...", status: "running", action: "heartbeat", detail: `Task type: ${taskType}` } });
-            }, 8000);
             // Workforce tools are only offered in pure chat mode (no browser
             // pageContext). Browser mode already returns its own JSON action
             // envelope and shouldn't be confused by extra tool calls.
@@ -655,12 +651,10 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               queryTopic: answerTopic,
               liveSourceRegistry: sourceRegistry,
             });
-            if (heartbeat) clearInterval(heartbeat);
             close();
           } catch (error: any) {
             edgeLog("extension-agent", "stream_error", { message: String(error?.message || error) });
             console.error("extension-agent stream error:", error?.message || error);
-            if (heartbeat) clearInterval(heartbeat);
             send({ type: "error", error: error?.message || "An internal error occurred" });
             close();
           }

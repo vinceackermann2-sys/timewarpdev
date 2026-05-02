@@ -93,7 +93,6 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
       };
 
       (async () => {
-        let heartbeat: ReturnType<typeof setInterval> | null = null;
         try {
           const understandLabel = "Reading the room";
           sendStep(understandLabel, "running", "analysis");
@@ -134,12 +133,6 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             sendStep("Building strategic plan...", "running", "response");
           }
           sendStep(craftLabel, "running", "response");
-          heartbeat = setInterval(() => {
-            send({
-              type: "progress",
-              step: { label: "Still working on this task...", status: "running", action: "heartbeat", detail: `Task type: ${taskType}` },
-            });
-          }, 8000);
 
           const callGateway = async (msgs: any[], includeTools: boolean) => {
             return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -314,12 +307,10 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             queryTopic,
             liveSourceRegistry: sourceRegistry,
           });
-          if (heartbeat) clearInterval(heartbeat);
           close();
         } catch (error: any) {
           edgeLog("assistant-chat", "stream_error", { message: String(error?.message || error) });
           console.error("assistant-chat stream error:", error?.message || error);
-          if (heartbeat) clearInterval(heartbeat);
           send({ type: "error", error: error?.message || "An internal error occurred" });
           close();
         }

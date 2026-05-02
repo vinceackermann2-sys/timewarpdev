@@ -19,7 +19,7 @@ export function buildDataBackedRoutingBlock(opts: {
 
 You must ground recommendations and factual claims using the tiers below. When tiers conflict, **Internal verified facts win** over External; **explicit user Feedback** (including session memory) wins over generic priors when it is a preference or correction.
 
-**Actionable suggestions for this business** (what to do next, channel mix, budget focus, positioning, hiring, experiments, roadmap priorities) must each tie to **at least one** of: Internal evidence, External web snapshot (when present), or an explicitly labeled **hypothesis / inference** if data is missing — never present guesses as measured facts.
+**Actionable suggestions for this business** (what to do next, channel mix, budget focus, positioning, hiring, experiments, roadmap priorities, **first sale / pipeline** asks) must each tie to **at least one** of: Internal evidence, External web snapshot (when present), or an explicitly labeled **hypothesis / inference** if data is missing — never present guesses as measured facts.
 
 ### 1 — Internal
 - Business DNA and structured profile in Reference Material

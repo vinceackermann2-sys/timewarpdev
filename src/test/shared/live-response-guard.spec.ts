@@ -17,10 +17,12 @@ describe("sanitizeAssistantAgainstLiveContext", () => {
     expect(sanitizeAssistantAgainstLiveContext(text, ctx)).toBe(text);
   });
 
-  it("no-ops when allowlist is empty", () => {
+  it("when allowlist is empty but live rows exist, still flags suspicious bold on live-grounded lines", () => {
     const ctx = liveBlock("Some text without SUBJECT or bold titles.");
     const text = "Email line with **Unknown**";
-    expect(sanitizeAssistantAgainstLiveContext(text, ctx)).toBe(text);
+    const out = sanitizeAssistantAgainstLiveContext(text, ctx);
+    expect(out).toContain("not found in live connector");
+    expect(out).toContain("Could not extract stable title tokens");
   });
 
   it("keeps bold titles that appear in SUBJECT allowlist", () => {

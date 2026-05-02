@@ -454,12 +454,8 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         };
 
         (async () => {
-          let heartbeat: ReturnType<typeof setInterval> | null = null;
           try {
             const topic = extractQueryTopic(connectionLookupQuery);
-            heartbeat = setInterval(() => {
-              send({ type: "progress", step: { label: "Still working on this task...", status: "running", action: "heartbeat", detail: "Long task heartbeat" } });
-            }, 8000);
             sendStep(`Reading what you asked about ${topic}`, "running", "analysis");
             await upsertLongTaskRun({ phase: "discover", progress: 12, logLine: `Parsed task topic: ${topic}` });
             const decision = shouldSearchConnections(connectionLookupQuery);
@@ -544,7 +540,6 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
             });
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic, liveSourceRegistry: sourceRegistry });
-            if (heartbeat) clearInterval(heartbeat);
             close();
           } catch (error: any) {
             edgeLog(branding.logTag, "stream_error", { message: String(error?.message || error) });
@@ -555,7 +550,6 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               error: String(error?.message || error),
               logLine: "Task failed",
             });
-            if (heartbeat) clearInterval(heartbeat);
             send({ type: "error", error: error?.message || "An internal error occurred" });
             close();
           }

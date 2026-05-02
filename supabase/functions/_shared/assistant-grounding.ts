@@ -103,6 +103,13 @@ const OPEN_ENDED_GROWTH_BLOCK = `
 - If live connectors returned **no rows** or were skipped, say that plainly — never present specific connector titles as facts.
 `.trim();
 
+const FIRST_CUSTOMER_AND_REVENUE_BLOCK = `
+## First customers, pipeline, and asks like "get me my first sale"
+- Treat this as **go-to-market execution for this workspace**, not generic motivational sales advice. Each tactic must trace to **named** Business DNA (offer, ICP, channel, price, proof), **Performance Evidence / dashboard objectives**, or **literal** Connected Sources rows.
+- Lead with **what internal evidence actually shows** (or state clearly when a metric or pipeline field is **not** in the context). If there is no revenue or conversion history, say that and propose **measurable next steps** (what to log, which leading indicators from their DNA to track) — never invent funnel volumes, win rates, or customer names.
+- **Forbidden:** past deals, "your HubSpot shows…", campaign ROI, or inbox threads unless those exact facts appear above in Reference Material or Connected Sources.
+`.trim();
+
 const TASK_STATUS_BLOCK = `
 ## Task continuation and completion (user-visible)
 - Treat the thread as **one active task** until the user’s original ask is satisfied or you are genuinely blocked on their input / missing data.
@@ -155,7 +162,7 @@ Authenticity requirements:
 /** Grounding and behavior rules appended to system prompts for assistant chat surfaces. */
 export function buildAssistantGroundingBlock(contract: AssistantReplyContract): string {
   if (contract === "live_lookup") {
-    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, FIRST_CUSTOMER_AND_REVENUE_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
   }
   if (contract === "strategic_plan") {
     return [
@@ -167,6 +174,7 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EXECUTIVE_LIVE_INVENTORY,
       STREAMING_AND_MASTER_REPLY_BLOCK,
       OPEN_ENDED_GROWTH_BLOCK,
+      FIRST_CUSTOMER_AND_REVENUE_BLOCK,
       DATA_BACKED_SUGGESTIONS_BLOCK,
       CLARIFYING_QUESTIONS_BLOCK,
       TASK_STATUS_BLOCK,
@@ -175,5 +183,5 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EVIDENCE_MAP_HINT,
     ].join("\n\n");
   }
-  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, FIRST_CUSTOMER_AND_REVENUE_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
 }

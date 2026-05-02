@@ -105,6 +105,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       } : m));
     };
     const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
+      if (step.action === "heartbeat") return;
       const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
       if (existingIdx !== -1 && step.status !== "running") {
         taskSteps[existingIdx].status = step.status;
@@ -269,7 +270,8 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       evidenceEnforcement: typeof postFlightMeta !== "undefined" ? postFlightMeta : undefined,
       memoryOps: toolCallsMeta.length > 0 ? toolCallsMeta : undefined,
       replyContract: replyContractMeta,
-      taskSteps: [...taskSteps],
+      taskSteps: [],
+      currentStepIndex: undefined,
       elapsedSeconds:
         typeof m.elapsedSeconds === "number" && Number.isFinite(m.elapsedSeconds)
           ? m.elapsedSeconds
@@ -514,6 +516,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     };
 
     const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
+      if (step.action === "heartbeat") return;
       const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
       if (existingIdx !== -1 && step.status !== "running") {
         taskSteps[existingIdx].status = step.status;
@@ -684,7 +687,8 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       suggestionTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
-      taskSteps: [...taskSteps],
+      taskSteps: [],
+      currentStepIndex: undefined,
       elapsedSeconds:
         typeof m.elapsedSeconds === "number" && Number.isFinite(m.elapsedSeconds)
           ? m.elapsedSeconds
