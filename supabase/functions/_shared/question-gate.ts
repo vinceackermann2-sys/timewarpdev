@@ -152,7 +152,7 @@ function hasSignal(slot: string, message: string, profileContext: string): boole
  * the missing slot and continue the ORIGINAL request, not treat it as a
  * fresh prompt.
  */
-function detectAnswerToPriorQuestion(
+export function detectAnswerToPriorQuestion(
   history: Array<{ role: string; content: string }>,
 ): { isAnswer: boolean; priorQuestionText: string | null; originalRequest: string | null } {
   if (!history || history.length < 2) {
@@ -291,6 +291,7 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
       "  3. DO use the answer to fill in the missing context, then EXECUTE the original request now.",
       "  4. If you still need more info to finish (≤2 slots), ask ONLY the remaining missing question(s) at the END, with one [SUGGEST:Question?::A|B|C] tag per question.",
       "  5. If everything you need is already there, deliver the full output for the original request — no more questions.",
+      "  6. If the original request was a plan / roadmap / growth strategy, complete it in one coherent deliverable (including [PLAN_ARTIFACT]…[/PLAN_ARTIFACT] when the system prompt requires it) — do not pivot to unrelated topics.",
     );
     if (!result.complete && result.mandatoryQuestions.length > 0) {
       lines.push(
@@ -315,9 +316,14 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
   // Allow up to 3 questions in a single turn when canPartialAnswer is true.
   // The UI now renders one card per [SUGGEST:...] block, so multiple
   // questions become multiple stacked slides — no UX downgrade.
-  const askCount = result.canPartialAnswer
-    ? Math.min(3, result.mandatoryQuestions.length)
-    : 1;
+  // Strategy / plan intents often need several slots; asking one per turn
+  // feels like the assistant keeps "switching topics" instead of finishing.
+  const askCount =
+    result.intent === "strategy_plan"
+      ? Math.min(3, result.mandatoryQuestions.length)
+      : result.canPartialAnswer
+        ? Math.min(3, result.mandatoryQuestions.length)
+        : 1;
   const questionsToAsk = result.mandatoryQuestions.slice(0, askCount);
 
   const lines: string[] = [

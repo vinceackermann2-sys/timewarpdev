@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { classifyAssistantReplyContract } from "../../../supabase/functions/_shared/assistant-reply-contract.ts";
+import {
+  classifyAssistantReplyContract,
+  resolveAssistantReplyContract,
+} from "../../../supabase/functions/_shared/assistant-reply-contract.ts";
 
 describe("classifyAssistantReplyContract", () => {
   it("returns direct for short or non-lookup text", () => {
@@ -23,5 +26,24 @@ describe("classifyAssistantReplyContract", () => {
 
   it("respects explicit opt-out for quick answers", () => {
     expect(classifyAssistantReplyContract("No plan, quick answer: what is my branding?")).toBe("direct");
+  });
+
+  it("returns strategic_plan for short explicit growth / plan asks", () => {
+    expect(classifyAssistantReplyContract("make a growth plan")).toBe("strategic_plan");
+    expect(classifyAssistantReplyContract("Build a marketing plan for Q1")).toBe("strategic_plan");
+  });
+});
+
+describe("resolveAssistantReplyContract", () => {
+  it("uses the original user request for reply shape after a SUGGEST follow-up", () => {
+    const history = [
+      { role: "user", content: "Make a growth plan for our SaaS" },
+      {
+        role: "assistant",
+        content: "Quick check first.\n[SUGGEST:What timeline?::90 days|6 months|12 months]",
+      },
+      { role: "user", content: "90 days" },
+    ];
+    expect(resolveAssistantReplyContract("90 days", history)).toBe("strategic_plan");
   });
 });

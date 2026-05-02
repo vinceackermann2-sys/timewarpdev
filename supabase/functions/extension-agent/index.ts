@@ -10,7 +10,7 @@ import {
   buildBusinessBrainContext,
   logBusinessLearningEvent,
 } from "../_shared/run-employee/business-brain.ts";
-import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
+import { resolveAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
 import { buildAssistantGroundingBlock } from "../_shared/assistant-grounding.ts";
 import { formatSessionMemoryBlock } from "../_shared/session-memory-context.ts";
 import { sanitizeAssistantAgainstLiveContext } from "../_shared/live-response-guard.ts";
@@ -128,7 +128,13 @@ serve(async (req) => {
     const safetySettings = mergeSafetySettings(brandSafetySettings, accountSafetySettings);
     const identity = await loadBusinessIdentity(supabase, user.id, brandId);
     const lastUserMsg = extractLastUserMessage(messages);
-    const replyContract = classifyAssistantReplyContract(lastUserMsg);
+    const historyForGate = Array.isArray(messages)
+      ? (messages as Array<{ role: string; content: string }>).map((m) => ({
+          role: String(m.role),
+          content: String(m.content || ""),
+        }))
+      : [];
+    const replyContract = resolveAssistantReplyContract(lastUserMsg, historyForGate);
     const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
       userId: user.id,
       brandId,
@@ -141,10 +147,7 @@ serve(async (req) => {
       // ANSWERING a prior clarifying question (and remind the AI to keep
       // working on the original request rather than treating the answer as
       // a brand-new prompt).
-      history: Array.isArray(messages)
-        ? (messages as Array<{ role: string; content: string }>)
-            .map((m) => ({ role: String(m.role), content: String(m.content || "") }))
-        : [],
+      history: historyForGate,
     });
     const questionGateBlock = formatQuestionGatePromptBlock(questionGate);
     const dnaRoute = await runDnaContextRouter(supabase, user.id, workspaceId, brandId, lastUserMsg, replyContract);

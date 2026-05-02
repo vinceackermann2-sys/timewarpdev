@@ -18,7 +18,7 @@ import {
   buildBrowserSystemPrompt,
   buildEmployeeChatPrompt,
 } from "../_shared/run-employee/prompts.ts";
-import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
+import { resolveAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
 import { buildAnswerContextBlock } from "../_shared/question-gate.ts";
 import { formatSessionMemoryBlock } from "../_shared/session-memory-context.ts";
 import { sanitizeAssistantAgainstLiveContext } from "../_shared/live-response-guard.ts";
@@ -150,19 +150,18 @@ serve(async (req) => {
     });
 
     const lastUserMsg = extractLastUserMessage(messages ?? []);
-    const replyContract = classifyAssistantReplyContract(lastUserMsg);
+    const historyForContract = Array.isArray(messages)
+      ? (messages as Array<{ role: string; content: string }>).map((m) => ({
+          role: String(m.role),
+          content: String(m.content || ""),
+        }))
+      : [];
+    const replyContract = resolveAssistantReplyContract(lastUserMsg, historyForContract);
     // Detect if the user is REPLYING to a prior clarifying question.  When
     // they are, we inject a pre-flight block reminding the AI to keep
     // executing the original request rather than treating the answer as a
     // fresh prompt.  Empty string when not applicable.
-    const answerContextBlock = buildAnswerContextBlock(
-      Array.isArray(messages)
-        ? (messages as Array<{ role: string; content: string }>).map((m) => ({
-            role: String(m.role),
-            content: String(m.content || ""),
-          }))
-        : [],
-    );
+    const answerContextBlock = buildAnswerContextBlock(historyForContract);
     const connectionLookupQuery = typeof connectionQuery === "string" && connectionQuery.trim().length > 0
       ? connectionQuery.trim()
       : lastUserMsg;

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import { searchConnectedProviders } from "../_shared/run-employee/connections.ts";
-import { classifyAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
+import { resolveAssistantReplyContract } from "../_shared/assistant-reply-contract.ts";
 import { buildAssistantGroundingBlock } from "../_shared/assistant-grounding.ts";
 import { encodeLiveSourceRegistryHeader, type LiveSourceRegistry } from "../_shared/live-source-citations.ts";
 
@@ -189,8 +189,14 @@ serve(async (req) => {
       }
     }
 
-    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
-    const replyContract = classifyAssistantReplyContract(lastUserMsg);
+    const historyForContract = Array.isArray(messages)
+      ? (messages as any[]).map((m) => ({
+          role: String(m.role),
+          content: typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""),
+        }))
+      : [];
+    const lastUserMsg = [...historyForContract].reverse().find((m) => m.role === "user")?.content || "";
+    const replyContract = resolveAssistantReplyContract(lastUserMsg, historyForContract);
     const grounding = buildAssistantGroundingBlock(replyContract);
     const responseShape = replyContract === "strategic_plan"
       ? `## Response shape (advanced strategic plan)
