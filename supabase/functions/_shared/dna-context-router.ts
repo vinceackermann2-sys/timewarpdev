@@ -95,9 +95,10 @@ export async function runDnaContextRouter(
 export function formatDnaRouterBlock(route: DnaContextRoute): string {
   if (!route.contextBlocks.length) return "";
   return `
-## Pillar Context Router
-Primary pillar: ${route.primaryPillar}
-Auto-loaded fields: ${route.relevantFieldIds.join(", ") || "none"}
+## Business DNA — All 9 Pillars Loaded
+Pillars in scope: brand, product, audience, market, financial, operations, people, growth, strategy
+Primary pillar this turn: ${route.primaryPillar}
+Auto-loaded field ids: ${route.relevantFieldIds.join(", ") || "none"}
 
 ${route.contextBlocks.join("\n\n")}
 `.trim();
