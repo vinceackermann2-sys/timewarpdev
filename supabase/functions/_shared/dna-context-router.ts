@@ -67,7 +67,6 @@ export async function runDnaContextRouter(
   const allRows = rows || [];
 
   const fieldIds = Array.from(new Set(pillars.flatMap(getPillarFieldMap)));
-  const primaryPillar = pillars[0];
   const contextBlocks: string[] = [];
 
   for (const row of allRows) {
