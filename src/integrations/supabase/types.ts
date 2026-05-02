@@ -390,6 +390,50 @@ export type Database = {
           },
         ]
       }
+      assistant_memory: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          key: string
+          source: string
+          updated_at: string
+          user_id: string
+          value: string
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          key: string
+          source?: string
+          updated_at?: string
+          user_id: string
+          value: string
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          key?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+          value?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_memory_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_learning_state: {
         Row: {
           business_id: string
@@ -1208,7 +1252,44 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      workspace_memory_aggregate: {
+        Row: {
+          category: string | null
+          key: string | null
+          source: string | null
+          updated_at: string | null
+          user_id: string | null
+          value: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          key?: string | null
+          source?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          value?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          key?: string | null
+          source?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          value?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_memory_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_workspace_invitation: { Args: { _token: string }; Returns: Json }
