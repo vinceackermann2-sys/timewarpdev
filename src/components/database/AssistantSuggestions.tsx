@@ -75,7 +75,7 @@ export function AssistantSuggestions({
       )}
     >
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
-        Follow-up questions
+        Questions
       </p>
       {groups.map((group, gIdx) => (
         <SuggestionCard

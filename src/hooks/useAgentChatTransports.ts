@@ -266,6 +266,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       evidenceAudit,
       replyContract: replyContractMeta,
       taskSteps: [...taskSteps],
+      elapsedSeconds:
+        typeof m.elapsedSeconds === "number" && Number.isFinite(m.elapsedSeconds)
+          ? m.elapsedSeconds
+          : m.streamStartTime
+            ? Math.max(0, Math.floor((Date.now() - m.streamStartTime) / 1000))
+            : undefined,
       isStreaming: false,
       ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
       ...(artifact ? {
@@ -672,6 +678,12 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
       taskSteps: [...taskSteps],
+      elapsedSeconds:
+        typeof m.elapsedSeconds === "number" && Number.isFinite(m.elapsedSeconds)
+          ? m.elapsedSeconds
+          : m.streamStartTime
+            ? Math.max(0, Math.floor((Date.now() - m.streamStartTime) / 1000))
+            : undefined,
       isStreaming: false,
       ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),
       ...(artifact ? {

@@ -75,7 +75,7 @@ const BREVITY_BLOCK = `
 const CLARIFYING_QUESTIONS_BLOCK = `
 ## Clarifying questions (\`[SUGGEST:…]\`) — not a “pick what’s next” menu
 - Use \`[SUGGEST:…]\` only when a **decision-critical** answer is missing and would materially change the work.
-- When **Pre-Flight: Ask These First** appears in context, put the required \`[SUGGEST:…]\` line(s) **near the top** of your reply (after at most one short sentence) so the user answers **before** you execute a large deliverable you may have to redo.
+- When **Pre-Flight: Ask These First** appears in context, put the required \`[SUGGEST:…]\` line(s) **before** substantive output (after at most one ≤20-word sentence). Never place the only blocking questions after paragraphs of recommendations, tables, or \`[PLAN_ARTIFACT]\` / visual fences — that wastes the user’s time and forces rework.
 - When you already owe substantive output in the same turn, you may place an additional \`[SUGGEST:…]\` **between** major sections only if the user must choose a fork mid-way; otherwise deliver the owed section first, then ask.
 - If enough evidence exists to answer well, do **not** ask unnecessary questions.
 - When the pre-flight block says the user is **continuing a pending request**, stay on the original task until it is done or truly blocked.

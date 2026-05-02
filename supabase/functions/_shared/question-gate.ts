@@ -337,7 +337,7 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
       : `Ask ${askCount} blocking clarifying **questions** in this reply (one decision per tag — keep them tight):`,
     ...questionsToAsk.map((q, i) => `  ${i + 1}. ${q}`),
     "",
-    "Put the required `[SUGGEST:Question?::A|B|C]` line(s) **near the top** of this reply (after at most one short sentence). The user must see and answer these **before** you spend tokens on a full deliverable you might have to redo.",
+    "Put the required `[SUGGEST:Question?::A|B|C]` line(s) **before** any substantive answer body: after at most one short sentence (≤20 words), and **before** tables, long bullet lists, `[PLAN_ARTIFACT]`, or fenced deliverable blocks. Do not output a long recommendation first and only then ask what the user wanted.",
     askCount === 1
       ? "Use exactly one `[SUGGEST:Question?::A|B|C]` tag (2–4 chips)."
       : `Use ${askCount} separate \`[SUGGEST:…]\` tags — one per question, in order; each with 2–4 chips.`,

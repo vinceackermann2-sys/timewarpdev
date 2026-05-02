@@ -46,6 +46,8 @@ interface TaskStep {
   detail?: string;
 }
 
+export type TaskStepsOpenLoop = "awaiting_user" | "incomplete_note" | null;
+
 interface Props {
   steps: TaskStep[];
   currentStepIndex: number;
@@ -53,6 +55,11 @@ interface Props {
   startTime?: number;
   /** Final elapsed seconds, set once streaming finishes — used so the timer is stable across reloads. */
   frozenElapsed?: number;
+  /**
+   * When the pipeline steps are "done" but the assistant still needs the user
+   * (chips) or explicitly said the task is not finished — avoid showing "Completed".
+   */
+  openLoop?: TaskStepsOpenLoop;
 }
 
 /* ── Lucide icon map for step labels ── */
@@ -149,10 +156,20 @@ function buildSections(steps: TaskStep[], globalStartTime: number): Section[] {
 }
 
 /* ── Section Component ── */
-function SectionDisplay({ section, isLast, isStreaming }: { section: Section; isLast: boolean; isStreaming?: boolean }) {
+function SectionDisplay({
+  section,
+  isLast,
+  isStreaming,
+  openLoop,
+}: {
+  section: Section;
+  isLast: boolean;
+  isStreaming?: boolean;
+  openLoop?: TaskStepsOpenLoop;
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sectionDone = section.isDone && !(isLast && isStreaming);
+  const sectionDone = section.isDone && !(isLast && isStreaming) && !openLoop;
 
   useEffect(() => {
     if (scrollRef.current && !collapsed) {
@@ -176,9 +193,13 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[15px] text-muted-foreground">
           {sectionDone && <CheckCircle2 className="w-3 h-3 text-muted-foreground/60" />}
           <span className="font-medium text-[17px]">
-            {sectionDone
-              ? `Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`
-              : "Thinking"}
+            {openLoop === "awaiting_user"
+              ? "Needs your reply"
+              : openLoop === "incomplete_note"
+                ? "More to do on this task"
+                : sectionDone
+                  ? `Completed ${taskCount} task${taskCount !== 1 ? "s" : ""}`
+                  : "Thinking"}
           </span>
           {!sectionDone && (
             <span className="inline-flex gap-[2px] items-end h-[14px]">
@@ -188,7 +209,12 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
             </span>
           )}
           <span className="text-[11px] opacity-40">·</span>
-          <ThinkingTimer startTime={section.startTime} stopped={sectionDone} frozenElapsed={section.frozenElapsed} className="text-[11px] opacity-50" />
+          <ThinkingTimer
+            startTime={section.startTime}
+            stopped={sectionDone || !!openLoop}
+            frozenElapsed={section.frozenElapsed}
+            className="text-[11px] opacity-50"
+          />
         </div>
         <ChevronUp className={cn(
           "w-3.5 h-3.5 text-muted-foreground/30 transition-transform duration-200",
@@ -263,7 +289,7 @@ function SectionDisplay({ section, isLast, isStreaming }: { section: Section; is
 }
 
 /* ── Main Component ── */
-export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming, startTime, frozenElapsed }: Props) {
+export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming, startTime, frozenElapsed, openLoop }: Props) {
   const [fallbackStartTime] = useState(() => startTime ?? Date.now());
   const effectiveStartTime = startTime ?? fallbackStartTime;
 
@@ -279,6 +305,7 @@ export function TaskStepsDisplay({ steps, currentStepIndex, isStreaming, startTi
           section={section}
           isLast={idx === sections.length - 1}
           isStreaming={isStreaming}
+          openLoop={openLoop}
         />
       ))}
     </div>

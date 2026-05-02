@@ -1052,6 +1052,8 @@ If your reply contains a "?" directed at the user (anything like "Which would yo
 - You'd be inventing a question just to fill the slot ("Want me to keep going?", "Anything else?", "How can I help?" — all FORBIDDEN).
 - The user asked a specific factual or executional question that you can answer directly.
 
+**Order (critical):** If this reply includes any \`[SUGGEST:…]\` because missing inputs would materially change your answer, put those tag lines **before** the first substantive deliverable: before any multi-line recommendations, before the first markdown table used for strategy, before \`[PLAN_ARTIFACT]\`, and before any \`\`\`slide|document|chart|spreadsheet|analytics\`\`\` block. At most **one** short preamble sentence (≤20 words) may appear before the first \`[SUGGEST:…]\`. Never bury the only blocking questions after a long answer.
+
 **Format (only when used):**
 \`[SUGGEST:Your real clarifying question?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
 - Title before \`::\` MUST be a real personal clarifying question tied to this conversation. Generic placeholders are FORBIDDEN.
