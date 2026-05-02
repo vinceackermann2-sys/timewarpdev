@@ -6,6 +6,12 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /**
+   * Raw assistant reply for model replay (includes `[SUGGEST:…]` / plan tags).
+   * `content` is stripped for UI; the edge function needs this to detect
+   * follow-up answers vs new requests.
+   */
+  modelTurnContent?: string;
   /** Optional sanitized text shown in the UI for user messages (hides graphic format scaffolding sent to the model). */
   displayContent?: string;
   /** Live connector row metadata for \`twcite:twsrc_N\` links in markdown (Gmail, Drive, Calendar, etc.). */

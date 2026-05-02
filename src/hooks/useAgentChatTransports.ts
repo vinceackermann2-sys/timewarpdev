@@ -17,6 +17,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 type BrandRow = { id: string; agentName?: string; name?: string; _rowId?: string };
 
+/** Build chat history for the edge function — assistant rows use raw model text when present. */
+function toChatApiPayload(messages: ChatMessage[]): { role: string; content: string }[] {
+  return messages
+    .filter((m) => !m.isStreaming)
+    .map((m) => ({
+      role: m.role,
+      content:
+        m.role === "assistant" && m.modelTurnContent && m.modelTurnContent.trim().length > 0
+          ? m.modelTurnContent
+          : m.content,
+    }));
+}
+
 export interface ExtensionBridgeActions {
   getPageContext: () => Promise<any>;
   executeAction: (action: any) => Promise<any>;
@@ -71,7 +84,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
   }, []);
 
   const runAgentChat = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
-    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
+    const chatHistory = toChatApiPayload(messages);
     const userContent = buildMultimodalContent(userMsg.content);
     (chatHistory as any[]).push({ role: "user", content: userContent });
 
@@ -249,6 +262,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: contentNoSources,
+      modelTurnContent: (fullContent || "").trim().length > 0 ? fullContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
@@ -509,7 +523,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "running", step_label: "Task started", message: userMsg.content }).then(() => {});
 
-    const chatHistory = messages.filter(m => !m.isStreaming).map(m => ({ role: m.role, content: m.content }));
+    const chatHistory = toChatApiPayload(messages);
     const userContent = buildMultimodalContent(userMsg.content);
     (chatHistory as any[]).push({ role: "user", content: userContent });
 
@@ -660,6 +674,7 @@ export function useAgentChatTransports(deps: AgentChatTransportDeps) {
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: contentNoSources,
+      modelTurnContent: (accumulatedContent || "").trim().length > 0 ? accumulatedContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,

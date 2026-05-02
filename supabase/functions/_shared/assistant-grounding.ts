@@ -65,10 +65,11 @@ If the context above includes only a **connected tools inventory** (no per-item 
 `.trim();
 
 const BREVITY_BLOCK = `
-## Brevity and respect for time
-- For a **short, single-focus question** (about one sentence or under ~220 characters): put the **answer in the first 1–4 sentences**. Add headings, bullets, or tables only if they genuinely improve clarity — not by default.
-- Do **not** use fixed template titles like "## DNA Fit", "## Next 7 Days", "## KPI Impact", or a forced "## Recommendation" block unless the user explicitly asks for that operating cadence.
-- Prefer plain language; avoid padding with generic frameworks.
+## Length and respect for time
+- **Trivial / single-fact asks** (one narrow question, under ~220 characters): put the core answer in the first **2–6 sentences**; add structure only if it helps.
+- **Recommendations for this business** (growth, marketing, strategy, positioning, channels, pricing, hiring, roadmap, “what should we do”): give **enough depth to be actionable** — concrete rationale, tradeoffs, and **at least one explicit pointer** to evidence from Reference Material, live connector results, dashboard/KPI blocks, or the web snapshot when present. A **3-sentence generic** reply is not acceptable for these.
+- Do **not** use fixed template titles like "## DNA Fit", "## Next 7 Days", "## KPI Impact", or a forced "## Recommendation" block unless the user explicitly asks for that cadence.
+- Prefer plain language; avoid padding with empty frameworks.
 `.trim();
 
 const CLARIFYING_QUESTIONS_BLOCK = `
@@ -77,6 +78,7 @@ const CLARIFYING_QUESTIONS_BLOCK = `
 - Keep clarifying questions tightly scoped to decision-critical gaps (goal, audience, timeframe, budget, channel, constraints, definition of success).
 - If enough evidence already exists to answer well, do **not** ask unnecessary questions.
 - If you can still provide partial value safely, do both: give a short provisional answer, then ask targeted follow-ups.
+- When the pre-flight block says the user is **continuing a pending request**, do **not** open a new analysis topic — finish the original deliverable first; only then optional follow-ups.
 `.trim();
 
 const RESULTS_LEARNING_BLOCK = `

@@ -286,11 +286,11 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
     }
     lines.push(
       "Rules — apply ALL of them:",
-      "  1. DO NOT answer the question yourself or merely acknowledge the user's answer.",
-      "  2. DO NOT restart, re-introduce yourself, or summarize what we've discussed.",
-      "  3. DO use the answer to fill in the missing context, then EXECUTE the original request now.",
-      "  4. If you still need more info to finish (≤2 slots), ask ONLY the remaining missing question(s) at the END, with one [SUGGEST:Question?::A|B|C] tag per question.",
-      "  5. If everything you need is already there, deliver the full output for the original request — no more questions.",
+      "  1. Start with **one explicit sentence** that states how you are using the user's latest answer (quote or paraphrase it), then continue — do not skip acknowledging what they chose or typed.",
+      "  2. DO NOT restart, re-introduce yourself, or treat this as a brand-new topic; stay on the original request until it is finished or you must ask a remaining clarifier.",
+      "  3. Immediately apply their answer to fill missing context, then **execute** the original request (main deliverable) in the same reply when possible.",
+      "  4. If you still need more info to finish (≤2 slots), ask ONLY the remaining missing question(s) at the **end**, with one [SUGGEST:Question?::A|B|C] tag per question.",
+      "  5. If everything you need is already there, deliver the **full** output for the original request — no more questions.",
       "  6. If the original request was a plan / roadmap / growth strategy, complete it in one coherent deliverable (including [PLAN_ARTIFACT]…[/PLAN_ARTIFACT] when the system prompt requires it) — do not pivot to unrelated topics.",
     );
     if (!result.complete && result.mandatoryQuestions.length > 0) {
@@ -367,7 +367,7 @@ export function buildAnswerContextBlock(
   }
   lines.push(
     "",
-    "Use the answer to fill missing context, then EXECUTE the original request. Do NOT answer the question yourself, do NOT re-introduce, do NOT restart.",
+    "Acknowledge the user's answer in one sentence, use it to fill missing context, then EXECUTE the original request in this same turn. Do NOT re-introduce or restart as a new topic.",
   );
   return lines.join("\n");
 }
