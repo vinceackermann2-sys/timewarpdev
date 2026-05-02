@@ -429,10 +429,14 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               webSnapshotRan: webScheduled,
             });
             const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${publicWebBlock}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n${dataBackedBlock}`;
-            // Skill routing — multi-skill match on last message; sticky fallback
-            // keeps agent/employee wizards alive when the user sends a short
-            // SUGGEST chip with no trigger keywords.
-            let matchedSkills = !hasBrowserContext ? matchSkillsForMessage(lastUserMsg, 3) : [];
+            // Skill routing — match on the latest user line, but when that line
+            // is only an answer to a prior [SUGGEST:], use the original request
+            // so playbooks stay aligned with the task.
+            const skillMatchSource =
+              !hasBrowserContext && questionGate.isAnswerToPriorQuestion && questionGate.originalRequest?.trim()
+                ? questionGate.originalRequest.trim()
+                : lastUserMsg;
+            let matchedSkills = !hasBrowserContext ? matchSkillsForMessage(skillMatchSource, 3) : [];
             if (!hasBrowserContext && matchedSkills.length === 0) {
               const sticky = matchSkillSticky(messages);
               if (sticky) matchedSkills = [sticky];
@@ -1012,6 +1016,10 @@ For charts use a \`\`\`chart code block:
 {"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
 \`\`\`
 Supported chart types: bar, line, area, pie.
+
+## Follow-up question format (\`[SUGGEST:…]\`)
+- These tags are **follow-up questions** for the user (with quick-reply chips), not marketing “suggestions” and not a substitute for a data-backed answer.
+- Put them **only at the very end** of your message — after your main reasoning or deliverable — never before or in the middle of the task output.
 
 ## Data source badges (UI) — REQUIRED WHEN DATA-BACKED
 When your reply is **data-backed** (facts, metrics, live tool results, DNA, web snapshot, dashboard/KPIs, learning comparisons, or actionable recommendations tied to this business), end the message with **exactly one** fenced block in this form (last content in the message, after prose and any [SUGGEST:] tags):

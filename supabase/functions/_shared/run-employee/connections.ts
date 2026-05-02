@@ -741,6 +741,56 @@ export function detectNamedProviders(query: string): string[] {
   return Array.from(matched);
 }
 
+/** When the user did not name a specific provider, narrow which connector APIs run. */
+export type ConnectorChannelPlan = {
+  email: boolean;
+  files: boolean;
+  calendar: boolean;
+  slack: boolean;
+  hubspot: boolean;
+  zoom: boolean;
+  stripe: boolean;
+};
+
+const CONNECTOR_CHANNELS_FULL: ConnectorChannelPlan = {
+  email: true,
+  files: true,
+  calendar: true,
+  slack: true,
+  hubspot: true,
+  zoom: true,
+  stripe: true,
+};
+
+/**
+ * Infer which integration *channels* the query is about so we do not fan out
+ * to every connected tool (e.g. Gmail-only email asks should not hit Drive,
+ * Calendar, Slack, HubSpot, Zoom, or Stripe unless the wording also implies them).
+ * When nothing matches, returns full fan-out (same as before).
+ */
+export function inferConnectorChannelPlan(query: string): ConnectorChannelPlan {
+  const q = (query || "").trim();
+  if (!q) return { ...CONNECTOR_CHANNELS_FULL };
+
+  const email =
+    /\b(gmail|google\s*mail|outlook|hotmail|inbox|e-mail|email|mail\b|imap|smtp|thread|threads|newsletter|unread|sender|reply|forward)\b/i.test(q);
+  const files =
+    /\b(file|files|document|documents|doc\b|pdf|attachment|attachments|spreadsheet|sheet|excel|slide|slides|deck|decks|folder|folders|drive|onedrive|sharepoint|notion|onenote|one\s*note)\b/i.test(q);
+  const calendar =
+    /\b(calendar|schedule|scheduling|appointment|appointments|meeting|meetings|invite|invites|event|events|gcal|busy|free\s+busy)\b/i.test(q);
+  const slack = /\bslack\b/i.test(q);
+  const hubspot =
+    /\b(hubspot|salesforce|pipedrive|crm|pipeline|pipelines|deal|deals|ticket|tickets|lead|leads|opportunity)\b/i.test(q);
+  const zoom = /\bzoom\b/i.test(q);
+  const stripe =
+    /\b(stripe|payment|payments|charge|charges|invoice|invoices|subscription|subscriptions|refund|refunds|payout|payouts|checkout)\b/i.test(q);
+
+  const any = email || files || calendar || slack || hubspot || zoom || stripe;
+  if (!any) return { ...CONNECTOR_CHANNELS_FULL };
+
+  return { email, files, calendar, slack, hubspot, zoom, stripe };
+}
+
 // Narrow generic intent (e.g. "documents", "emails", "meetings") to ONLY the
 // providers the user actually has connected. This prevents the AI from saying
 // it checked OneDrive when only Google Drive is connected.
@@ -958,8 +1008,11 @@ export async function searchConnectedProviders(
   const namedProviders = narrowProvidersByConnections(rawNamedProviders, connectedProviders, userQuery);
   const useTargeted = namedProviders.length > 0;
   const isAllowed = (provider: string) => !useTargeted || namedProviders.includes(provider);
+  const channelPlan = useTargeted ? { ...CONNECTOR_CHANNELS_FULL } : inferConnectorChannelPlan(userQuery);
   if (useTargeted) {
     console.log("[connections] Targeted search (explicit provider) — raw:", rawNamedProviders, "narrowed:", namedProviders);
+  } else {
+    console.log("[connections] Channel plan (non-targeted):", JSON.stringify(channelPlan));
   }
 
   if (intentProfile.omitZoom && connectedProviders.includes("zoom") && isAllowed("zoom")) {
@@ -1007,42 +1060,47 @@ export async function searchConnectedProviders(
     const hasOutlook = isAllowed("microsoft_outlook") && hasOutlookConnection;
     const hasOnedrive = isAllowed("microsoft_onedrive") && hasOnedriveConnection;
     const hasOnenote = isAllowed("microsoft_onenote") && hasOnenoteConnection;
+    const runOutlookEmail = hasOutlook && channelPlan.email;
+    const runOnedriveFiles = hasOnedrive && channelPlan.files;
 
-    if (hasOutlook || hasOnedrive) {
+    if (runOutlookEmail || runOnedriveFiles) {
       searchPromises.push((async () => {
         try {
           const token = await getAnyMicrosoftToken(supabase, userId);
           if (!token) {
-            if (hasOutlook) skippedProviderDetails.push({ provider: "microsoft_outlook", reason: "token expired or missing" });
-            if (hasOnedrive) skippedProviderDetails.push({ provider: "microsoft_onedrive", reason: "token expired or missing" });
+            if (runOutlookEmail) skippedProviderDetails.push({ provider: "microsoft_outlook", reason: "token expired or missing" });
+            if (runOnedriveFiles) skippedProviderDetails.push({ provider: "microsoft_onedrive", reason: "token expired or missing" });
             return;
           }
-          if (hasOutlook) {
+          if (runOutlookEmail) {
             emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "running", action: "connections" });
             searchedProviders.push("microsoft_outlook");
           }
-          if (hasOnedrive) {
+          if (runOnedriveFiles) {
             emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "running", action: "connections" });
             searchedProviders.push("microsoft_onedrive");
           }
-          const results = await searchMicrosoftData(token, effectiveQuery, searchTopicForApis, { searchEmails: hasOutlook, searchFiles: hasOnedrive });
+          const results = await searchMicrosoftData(token, effectiveQuery, searchTopicForApis, {
+            searchEmails: runOutlookEmail,
+            searchFiles: runOnedriveFiles,
+          });
           if (results.emails.length > 0) {
             connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${appendLiveChunks(results.emails, liveSourceRegistry, liveChunkCounter)}`;
           }
           if (results.files.length > 0) {
             connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${appendLiveChunks(results.files, liveSourceRegistry, liveChunkCounter)}`;
           }
-          if (hasOutlook) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
-          if (hasOnedrive) emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "done", action: "connections" });
+          if (runOutlookEmail) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
+          if (runOnedriveFiles) emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "done", action: "connections" });
         } catch (e) {
           console.error("[connections] Microsoft search failed:", e);
-          if (hasOutlook) { skippedProviderDetails.push({ provider: "microsoft_outlook", reason: "search failed" }); emitProgress?.({ label: `Searching Outlook for ${t}`, status: "error", action: "connections" }); }
-          if (hasOnedrive) { skippedProviderDetails.push({ provider: "microsoft_onedrive", reason: "search failed" }); emitProgress?.({ label: `Searching OneDrive for ${t}`, status: "error", action: "connections" }); }
+          if (runOutlookEmail) { skippedProviderDetails.push({ provider: "microsoft_outlook", reason: "search failed" }); emitProgress?.({ label: `Searching Outlook for ${t}`, status: "error", action: "connections" }); }
+          if (runOnedriveFiles) { skippedProviderDetails.push({ provider: "microsoft_onedrive", reason: "search failed" }); emitProgress?.({ label: `Searching OneDrive for ${t}`, status: "error", action: "connections" }); }
         }
       })());
     }
 
-    if (hasOnenote) {
+    if (hasOnenote && channelPlan.files) {
       searchPromises.push((async () => {
         try {
           const token = await getAnyMicrosoftToken(supabase, userId);
@@ -1072,7 +1130,7 @@ export async function searchConnectedProviders(
     const hasGDrive = isAllowed("google_drive") && connectedProviders.some((p: string) => p === "google" || p === "google_drive");
     const hasGCal = isAllowed("google_calendar") && connectedProviders.some((p: string) => p === "google" || p === "google_calendar");
 
-    if (hasGmail) {
+    if (hasGmail && channelPlan.email) {
       searchPromises.push((async () => {
         try {
           const token = await getGoogleTokenForProvider(supabase, userId, "google_gmail");
@@ -1092,7 +1150,7 @@ export async function searchConnectedProviders(
       })());
     }
 
-    if (hasGDrive) {
+    if (hasGDrive && channelPlan.files) {
       searchPromises.push((async () => {
         try {
           const token = await getGoogleTokenForProvider(supabase, userId, "google_drive");
@@ -1115,7 +1173,7 @@ export async function searchConnectedProviders(
       })());
     }
 
-    if (hasGCal) {
+    if (hasGCal && channelPlan.calendar) {
       searchPromises.push((async () => {
         try {
           const token = await getGoogleTokenForProvider(supabase, userId, "google_calendar");
@@ -1136,7 +1194,7 @@ export async function searchConnectedProviders(
     }
   }
 
-  if (connectedProviders.includes("slack") && isAllowed("slack")) {
+  if (connectedProviders.includes("slack") && isAllowed("slack") && channelPlan.slack) {
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "slack");
@@ -1160,7 +1218,7 @@ export async function searchConnectedProviders(
     })());
   }
 
-  if (connectedProviders.includes("hubspot") && isAllowed("hubspot")) {
+  if (connectedProviders.includes("hubspot") && isAllowed("hubspot") && channelPlan.hubspot) {
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "hubspot");
@@ -1183,7 +1241,7 @@ export async function searchConnectedProviders(
     })());
   }
 
-  if (connectedProviders.includes("zoom") && isAllowed("zoom") && !intentProfile.omitZoom) {
+  if (connectedProviders.includes("zoom") && isAllowed("zoom") && channelPlan.zoom && !intentProfile.omitZoom) {
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "zoom");
@@ -1206,7 +1264,7 @@ export async function searchConnectedProviders(
     })());
   }
 
-  if (connectedProviders.includes("stripe") && isAllowed("stripe")) {
+  if (connectedProviders.includes("stripe") && isAllowed("stripe") && channelPlan.stripe) {
     searchPromises.push((async () => {
       try {
         const token = await getValidProviderToken(supabase, userId, "stripe");

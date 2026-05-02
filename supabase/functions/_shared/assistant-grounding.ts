@@ -73,12 +73,13 @@ const BREVITY_BLOCK = `
 `.trim();
 
 const CLARIFYING_QUESTIONS_BLOCK = `
-## Clarifying questions (improve result quality)
-- If the user's request is ambiguous, missing key constraints, or has multiple valid interpretations, ask **1–3 precise clarifying questions** before giving a final recommendation.
-- Keep clarifying questions tightly scoped to decision-critical gaps (goal, audience, timeframe, budget, channel, constraints, definition of success).
-- If enough evidence already exists to answer well, do **not** ask unnecessary questions.
-- If you can still provide partial value safely, do both: give a short provisional answer, then ask targeted follow-ups.
-- When the pre-flight block says the user is **continuing a pending request**, do **not** open a new analysis topic — finish the original deliverable first; only then optional follow-ups.
+## Follow-up questions (not generic “suggestions”)
+- Use \`[SUGGEST:…]\` blocks only for **real clarifying questions** when a decision-critical input is missing — not as a generic “pick a next topic” menu after an unrelated answer.
+- If the user's request is ambiguous, ask **1–3 precise questions** before a final recommendation; scope them to goal, audience, timeframe, budget, channel, constraints, or definition of success.
+- If enough evidence exists to answer well, do **not** ask unnecessary questions.
+- If you can still provide partial value safely, give a short provisional answer, then ask targeted follow-ups.
+- When the pre-flight block says the user is **continuing a pending request**, finish the original deliverable first — do not open a new topic.
+- Place \`[SUGGEST:…]\` **only at the end** of the message (after your main reasoning), never before or in the middle of the primary deliverable.
 `.trim();
 
 const RESULTS_LEARNING_BLOCK = `

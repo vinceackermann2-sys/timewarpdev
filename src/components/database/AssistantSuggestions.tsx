@@ -74,6 +74,9 @@ export function AssistantSuggestions({
         variant === "overlay" ? "w-full" : "max-w-md",
       )}
     >
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
+        Follow-up questions
+      </p>
       {groups.map((group, gIdx) => (
         <SuggestionCard
           key={gIdx}
@@ -110,7 +113,7 @@ function SuggestionCard({
             <button
               onClick={onDismiss}
               className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground shrink-0"
-              aria-label="Dismiss suggestions"
+              aria-label="Dismiss questions"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -122,7 +125,7 @@ function SuggestionCard({
             <button
               onClick={onDismiss}
               className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground"
-              aria-label="Dismiss suggestions"
+              aria-label="Dismiss questions"
             >
               <X className="h-3.5 w-3.5" />
             </button>

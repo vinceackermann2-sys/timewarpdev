@@ -333,13 +333,14 @@ export function formatQuestionGatePromptBlock(result: QuestionGateResult): strin
     `Partial answer allowed: ${result.canPartialAnswer ? "yes" : "no"}`,
     "",
     askCount === 1
-      ? "Ask exactly ONE blocking clarifying question first in this reply:"
-      : `Ask ${askCount} blocking clarifying questions in this reply (the UI will render one card per question — keep them tight):`,
+      ? "Ask exactly ONE blocking clarifying **question** first in this reply (not product suggestions — decision-critical unknowns only):"
+      : `Ask ${askCount} blocking clarifying **questions** in this reply (the UI renders one card per question as follow-ups — keep them tight):`,
     ...questionsToAsk.map((q, i) => `  ${i + 1}. ${q}`),
     "",
+    "Do **not** put [SUGGEST:…] tags in the middle of the main answer. Finish any substantive reply first, then place [SUGGEST:…] **only at the very end** so the user sees questions after your reasoning, not during it.",
     askCount === 1
-      ? "End the reply with exactly one [SUGGEST:Question?::A|B|C] tag for that question."
-      : `End the reply with ${askCount} separate [SUGGEST:Question?::A|B|C] tags — one per question, in the same order. Each tag must include 2-4 sensible default answer options the user can pick from.`,
+      ? "End with exactly one [SUGGEST:Question?::A|B|C] tag (question text + 2–4 short answer chips)."
+      : `End with ${askCount} separate [SUGGEST:Question?::A|B|C] tags — one per question, in order; each with 2–4 chips.`,
   ];
   return lines.join("\n");
 }

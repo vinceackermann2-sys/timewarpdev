@@ -149,7 +149,11 @@ export function matchSkillsForMessage(message: string, maxSkills = 3): Skill[] {
 
 export function buildSkillsBlock(matched: Skill[]): string {
   if (matched.length === 0) return "";
-  return matched.map(buildSkillBlock).join("\n");
+  const header =
+    "## Skill playbooks matched this turn\n" +
+    "These are **methodology and framing** — not a source of private business facts. " +
+    "Still ground every factual claim about this workspace in Business DNA, live connector results, dashboard/KPIs, web snapshot, or user messages.\n\n";
+  return header + matched.map(buildSkillBlock).join("\n");
 }
 
 export function getSkill(slug: string): Skill | null {
