@@ -243,23 +243,8 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       }
       return questions;
     })();
-    let mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
-    let fallbackTitle: string | undefined = suggestionTitle;
-    // Fallback: if the user asked to create an agent/employee but the model
-    // didn't include a [SUGGEST:] wizard question, surface a built-in one so
-    // the user always gets clickable setup options.
-    if (mergedSuggestions.length === 0) {
-      const lastUser = (userMsg.content || "").toLowerCase();
-      const wantsAgent = /\b(create|build|make|set\s*up|new|add|deploy)\b[^.?!]*\bagent\b/.test(lastUser);
-      const wantsEmployee = /\b(create|build|make|hire|add|new)\b[^.?!]*\b(employee|team\s*member)\b/.test(lastUser);
-      if (wantsAgent) {
-        fallbackTitle = "What should this agent automate first?";
-        mergedSuggestions = ["📥 Lead triage", "💬 Slack/message monitoring", "📊 Daily performance reporting", "🛠️ A custom workflow"];
-      } else if (wantsEmployee) {
-        fallbackTitle = "What domain should this employee own?";
-        mergedSuggestions = ["📣 Marketing & growth", "💰 Sales & revenue", "🛠️ Operations", "🎯 A custom role"];
-      }
-    }
+    const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
+    const fallbackTitle: string | undefined = suggestionTitle;
     const actionPayloads: Record<string, string> = {};
     const keyFor = (label: string) => label.replace(/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u, "").trim();
     for (const pa of planActions || []) {

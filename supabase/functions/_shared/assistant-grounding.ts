@@ -72,6 +72,20 @@ const BREVITY_BLOCK = `
 - Prefer plain language; avoid padding with empty frameworks.
 `.trim();
 
+const STREAMING_AND_MASTER_REPLY_BLOCK = `
+## Streaming UX — short “working” phase, one master answer
+- While tools, live lookups, or memory reads are still in flight, do **not** stream long recommendations, tables, or multi-section advice in the assistant channel.
+- Before the final synthesis is ready, you may output **at most two short sentences** (≤40 words total) that only say **what you are doing and why** (e.g. which connector or DNA section you are using). No numbered plans or tactic lists in that phase.
+- Once evidence is assembled, output the **single cohesive master answer** the user should read (grounded, actionable). Then end with **Task complete** or **Still in progress** as required by task rules.
+`.trim();
+
+const DATA_BACKED_SUGGESTIONS_BLOCK = `
+## \`[SUGGEST:…]\` options must be data-backed for *this* business
+- Every suggestion label must tie to **concrete** context above: name a DNA field, product, audience, KPI, dashboard objective, metric, or a **literal** live row (e.g. file/email title shown). Generic labels like “Grow my business”, “Marketing”, or “Sales” alone are **not allowed**.
+- Rewrite generic intents into specific hooks, e.g. “Double down on \`<named channel from DNA>\` for \`<named ICP>\`” or “Validate \`<metric from dashboard>\` before scaling \`<named offer>\`”.
+- If you lack any grounding for a fork, do **not** invent a \`[SUGGEST:…]\` menu — ask one plain sentence for the missing fact instead, or pick the best-supported path and state the assumption.
+`.trim();
+
 const CLARIFYING_QUESTIONS_BLOCK = `
 ## Clarifying questions (\`[SUGGEST:…]\`) — not a “pick what’s next” menu
 - Use \`[SUGGEST:…]\` only when a **decision-critical** answer is missing and would materially change the work.
@@ -141,7 +155,7 @@ Authenticity requirements:
 /** Grounding and behavior rules appended to system prompts for assistant chat surfaces. */
 export function buildAssistantGroundingBlock(contract: AssistantReplyContract): string {
   if (contract === "live_lookup") {
-    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
   }
   if (contract === "strategic_plan") {
     return [
@@ -151,7 +165,9 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EPISTEMIC_BLOCK,
       LIVE_DATA_BLOCK,
       EXECUTIVE_LIVE_INVENTORY,
+      STREAMING_AND_MASTER_REPLY_BLOCK,
       OPEN_ENDED_GROWTH_BLOCK,
+      DATA_BACKED_SUGGESTIONS_BLOCK,
       CLARIFYING_QUESTIONS_BLOCK,
       TASK_STATUS_BLOCK,
       RESULTS_LEARNING_BLOCK,
@@ -159,5 +175,5 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EVIDENCE_MAP_HINT,
     ].join("\n\n");
   }
-  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
 }

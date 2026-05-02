@@ -6,8 +6,6 @@ import remarkGfm from "remark-gfm";
 import { User as UserIcon } from "lucide-react";
 import { TaskStepsDisplay, type TaskStepsOpenLoop } from "@/components/database/TaskStepsDisplay";
 import { ChatDashboardCards } from "@/components/database/ChatDashboardCards";
-import { ThinkingTimer } from "@/components/database/ThinkingTimer";
-import { ProgressiveLoader } from "@/components/ui/progressive-loader";
 import { InlineChatAnalytics } from "@/components/database/InlineChatAnalytics";
 import { InlineDocument, InlineSpreadsheet, InlineSlide } from "@/components/database/InlineChatGraphics";
 import { AssistantInsightFeedback } from "@/components/database/AssistantInsightFeedback";
@@ -21,6 +19,11 @@ import { AssistantSourceBadges } from "./AssistantSourceBadges";
 import { TaskReportViewer } from "./TaskReportViewer";
 
 const STILL_IN_PROGRESS_RE = /\*\*still in progress\*\*|still in progress:/i;
+
+/** Hide "Still in progress: …" tail in the UI — open-loop state uses the waiting row instead. */
+function stripStillInProgressTail(text: string): string {
+  return text.replace(/\n*\*{0,2}\s*still\s+in\s+progress\s*\*{0,2}\s*:?[\s\S]*$/i, "").trimEnd();
+}
 
 function assistantOpenLoop(msg: ChatMessage): TaskStepsOpenLoop {
   if (msg.isStreaming) return null;
@@ -60,13 +63,15 @@ export function AgentChatMessageList({
             break;
           }
         }
+        const openLoop = msg.role === "assistant" ? assistantOpenLoop(msg) : null;
+        const showWaitingRow =
+          msg.role === "assistant" &&
+          (!!msg.isStreaming || openLoop === "awaiting_user" || openLoop === "incomplete_note");
+        const hideStreamingBody = msg.role === "assistant" && !!msg.isStreaming;
+
         const displayTaskSteps =
-          msg.role === "assistant"
-            ? msg.taskSteps && msg.taskSteps.length > 0
-              ? msg.taskSteps
-              : msg.isStreaming
-                ? [{ action: "process", label: "Starting request", status: "running" as const }]
-                : []
+          msg.role === "assistant" && !msg.isStreaming && !openLoop && msg.taskSteps && msg.taskSteps.length > 0
+            ? msg.taskSteps
             : [];
 
         const rawContent = msg.content || "";
@@ -90,6 +95,8 @@ export function AgentChatMessageList({
           .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
           .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
           .trimEnd();
+        const contentForMarkdown =
+          msg.role === "assistant" ? stripStillInProgressTail(cleanedContent) : cleanedContent;
 
         const sourceAttribution =
           msg.role === "assistant" && !msg.isStreaming
@@ -117,17 +124,17 @@ export function AgentChatMessageList({
             >
               {msg.role === "assistant" ? (
                 <div className="max-w-none text-foreground text-[14.5px] leading-[1.75]">
-                  {msg.planContent && !msg.isStreaming && (
+                  {!hideStreamingBody && msg.planContent && !msg.isStreaming && (
                     <div className="mb-2 inline-flex items-center rounded-full bg-primary/10 text-primary text-[11px] px-2 py-0.5">
                       📋 Strategic Plan
                     </div>
                   )}
-                  {msg.replyContract === "live_lookup" && !msg.isStreaming && (
+                  {!hideStreamingBody && msg.replyContract === "live_lookup" && !msg.isStreaming && (
                     <div className="mb-2 inline-flex items-center rounded-full bg-sky-100 text-sky-700 text-[11px] px-2 py-0.5">
                       🔎 Live Lookup
                     </div>
                   )}
-                  {msg.evidenceAudit?.status === "warn" && !msg.isStreaming && (
+                  {!hideStreamingBody && msg.evidenceAudit?.status === "warn" && !msg.isStreaming && (
                     <div className="mb-2 inline-flex items-center rounded-full bg-amber-100 text-amber-700 text-[11px] px-2 py-0.5">
                       ⚠ Evidence check: {msg.evidenceAudit.warnings[0] || "Needs stronger grounding"}
                     </div>
@@ -139,13 +146,13 @@ export function AgentChatMessageList({
                       isStreaming={msg.isStreaming}
                       startTime={msg.streamStartTime}
                       frozenElapsed={msg.elapsedSeconds}
-                      openLoop={assistantOpenLoop(msg)}
+                      openLoop={openLoop}
                     />
                   )}
-                  {(!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
+                  {!hideStreamingBody && (!!msg.dashboardCards?.length || msg.dashboardOpeningSummary) && (
                     <ChatDashboardCards cards={msg.dashboardCards || []} openingSummary={msg.dashboardOpeningSummary} />
                   )}
-                  {msg.createdEntity?.id && (
+                  {!hideStreamingBody && msg.createdEntity?.id && (
                     <a
                       href={`/app/workforce?tab=${msg.createdEntity.kind === "agent" ? "agents" : "employees"}`}
                       className="my-3 flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-accent transition-colors no-underline"
@@ -159,7 +166,7 @@ export function AgentChatMessageList({
                       <span className="text-xs text-primary">Open →</span>
                     </a>
                   )}
-                  {cleanedContent && (
+                  {!hideStreamingBody && !!contentForMarkdown.trim() && (
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -240,25 +247,18 @@ export function AgentChatMessageList({
                         a: buildLiveCitationAnchor(msg.liveSourceRegistry),
                       }}
                     >
-                      {cleanedContent}
+                      {contentForMarkdown}
                     </ReactMarkdown>
                   )}
                   {sourceAttribution && <AssistantSourceBadges attribution={sourceAttribution} />}
-                  {msg.isStreaming && !msg.content && displayTaskSteps.length === 0 && (
-                    <div className="flex items-center gap-3 py-2">
-                      <ProgressiveLoader text="Thinking" textClassName="text-lg font-semibold" />
-                      {msg.streamStartTime && (
-                        <ThinkingTimer
-                          startTime={msg.streamStartTime}
-                          stopped={!msg.isStreaming}
-                          frozenElapsed={msg.elapsedSeconds}
-                          className="text-xs"
-                        />
-                      )}
+                  {showWaitingRow && (
+                    <div className="flex flex-col items-start gap-2 py-2 mt-1">
+                      <p className="text-sm text-muted-foreground leading-snug">Waiting for a reply to continue</p>
+                      <BusinessBrainOrb
+                        size={28}
+                        animated={!!msg.isStreaming || openLoop === "awaiting_user"}
+                      />
                     </div>
-                  )}
-                  {msg.isStreaming && msg.content && displayTaskSteps.length === 0 && (
-                    <span className="inline-block w-1.5 h-4 bg-foreground/50 animate-pulse ml-0.5" />
                   )}
                   {msg.reportContent && !msg.isStreaming && (
                     <TaskReportViewer
@@ -310,7 +310,11 @@ export function AgentChatMessageList({
                       }}
                     />
                   )}
-                  {!msg.isStreaming && resolvedBrandId && (msg.content?.trim().length ?? 0) >= 30 && !msg.reportContent && (
+                  {!msg.isStreaming &&
+                    !openLoop &&
+                    resolvedBrandId &&
+                    (msg.content?.trim().length ?? 0) >= 30 &&
+                    !msg.reportContent && (
                     <AssistantInsightFeedback
                       businessId={resolvedBrandId}
                       workspaceId={activeWorkspaceId}
@@ -351,9 +355,9 @@ export function AgentChatMessageList({
                 </>
               )}
             </div>
-            {msg.role === "assistant" && (
+            {msg.role === "assistant" && !showWaitingRow && (
               <div className="mt-2 ml-2">
-                <BusinessBrainOrb size={18} animated={!!msg.isStreaming} />
+                <BusinessBrainOrb size={18} animated={false} />
               </div>
             )}
           </div>
