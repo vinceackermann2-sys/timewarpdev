@@ -47,12 +47,13 @@ export async function runDnaContextRouter(
   message: string,
   replyContract: "direct" | "live_lookup" | "strategic_plan" = "direct",
 ): Promise<DnaContextRoute> {
-  const pillars = replyContract === "strategic_plan"
-    ? (["brand","product","audience","market","financial","operations","people","growth","strategy"] as PillarId[])
-    : classifyPillars(message);
-  if (!pillars.length) {
-    return { primaryPillar: "general", relevantFieldIds: [], contextBlocks: [] };
-  }
+  // Always inject ALL 9 pillars so the assistant has complete Business DNA
+  // visibility on every turn. Keyword-classified pillars are still tracked as
+  // the "primary" pillar for prompting/citations, but field loading is global.
+  const ALL_PILLARS: PillarId[] = ["brand","product","audience","market","financial","operations","people","growth","strategy"];
+  const classified = classifyPillars(message);
+  const pillars = ALL_PILLARS;
+  const primaryPillar: PillarId | "general" = classified[0] || "general";
 
   let query = supabase
     .from("user_business_data")
@@ -66,23 +67,22 @@ export async function runDnaContextRouter(
   const allRows = rows || [];
 
   const fieldIds = Array.from(new Set(pillars.flatMap(getPillarFieldMap)));
-  const primaryPillar = pillars[0];
   const contextBlocks: string[] = [];
 
   for (const row of allRows) {
     const body = String(row?.analyzed_content || row?.content || "");
     if (!body) continue;
+    const isBrandRow = brandId && String(row.id) === String(brandId);
     const lower = body.toLowerCase();
     const matched = fieldIds.filter((id) => lower.includes(`"${id.toLowerCase()}"`) || lower.includes(`${id.toLowerCase()}:`));
-    if (matched.length === 0) continue;
-    if (brandId && String(row.id) === String(brandId)) {
-      contextBlocks.push(`### ${row.title || "Brand Context"}\n${body.slice(0, 2400)}`);
+    if (!isBrandRow && matched.length === 0) continue;
+    if (isBrandRow) {
+      // Brand row goes first with full payload so all 9 pillars are visible.
+      contextBlocks.unshift(`### ${row.title || "Brand Context"} [all pillars]\n${body.slice(0, 6000)}`);
       continue;
     }
-    if (matched.length > 0) {
-      contextBlocks.push(`### ${row.title || row.data_type || "DNA Data"} [${matched.join(", ")}]\n${body.slice(0, 2400)}`);
-    }
-    if (contextBlocks.length >= 6) break;
+    contextBlocks.push(`### ${row.title || row.data_type || "DNA Data"} [${matched.join(", ")}]\n${body.slice(0, 2400)}`);
+    if (contextBlocks.length >= 12) break;
   }
 
   return {
@@ -95,9 +95,10 @@ export async function runDnaContextRouter(
 export function formatDnaRouterBlock(route: DnaContextRoute): string {
   if (!route.contextBlocks.length) return "";
   return `
-## Pillar Context Router
-Primary pillar: ${route.primaryPillar}
-Auto-loaded fields: ${route.relevantFieldIds.join(", ") || "none"}
+## Business DNA — All 9 Pillars Loaded
+Pillars in scope: brand, product, audience, market, financial, operations, people, growth, strategy
+Primary pillar this turn: ${route.primaryPillar}
+Auto-loaded field ids: ${route.relevantFieldIds.join(", ") || "none"}
 
 ${route.contextBlocks.join("\n\n")}
 `.trim();
