@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
 import { assistantChatRequestSchema, safeParseJsonBody } from "../_shared/edge-request-schemas.ts";
-import { runEmployeeHttpHandler, runEmployeeCorsHeaders } from "../run-employee/http-handler.ts";
+import { runEmployeeHttpHandler, runEmployeeCorsHeaders } from "../_shared/run-employee/http-handler.ts";
 import { consumeWorkspaceAction } from "../_shared/workspace-actions.ts";
 import { loadAccountSafetySettings, mergeSafetySettings } from "../_shared/account-safety.ts";
 import {
