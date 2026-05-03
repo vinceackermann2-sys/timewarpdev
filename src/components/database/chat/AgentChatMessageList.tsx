@@ -69,7 +69,7 @@ export function AgentChatMessageList({
         const hideStreamingBody = msg.role === "assistant" && !!msg.isStreaming;
 
         const displayTaskSteps =
-          msg.role === "assistant" && !openLoop && msg.taskSteps && msg.taskSteps.length > 0
+          msg.role === "assistant" && msg.taskSteps && msg.taskSteps.length > 0
             ? msg.taskSteps
             : [];
 
