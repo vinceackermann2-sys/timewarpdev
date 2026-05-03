@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, RotateCcw, X } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import type { PillarField } from "./pillarTypes";
 import { parseTextToFieldValue, serializeFieldToText } from "./pillarOverrides";
@@ -9,23 +7,21 @@ import { PillarFieldRenderer } from "./PillarFieldRenderer";
 
 interface Props {
   field: PillarField;
-  /** The structured value BEFORE override merge, used as the editable baseline. */
   baseValue: any;
-  /** Existing override text for this field (if any). */
   override?: string;
-  /** When true, the editor opens immediately (used by the page-level Edit toggle). */
+  /** When true, the field becomes editable in place (no popup/box). */
   autoOpen?: boolean;
   onSave: (next: string | null) => Promise<void> | void;
 }
 
 /**
- * Inline editor for a single pillar field.
+ * In-place editor for a single pillar field.
  *
- * - Shows the normal `PillarFieldRenderer` until the user clicks the row.
- * - On click, swaps to a textarea pre-filled with the current text
- *   (override if present, otherwise the serialized structured value).
- * - Save persists the override; if the text matches the baseline or is
- *   empty, the override is cleared so the structured rendering returns.
+ * Edit mode does NOT open a separate textarea/box — instead it makes the
+ * existing rendered value `contentEditable` so the user types directly on
+ * the value exactly where it appears. On blur (or Cmd/Ctrl+Enter) we save
+ * the edited plain-text as an override; if the text matches the AI baseline
+ * the override is cleared and the structured visual returns.
  */
 export function PillarFieldEditor({ field, baseValue, override, autoOpen, onSave }: Props) {
   const baseline = serializeFieldToText(field, baseValue);
@@ -34,81 +30,21 @@ export function PillarFieldEditor({ field, baseValue, override, autoOpen, onSave
     const parsed = parseTextToFieldValue(field, override);
     return parsed != null ? serializeFieldToText(field, parsed) : override;
   })();
-  const initial = normalizedOverride ?? baseline;
+  const initialText = normalizedOverride ?? baseline;
 
-  const [editing, setEditing] = useState(!!autoOpen);
-  const [value, setValue] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  const taRef = useRef<HTMLTextAreaElement>(null);
+  const [savingReset, setSavingReset] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const lastSavedRef = useRef<string>(initialText);
 
-  // Sync open state when the parent toggles edit mode
+  // Reset baseline tracker when underlying value changes
   useEffect(() => {
-    setEditing(!!autoOpen);
-  }, [autoOpen]);
+    lastSavedRef.current = initialText;
+  }, [initialText]);
 
-  // Keep local state in sync if the underlying value changes while not editing
-  useEffect(() => {
-    if (!editing) setValue(initial);
-  }, [initial, editing]);
-
-  useEffect(() => {
-    if (editing && taRef.current) {
-      taRef.current.focus();
-      // Place cursor at end
-      const len = taRef.current.value.length;
-      taRef.current.setSelectionRange(len, len);
-    }
-  }, [editing]);
-
-  const handleCancel = () => {
-    setValue(initial);
-    setEditing(false);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const trimmed = value.trim();
-      // Empty or matches baseline → clear override
-      const next = trimmed === "" || value === baseline ? null : value;
-      await onSave(next);
-      toast.success("Saved");
-      setEditing(false);
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to save");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleReset = async () => {
-    setSaving(true);
-    try {
-      await onSave(null);
-      setValue(baseline);
-      toast.success("Reset to AI value");
-      setEditing(false);
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to reset");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (!editing) {
+  // Read-only mode — render as-is.
+  if (!autoOpen) {
     return (
-      <div
-        className="group relative -mx-2 px-2 py-1 rounded-lg cursor-text hover:bg-muted/40 transition-colors"
-        onClick={() => setEditing(true)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            setEditing(true);
-          }
-        }}
-      >
+      <div className="relative">
         <PillarFieldRenderer field={field} />
         {override !== undefined && (
           <span className="absolute -top-1 -right-1 text-[9px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
@@ -119,56 +55,63 @@ export function PillarFieldEditor({ field, baseValue, override, autoOpen, onSave
     );
   }
 
-  const rows = Math.min(20, Math.max(1, value.split("\n").length));
+  const persist = async () => {
+    if (!wrapperRef.current) return;
+    const text = wrapperRef.current.innerText.replace(/\u00A0/g, " ").trimEnd();
+    if (text === lastSavedRef.current) return;
+    const trimmed = text.trim();
+    const next = trimmed === "" || text === baseline ? null : text;
+    try {
+      await onSave(next);
+      lastSavedRef.current = text;
+      toast.success("Saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save");
+    }
+  };
+
+  const handleReset = async () => {
+    setSavingReset(true);
+    try {
+      await onSave(null);
+      lastSavedRef.current = baseline;
+      toast.success("Reset to AI value");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to reset");
+    } finally {
+      setSavingReset(false);
+    }
+  };
 
   return (
-    <div className="space-y-2 -mx-2 px-2 py-1 rounded-lg ring-1 ring-primary/30 focus-within:ring-primary/60 transition-shadow">
-      {/* Borderless, visually identical to the read-only renderer so the
-          user types directly on the value as it normally appears. */}
-      <Textarea
-        ref={taRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        rows={rows}
-        className="text-sm leading-relaxed text-foreground whitespace-pre-line resize-none border-0 bg-transparent shadow-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-0"
+    <div className="group/editor relative -mx-2 px-2 py-1 rounded-lg ring-1 ring-primary/30 focus-within:ring-primary/60 transition-shadow bg-primary/[0.015]">
+      <div
+        ref={wrapperRef}
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck
+        onBlur={persist}
         onKeyDown={(e) => {
-          if (e.key === "Escape") handleCancel();
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave();
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            (e.currentTarget as HTMLDivElement).blur();
+          }
         }}
-      />
-      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
-        <div className="text-[11px] text-muted-foreground">
-          <kbd className="font-mono">⌘↵</kbd> save · <kbd className="font-mono">Esc</kbd> cancel
-        </div>
-        <div className="flex items-center gap-2">
-          {override !== undefined && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReset}
-              disabled={saving}
-              className="h-8 gap-1.5 text-muted-foreground"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCancel}
-            disabled={saving}
-            className="h-8 gap-1.5"
-          >
-            <X className="w-3.5 h-3.5" />
-            Cancel
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 gap-1.5">
-            <Check className="w-3.5 h-3.5" />
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </div>
+        className="outline-none focus:outline-none [&_*]:cursor-text"
+      >
+        <PillarFieldRenderer field={field} />
       </div>
+      {override !== undefined && (
+        <button
+          onClick={handleReset}
+          disabled={savingReset}
+          className="absolute top-1 right-1 inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground bg-background/80 backdrop-blur px-1.5 py-0.5 rounded-md opacity-0 group-hover/editor:opacity-100 transition-opacity"
+          title="Reset to AI value"
+        >
+          <RotateCcw className="w-3 h-3" />
+          Reset
+        </button>
+      )}
     </div>
   );
 }
