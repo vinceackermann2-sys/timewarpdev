@@ -119,22 +119,24 @@ export function PillarFieldEditor({ field, baseValue, override, autoOpen, onSave
     );
   }
 
-  const rows = Math.min(10, Math.max(2, value.split("\n").length));
+  const rows = Math.min(20, Math.max(1, value.split("\n").length));
 
   return (
-    <div className="space-y-2 -mx-2 p-2 rounded-lg bg-muted/40 ring-1 ring-border">
+    <div className="space-y-2 -mx-2 px-2 py-1 rounded-lg ring-1 ring-primary/30 focus-within:ring-primary/60 transition-shadow">
+      {/* Borderless, visually identical to the read-only renderer so the
+          user types directly on the value as it normally appears. */}
       <Textarea
         ref={taRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={rows}
-        className="text-sm resize-y bg-card"
+        className="text-sm leading-relaxed text-foreground whitespace-pre-line resize-none border-0 bg-transparent shadow-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-0"
         onKeyDown={(e) => {
           if (e.key === "Escape") handleCancel();
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave();
         }}
       />
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
         <div className="text-[11px] text-muted-foreground">
           <kbd className="font-mono">⌘↵</kbd> save · <kbd className="font-mono">Esc</kbd> cancel
         </div>
