@@ -65,11 +65,11 @@ export function AgentChatMessageList({
         const openLoop = msg.role === "assistant" ? assistantOpenLoop(msg) : null;
         const showWaitingRow =
           msg.role === "assistant" &&
-          (!!msg.isStreaming || openLoop === "awaiting_user" || openLoop === "incomplete_note");
+          (openLoop === "awaiting_user" || openLoop === "incomplete_note");
         const hideStreamingBody = msg.role === "assistant" && !!msg.isStreaming;
 
         const displayTaskSteps =
-          msg.role === "assistant" && !msg.isStreaming && !openLoop && msg.taskSteps && msg.taskSteps.length > 0
+          msg.role === "assistant" && !openLoop && msg.taskSteps && msg.taskSteps.length > 0
             ? msg.taskSteps
             : [];
 
