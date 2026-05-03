@@ -7,6 +7,7 @@ export {
   type AgentSseHandlers,
   type AgentSseProgressStep,
   type PostFlightSsePayload,
+  type PipelineSourcesPayload,
 } from "./streamSse";
 
 export { consumeNdjsonStream } from "./streamNdjson";

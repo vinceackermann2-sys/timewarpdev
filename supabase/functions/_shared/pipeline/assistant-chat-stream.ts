@@ -6,6 +6,9 @@ import { edgeLog, userIdShort } from "../edge-logger.ts";
 import { buildAssistantPipelinePrompt } from "./context.ts";
 import { runPostFlightEvidence } from "./post-flight.ts";
 import { executeAssistantChatTool } from "./tools.ts";
+import type { QuestionGateResult } from "../question-gate.ts";
+import { classifyAssistantGoal } from "./goalSetter.ts";
+import { buildConnectorProgressLabel } from "./personalLogger.ts";
 
 export interface AssistantChatStreamInput {
   supabase: any;
@@ -21,6 +24,7 @@ export interface AssistantChatStreamInput {
   replyContract: "direct" | "live_lookup" | "strategic_plan";
   businessId: string | null | undefined;
   profileContext: string;
+  questionGate?: QuestionGateResult;
 }
 
 type AccumulatedToolCall = { id?: string; name: string; arguments: string };
@@ -68,6 +72,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
     replyContract,
     businessId,
     profileContext,
+    questionGate,
   } = input;
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -94,9 +99,14 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
 
       (async () => {
         try {
-          const understandLabel = "Reading the room";
-          sendStep(understandLabel, "running", "analysis");
-          sendStep(understandLabel, "done", "analysis");
+          if (
+            questionGate &&
+            !questionGate.complete &&
+            !questionGate.isAnswerToPriorQuestion &&
+            questionGate.mandatoryQuestions?.length
+          ) {
+            send({ type: "questions", questions: questionGate.mandatoryQuestions });
+          }
 
           const {
             systemPrompt,
@@ -128,11 +138,12 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             page_url: null,
           }).then(() => {});
 
-          const craftLabel = "Building your move";
+          const streamGoal = classifyAssistantGoal(lastUserMsg);
+          const craft = buildConnectorProgressLabel("llm", streamGoal);
           if (replyContract === "strategic_plan") {
-            sendStep("Building strategic plan...", "running", "response");
+            sendStep("Building strategic plan…", "running", "response");
           }
-          sendStep(craftLabel, "running", "response");
+          sendStep(craft.label, "running", craft.action);
 
           const callGateway = async (msgs: any[], includeTools: boolean) => {
             return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -217,16 +228,26 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
                 brandId,
               });
               edgeLog("assistant-chat", "tool_executed", { name: tc.name, user: userIdShort(user.id) });
-              if (
-                result && typeof result === "object" && (result as { ok?: boolean }).ok === true &&
-                (tc.name === "create_agent" || tc.name === "create_employee")
-              ) {
-                send({
-                  type: "created_entity",
-                  kind: result.kind,
-                  id: result.id,
-                  name: result.name,
-                });
+              if (result && typeof result === "object" && (result as { ok?: boolean }).ok === true) {
+                if (tc.name === "create_agent" || tc.name === "create_employee") {
+                  send({
+                    type: "created_entity",
+                    kind: (result as { kind?: string }).kind,
+                    id: (result as { id?: string }).id,
+                    name: (result as { name?: string }).name,
+                  });
+                }
+                if (
+                  (tc.name === "create_todo" || tc.name === "create_objective" || tc.name === "create_briefing" ||
+                    tc.name === "create_update") && (result as { kind?: string }).kind === "dashboard"
+                ) {
+                  send({
+                    type: "dashboard_card_created",
+                    tab: (result as { tab?: string }).tab,
+                    id: (result as { id?: string }).id,
+                    title: (result as { name?: string }).name,
+                  });
+                }
               }
               toolResults.push({
                 tool_call_id: tc.id || `${tc.name}_${Math.random().toString(36).slice(2, 8)}`,
@@ -280,7 +301,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             },
           });
 
-          sendStep(craftLabel, "done", "response");
+          sendStep(craft.label, "done", craft.action);
           sendStep("Finished", "done", "complete");
           await logBusinessLearningEvent(supabase, {
             userId: user.id,

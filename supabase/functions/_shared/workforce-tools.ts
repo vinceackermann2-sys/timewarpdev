@@ -78,6 +78,75 @@ export const workforceTools = [
       },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "create_todo",
+      description:
+        "Add a To-Do card to the user's CEO dashboard snapshot for this brand. Use when the user explicitly wants a tracked task or you agreed to create one.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Short task title" },
+          description: { type: "string", description: "One or two sentences — concrete next step" },
+          priority: { type: "string", enum: ["High", "Medium", "Low"], description: "Default Medium" },
+        },
+        required: ["title", "description"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "create_objective",
+      description: "Add an Objective card to the CEO dashboard snapshot (strategic outcome / KPI).",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["High", "Medium", "Low"] },
+        },
+        required: ["title", "description"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "create_briefing",
+      description: "Add a Briefing card to the CEO dashboard snapshot (executive note / signal).",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["High", "Medium", "Low"] },
+        },
+        required: ["title", "description"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "create_update",
+      description: "Add an Updates card (waiting-on / status update style) to the CEO dashboard snapshot.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "string", enum: ["High", "Medium", "Low"] },
+        },
+        required: ["title", "description"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 interface ExecCtx {
@@ -89,10 +158,59 @@ interface ExecCtx {
 
 interface ToolResult {
   ok: boolean;
-  kind: "agent" | "employee";
+  kind: "agent" | "employee" | "dashboard";
   id?: string;
   name?: string;
+  tab?: string;
   error?: string;
+}
+
+async function appendDashboardSnapshotCard(
+  ctx: ExecCtx,
+  tab: "Briefing" | "Updates" | "To-Dos" | "Objectives",
+  card: { id: string; title: string; description: string; priority: string },
+): Promise<ToolResult> {
+  if (!ctx.brandId) {
+    return { ok: false, kind: "dashboard", error: "brandId required for dashboard tools" };
+  }
+  const { data: row, error: selErr } = await ctx.supabase
+    .from("dashboard_snapshots")
+    .select("tab_cards, cards")
+    .eq("user_id", ctx.userId)
+    .eq("brand_id", ctx.brandId)
+    .maybeSingle();
+  if (selErr) return { ok: false, kind: "dashboard", error: selErr.message };
+
+  const empty: Record<string, unknown[]> = { Briefing: [], Updates: [], "To-Dos": [], Objectives: [] };
+  const prev = (row?.tab_cards || {}) as Record<string, unknown[]>;
+  const tabCards: Record<string, unknown[]> = {
+    Briefing: [...(prev.Briefing || empty.Briefing)],
+    Updates: [...(prev.Updates || empty.Updates)],
+    "To-Dos": [...(prev["To-Dos"] || empty["To-Dos"])],
+    Objectives: [...(prev.Objectives || empty.Objectives)],
+  };
+  tabCards[tab].unshift({
+    id: card.id,
+    title: card.title,
+    description: card.description,
+    priority: card.priority,
+    source: "assistant_chat",
+  });
+
+  const payload = {
+    user_id: ctx.userId,
+    brand_id: ctx.brandId,
+    workspace_id: ctx.workspaceId || null,
+    cards: (row?.cards && typeof row.cards === "object" ? row.cards : {}) as Record<string, unknown>,
+    tab_cards: tabCards,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: upErr } = await ctx.supabase.from("dashboard_snapshots").upsert(payload, {
+    onConflict: "user_id,brand_id",
+  });
+  if (upErr) return { ok: false, kind: "dashboard", error: upErr.message };
+  return { ok: true, kind: "dashboard", id: card.id, name: card.title, tab };
 }
 
 export async function executeWorkforceToolCall(
@@ -170,6 +288,21 @@ export async function executeWorkforceToolCall(
     } catch (err: any) {
       return { ok: false, kind: "employee", error: String(err?.message || err) };
     }
+  }
+
+  const dashTools: Record<string, "Briefing" | "Updates" | "To-Dos" | "Objectives"> = {
+    create_todo: "To-Dos",
+    create_objective: "Objectives",
+    create_briefing: "Briefing",
+    create_update: "Updates",
+  };
+  if (dashTools[name]) {
+    const title = String(args.title || "").trim().slice(0, 120);
+    const description = String(args.description || "").trim().slice(0, 800);
+    const priority = (["High", "Medium", "Low"].includes(String(args.priority)) ? args.priority : "Medium") as string;
+    if (!title || !description) return { ok: false, kind: "dashboard", error: "title and description required" };
+    const id = `asst_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+    return appendDashboardSnapshotCard(ctx, dashTools[name], { id, title, description, priority });
   }
 
   return { ok: false, kind: "agent", error: `Unknown tool: ${name}` };

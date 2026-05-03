@@ -20,6 +20,10 @@ import { resolveDashboardCardsForChat } from "./dashboard.ts";
 import { buildSkillsBlock, matchSkillsForMessage, matchSkillSticky } from "./skills.ts";
 import { composeAssistantSystemPrompt } from "./compose-prompt.ts";
 import { buildAssistantChatTools } from "./tools.ts";
+import { classifyAssistantGoal, expandQueryForConnectors } from "./goalSetter.ts";
+import { buildConnectorProgressLabel } from "./personalLogger.ts";
+import { buildSourceRegistryPayload } from "./sourceCollector.ts";
+import { buildDataIntegrityChallengeBlock } from "./challengeEngine.ts";
 
 /** Alias for orchestration docs / future expansion. */
 export type PipelineContext = AssembleAssistantContextParams;
@@ -93,10 +97,18 @@ export async function buildAssistantPipelinePrompt(
   const dnaRoute = await runDnaContextRouter(supabase, userId, workspaceId, brandId || undefined, lastUserMsg, replyContract);
   const dnaRouterBlock = formatDnaRouterBlock(dnaRoute);
 
+  const goal = classifyAssistantGoal(lastUserMsg);
   const topic = extractQueryTopic(lastUserMsg);
+  const connectorBoost = expandQueryForConnectors(goal, topic);
   const initialConnectionDecision = shouldSearchConnections(lastUserMsg);
 
-  sendStep("Pulling the receipts", "running", "context");
+  {
+    const s = buildConnectorProgressLabel("start", goal);
+    sendStep(s.label, "running", s.action);
+    sendStep(s.label, "done", s.action);
+  }
+  const connPhase = buildConnectorProgressLabel("connectors", goal, initialConnectionDecision.reason);
+  sendStep(connPhase.label, "running", connPhase.action);
   const relevantContext = await retrieveRelevantContextForAssistant(
     supabase,
     userId,
@@ -118,6 +130,7 @@ export async function buildAssistantPipelinePrompt(
     lastUserMsg,
     (step) => send({ type: "progress", step }),
     topic,
+    connectorBoost,
   );
   const registryObj = (sourceRegistry && typeof sourceRegistry === "object")
     ? sourceRegistry as Record<string, unknown>
@@ -125,11 +138,13 @@ export async function buildAssistantPipelinePrompt(
   if (registryObj && Object.keys(registryObj).length > 0) {
     send({ type: "live_sources", registry: registryObj });
   }
-  sendStep("Pulling the receipts", "done", "context", connectionDecision?.reason);
+  sendStep(connPhase.label, "done", connPhase.action, connectionDecision?.reason);
 
   let dashboardMarkdown = "";
+  let dashboardRan = false;
   if (brandId && lastUserMsg && taskType === "chat") {
-    sendStep("Dashboard snapshot", "running", "context");
+    const d0 = buildConnectorProgressLabel("dashboard", goal);
+    sendStep(d0.label, "running", d0.action);
     const dash = await resolveDashboardCardsForChat(supabase, {
       userId,
       brandId,
@@ -137,26 +152,34 @@ export async function buildAssistantPipelinePrompt(
       send,
     });
     dashboardMarkdown = dash.markdown;
-    sendStep("Dashboard snapshot", "done", "context");
+    dashboardRan = !!dashboardMarkdown.trim();
+    sendStep(d0.label, "done", d0.action);
   }
 
   const answerTopic = queryTopic || topic;
   const webScheduled = shouldFetchPublicWebContext(lastUserMsg, replyContract);
   let publicWebBlock = "";
   if (webScheduled) {
-    sendStep("Public web snapshot", "running", "context");
+    const w0 = buildConnectorProgressLabel("web", goal);
+    sendStep(w0.label, "running", w0.action);
     const wq = extractWebSearchQuery(lastUserMsg);
     const snap = await fetchPublicWebSnapshot(wq || answerTopic || topic || lastUserMsg);
     if (snap) {
       publicWebBlock =
         `\n\n## External tier — web research (this turn)\n${snap}\n\n_Use only URLs/text above for competitive/public claims._\n`;
     }
-    sendStep("Public web snapshot", "done", "context");
+    sendStep(w0.label, "done", w0.action);
   }
 
   const performanceEvidence = businessId
     ? await buildPerformanceEvidenceMarkdown(supabase, businessId, 30)
     : "";
+
+  let userAiGapNote = "";
+  if (goal.dataTier === "user_ai" && !String(performanceEvidence || "").trim()) {
+    userAiGapNote =
+      "\n\n## User-AI performance tier\n**No KPI window / learning history** is available yet. Do not invent good-vs-bad period comparisons; say what is missing and what the user should track first.";
+  }
 
   const dataBackedBlock = buildDataBackedRoutingBlock({
     replyContract,
@@ -174,11 +197,9 @@ export async function buildAssistantPipelinePrompt(
     if (sticky) matchedSkills = [sticky];
   }
   if (matchedSkills.length > 0) {
-    sendStep(
-      `Loading ${matchedSkills.length} playbook${matchedSkills.length > 1 ? "s" : ""}`,
-      "done",
-      "skill",
-    );
+    const sk = buildConnectorProgressLabel("skills", goal);
+    sendStep(sk.label, "running", sk.action);
+    sendStep(sk.label, "done", sk.action);
   }
   const skillPlaybookBlock = buildSkillsBlock(matchedSkills);
 
@@ -187,16 +208,18 @@ export async function buildAssistantPipelinePrompt(
     connectionContext,
     dnaRouterBlock,
     performanceEvidence ? `## Performance Evidence (KPI Windows)\n${performanceEvidence}` : "",
+    userAiGapNote,
   ].filter(Boolean).join("\n\n");
 
   const toolDefs = buildAssistantChatTools();
+  const toolNames = toolDefs.map((t: { function?: { name?: string } }) => t.function?.name).filter(Boolean);
   const toolDefinitionsBlock =
     "## Available tools (this turn)\n" +
-    "You may call: **create_agent**, **create_employee**, **memory_write**, **web_search**. " +
+    `You may call: **${toolNames.join("**, **")}**. ` +
     "Use **memory_write** only for durable decisions. Use **web_search** only when external facts are needed and not already in context.\n" +
     JSON.stringify(toolDefs.map((t: any) => ({ name: t.function?.name, description: t.function?.description })), null, 0);
 
-  const systemPrompt = composeAssistantSystemPrompt({
+  let systemPrompt = composeAssistantSystemPrompt({
     identityLine,
     businessContextBlock,
     persistedMemoryBlock,
@@ -209,6 +232,22 @@ export async function buildAssistantPipelinePrompt(
     toolDefinitionsBlock,
     replyContract,
   });
+
+  const challenge = buildDataIntegrityChallengeBlock(lastUserMsg, connectionContext);
+  if (challenge) systemPrompt += `\n\n${challenge}`;
+  systemPrompt +=
+    "\n\n## Graphics\nDo not output generated graphics or image-generation instructions unless the user explicitly asked for a visual **or** they already confirmed in this thread after you asked.";
+
+  const searchedList = Array.isArray(searchedProviders) ? searchedProviders as string[] : [];
+  const sourcesPayload = buildSourceRegistryPayload({
+    searchedProviders: searchedList,
+    queryTopic: String(queryTopic || answerTopic || topic || ""),
+    webSnapshotRan: webScheduled,
+    dnaRouterRan: !!dnaRouterBlock?.trim(),
+    performanceRan: !!String(performanceEvidence || "").trim(),
+    dashboardRan,
+  });
+  send({ type: "sources", ...sourcesPayload });
 
   return {
     systemPrompt,

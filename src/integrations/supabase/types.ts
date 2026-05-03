@@ -19,6 +19,7 @@ export type Database = {
           agent_name: string | null
           assistant_memory: string
           created_at: string
+          goal_state: Json | null
           id: string
           messages: Json
           title: string
@@ -30,6 +31,7 @@ export type Database = {
           agent_name?: string | null
           assistant_memory?: string
           created_at?: string
+          goal_state?: Json | null
           id?: string
           messages?: Json
           title?: string
@@ -41,6 +43,7 @@ export type Database = {
           agent_name?: string | null
           assistant_memory?: string
           created_at?: string
+          goal_state?: Json | null
           id?: string
           messages?: Json
           title?: string

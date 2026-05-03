@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import type { ChatMessage } from "@/lib/agentChat/types";
+import type { ChatMessage, GoalState } from "@/lib/agentChat/types";
 import type { ChatSession } from "@/components/database/ChatHistorySidebar";
 
 export function useChatPersistence({
@@ -28,6 +28,7 @@ export function useChatPersistence({
   setSessionMemoryOpen: Dispatch<SetStateAction<boolean>>;
 }) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [goalState, setGoalState] = useState<GoalState | null>(null);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -45,6 +46,7 @@ export function useChatPersistence({
         title,
         messages: nonStreaming,
         assistant_memory: sessionMemory ?? "",
+        goal_state: goalState as any,
         updated_at: new Date().toISOString(),
       };
 
@@ -57,6 +59,7 @@ export function useChatPersistence({
               updated_at: new Date().toISOString(),
               title,
               assistant_memory: sessionMemory ?? "",
+              goal_state: goalState as any,
             })
             .eq("id", chatId)
             .eq("user_id", user.id);
@@ -72,7 +75,7 @@ export function useChatPersistence({
         console.warn("Failed to save chat session:", e);
       }
     },
-    [user?.id, activeWorkspaceId, selectedAgent, sessionMemory],
+    [user?.id, activeWorkspaceId, selectedAgent, sessionMemory, goalState],
   );
 
   useEffect(() => {
@@ -99,7 +102,7 @@ export function useChatPersistence({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [messages, activeChatId, saveChatSession, sessionMemory]);
+  }, [messages, activeChatId, saveChatSession, sessionMemory, goalState]);
 
   // When the user signs out / switches account or workspace, drop the active
   // chat id so we never update or display another user's session.
@@ -111,6 +114,8 @@ export function useChatPersistence({
     setActiveChatId(session.id);
     const msgs = session.messages as ChatMessage[];
     setMessages(msgs);
+    const gs = session.goal_state;
+    setGoalState(gs && typeof gs === "object" && gs !== null && "id" in gs ? (gs as GoalState) : null);
     setSessionMemory(typeof session.assistant_memory === "string" ? session.assistant_memory : "");
     setSessionMemoryOpen(!!(session.assistant_memory && String(session.assistant_memory).trim()));
     if (session.agent_name) setSelectedAgent(session.agent_name);
@@ -128,7 +133,8 @@ export function useChatPersistence({
     setSelectedChatEmployees([]);
     setSessionMemory("");
     setSessionMemoryOpen(false);
+    setGoalState(null);
   };
 
-  return { activeChatId, handleSelectChat, handleNewChat, saveChatSession, sidebarRefreshKey };
+  return { activeChatId, goalState, setGoalState, handleSelectChat, handleNewChat, saveChatSession, sidebarRefreshKey };
 }

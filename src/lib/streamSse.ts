@@ -48,6 +48,11 @@ export type PostFlightSsePayload = {
   warnings: string[];
 };
 
+export type PipelineSourcesPayload = {
+  conclusionSources: Array<{ type: string; label: string; provider?: string; url?: string; snippet?: string }>;
+  dataSources: Array<{ type: string; label: string; provider?: string; url?: string; snippet?: string }>;
+};
+
 export type AgentSseHandlers = {
   onProgressStep?: (step: AgentSseProgressStep) => void;
   onContentDelta?: (delta: string) => void;
@@ -57,6 +62,9 @@ export type AgentSseHandlers = {
   onCreatedEntity?: (evt: CreatedEntityPayload) => void;
   onToolCall?: (evt: { name: string; args: Record<string, unknown> }) => void;
   onPostFlight?: (evt: PostFlightSsePayload) => void;
+  onSources?: (evt: PipelineSourcesPayload) => void;
+  onQuestions?: (questions: string[]) => void;
+  onDashboardCardCreated?: (evt: { tab?: string; id?: string; title?: string }) => void;
   onErrorMessage?: (message: string) => void;
 };
 
@@ -102,6 +110,18 @@ export async function consumeAgentChatSseStream(
         } else if (evt.type === "post_flight" && handlers.onPostFlight) {
           const en = (evt as { enforcement?: PostFlightSsePayload }).enforcement;
           if (en && typeof en.score === "number") handlers.onPostFlight(en);
+        } else if (evt.type === "sources" && handlers.onSources) {
+          const c = (evt as { conclusionSources?: PipelineSourcesPayload["conclusionSources"] }).conclusionSources;
+          const d = (evt as { dataSources?: PipelineSourcesPayload["dataSources"] }).dataSources;
+          handlers.onSources({
+            conclusionSources: Array.isArray(c) ? c : [],
+            dataSources: Array.isArray(d) ? d : [],
+          });
+        } else if (evt.type === "questions" && handlers.onQuestions) {
+          const qs = (evt as { questions?: string[] }).questions;
+          if (Array.isArray(qs) && qs.length) handlers.onQuestions(qs);
+        } else if (evt.type === "dashboard_card_created" && handlers.onDashboardCardCreated) {
+          handlers.onDashboardCardCreated(evt as { tab?: string; id?: string; title?: string });
         } else if (evt.type === "result" && handlers.onResult) {
           handlers.onResult(evt);
         } else if (evt.type === "error") {
@@ -129,6 +149,13 @@ export async function consumeAgentChatSseStream(
           if (evt.type === "content" && handlers.onContentDelta) {
             const d = normalizeSseContentDelta((evt as { delta?: unknown }).delta);
             if (d.length > 0) handlers.onContentDelta(d);
+          } else if (evt.type === "sources" && handlers.onSources) {
+            const c = (evt as { conclusionSources?: PipelineSourcesPayload["conclusionSources"] }).conclusionSources;
+            const d = (evt as { dataSources?: PipelineSourcesPayload["dataSources"] }).dataSources;
+            handlers.onSources({
+              conclusionSources: Array.isArray(c) ? c : [],
+              dataSources: Array.isArray(d) ? d : [],
+            });
           } else if (evt.type === "result" && handlers.onResult) {
             handlers.onResult(evt);
           } else if (evt.type === "error") {

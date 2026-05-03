@@ -936,6 +936,8 @@ export async function searchConnectedProviders(
   userQuery: string,
   emitProgress?: (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => void,
   topic?: string,
+  /** Goal-derived terms merged into live search query (avoid literal-only vague phrases). */
+  connectorQueryBoost?: string,
 ): Promise<{ connectionContext: string; sourceRegistry: LiveSourceRegistry; searchedProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
   const searchedProviders: string[] = [];
   const skippedProviders: string[] = [];
@@ -944,7 +946,10 @@ export async function searchConnectedProviders(
   const emptyRegistry: LiveSourceRegistry = {};
   const t = topic || extractQueryTopic(userQuery);
   const intentProfile = buildConnectorSearchIntentProfile(userQuery);
-  const effectiveQuery = intentProfile.augmentedQuery;
+  let effectiveQuery = intentProfile.augmentedQuery;
+  if (connectorQueryBoost && String(connectorQueryBoost).trim()) {
+    effectiveQuery = `${effectiveQuery} ${String(connectorQueryBoost).trim()}`.replace(/\s+/g, " ").trim().slice(0, 500);
+  }
   const searchTopicForApis = intentProfile.topicHint || t;
   const connectionCheckLabel = `Checking your connected tools for ${t}`;
 

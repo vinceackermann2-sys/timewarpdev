@@ -2,6 +2,26 @@ import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 import type { DataSourceAttribution } from "@/lib/agentChat/parseAssistantSources";
 import type { SuggestionGroup } from "@/lib/parseSuggestions";
 
+export type SourceEntryType = "internal" | "external" | "connector";
+
+export interface SourceEntry {
+  type: SourceEntryType;
+  label: string;
+  provider?: string;
+  url?: string;
+  snippet?: string;
+}
+
+export interface GoalState {
+  id: string;
+  type: "data_retrieval" | "analysis" | "action" | "creation" | "planning";
+  summary: string;
+  status: "active" | "paused_for_question" | "completed";
+  requiresConclusion: boolean;
+  dataTier: "internal" | "external" | "user_ai" | "mixed";
+  createdAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -57,6 +77,11 @@ export interface ChatMessage {
   createdEntity?: { kind: "agent" | "employee"; id?: string; name?: string };
   /** Parsed from ```assistant_sources``` — shown as icon row when data_backed. */
   dataSourceAttribution?: DataSourceAttribution | null;
+  /** Pipeline-attributed sources (connectors, DNA, web) for the Sources panel. */
+  sources?: SourceEntry[];
+  goalId?: string;
+  /** True when this assistant turn is only a clarifying pause (optional client flag). */
+  isQuestionPause?: boolean;
 }
 
 export type ChatTaskStep = NonNullable<ChatMessage["taskSteps"]>[number];

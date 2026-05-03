@@ -12,6 +12,7 @@ export interface ChatSession {
   agent_name: string | null;
   assistant_memory?: string | null;
   messages: any[];
+  goal_state?: unknown | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,7 +51,7 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat, refr
       // disappears for users who haven't picked a workspace yet.
       let query = supabase
         .from("agent_chat_sessions")
-        .select("id, title, agent_name, assistant_memory, messages, created_at, updated_at, workspace_id, user_id")
+        .select("id, title, agent_name, assistant_memory, messages, goal_state, created_at, updated_at, workspace_id, user_id")
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(50);

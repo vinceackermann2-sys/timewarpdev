@@ -32,7 +32,7 @@ import {
   matchSkillsForMessage,
   matchSkillSticky,
 } from "../_shared/skills/_router.ts";
-import { workforceTools, executeWorkforceToolCall } from "../_shared/workforce-tools.ts";
+import { workforceTools } from "../_shared/workforce-tools.ts";
 import { buildDataBackedRoutingBlock } from "../_shared/data-backed-evidence.ts";
 import {
   extractWebSearchQuery,
@@ -40,6 +40,11 @@ import {
   shouldFetchPublicWebContext,
 } from "../_shared/public-web-snapshot.ts";
 import { normalizeChatCompletionDeltaContent } from "../_shared/gateway-stream-delta.ts";
+import { buildAssistantPipelinePrompt } from "../_shared/pipeline/context.ts";
+import { executeAssistantChatTool } from "../_shared/pipeline/tools.ts";
+import { classifyAssistantGoal, expandQueryForConnectors } from "../_shared/pipeline/goalSetter.ts";
+import { buildConnectorProgressLabel } from "../_shared/pipeline/personalLogger.ts";
+import { runPostFlightEvidence } from "../_shared/pipeline/post-flight.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -185,12 +190,15 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
     if (browserMode) {
       const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
+      const extBrowserGoal = classifyAssistantGoal(lastUserMsg);
+      const extBrowserBoost = expandQueryForConnectors(extBrowserGoal, topic);
       const { connectionContext, sourceRegistry, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
         supabase,
         user.id,
         lastUserMsg,
         undefined,
         topic,
+        extBrowserBoost,
       );
 
       const pageSection = buildPageSection();
@@ -342,113 +350,108 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
         (async () => {
           try {
-            // Short, cool sub-log labels — no echoing the user's question.
-            // Use a tightly truncated topic only when it's a clean noun phrase.
-            const shortTopic = (() => {
-              const t = (topic || "").trim().replace(/^(how|what|why|when|where|who|do|does|can|should|is|are)\b[^a-z0-9]*/i, "");
-              const words = t.split(/\s+/).filter(Boolean).slice(0, 3).join(" ");
-              return words.length > 0 && words.length <= 28 ? words : "";
-            })();
-            const isDnaTopic = /\b(dna|brand|audience|product|positioning|business model)\b/i.test(topic);
-            const understandPhrases = isDnaTopic ? [
-              "Reading your Business DNA",
-              "Tuning into your Business DNA",
-              "Aligning Business DNA",
-            ] : [
-              "Reading the room",
-              "Locking the angle",
-              "Framing the ask",
-              "Sharpening focus",
-              "Decoding intent",
-            ];
-            const gatherPhrases = isDnaTopic ? [
-              "Pulling DNA threads",
-              "Cross-checking your DNA",
-              "Walking your DNA",
-            ] : [
-              "Pulling the receipts",
-              "Digging your numbers",
-              "Sweeping for signals",
-              "Stitching the facts",
-              "Mining your data",
-            ];
-            const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-            const understandLabel = pick(understandPhrases);
-            const gatherLabel = pick(gatherPhrases);
-
-            // Emit immediately so UI shows sub-logging without delay
-            sendStep(understandLabel, "running", "analysis");
-
-            sendStep(understandLabel, "done", "analysis", initialConnectionDecision.reason);
-
-            sendStep(gatherLabel, "running", "context");
-            const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
-            sendStep(gatherLabel, "done", "context");
-
-            const { connectionContext, sourceRegistry, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
-              supabase,
-              user.id,
-              lastUserMsg,
-              (step) => send({ type: "progress", step }),
-              topic,
-            );
-            if (sourceRegistry && Object.keys(sourceRegistry).length > 0) {
-              send({ type: "live_sources", registry: sourceRegistry });
+            if (
+              questionGate &&
+              !questionGate.complete &&
+              !questionGate.isAnswerToPriorQuestion &&
+              questionGate.mandatoryQuestions?.length
+            ) {
+              send({ type: "questions", questions: questionGate.mandatoryQuestions });
             }
 
-            let dashboardMarkdown = "";
-            if (brandId && lastUserMsg && taskType === "chat" && !pageContext) {
-              sendStep("Dashboard snapshot", "running", "context");
-              const dash = await resolveDashboardCardsForChat(supabase, {
-                userId: user.id,
-                brandId,
-                userMessage: lastUserMsg,
-                send,
-              });
-              dashboardMarkdown = dash.markdown;
-              sendStep("Dashboard snapshot", "done", "context");
-            }
-
-            const answerTopic = queryTopic || topic;
             const pageSection = buildPageSection();
             const hasBrowserContext = !!pageContext;
-            const webScheduled = !hasBrowserContext && shouldFetchPublicWebContext(lastUserMsg, replyContract);
-            let publicWebBlock = "";
-            if (webScheduled) {
-              sendStep("Public web snapshot", "running", "context");
-              const wq = extractWebSearchQuery(lastUserMsg);
-              const snap = await fetchPublicWebSnapshot(wq || answerTopic || topic || lastUserMsg);
-              if (snap) {
-                publicWebBlock = `\n\n## External tier — web research (this turn)\n${snap}\n\n_Use only the URLs and text above for competitive/public claims. If the block says Firecrawl or fallback failed, say so — do not invent sources._\n`;
+
+            let connectionContext = "";
+            let sourceRegistry: Record<string, unknown> = {};
+            let searchedProviders: string[] = [];
+            let skippedProviderDetails: unknown[] = [];
+            let connectionDecision: unknown = { shouldSearch: false, reason: "" };
+            let answerTopic = topic;
+            let systemPrompt = "";
+            let gatewayTools: unknown[] = workforceTools;
+            let offerWorkforceTools = !hasBrowserContext;
+
+            if (!hasBrowserContext) {
+              const assembled = await buildAssistantPipelinePrompt({
+                supabase,
+                userId: user.id,
+                brandId: brandId ?? null,
+                workspaceId: workspaceId ?? null,
+                lastUserMsg,
+                messages,
+                taskType,
+                sessionMemory: sessionMemory ?? null,
+                replyContract,
+                send,
+                sendStep,
+              });
+              connectionContext = assembled.connectionContext;
+              sourceRegistry = assembled.sourceRegistry as Record<string, unknown>;
+              searchedProviders = Array.isArray(assembled.searchedProviders)
+                ? (assembled.searchedProviders as string[])
+                : [];
+              skippedProviderDetails = Array.isArray(assembled.skippedProviderDetails) ? assembled.skippedProviderDetails : [];
+              connectionDecision = assembled.connectionDecision;
+              answerTopic = String(assembled.queryTopic || topic || "").trim() || topic;
+              systemPrompt = assembled.systemPrompt;
+              gatewayTools = assembled.tools as unknown[];
+              offerWorkforceTools = assembled.offerTools;
+            } else {
+              const streamGoal = classifyAssistantGoal(lastUserMsg);
+              const streamBoost = expandQueryForConnectors(streamGoal, topic);
+              const s0 = buildConnectorProgressLabel("start", streamGoal);
+              sendStep(s0.label, "running", s0.action);
+              sendStep(s0.label, "done", s0.action);
+              const c0 = buildConnectorProgressLabel("connectors", streamGoal, initialConnectionDecision.reason);
+              sendStep(c0.label, "running", c0.action);
+              const relevantContext = await retrieveRelevantContext(supabase, user.id, workspaceId, lastUserMsg, brandId, browserMode);
+              sendStep(c0.label, "done", c0.action);
+              const conn = await searchConnectedProviders(
+                supabase,
+                user.id,
+                lastUserMsg,
+                (step) => send({ type: "progress", step }),
+                topic,
+                streamBoost,
+              );
+              connectionContext = conn.connectionContext;
+              sourceRegistry = conn.sourceRegistry as Record<string, unknown>;
+              searchedProviders = conn.searchedProviders;
+              skippedProviderDetails = conn.skippedProviderDetails;
+              connectionDecision = conn.connectionDecision;
+              answerTopic = conn.queryTopic || topic;
+              if (sourceRegistry && Object.keys(sourceRegistry).length > 0) {
+                send({ type: "live_sources", registry: sourceRegistry });
               }
-              sendStep("Public web snapshot", "done", "context");
+
+              let dashboardMarkdown = "";
+              if (brandId && lastUserMsg && taskType === "chat" && !pageContext) {
+                const d0 = buildConnectorProgressLabel("dashboard", streamGoal);
+                sendStep(d0.label, "running", d0.action);
+                const dash = await resolveDashboardCardsForChat(supabase, {
+                  userId: user.id,
+                  brandId,
+                  userMessage: lastUserMsg,
+                  send,
+                });
+                dashboardMarkdown = dash.markdown;
+                sendStep(d0.label, "done", d0.action);
+              }
+
+              const webScheduled = false;
+              let publicWebBlock = "";
+              const dataBackedBlock = buildDataBackedRoutingBlock({
+                replyContract,
+                liveLookupRan: initialConnectionDecision.shouldSearch,
+                webSnapshotRan: webScheduled,
+              });
+              const fullContext =
+                `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${publicWebBlock}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${
+                  performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""
+                }${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n${dataBackedBlock}`;
+              systemPrompt = buildBrowserPrompt(pageSection, identity, fullContext, safetySettings);
             }
-            const dataBackedBlock = buildDataBackedRoutingBlock({
-              replyContract,
-              liveLookupRan: initialConnectionDecision.shouldSearch,
-              webSnapshotRan: webScheduled,
-            });
-            const fullContext = `${profileContext}\n${learningContext}${memoryBlock}${relevantContext}${connectionContext}${dashboardMarkdown}${publicWebBlock}${dnaRouterBlock ? `\n${dnaRouterBlock}` : ""}${performanceEvidence ? `\n\n## Performance Evidence (KPI Windows)\n${performanceEvidence}` : ""}${questionGateBlock ? `\n\n${questionGateBlock}` : ""}\n\n${dataBackedBlock}`;
-            // Skill routing — match on the latest user line, but when that line
-            // is only an answer to a prior [SUGGEST:], use the original request
-            // so playbooks stay aligned with the task.
-            const skillMatchSource =
-              !hasBrowserContext && questionGate.isAnswerToPriorQuestion && questionGate.originalRequest?.trim()
-                ? questionGate.originalRequest.trim()
-                : lastUserMsg;
-            let matchedSkills = !hasBrowserContext ? matchSkillsForMessage(skillMatchSource, 3) : [];
-            if (!hasBrowserContext && matchedSkills.length === 0) {
-              const sticky = matchSkillSticky(messages);
-              if (sticky) matchedSkills = [sticky];
-            }
-            if (matchedSkills.length > 0) {
-              edgeLog("extension-agent", "skills_matched", { slugs: matchedSkills.map((s) => s.slug) });
-              sendStep(`Loading ${matchedSkills.length} playbook${matchedSkills.length > 1 ? "s" : ""}`, "done", "context");
-            }
-            const skillBlock = buildSkillsBlock(matchedSkills);
-            const systemPrompt = hasBrowserContext
-              ? buildBrowserPrompt(pageSection, identity, fullContext, safetySettings)
-              : buildChatPrompt(identity, fullContext + skillBlock, replyContract);
 
             supabase.from("timewarp_chats").insert({
               user_id: user.id,
@@ -456,27 +459,12 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               page_url: pageContext?.url || null,
             }).then(() => {});
 
-            const isAnswerDna = /\b(dna|brand|audience|product|positioning|business model)\b/i.test(answerTopic);
-            const craftPhrases = isAnswerDna ? [
-              "Drafting your DNA take",
-              "Writing the DNA read",
-              "Shaping the DNA call",
-            ] : [
-              "Building your move",
-              "Sketching the play",
-              "Writing the take",
-              "Pulling the call",
-              "Loading the answer",
-            ];
-            const craftLabel = craftPhrases[Math.floor(Math.random() * craftPhrases.length)];
+            const craftGoal = classifyAssistantGoal(lastUserMsg);
+            const craft = buildConnectorProgressLabel("llm", craftGoal);
             if (replyContract === "strategic_plan") {
               sendStep("Building strategic plan...", "running", "response");
             }
-            sendStep(craftLabel, "running", "response");
-            // Workforce tools are only offered in pure chat mode (no browser
-            // pageContext). Browser mode already returns its own JSON action
-            // envelope and shouldn't be confused by extra tool calls.
-            const offerWorkforceTools = !hasBrowserContext;
+            sendStep(craft.label, "running", craft.action);
 
             const callGateway = async (msgs: any[], includeTools: boolean) => {
               return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -489,7 +477,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                   model: "google/gemini-3-flash-preview",
                   messages: msgs,
                   stream: true,
-                  ...(includeTools ? { tools: workforceTools, tool_choice: "auto" } : {}),
+                  ...(includeTools ? { tools: gatewayTools, tool_choice: "auto" } : {}),
                 }),
               });
             };
@@ -558,22 +546,35 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                 try { parsedArgs = JSON.parse(tc.arguments); } catch (e) {
                   console.error("[workforce-tool] failed to parse arguments:", tc.arguments?.slice(0, 200));
                 }
-                const result = await executeWorkforceToolCall(tc.name, parsedArgs, {
+                const result = await executeAssistantChatTool(tc.name, parsedArgs, {
                   supabase,
                   userId: user.id,
                   workspaceId,
                   brandId,
-                });
-                edgeLog("extension-agent", "workforce_tool_executed", {
+                }) as { ok?: boolean; kind?: string; id?: string; name?: string; error?: string; tab?: string };
+                edgeLog("extension-agent", "tool_executed", {
                   name: tc.name, ok: result.ok, id: result.id, error: result.error,
                 });
                 if (result.ok) {
-                  send({
-                    type: "created_entity",
-                    kind: result.kind,
-                    id: result.id,
-                    name: result.name,
-                  });
+                  if (tc.name === "create_agent" || tc.name === "create_employee") {
+                    send({
+                      type: "created_entity",
+                      kind: result.kind,
+                      id: result.id,
+                      name: result.name,
+                    });
+                  }
+                  if (
+                    (tc.name === "create_todo" || tc.name === "create_objective" || tc.name === "create_briefing" ||
+                      tc.name === "create_update") && result.kind === "dashboard"
+                  ) {
+                    send({
+                      type: "dashboard_card_created",
+                      tab: result.tab,
+                      id: result.id,
+                      title: result.name,
+                    });
+                  }
                 }
                 toolResults.push({
                   tool_call_id: tc.id || `${tc.name}_${Math.random().toString(36).slice(2, 8)}`,
@@ -611,7 +612,11 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                 const okOnes = toolResults.filter((t) => t.result.ok);
                 if (okOnes.length > 0) {
                   const line = okOnes
-                    .map((t) => `✅ Created ${t.result.kind} **${t.result.name}**.`)
+                    .map((t) => {
+                      const r = t.result as { kind?: string; name?: string };
+                      if (r.kind === "dashboard") return `✅ Added dashboard item **${r.name || "item"}**.`;
+                      return `✅ Created ${r.kind} **${r.name}**.`;
+                    })
                     .join("\n");
                   fullContent = (fullContent ? fullContent + "\n\n" : "") + line;
                   send({ type: "content", delta: (fullContent ? "\n\n" : "") + line });
@@ -621,7 +626,16 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
             let finalContent = runPostflightGuardrails(fullContent, safetySettings);
             finalContent = sanitizeAssistantAgainstLiveContext(finalContent, connectionContext);
-            sendStep(craftLabel, "done", "response");
+            const enforcement = runPostFlightEvidence(finalContent);
+            send({
+              type: "post_flight",
+              enforcement: {
+                score: enforcement.score,
+                confidence: enforcement.confidence,
+                warnings: enforcement.warnings || [],
+              },
+            });
+            sendStep(craft.label, "done", craft.action);
             sendStep("Finished", "done", "complete");
             await logBusinessLearningEvent(supabase, {
               userId: user.id,
@@ -888,176 +902,6 @@ ${safetySettings?.integrityEnabled !== false ? `1. **NEVER make payments**
 - Return single actions when you need to see the page result first
 - Set "done": true ONLY when the full task is completed
 - Use CSS selectors when possible, fall back to descriptive text`;
-}
-
-function buildChatPrompt(identity: string, relevantContext: string, replyContract: "live_lookup" | "direct" | "strategic_plan"): string {
-  const grounding = buildAssistantGroundingBlock(replyContract);
-  const responseShape = replyContract === "live_lookup"
-    ? `
-## Response shape (live data first)
-Lead with what you found (or did not find) in live connector results. Then add only the context needed from Business DNA or profile. Do not bury the answer.`.trim()
-    : replyContract === "strategic_plan"
-    ? `
-## Response shape (advanced strategic plan)
-Produce a first-principles, evidence-backed strategy plan for heavy business questions.
-- Include explicit data-source labels (Business DNA, integrations/live connectors, dashboard/objective outcomes, external/public evidence, user input).
-- Do not fabricate metrics; mark uncertainty if evidence is missing.
-- Include 30/60/90 execution, KPI tree, risks, and validation tests.
-- Wrap the full plan markdown in:
-[PLAN_ARTIFACT]
-...plan...
-[/PLAN_ARTIFACT]`.trim()
-    : `
-## Response shape (default)
-Answer the user's question in the most natural structure for that question — prose, bullets, or a small table when comparisons need it. No mandatory section template.`.trim();
-
-  return `You are an AI that helps with business strategy and execution — decisive, analytical, and willing to challenge weak assumptions. You help with strategy, marketing, content creation, analysis, operations, and decision-making.
-
-${identity ? `# Business Context\n${identity}\n\n**IMPORTANT: You are currently representing ONLY this business. All your answers must be about this specific business. Do NOT reference or provide information about any other business the user may own.**` : ""}
-${relevantContext}
-
-${grounding}
-
-${responseShape}
-
-## Your Personality & Approach (The 7 Traits)
-1. **Decisive** — Give clear recommendations, not wishy-washy "it depends" answers. Pick a direction and defend it.
-2. **Contrarian** — Do NOT blindly agree. If the user's idea is flawed, say so directly and explain why with data. Challenge weak assumptions.
-3. **Data-Grounded** — Always back opinions with specific numbers, metrics, benchmarks, or evidence from the user's data. Never fabricate metrics.
-4. **Constructive** — When you disagree, ALWAYS propose a better alternative. Criticism without solutions is useless.
-5. **Strategic** — Think like a strategist: consider ROI, opportunity cost, market timing, competitive dynamics, and second-order effects.
-6. **Direct** — Be honest. Sugarcoating wastes time. Get to the point fast.
-7. **Contextual** — When you agree, explain WHY with supporting evidence — don't just say "great idea."
-
-## CRITICAL CHAT BEHAVIOR
-1. **ALWAYS answer the user's actual question first.** This is your #1 priority.
-2. If the user attached files, analyze that specific content and answer their question about it.
-3. Reference material above contains verified business data. When creating any pitch, presentation, report, slide, document, graph, chart, analytics output, spreadsheet, or visual deliverable, you MUST use this data to personalize the content. For general questions, reference it when relevant.
-4. Do NOT summarize business context unprompted. Do NOT start responses with business overviews.
-5. Never refer to yourself as a CEO, AI CEO, executive, assistant, agent, employee, or any role title — only as an AI if you must name what you are.
-6. Never mention "RAG", "knowledge files", or "knowledge base".
-7. **NEVER fabricate or invent business data.** If the Reference Material does not contain specific numbers, do NOT make them up. Ask the user to provide them.
-8. When the Reference Material includes brand, product, or audience records, always cross-check your response against those records for accuracy before answering.
-9. When the user **explicitly** asks for a pitch, presentation, report, document, graph, chart, analytics output, spreadsheet, or any structured visual deliverable, base the content on the business's brand, product, and audience data from the Reference Material. Treat every such request as being about THIS business unless the user explicitly says otherwise.
-10. When an **External tier — web research** block appears (Firecrawl or fallback), use it for web-style and competitive research. If it is missing, empty, or says retrieval failed / API not configured, say so — do not fabricate URLs, quotes, or SERP results.
-11. When a **Pre-Flight: Continuing a Pending Request** block appears, the user's latest message answers your prior question — **acknowledge it in one sentence**, then **complete the original task** in this same reply; do not start a parallel “new consultation”.
-12. For **this business**, every actionable recommendation must cite Internal, External (if used), or user Feedback per the data-backed contract; if evidence is thin, say what is missing and label uncertainty — do not fake specificity.
-13. Prefer **substance over terseness** when the user asked for judgment, a plan, priorities, or “what we should do”; short generic blurbs are a failure mode.
-14. **Open-ended growth** (“grow my business”, “help us scale”, “how do we grow”): deliver a **concrete prioritized plan in this same turn** from Business DNA, dashboard/KPIs, and any **literal** live rows above. **At most one** optional \`[SUGGEST:…]\` if a single missing fact (e.g. budget band) would materially change the plan — **never** chain many discovery rounds. If live search returned **no rows** or a tool was skipped, say so; **never** invent email subjects, file names, meetings, or deals.
-
-## ANTI-PATTERNS — NEVER DO THESE
-- **No Blind Agreement**: Never say "Great idea!" without explaining why with data. Evaluate every suggestion objectively.
-- **No Generic Content**: Never produce boilerplate content that could apply to any business. Every output must reference THIS user's specific data.
-- **No Fabricated Metrics**: If you don't have the data, say so and ask. Never invent numbers, percentages, or benchmarks.
-- **No "I don't have access" for stored content**: The Reference Material content IS provided to you. If a specific stored item has no content, say "This item hasn't been analyzed yet" instead. **EXCEPTION for LIVE data (emails, files, documents, calendar events, CRM records, messages, meetings):** if the user asks for live items (e.g. "my last 5 documents", "recent emails", "upcoming meetings") and there is NO "Live Connection Data" section in the Reference Material, you MUST say you couldn't pull that live data right now and ask the user to rephrase or check that the relevant integration (Gmail, Drive, Calendar, HubSpot, etc.) is connected. **NEVER invent file names, document titles, email subjects, meeting titles, contacts, or any other live items. Fabricating live data is a critical failure.**
-- **No Unsolicited Overviews**: Never start with "Based on your business data..." summaries. Answer the question directly.
-- **No Hedging Without Reasoning**: If you're uncertain, explain why — don't just say "it depends" without clarifying on what.
-- **No Empty Validation**: Every agreement must come with supporting evidence or reasoning.
-- **No Bracket Placeholders**: NEVER ship text containing square-bracket fill-ins like \`[Insert Number]\`, \`[Product Category]\`, \`[Company Name]\`, \`[X%]\`, \`[Date]\`, \`[Your Audience]\`, \`[TBD]\`, etc. If you don't have a real value from the Reference Material or live data, either (a) compute/derive it, (b) state the specific number/name is missing and ask one targeted question, or (c) omit that sentence entirely. Brackets-as-placeholders are a critical failure — your output must read as a finished deliverable, not a template.
-
-## QUALITY SCORING CRITERIA
-Aim to maximize quality across these dimensions:
-- **Data Grounding (30%)**: Reference specific numbers, dates, names from the user's data
-- **Actionability (20%)**: Provide clear, implementable next steps
-- **Format Richness (15%)**: Use tables, blockquotes, headers, and structured formatting
-- **Specificity (15%)**: Avoid vague language — use precise terms and concrete details
-- **Personality (10%)**: Use a direct, contrarian tone when evidence supports pushback — without adopting a persona title
-- **Clarifier quality (10%)**: When blocking info is missing, use tight \`[SUGGEST:…]\` questions (placement follows the rules below) — not generic “what’s next” menus after a finished answer
-
-## FORMATTING
-- Use ## and ### headings only when they help scan longer answers — not for every short reply
-- Use **bold** for key terms and important takeaways
-- Use markdown tables when presenting comparisons, metrics, or lists of items with attributes — skip tables for one-off factual answers that do not need them
-- Use bullet points for lists and key takeaways
-- Use > blockquotes for key insights or important findings
-- Use --- to separate major sections in longer responses
-- Add blank lines between sections
-- Keep paragraphs short (2-3 sentences max)
-- When comparing options, ALWAYS use a table with pros/cons or criteria columns
-
-## VISUAL OUTPUT RULES — CRITICAL
-**Do NOT generate** \`\`\`chart\`\`\`, \`\`\`mermaid\`\`\`, \`\`\`slide\`\`\`, \`\`\`document\`\`\`, \`\`\`spreadsheet\`\`\`, or \`\`\`analytics\`\`\` code blocks unless:
-- The user **explicitly** asked for that kind of output in this thread (e.g. "make a chart", "build a slide", "export a spreadsheet"), **or**
-- The user's message contains **"🎨 Output format:"** (injected when they chose a structured visual format), **or**
-- **Pre-Flight: Ask These First** requires **2–3** blocking questions and you want **one** \`\`\`slide\`\`\` that lists **multiple** questions on a single slide (layout \`bullets\` or \`two-column\` with one question per bullet/column). Still include matching \`[SUGGEST:…]\` lines for chips when required.
-
-If a visual would help but the user did **not** ask for one, **ask in one short sentence** whether they want it — do not invent diagrams or decks unprompted.
-
-When you ARE allowed to output visuals, follow these rules:
-
-For slides use a \`\`\`slide code block. **VARY the layout per slide** — choose from "stat-callout", "bullets", "two-column" (with "left_column" and "right_column" arrays), or "title-only" based on what fits the content. Do NOT use the same template every time. When the user asks for a deck, presentation, or multiple slides, output MULTIPLE separate \`\`\`slide blocks back-to-back (typically 3-7), each with a layout that fits its content:
-\`\`\`slide
-{"title":"Title","subtitle":"Context","layout":"stat-callout","icon":"🚀","stats":[{"value":"$2.4M","label":"ARR"}],"takeaway":"Key insight","accent_color":"#3399ff","bg_color":"#1a1a2e","brand_name":"Acme"}
-\`\`\`
-\`\`\`slide
-{"title":"Comparison","layout":"two-column","left_column":["Pro 1","Pro 2"],"right_column":["Con 1","Con 2"],"accent_color":"#3399ff","bg_color":"#1a1a2e"}
-\`\`\`
-
-For documents use a \`\`\`document code block:
-\`\`\`document
-{"title":"Title","sections":[{"heading":"Section","content":"Content"}],"date":"..."}
-\`\`\`
-
-For spreadsheets use a \`\`\`spreadsheet code block:
-\`\`\`spreadsheet
-{"title":"Title","headers":["Col1","Col2"],"rows":[["A","B"]],"footer":["Total","100"]}
-\`\`\`
-
-For analytics dashboards use a \`\`\`analytics code block:
-\`\`\`analytics
-{"title":"Title","metrics":[{"label":"Metric","value":"100","change":5.2}],"insights":["Insight"]}
-\`\`\`
-
-For charts use a \`\`\`chart code block:
-\`\`\`chart
-{"type":"bar","title":"Chart Title","xKey":"label","yKeys":["value"],"data":[{"label":"A","value":10}]}
-\`\`\`
-Supported chart types: bar, line, area, pie.
-
-## Clarifying question format (\`[SUGGEST:…]\`)
-- These tags are **blocking or branching questions** (with quick-reply chips in the transcript), not marketing “suggestions” and not a substitute for a data-backed answer.
-- When **Pre-Flight: Ask These First** appears in context, put the required \`[SUGGEST:…]\` line(s) **near the top** of your reply (after at most one short sentence) so the user answers before you execute a large deliverable.
-- When you are **mid-deliverable** and the user must pick a fork, you may place \`[SUGGEST:…]\` **between** major sections; otherwise finish the section you owe, then ask.
-- Do **not** stack purely optional “what should we do next?” \`[SUGGEST:…]\` menus after you have already fully answered the ask.
-
-## Data source badges (UI) — REQUIRED ON (ALMOST) EVERY TURN
-**Every** reply that is not trivial chit-chat (anything beyond a one-line ack) must end with **exactly one** \`\`\`assistant_sources\`\`\` fence as the **last** content (after prose and any \`[SUGGEST:…]\` lines). Use \`data_backed: true\` with the tiers you actually used (at minimum \`{"tier":"internal","key":"dna","label":"Business DNA"}\` when you relied on profile/DNA or thread). Use \`data_backed: false\` with empty \`sources\` **only** for sub-10-word acknowledgements (“Thanks!”, “Got it.”). For substantive strategy, metrics, or recommendations, **always** include the fence so the Sources icons render.
-
-\`\`\`assistant_sources
-{"data_backed":true,"sources":[{"tier":"internal","key":"dna","label":"Business DNA"}]}
-\`\`\`
-
-- \`tier\`: **internal** | **external** | **feedback** (only these strings).
-- \`key\`: short id — internal: \`dna\`, \`rag\`, \`files\`, \`gmail\`, \`drive\`, \`calendar\`, \`hubspot\`, \`slack\`, \`stripe\`, \`m365\`, \`dashboard\`, \`kpi\`, \`skills\`, \`learning\`; external: \`web\`; feedback: \`user\`, \`session\`.
-- \`label\`: 2–5 words for the UI tooltip.
-- Include **only** tiers you actually relied on for this answer. If you used **web research** (Firecrawl or fallback block above), include \`{"tier":"external","key":"web","label":"Firecrawl web"}\` or \`{"tier":"external","key":"web","label":"Web snapshot"}\` matching what appeared in context.
-- If the message is pure chit-chat with no factual grounding, use \`{"data_backed":false,"sources":[]}\`.
-- Do not duplicate this block; do not put narrative inside the fence — JSON only.
-
-## CLARIFYING QUESTIONS — MUST USE [SUGGEST:] TAG, NEVER PROSE
-**HARD RULE:** Any time you ask the user a clarifying question, the question MUST be inside a \`[SUGGEST:Question?::Option 1|Option 2|Option 3]\` tag. NEVER ask a clarifying question as plain prose, a markdown bullet, or a trailing "?" sentence in the body. The client renders \`[SUGGEST:]\` as quick-reply chips on the assistant bubble — questions outside the tag are easy to miss.
-
-If your reply contains a "?" directed at the user (anything like "Which would you like…", "Do you want me to…", "Should I…", "What's your goal…", "Which option…"), that question MUST be the title of a \`[SUGGEST:]\` tag with 2–4 concrete clickable options. No exceptions.
-
-**INCLUDE a \`[SUGGEST:...]\` tag when:**
-- The request is ambiguous on a critical dimension (goal, audience, channel, timeframe, budget, success metric, scope) AND knowing the answer would change your output materially.
-- You need to pick between 2–4 distinct directions before you can give a high-quality answer.
-
-**DO NOT include a \`[SUGGEST:...]\` tag when:**
-- You already have enough context to answer well — just answer.
-- The reply is a confirmation, acknowledgement, short factual answer, error message, or live-data lookup result.
-- You'd be inventing a question just to fill the slot ("Want me to keep going?", "Anything else?", "How can I help?" — all FORBIDDEN).
-- The user asked a specific factual or executional question that you can answer directly.
-
-**Order (critical):** If this reply includes any \`[SUGGEST:…]\` because missing inputs would materially change your answer, put those tag lines **before** the first substantive deliverable: before any multi-line recommendations, before the first markdown table used for strategy, before \`[PLAN_ARTIFACT]\`, and before any \`\`\`slide|document|chart|spreadsheet|analytics\`\`\` block. At most **one** short preamble sentence (≤20 words) may appear before the first \`[SUGGEST:…]\`. Never bury the only blocking questions after a long answer.
-
-**Format (only when used):**
-\`[SUGGEST:Your real clarifying question?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3|EMOJI Option 4]\`
-- Title before \`::\` MUST be a real personal clarifying question tied to this conversation. Generic placeholders are FORBIDDEN.
-- The \`::\` separator is REQUIRED. After \`::\`, list **2 to 4** distinct concrete answers the user can pick, each prefixed with ONE fitting emoji (📣 reach, 💰 sales, 👥 leads, 📅 timing, 🎯 targeting, etc.).
-- Raw tag on its own line — no markdown wrapping.
-
-Example (only when a real clarification is needed): \`[SUGGEST:What's the goal of this campaign?::📣 Reach — get seen by more people|💰 Sales — get more customers|👥 Leads — get signups]\`**`;
 }
 
 function buildBrowserPrompt(pageSection: string, identity: string, relevantContext: string, safetySettings?: any): string {

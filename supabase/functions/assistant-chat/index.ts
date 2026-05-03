@@ -24,6 +24,7 @@ import { loadAssistantBrandIdentity, retrieveRelevantContextForAssistant } from 
 import { buildBrowserActionBlock } from "../_shared/pipeline/blocks/browser-action.ts";
 import { createAssistantChatSseResponse } from "../_shared/pipeline/assistant-chat-stream.ts";
 import { extractLastUserMessage } from "../_shared/run-employee/rag.ts";
+import { classifyAssistantGoal, expandQueryForConnectors } from "../_shared/pipeline/goalSetter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -179,6 +180,8 @@ serve(async (req) => {
         brandId,
         true,
       );
+      const browserGoal = classifyAssistantGoal(lastUserMsg);
+      const browserBoost = expandQueryForConnectors(browserGoal, topic);
       const { connectionContext, sourceRegistry, searchedProviders, skippedProviderDetails, connectionDecision, queryTopic } =
         await searchConnectedProviders(
           supabase,
@@ -186,6 +189,7 @@ serve(async (req) => {
           lastUserMsg,
           undefined,
           topic,
+          browserBoost,
         );
 
       const pageSection = buildPageSection(pageContext);
@@ -321,6 +325,7 @@ serve(async (req) => {
         replyContract,
         businessId,
         profileContext,
+        questionGate,
       },
       corsHeaders,
     );

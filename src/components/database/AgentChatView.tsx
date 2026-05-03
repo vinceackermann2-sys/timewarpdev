@@ -14,8 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "./BusinessDNAContext";
 import BusinessBrainOrb from "@/components/ui/business-brain-orb";
-import type { ChatMessage } from "@/lib/agentChat/types";
-import { isExplicitEmployeeComputerRequest } from "@/lib/agentChat/computerModePatterns";
+import type { ChatMessage, GoalState } from "@/lib/agentChat/types";
 import { useAssistantChat } from "@/hooks/useAssistantChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -24,8 +23,7 @@ import { useProviderConnections } from "@/hooks/useProviderConnections";
 import { useEmployeeManagement } from "@/hooks/useEmployeeManagement";
 import { useChatPersistence } from "@/hooks/useChatPersistence";
 import { processFiles, type UploadedFileChip } from "@/lib/agentChat/fileProcessing";
-import { appendGraphicInstructionsToUserContent } from "@/lib/agentChat/graphicInstructions";
-import { detectUserRequestedGraphicType } from "@/lib/agentChat/graphicGate";
+import { runAgentLoop } from "@/lib/agentChat/agentLoop";
 import { createFetchWithTimeout } from "@/lib/agentChat/fetchWithTimeout";
 import { insertReferenceIntoChatInput } from "@/lib/agentChat/mentionHelpers";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
@@ -89,6 +87,8 @@ export function AgentChatView({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileChip[]>([]);
   const [referencedUrls, setReferencedUrls] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
   const [referenceUrlInput, setReferenceUrlInput] = useState("");
+  const [referenceSearchResults, setReferenceSearchResults] = useState<{ id: string; url: string; name: string; logo: string }[]>([]);
+  const [referenceSearchLoading, setReferenceSearchLoading] = useState(false);
   const [mentionState, setMentionState] = useState<MentionState>({ active: false, node: null, startOffset: 0, endOffset: 0 });
   const [selectedChatEmployees, setSelectedChatEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
 
@@ -218,7 +218,7 @@ export function AgentChatView({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const { activeChatId, handleSelectChat, handleNewChat, sidebarRefreshKey } = useChatPersistence({
+  const { activeChatId, setGoalState, handleSelectChat, handleNewChat, sidebarRefreshKey } = useChatPersistence({
     user,
     activeWorkspaceId,
     selectedAgent,
@@ -368,6 +368,48 @@ export function AgentChatView({
 
   const fetchWithTimeout = useMemo(() => createFetchWithTimeout(abortControllerRef), []);
 
+  useEffect(() => {
+    if (referenceUrlInput.trim().length < 3) {
+      setReferenceSearchResults([]);
+      return;
+    }
+    const handle = setTimeout(() => {
+      void (async () => {
+        setReferenceSearchLoading(true);
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (!session) return;
+          const res = await fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reference-search`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
+              body: JSON.stringify({ q: referenceUrlInput.trim() }),
+            },
+            45_000,
+          );
+          if (res.ok) {
+            const data = (await res.json()) as { results?: { id: string; url: string; name: string; logo: string }[] };
+            setReferenceSearchResults(Array.isArray(data.results) ? data.results : []);
+          } else {
+            setReferenceSearchResults([]);
+          }
+        } catch {
+          setReferenceSearchResults([]);
+        } finally {
+          setReferenceSearchLoading(false);
+        }
+      })();
+    }, 450);
+    return () => clearTimeout(handle);
+  }, [referenceUrlInput, fetchWithTimeout]);
+
   const transport = useAssistantChat({
     messages,
     setMessages,
@@ -418,9 +460,29 @@ export function AgentChatView({
     stalledRef.current = false;
     lastActivityRef.current = Date.now();
 
+    const runGoal: GoalState = {
+      id: crypto.randomUUID(),
+      type: "action",
+      summary: `Run ${emp.name}`,
+      status: "active",
+      requiresConclusion: true,
+      dataTier: "mixed",
+      createdAt: new Date().toISOString(),
+    };
+    setGoalState(runGoal);
+
     try {
-      await runComputerMode(session, userMsg, assistantId);
+      await runAgentLoop({
+        session,
+        userMsg,
+        assistantId,
+        isActionMode: true,
+        extensionConnected,
+        transport: { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode },
+      });
+      setGoalState((g) => (g ? { ...g, status: "completed" } : null));
     } catch (err: unknown) {
+      setGoalState(null);
       const message = err instanceof Error ? err.message : "Unknown error";
       setMessages((prev) =>
         prev.map((m) => {
@@ -498,9 +560,7 @@ export function AgentChatView({
         }
       }
     }
-    const explicitGraphic = detectUserRequestedGraphicType(inputText);
     const displayContent = userContent;
-    userContent = appendGraphicInstructionsToUserContent(userContent, explicitGraphic);
 
     const resolveEmployeeContext = (): { id: string; name: string; role: string }[] | undefined => {
       if (selectedChatEmployees.length > 0) return [...selectedChatEmployees];
@@ -521,8 +581,6 @@ export function AgentChatView({
     };
 
     const hasSelectedEmployeeForMessage = (selectedEmployeesForMessage?.length ?? 0) > 0;
-    const shouldUseEmployeeComputerMode =
-      hasSelectedEmployeeForMessage && isActionMode && extensionConnected && isExplicitEmployeeComputerRequest(inputText);
 
     if (hasSelectedEmployeeForMessage && selectedChatEmployees.length === 0 && selectedEmployeesForMessage) {
       setSelectedChatEmployees(selectedEmployeesForMessage);
@@ -541,26 +599,32 @@ export function AgentChatView({
     stalledRef.current = false;
     lastActivityRef.current = Date.now();
 
-    try {
-      const hasFiles = userMsg.files && userMsg.files.length > 0;
+    const activeGoal: GoalState = {
+      id: crypto.randomUUID(),
+      type: "analysis",
+      summary: inputText.slice(0, 160) || "Chat",
+      status: "active",
+      requiresConclusion: true,
+      dataTier: "mixed",
+      createdAt: new Date().toISOString(),
+    };
+    setGoalState(activeGoal);
 
-      if (hasFiles && hasSelectedEmployeeForMessage) {
-        await runEmployeeChat(session, userMsg, assistantId);
-      } else if (hasFiles) {
-        await runAgentChat(session, userMsg, assistantId);
-      } else if (shouldUseEmployeeComputerMode) {
-        await runComputerMode(session, userMsg, assistantId);
-      } else if (isActionMode && extensionConnected && !hasSelectedEmployeeForMessage) {
-        await runAgentChatWithBrowser(session, userMsg, assistantId);
-      } else if (hasSelectedEmployeeForMessage) {
-        await runEmployeeChat(session, userMsg, assistantId);
-      } else {
-        await runAgentChat(session, userMsg, assistantId);
-      }
+    try {
+      await runAgentLoop({
+        session,
+        userMsg,
+        assistantId,
+        isActionMode,
+        extensionConnected,
+        transport: { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode },
+      });
+      setGoalState((g) => (g ? { ...g, status: "completed" } : null));
     } catch (err: unknown) {
       console.error("Send error:", err);
       const errMessage = err instanceof Error ? err.message : "";
       const isCancelled = errMessage === "Cancelled";
+      setGoalState(null);
       const errorMsg = isCancelled ? "Message cancelled" : errMessage || "Something went wrong";
       setMessages((prev) =>
         prev.map((m) => {
@@ -665,21 +729,7 @@ export function AgentChatView({
     );
   };
 
-  const searchResults = useMemo(
-    () =>
-      referenceUrlInput.length > 2
-        ? (() => {
-            const cleanInput = referenceUrlInput.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
-            const baseName = cleanInput.split(".")[0];
-            return [
-              { id: "1", url: `https://${cleanInput}`, name: cleanInput, logo: `https://www.google.com/s2/favicons?domain=${cleanInput}&sz=64` },
-              { id: "2", url: `https://${baseName}.com`, name: `${baseName}.com`, logo: `https://www.google.com/s2/favicons?domain=${baseName}.com&sz=64` },
-              { id: "3", url: `https://${baseName}.io`, name: `${baseName}.io`, logo: `https://www.google.com/s2/favicons?domain=${baseName}.io&sz=64` },
-            ].filter((v, i, a) => a.findIndex((t) => t.name === v.name) === i);
-          })()
-        : [],
-    [referenceUrlInput],
-  );
+  const searchResults = referenceSearchResults;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -716,6 +766,9 @@ export function AgentChatView({
             autoFocus
           />
         </div>
+        {referenceSearchLoading && referenceUrlInput.length > 2 && (
+          <div className="mt-2 text-xs text-muted-foreground px-1">Searching the web…</div>
+        )}
         {searchResults.length > 0 && (
           <div className="mt-2 flex flex-col gap-1 max-h-[200px] overflow-y-auto">
             {searchResults.map((result) => (

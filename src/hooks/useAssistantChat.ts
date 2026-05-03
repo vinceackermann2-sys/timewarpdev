@@ -10,13 +10,31 @@ import { buildChatTaskSummaryPreview, generateTaskReport } from "@/lib/agentChat
 import { extractPlanArtifact } from "@/lib/agentChat/planArtifacts";
 import { extractPlanActions } from "@/lib/agentChat/planActionExtractor";
 import { runEvidenceAudit } from "@/lib/agentChat/evidenceAudit";
-import type { ChatMessage } from "@/lib/agentChat/types";
+import type { ChatMessage, SourceEntry } from "@/lib/agentChat/types";
+import type { PipelineSourcesPayload } from "@/lib/streamReaders";
 import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 import { consumeAgentChatSseStream, consumeOpenAiStyleSseStream } from "@/lib/streamReaders";
 import type { User } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type BrandRow = { id: string; agentName?: string; name?: string; _rowId?: string };
+
+function mergePipelineSources(evt: PipelineSourcesPayload): SourceEntry[] {
+  const map = (r: {
+    type: string;
+    label: string;
+    provider?: string;
+    url?: string;
+    snippet?: string;
+  }): SourceEntry => ({
+    type: r.type === "external" || r.type === "connector" ? r.type : "internal",
+    label: r.label,
+    provider: r.provider,
+    url: r.url,
+    snippet: r.snippet,
+  });
+  return [...(evt.conclusionSources || []).map(map), ...(evt.dataSources || []).map(map)];
+}
 
 /** Build chat history for the edge function — assistant rows use raw model text when present. */
 function toChatApiPayload(messages: ChatMessage[]): { role: string; content: string }[] {
@@ -93,11 +111,13 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
 
     const taskSteps: ChatMessage["taskSteps"] = [];
     let extensionLiveReg: LiveSourceRegistry | undefined;
+    let pipelineSourcesForTurn: SourceEntry[] = [];
     const syncTaskSteps = (content?: string) => {
       setMessages(prev => prev.map(m => m.id === assistantId ? {
         ...m,
         ...(content !== undefined ? { content } : {}),
         ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
+        ...(pipelineSourcesForTurn.length ? { sources: pipelineSourcesForTurn } : {}),
         taskSteps: [...(taskSteps || [])],
         currentStepIndex: (taskSteps?.length ?? 0) - 1,
         isStreaming: true,
@@ -185,6 +205,10 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         },
         onLiveSources: (registry) => {
           extensionLiveReg = registry;
+          syncTaskSteps(streaming);
+        },
+        onSources: (evt) => {
+          pipelineSourcesForTurn = mergePipelineSources(evt);
           syncTaskSteps(streaming);
         },
         onCreatedEntity: (evt) => {
@@ -280,6 +304,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
             : undefined,
       isStreaming: false,
       ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
+      ...(pipelineSourcesForTurn.length ? { sources: pipelineSourcesForTurn } : {}),
       ...(artifact ? {
         planContent: artifact.markdown,
         planSavedToDb: false,
@@ -502,12 +527,14 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const startTime = new Date();
     const taskSteps: ChatMessage["taskSteps"] = [];
     let employeeLiveReg: LiveSourceRegistry | undefined;
+    let employeePipelineSources: SourceEntry[] = [];
 
     const syncUI = (content?: string) => {
       setMessages(prev => prev.map(m => m.id === assistantId ? {
         ...m,
         ...(content !== undefined ? { content } : {}),
         ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),
+        ...(employeePipelineSources.length ? { sources: employeePipelineSources } : {}),
         taskSteps: [...(taskSteps || [])],
         currentStepIndex: (taskSteps?.length ?? 0) - 1,
         isStreaming: true,
@@ -605,6 +632,10 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
             employeeLiveReg = registry;
             syncUI(acc);
           },
+          onSources: (evt) => {
+            employeePipelineSources = mergePipelineSources(evt);
+            syncUI(acc);
+          },
           onResult: (evt) => {
             if (evt.content) acc = evt.content;
             if (evt.liveSourceRegistry && Object.keys(evt.liveSourceRegistry).length > 0) {
@@ -697,6 +728,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
             : undefined,
       isStreaming: false,
       ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),
+      ...(employeePipelineSources.length ? { sources: employeePipelineSources } : {}),
       ...(artifact ? {
         planContent: artifact.markdown,
         planSavedToDb: false,
