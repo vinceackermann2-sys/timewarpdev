@@ -167,9 +167,14 @@ function SectionDisplay({
   isStreaming?: boolean;
   openLoop?: TaskStepsOpenLoop;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const sectionDone = section.isDone && !(isLast && isStreaming) && !openLoop;
+  const [collapsed, setCollapsed] = useState(sectionDone);
+
+  useEffect(() => {
+    // When the section transitions to done, auto-collapse so finished thinking
+    // sits as a tidy dropdown the user can re-open.
+    if (sectionDone) setCollapsed(true);
+  }, [sectionDone]);
 
   useEffect(() => {
     if (scrollRef.current && !collapsed) {
