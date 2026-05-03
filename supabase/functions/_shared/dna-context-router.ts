@@ -68,9 +68,9 @@ export async function runDnaContextRouter(
 
   const fieldIds = Array.from(new Set(pillars.flatMap(getPillarFieldMap)));
   const PILLAR_SET = new Set<string>(ALL_PILLARS);
-  // Pillar rows we want guaranteed in context, one per pillar (best/longest).
-  const pillarBuckets = new Map<string, { body: string; title: string; segment: string }>();
+  const pillarBuckets = new Map<string, { body: string; title: string }>();
   const otherBlocks: string[] = [];
+  let brandBlock = "";
 
   for (const row of allRows) {
     const body = String(row?.analyzed_content || row?.content || "");
@@ -78,36 +78,28 @@ export async function runDnaContextRouter(
     const isBrandRow = brandId && String(row.id) === String(brandId);
     const dataType = String(row?.data_type || "").toLowerCase();
     const segMeta = String((row?.metadata as any)?.dna_segment || "").toLowerCase();
-    // Normalize pillar tag from data_type (brand_dna -> brand, strategy -> strategy, etc.)
     const dtPillar = dataType.replace(/_dna$/, "");
     const pillarTag = PILLAR_SET.has(dtPillar) ? dtPillar : (PILLAR_SET.has(segMeta) ? segMeta : "");
 
     if (isBrandRow) {
-      contextBlocks_unshift(contextBlocksRef, `### ${row.title || "Brand Context"} [all pillars]\n${body.slice(0, 6000)}`);
+      brandBlock = `### ${row.title || "Brand Context"} [all pillars]\n${body.slice(0, 6000)}`;
       continue;
     }
     if (pillarTag) {
       const prev = pillarBuckets.get(pillarTag);
       if (!prev || body.length > prev.body.length) {
-        pillarBuckets.set(pillarTag, {
-          body,
-          title: String(row.title || row.data_type || "DNA"),
-          segment: pillarTag,
-        });
+        pillarBuckets.set(pillarTag, { body, title: String(row.title || row.data_type || "DNA") });
       }
       continue;
     }
-    // Fallback: keyword/field-id matched generic rows
     const lower = body.toLowerCase();
     const matched = fieldIds.filter((id) => lower.includes(`"${id.toLowerCase()}"`) || lower.includes(`${id.toLowerCase()}:`));
     if (matched.length === 0) continue;
     otherBlocks.push(`### ${row.title || row.data_type || "DNA Data"} [${matched.join(", ")}]\n${body.slice(0, 2000)}`);
   }
 
-  // Emit one block per pillar (all 9 if available)
   const contextBlocks: string[] = [];
-  // Pull out brand context that was unshifted
-  for (const b of contextBlocksRef.value) contextBlocks.push(b);
+  if (brandBlock) contextBlocks.push(brandBlock);
   for (const pillar of ALL_PILLARS) {
     const b = pillarBuckets.get(pillar);
     if (!b) continue;
