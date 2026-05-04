@@ -255,11 +255,11 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
           </SpecCard>
 
           <SpecCard icon={Plug} title="Required integrations">
-            {agent.required_integrations.length === 0 ? (
+            {(agent.required_integrations ?? []).length === 0 ? (
               <p className="text-xs text-muted-foreground">None.</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
-                {agent.required_integrations.map((id) => (
+                {(agent.required_integrations ?? []).map((id) => (
                   <Badge key={id} variant="secondary" className="text-[11px] capitalize">
                     {id.replace(/_/g, " ")}
                   </Badge>
@@ -282,11 +282,11 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
           </SpecCard>
 
           <SpecCard icon={Workflow} title="SOP" className="md:col-span-2">
-            {agent.sop_steps.length === 0 ? (
+            {(agent.sop_steps ?? []).length === 0 ? (
               <p className="text-xs text-muted-foreground">No steps defined.</p>
             ) : (
               <ol className="space-y-2">
-                {agent.sop_steps.map((step, i) => (
+                {(agent.sop_steps ?? []).map((step, i) => (
                   <li key={i} className="flex items-start gap-2.5">
                     <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center text-[11px] font-semibold shrink-0 mt-0.5">{i + 1}</div>
                     <div className="min-w-0 flex-1">
@@ -309,11 +309,11 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 mb-1">Can do</p>
-                {agent.safety_can_do.length === 0 ? (
+                {(agent.safety_can_do ?? []).length === 0 ? (
                   <p className="text-xs text-muted-foreground">(none specified)</p>
                 ) : (
                   <ul className="space-y-1">
-                    {agent.safety_can_do.map((c, i) => (
+                    {(agent.safety_can_do ?? []).map((c, i) => (
                       <li key={i} className="text-xs">✅ {c}</li>
                     ))}
                   </ul>
@@ -321,11 +321,11 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-destructive mb-1">Cannot do</p>
-                {agent.safety_cannot_do.length === 0 ? (
+                {(agent.safety_cannot_do ?? []).length === 0 ? (
                   <p className="text-xs text-muted-foreground">(none specified)</p>
                 ) : (
                   <ul className="space-y-1">
-                    {agent.safety_cannot_do.map((c, i) => (
+                    {(agent.safety_cannot_do ?? []).map((c, i) => (
                       <li key={i} className="text-xs">❌ {c}</li>
                     ))}
                   </ul>
