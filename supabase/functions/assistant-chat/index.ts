@@ -254,6 +254,9 @@ serve(async (req) => {
 
       const aiResult = await response.json();
       let content = aiResult.choices?.[0]?.message?.content || "";
+      const aiCalls: { model: string; usage?: any }[] = [
+        { model: "google/gemini-3-flash-preview", usage: aiResult?.usage },
+      ];
       const actionValidation = validateActionPayload(content);
       if (!actionValidation.valid) {
         const repairResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -275,6 +278,7 @@ serve(async (req) => {
           const repairJson = await repairResponse.json();
           const repaired = repairJson?.choices?.[0]?.message?.content || "";
           if (validateActionPayload(repaired).valid) content = repaired;
+          aiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson?.usage });
         }
       }
       content = runPostflightGuardrails(content, safetySettings);
