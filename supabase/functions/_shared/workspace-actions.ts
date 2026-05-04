@@ -102,3 +102,55 @@ export async function consumeWorkspaceAction(
     costUsd: result?.cost_usd,
   };
 }
+
+/**
+ * Read-only check: does this workspace currently have any actions left?
+ * Use BEFORE running the AI to early-exit when the user is already out.
+ * Does NOT deduct anything. Pair with `consumeWorkspaceAction(..., costUsd)`
+ * after the AI call completes so we can charge based on real measured cost.
+ */
+export async function checkWorkspaceActionsAvailable(
+  supabase: SupabaseClient,
+  userId: string,
+  requestedWorkspaceId?: string | null,
+): Promise<{ allowed: boolean; workspaceId: string | null; reason?: string }> {
+  const workspaceId = await resolveWorkspaceId(supabase, userId, requestedWorkspaceId);
+  if (!workspaceId) return { allowed: false, workspaceId: null, reason: "No workspace available." };
+
+  const { data, error } = await supabase
+    .from("workspace_subscriptions")
+    .select("plan, status, actions_used, bonus_actions")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[workspace-actions] check error:", error.message);
+    // Fail open: don't block users on a transient read error.
+    return { allowed: true, workspaceId };
+  }
+
+  const PLAN_LIMITS: Record<string, number> = {
+    co_founder: 100,
+    aristotle: 500,
+    timewarp_og: Number.POSITIVE_INFINITY,
+  };
+  const FREE = 100;
+
+  const isActive = data?.status && ["active", "trialing", "past_due"].includes(String(data.status));
+  const limit = isActive && data?.plan ? PLAN_LIMITS[String(data.plan)] ?? FREE : FREE;
+  const used = Number(data?.actions_used ?? 0);
+  const bonus = Number(data?.bonus_actions ?? 0);
+
+  if (limit === Number.POSITIVE_INFINITY) return { allowed: true, workspaceId };
+
+  const remaining = (limit + bonus) - used;
+  if (remaining <= 0) {
+    return {
+      allowed: false,
+      workspaceId,
+      reason: "Workspace action limit reached. Purchase more actions or upgrade the plan.",
+    };
+  }
+  return { allowed: true, workspaceId };
+}
+
