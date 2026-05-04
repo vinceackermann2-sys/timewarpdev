@@ -462,6 +462,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
           outcome: result.continuation ? "negative" : "positive",
         },
       });
+      await billMeasuredCost();
       return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic, liveSourceRegistry: sourceRegistry }), {
         headers: { ...runEmployeeCorsHeaders, "Content-Type": "application/json" },
       });
