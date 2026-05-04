@@ -500,6 +500,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                   model: "google/gemini-3-flash-preview",
                   messages: msgs,
                   stream: true,
+                  stream_options: { include_usage: true },
                   ...(includeTools ? { tools: gatewayTools, tool_choice: "auto" } : {}),
                 }),
               });
