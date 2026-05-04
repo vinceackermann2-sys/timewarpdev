@@ -351,16 +351,8 @@ export function BusinessDNAView({ onBack, activeBrandId, activePillar }: { onBac
     if (activeBrandId) localStorage.setItem("tw_active_brand_id", activeBrandId);
   }, [activeBrandId]);
 
-  // Auto-show Supercharge popup once per session, suppressed after user has supercharged
-  useEffect(() => {
-    if (!activeBrandId) return;
-    const sessionKey = `tw_supercharge_popup_shown_${activeBrandId}`;
-    const supchargedKey = `tw_supercharge_completed_${activeBrandId}`;
-    if (sessionStorage.getItem(sessionKey)) return;
-    if (localStorage.getItem(supchargedKey)) return;
-    sessionStorage.setItem(sessionKey, "1");
-    setShowSuperchargePopup(true);
-  }, [activeBrandId]);
+  // Supercharge auto-popup disabled per product decision — users can still
+  // launch the supercharge flow manually from the DNA view actions.
 
   // Sync activeSegment when activePillar prop changes (from sidebar dropdown)
   useEffect(() => {
