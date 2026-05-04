@@ -9,7 +9,16 @@ export interface ConsumeActionResult {
   workspaceId: string | null;
   reason?: string;
   actionsUsed?: number;
+  consumed?: number;
+  costUsd?: number;
 }
+
+/**
+ * Cost-per-action constant. 1 action = $0.08 of AI/API cost.
+ * A small chat message that costs $0.005 of AI = 0.0625 actions.
+ * A heavy multi-step browser run that costs $0.30 of AI = 3.75 actions.
+ */
+export const ACTION_COST_USD = 0.08;
 
 /**
  * Resolve the workspace to charge an action against.
