@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AgentExecutionMode,
   AgentSopStep,
   AgentTriggerType,
   TRIGGER_TYPE_LABEL,
