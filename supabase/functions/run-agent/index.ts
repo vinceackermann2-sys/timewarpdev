@@ -27,6 +27,7 @@ type AgentRow = {
   name: string;
   description: string | null;
   status: string;
+  execution_mode: string;
   trigger_type: string;
   trigger_source: string | null;
   trigger_condition: string | null;
