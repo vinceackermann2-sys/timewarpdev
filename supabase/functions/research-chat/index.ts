@@ -133,10 +133,12 @@ serve(async (req) => {
     let userContext = "";
     let liveConnectionsContext = "";
     let liveSourceRegistryForResponse: LiveSourceRegistry = {};
+    let userId: string | null = null;
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user) {
+        userId = user.id;
         // Pre-check that the workspace still has actions left. We deduct the
         // estimated cost AFTER the AI call (see below) since this response is streamed.
         const { checkWorkspaceActionsAvailable } = await import("../_shared/workspace-actions.ts");
