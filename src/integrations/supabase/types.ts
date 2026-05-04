@@ -1360,11 +1360,12 @@ export type Database = {
         }
         Returns: boolean
       }
-      increment_actions_used: { Args: { _user_id: string }; Returns: Json }
-      increment_workspace_actions: {
-        Args: { _workspace_id: string }
-        Returns: Json
-      }
+      increment_actions_used:
+        | { Args: { _user_id: string }; Returns: Json }
+        | { Args: { _cost_usd?: number; _user_id: string }; Returns: Json }
+      increment_workspace_actions:
+        | { Args: { _workspace_id: string }; Returns: Json }
+        | { Args: { _cost_usd?: number; _workspace_id: string }; Returns: Json }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
