@@ -10,6 +10,7 @@
 export type AgentTriggerType = "manual" | "event" | "schedule" | "threshold";
 export type AgentStatus = "draft" | "active" | "paused";
 export type AgentRunStatus = "running" | "success" | "failure" | "escalated";
+export type AgentExecutionMode = "api" | "computer";
 
 /** One step in an agent's SOP. Atomic + testable, no ambiguity. */
 export interface AgentSopStep {
