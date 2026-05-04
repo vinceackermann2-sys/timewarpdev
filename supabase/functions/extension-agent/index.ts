@@ -106,23 +106,28 @@ serve(async (req) => {
       });
     }
 
-    // Cost-based action consumption: estimate from prompt size since the
-    // multi-step runner streams progress back to the client.
+    // Cost-based action consumption: don't deduct upfront. Pre-check that
+    // the workspace has actions left, then bill the actual measured AI cost
+    // at the END of the run.
     const requestedWorkspaceId = (jsonBody as any)?.workspaceId ?? null;
-    const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-    const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
-    const _promptApprox = JSON.stringify((jsonBody as any)?.messages ?? []);
-    const _costUsd = estimateAiCostUsd({
-      model: "google/gemini-3-flash-preview",
-      promptText: _promptApprox,
-      estimatedCompletionTokens: 1500,
-    });
-    const usage = await consumeWorkspaceAction(supabase, user.id, requestedWorkspaceId, _costUsd);
-    if (!usage.allowed) {
-      return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
+    const { consumeWorkspaceAction, checkWorkspaceActionsAvailable } = await import("../_shared/workspace-actions.ts");
+    const { computeCallCostUsd } = await import("../_shared/ai-cost.ts");
+    const pre = await checkWorkspaceActionsAvailable(supabase, user.id, requestedWorkspaceId);
+    if (!pre.allowed) {
+      return new Response(JSON.stringify({ error: pre.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const measuredAiCalls: { model: string; usage?: { prompt_tokens?: number; completion_tokens?: number } | null }[] = [];
+    const billMeasuredCost = async () => {
+      try {
+        let costUsd = computeCallCostUsd({ ai: measuredAiCalls });
+        if (!isFinite(costUsd) || costUsd <= 0) costUsd = 0.08;
+        await consumeWorkspaceAction(supabase, user.id, requestedWorkspaceId, costUsd);
+      } catch (e) {
+        console.error("[extension-agent] billMeasuredCost error:", (e as Error)?.message);
+      }
+    };
     const { messages: rawMessages, pageContext, brandId: rawBrandId, workspaceId: rawWorkspaceId, browserMode, sessionMemory, taskType = "chat" } = parsedBody.data;
     const messages = rawMessages ?? [];
     const brandId = rawBrandId ?? undefined;
