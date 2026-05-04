@@ -422,6 +422,19 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
       return { content, continuation: timedOut && content.length > 0 };
     };
 
+    // Bill the workspace for the actual measured AI cost. Falls back to a
+    // minimum 1-action ($0.08) charge when usage chunks weren't returned.
+    const billMeasuredCost = async () => {
+      if (skip_action) return;
+      try {
+        let costUsd = computeCallCostUsd({ ai: measuredAiCalls });
+        if (!isFinite(costUsd) || costUsd <= 0) costUsd = 0.08;
+        await consumeWorkspaceAction(supabase, user.id, workspaceId || employee.workspace_id, costUsd);
+      } catch (e) {
+        console.error("[run-employee] billMeasuredCost error:", (e as Error)?.message);
+      }
+    };
+
     if (isBrowserMode) {
       const relevantContext = await retrieveRelevantContext(supabase, {
         ...employee,
