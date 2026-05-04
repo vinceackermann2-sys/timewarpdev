@@ -115,6 +115,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          execution_mode: string
           id: string
           last_run_at: string | null
           linked_business_id: string | null
@@ -139,6 +140,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          execution_mode?: string
           id?: string
           last_run_at?: string | null
           linked_business_id?: string | null
@@ -163,6 +165,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          execution_mode?: string
           id?: string
           last_run_at?: string | null
           linked_business_id?: string | null
