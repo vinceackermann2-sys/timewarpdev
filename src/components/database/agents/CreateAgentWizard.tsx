@@ -297,6 +297,31 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
                     rows={2}
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Execution mode</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { id: "api", title: "API-based", desc: "Runs through connected integrations (Gmail, Slack, HubSpot, etc.)." },
+                      { id: "computer", title: "Computer-based", desc: "Runs via browser automation when no API is available." },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setExecutionMode(opt.id)}
+                        className={cn(
+                          "p-3 rounded-lg border text-left transition-colors",
+                          executionMode === opt.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40",
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{opt.title}</span>
+                          {executionMode === opt.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </SectionCard>
 
