@@ -689,11 +689,13 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               queryTopic: answerTopic,
               liveSourceRegistry: sourceRegistry,
             });
+            await billMeasuredCost();
             close();
           } catch (error: any) {
             edgeLog("extension-agent", "stream_error", { message: String(error?.message || error) });
             console.error("extension-agent stream error:", error?.message || error);
             send({ type: "error", error: error?.message || "An internal error occurred" });
+            await billMeasuredCost();
             close();
           }
         })();
