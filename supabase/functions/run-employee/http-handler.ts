@@ -129,25 +129,21 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
       });
     }
 
-    // Cost-based action consumption: employees run multi-step loops, so we
-    // estimate from the prompt size and let the run proceed.
+    // Cost-based action consumption: don't deduct upfront. Just verify the
+    // workspace has any actions left, then bill the actual measured AI cost
+    // at the END of the run.
+    const { consumeWorkspaceAction, checkWorkspaceActionsAvailable } = await import("../_shared/workspace-actions.ts");
+    const { computeCallCostUsd } = await import("../_shared/ai-cost.ts");
     if (!skip_action) {
-      const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-      const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
-      const _promptApprox = JSON.stringify({ employee: employee?.name, brandId, sop: employee?.sop_procedure }) + (typeof message === "string" ? message : "");
-      const _costUsd = estimateAiCostUsd({
-        model: "google/gemini-3-flash-preview",
-        promptText: _promptApprox,
-        estimatedCompletionTokens: 2000,
-      });
-      const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId || employee.workspace_id, _costUsd);
-      if (!usage.allowed) {
-        return new Response(JSON.stringify({ error: usage.reason || "Action limit reached" }), {
+      const pre = await checkWorkspaceActionsAvailable(supabase, user.id, workspaceId || employee.workspace_id);
+      if (!pre.allowed) {
+        return new Response(JSON.stringify({ error: pre.reason || "Action limit reached" }), {
           status: 402,
           headers: { ...runEmployeeCorsHeaders, "Content-Type": "application/json" },
         });
       }
     }
+    const measuredAiCalls: { model: string; usage?: { prompt_tokens?: number; completion_tokens?: number } | null }[] = [];
 
     const effectiveBrandId = brandId || employee.linked_business_id;
     const { identity, safetySettings: brandSafety } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
