@@ -343,6 +343,9 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
                 const parsed = JSON.parse(data);
                 const delta = normalizeChatCompletionDeltaContent(parsed.choices?.[0]?.delta?.content);
                 if (delta.length > 0) { fullContent += delta; emitContent?.(delta); }
+                if (parsed.usage) {
+                  measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+                }
               } catch {}
             }
             if (streamDone) break;
@@ -358,6 +361,9 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
               const parsed = JSON.parse(data);
               const delta = normalizeChatCompletionDeltaContent(parsed.choices?.[0]?.delta?.content);
               if (delta.length > 0) { fullContent += delta; emitContent?.(delta); }
+              if (parsed.usage) {
+                measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+              }
             } catch {}
           }
         }
