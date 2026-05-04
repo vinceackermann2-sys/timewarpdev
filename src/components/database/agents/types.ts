@@ -95,6 +95,7 @@ export function normalizeAgentRow(row: any): AIAgent {
     name: row.name ?? "Untitled agent",
     description: row.description ?? null,
     status: (row.status as AgentStatus) ?? "draft",
+    execution_mode: (row.execution_mode as AgentExecutionMode) ?? "api",
     trigger_type: (row.trigger_type as AgentTriggerType) ?? "manual",
     trigger_source: row.trigger_source ?? null,
     trigger_condition: row.trigger_condition ?? null,
