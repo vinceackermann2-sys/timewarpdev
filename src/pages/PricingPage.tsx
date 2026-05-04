@@ -61,7 +61,7 @@ const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }>
   co_founder: {
     tagline: "For early-stage founders getting started",
     bullets: [
-      "1 Workspace",
+      "500 Actions",
       "Up to 10 AI employees",
       "Smarter brain",
     ],
