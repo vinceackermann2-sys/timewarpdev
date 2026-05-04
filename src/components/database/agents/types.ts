@@ -31,6 +31,7 @@ export interface AIAgent {
   name: string;
   description: string | null;
   status: AgentStatus;
+  execution_mode: AgentExecutionMode;
 
   trigger_type: AgentTriggerType;
   trigger_source: string | null;
