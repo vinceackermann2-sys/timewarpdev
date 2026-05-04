@@ -86,6 +86,7 @@ function buildSystemPrompt(agent: AgentRow, supervisorRole: string | null, accou
     `You are an autonomous Agent named "${agent.name}".`,
     agent.description ? `Description: ${agent.description}` : "",
     supervisorLine,
+    `Execution mode: ${agent.execution_mode === "computer" ? "computer-based (browser automation when no API exists)" : "API-based (call connected integrations directly via their APIs)"}.`,
     "",
     "TRIGGER",
     `  type: ${agent.trigger_type}`,
