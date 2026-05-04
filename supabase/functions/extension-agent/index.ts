@@ -263,6 +263,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       }).then(() => {});
 
       const aiResult = await response.json();
+      if (aiResult?.usage) {
+        measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: aiResult.usage });
+      }
       let content = aiResult.choices?.[0]?.message?.content || "";
       const actionValidation = validateActionPayload(content);
       if (!actionValidation.valid) {
@@ -283,6 +286,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
         });
         if (repairResponse.ok) {
           const repairJson = await repairResponse.json();
+          if (repairJson?.usage) {
+            measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson.usage });
+          }
           const repaired = repairJson?.choices?.[0]?.message?.content || "";
           if (validateActionPayload(repaired).valid) content = repaired;
         }
@@ -310,6 +316,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           outcome: guardrailIntervened ? "negative" : "positive",
         },
       });
+      await billMeasuredCost();
       return new Response(JSON.stringify({ content, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic, liveSourceRegistry: sourceRegistry }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
