@@ -119,7 +119,10 @@ serve(async (req) => {
       hasPageContext: !!pageContext,
     });
 
-    const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId ?? null);
+    // Pre-check that the workspace still has actions left. We deduct the
+    // measured/estimated cost AFTER the AI call(s) below.
+    const { checkWorkspaceActionsAvailable } = await import("../_shared/workspace-actions.ts");
+    const usage = await checkWorkspaceActionsAvailable(supabase, user.id, workspaceId ?? null);
     if (!usage.allowed) {
       return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403,
