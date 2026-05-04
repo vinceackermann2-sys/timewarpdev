@@ -13,7 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const FAQS = [
   {
     q: "What counts as an action?",
-    a: "An action is any AI task you run — sending a message in chat, having an employee execute a workflow, generating a graphic, or running a browser agent. Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute. Each action costs us around $0.08, and we charge based on actual usage at the end of each run.",
+    a: "An action is any AI task you run — sending a message in chat, having an employee execute a workflow, generating a graphic, or running a browser agent. Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute.",
   },
   {
     q: "Can I change plans later?",
@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: "What happens when I run out of actions?",
-    a: "You'll be prompted to either upgrade your plan or buy an Action Pack (one-time top-up, no subscription). Your last in-progress task is always allowed to finish — you'll never get cut off mid-run.",
+    a: "You can keep using TimeWarp to view insights and past work. To keep going, refill or upgrade your plan, or wait for your monthly limit to reset.",
   },
   {
     q: "Is there a free trial?",
