@@ -150,7 +150,7 @@ const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }>
     tagline: "For growing businesses scaling operations",
     bullets: [
       "Everything in Co Founder, plus:",
-      "5x usage of co founder",
+      "250 Actions",
       "Up to 50 AI employees",
       "Direct developer line",
     ],
