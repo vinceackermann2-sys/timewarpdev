@@ -28,7 +28,7 @@ const plans = [
     features: [
       "Unlimited team members",
       "5GB connected data",
-      "500 Actions/month",
+      "100 Actions/month",
       "3 Businesses",
       "3 Employees",
     ],
