@@ -219,6 +219,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
           name: name.trim(),
           description: description.trim() || null,
           status,
+          execution_mode: executionMode,
           trigger_type: triggerType,
           trigger_source: triggerSource.trim() || null,
           trigger_condition: triggerCondition.trim() || null,
