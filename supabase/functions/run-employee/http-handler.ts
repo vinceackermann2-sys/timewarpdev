@@ -304,6 +304,7 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
             ...effectiveMessages,
           ],
           stream: true,
+          stream_options: { include_usage: true },
         }),
       });
 
