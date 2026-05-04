@@ -95,6 +95,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
   // Step 1: Identity + trigger
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [executionMode, setExecutionMode] = useState<AgentExecutionMode>("api");
   const [triggerType, setTriggerType] = useState<AgentTriggerType>("manual");
   const [triggerSource, setTriggerSource] = useState("");
   const [triggerCondition, setTriggerCondition] = useState("");
