@@ -399,6 +399,9 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
           if (repairResponse.ok) {
             const repairJson = await repairResponse.json();
             const repaired = repairJson?.choices?.[0]?.message?.content || "";
+            if (repairJson?.usage) {
+              measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson.usage });
+            }
             if (validateActionPayload(repaired).valid) {
               content = repaired;
             }
