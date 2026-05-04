@@ -6,8 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
 const ACTION_LIMITS: Record<string, number> = {
-  co_founder: 500,
-  aristotle: 2500,
+  co_founder: 100,
+  aristotle: 500,
   timewarp_og: Infinity,
 };
 const FREE_LIMIT = 10;

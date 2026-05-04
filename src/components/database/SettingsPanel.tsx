@@ -41,8 +41,8 @@ import { useQuery } from "@tanstack/react-query";
  */
 
 const ACTION_LIMITS_SETTINGS: Record<string, number> = {
-  co_founder: 500,
-  aristotle: 2500,
+  co_founder: 100,
+  aristotle: 500,
   timewarp_og: Infinity,
 };
 const FREE_LIMIT_SETTINGS = 10;
@@ -136,7 +136,7 @@ const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }>
   co_founder: {
     tagline: "For early-stage founders getting started",
     bullets: [
-      "500 Actions",
+      "100 Actions",
       "Up to 10 AI employees",
       "Smarter brain",
     ],
