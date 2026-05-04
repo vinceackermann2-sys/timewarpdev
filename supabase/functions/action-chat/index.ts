@@ -351,6 +351,26 @@ When generating content, use real numbers, names, and details from the business 
       throw new Error("AI service unavailable");
     }
 
+    // Charge actions based on the estimated cost of this AI call.
+    // Streaming responses are piped straight through to the client, so we use a
+    // prompt-size-based estimate rather than waiting for token counts.
+    if (userId) {
+      try {
+        const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
+        const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
+        const promptText = systemPrompt + "\n" +
+          (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "");
+        const costUsd = estimateAiCostUsd({
+          model: "google/gemini-3-flash-preview",
+          promptText,
+          estimatedCompletionTokens: 1200,
+        });
+        await consumeWorkspaceAction(supabase, userId, workspaceId, costUsd);
+      } catch (e) {
+        console.error("[action-chat] consume action failed:", (e as Error)?.message);
+      }
+    }
+
     const regHeader = encodeLiveSourceRegistryHeader(liveSourceRegistryForResponse);
     return new Response(response.body, {
       headers: {
