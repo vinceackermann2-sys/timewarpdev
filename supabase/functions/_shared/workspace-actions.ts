@@ -52,13 +52,22 @@ export async function resolveWorkspaceId(
 }
 
 /**
- * Consume one action from the workspace's shared pool.
- * Returns { allowed: false, reason } when the workspace is out of actions.
+ * Consume actions from the workspace's shared pool, priced at $0.08 per action.
+ *
+ * Pass `costUsd` with the actual AI/API cost of the request (sum of token cost
+ * + Browserbase minutes + Firecrawl pages + image-gen, etc.) to charge fairly.
+ * Omit it to fall back to the legacy 1-action-per-call default.
+ *
+ * Returns { allowed: false, reason } only when the workspace is already out of
+ * actions BEFORE the call. The current call is always allowed to complete (it
+ * may push the balance slightly negative) so streaming responses never fail
+ * mid-message.
  */
 export async function consumeWorkspaceAction(
   supabase: SupabaseClient,
   userId: string,
   requestedWorkspaceId?: string | null,
+  costUsd?: number,
 ): Promise<ConsumeActionResult> {
   const workspaceId = await resolveWorkspaceId(supabase, userId, requestedWorkspaceId);
   if (!workspaceId) {
@@ -67,6 +76,9 @@ export async function consumeWorkspaceAction(
 
   const { data, error } = await supabase.rpc("increment_workspace_actions", {
     _workspace_id: workspaceId,
+    _cost_usd: typeof costUsd === "number" && isFinite(costUsd) && costUsd >= 0
+      ? costUsd
+      : ACTION_COST_USD,
   });
 
   if (error) {
@@ -74,11 +86,19 @@ export async function consumeWorkspaceAction(
     return { allowed: false, workspaceId, reason: error.message };
   }
 
-  const result = data as { allowed?: boolean; reason?: string; actions_used?: number };
+  const result = data as {
+    allowed?: boolean;
+    reason?: string;
+    actions_used?: number;
+    consumed?: number;
+    cost_usd?: number;
+  };
   return {
     allowed: !!result?.allowed,
     workspaceId,
     reason: result?.reason,
     actionsUsed: result?.actions_used,
+    consumed: result?.consumed,
+    costUsd: result?.cost_usd,
   };
 }
