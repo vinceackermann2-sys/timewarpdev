@@ -15,7 +15,7 @@ type: feature
 - `user_subscriptions.actions_used` and `bonus_actions` are `numeric(12,4)`.
 - RPC `increment_workspace_actions(_workspace_id, _cost_usd default 0.08)` consumes `cost_usd / 0.08` actions.
 - RPC `increment_actions_used(_user_id, _cost_usd default 0.08)` is the legacy per-user equivalent.
-- Block rule: only blocks if remaining is already ≤ 0 BEFORE the call. Current call is always allowed (may push slightly negative) so streaming never fails mid-message.
+- Block rule: only blocks if remaining is already ≤ 0 BEFORE the call. Current call is always allowed to complete, but `actions_used` is clamped to `limit + bonus` so the balance NEVER goes negative — any overshoot is absorbed by us, not billed to the user.
 
 ## Edge functions
 - Use `consumeWorkspaceAction(supabase, userId, workspaceId, costUsd?)` from `_shared/workspace-actions.ts`.
