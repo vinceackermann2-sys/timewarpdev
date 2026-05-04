@@ -128,25 +128,22 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
       });
     }
 
-    // Cost-based action consumption: employees run multi-step loops, so we
-    // estimate from the prompt size and let the run proceed.
+    // Cost-based action consumption: don't deduct upfront. Just verify the
+    // workspace has any actions left, then bill the actual measured AI cost
+    // at the END of the run. (Multi-step employee runs can vary widely.)
+    const { consumeWorkspaceAction, checkWorkspaceActionsAvailable } = await import("../workspace-actions.ts");
+    const { computeCallCostUsd } = await import("../ai-cost.ts");
     if (!skip_action) {
-      const { consumeWorkspaceAction } = await import("../workspace-actions.ts");
-      const { estimateAiCostUsd } = await import("../ai-cost.ts");
-      const _promptApprox = JSON.stringify({ employee: employee?.name, brandId, sop: employee?.sop_procedure }) + (typeof message === "string" ? message : "");
-      const _costUsd = estimateAiCostUsd({
-        model: "google/gemini-3-flash-preview",
-        promptText: _promptApprox,
-        estimatedCompletionTokens: 2000,
-      });
-      const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId || employee.workspace_id, _costUsd);
-      if (!usage.allowed) {
-        return new Response(JSON.stringify({ error: usage.reason || "Action limit reached" }), {
+      const pre = await checkWorkspaceActionsAvailable(supabase, user.id, workspaceId || employee.workspace_id);
+      if (!pre.allowed) {
+        return new Response(JSON.stringify({ error: pre.reason || "Action limit reached" }), {
           status: 402,
           headers: { ...runEmployeeCorsHeaders, "Content-Type": "application/json" },
         });
       }
     }
+    // Aggregate measured AI usage across every gateway call this request makes.
+    const measuredAiCalls: { model: string; usage?: { prompt_tokens?: number; completion_tokens?: number } | null }[] = [];
 
     const effectiveBrandId = brandId || employee.linked_business_id;
     const { identity, safetySettings: brandSafety } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
@@ -307,6 +304,7 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
             ...effectiveMessages,
           ],
           stream: true,
+          stream_options: { include_usage: true },
         }),
       });
 
@@ -345,6 +343,9 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
                 const parsed = JSON.parse(data);
                 const delta = parsed.choices?.[0]?.delta?.content || "";
                 if (delta) { fullContent += delta; emitContent?.(delta); }
+                if (parsed.usage) {
+                  measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+                }
               } catch {}
             }
             if (streamDone) break;
@@ -360,6 +361,9 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
               const parsed = JSON.parse(data);
               const delta = parsed.choices?.[0]?.delta?.content || "";
               if (delta) { fullContent += delta; emitContent?.(delta); }
+              if (parsed.usage) {
+                measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+              }
             } catch {}
           }
         }
@@ -395,6 +399,9 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
           if (repairResponse.ok) {
             const repairJson = await repairResponse.json();
             const repaired = repairJson?.choices?.[0]?.message?.content || "";
+            if (repairJson?.usage) {
+              measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson.usage });
+            }
             if (validateActionPayload(repaired).valid) {
               content = repaired;
             }
@@ -413,6 +420,19 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         lastUserMessage: lastUserMsg,
       });
       return { content, continuation: timedOut && content.length > 0 };
+    };
+
+    // Bill the workspace for the actual measured AI cost. Falls back to a
+    // minimum 1-action ($0.08) charge when usage chunks weren't returned.
+    const billMeasuredCost = async () => {
+      if (skip_action) return;
+      try {
+        let costUsd = computeCallCostUsd({ ai: measuredAiCalls });
+        if (!isFinite(costUsd) || costUsd <= 0) costUsd = 0.08;
+        await consumeWorkspaceAction(supabase, user.id, workspaceId || employee.workspace_id, costUsd);
+      } catch (e) {
+        console.error("[run-employee] billMeasuredCost error:", (e as Error)?.message);
+      }
     };
 
     if (isBrowserMode) {
@@ -442,6 +462,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
           outcome: result.continuation ? "negative" : "positive",
         },
       });
+      await billMeasuredCost();
       return new Response(JSON.stringify({ ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic, liveSourceRegistry: sourceRegistry }), {
         headers: { ...runEmployeeCorsHeaders, "Content-Type": "application/json" },
       });
@@ -548,6 +569,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
             });
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic, liveSourceRegistry: sourceRegistry });
+            await billMeasuredCost();
             close();
           } catch (error: any) {
             edgeLog(branding.logTag, "stream_error", { message: String(error?.message || error) });
@@ -559,6 +581,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               logLine: "Task failed",
             });
             send({ type: "error", error: error?.message || "An internal error occurred" });
+            await billMeasuredCost();
             close();
           }
         })();

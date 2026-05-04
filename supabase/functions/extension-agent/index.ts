@@ -106,23 +106,28 @@ serve(async (req) => {
       });
     }
 
-    // Cost-based action consumption: estimate from prompt size since the
-    // multi-step runner streams progress back to the client.
+    // Cost-based action consumption: don't deduct upfront. Pre-check that
+    // the workspace has actions left, then bill the actual measured AI cost
+    // at the END of the run.
     const requestedWorkspaceId = (jsonBody as any)?.workspaceId ?? null;
-    const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-    const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
-    const _promptApprox = JSON.stringify((jsonBody as any)?.messages ?? []);
-    const _costUsd = estimateAiCostUsd({
-      model: "google/gemini-3-flash-preview",
-      promptText: _promptApprox,
-      estimatedCompletionTokens: 1500,
-    });
-    const usage = await consumeWorkspaceAction(supabase, user.id, requestedWorkspaceId, _costUsd);
-    if (!usage.allowed) {
-      return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
+    const { consumeWorkspaceAction, checkWorkspaceActionsAvailable } = await import("../_shared/workspace-actions.ts");
+    const { computeCallCostUsd } = await import("../_shared/ai-cost.ts");
+    const pre = await checkWorkspaceActionsAvailable(supabase, user.id, requestedWorkspaceId);
+    if (!pre.allowed) {
+      return new Response(JSON.stringify({ error: pre.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const measuredAiCalls: { model: string; usage?: { prompt_tokens?: number; completion_tokens?: number } | null }[] = [];
+    const billMeasuredCost = async () => {
+      try {
+        let costUsd = computeCallCostUsd({ ai: measuredAiCalls });
+        if (!isFinite(costUsd) || costUsd <= 0) costUsd = 0.08;
+        await consumeWorkspaceAction(supabase, user.id, requestedWorkspaceId, costUsd);
+      } catch (e) {
+        console.error("[extension-agent] billMeasuredCost error:", (e as Error)?.message);
+      }
+    };
     const { messages: rawMessages, pageContext, brandId: rawBrandId, workspaceId: rawWorkspaceId, browserMode, sessionMemory, taskType = "chat" } = parsedBody.data;
     const messages = rawMessages ?? [];
     const brandId = rawBrandId ?? undefined;
@@ -258,6 +263,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
       }).then(() => {});
 
       const aiResult = await response.json();
+      if (aiResult?.usage) {
+        measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: aiResult.usage });
+      }
       let content = aiResult.choices?.[0]?.message?.content || "";
       const actionValidation = validateActionPayload(content);
       if (!actionValidation.valid) {
@@ -278,6 +286,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
         });
         if (repairResponse.ok) {
           const repairJson = await repairResponse.json();
+          if (repairJson?.usage) {
+            measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson.usage });
+          }
           const repaired = repairJson?.choices?.[0]?.message?.content || "";
           if (validateActionPayload(repaired).valid) content = repaired;
         }
@@ -305,6 +316,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           outcome: guardrailIntervened ? "negative" : "positive",
         },
       });
+      await billMeasuredCost();
       return new Response(JSON.stringify({ content, connectionDecision, searchedProviders, skippedProviderDetails, queryTopic, liveSourceRegistry: sourceRegistry }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -349,6 +361,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                   if (tc.function?.arguments) cur.arguments += tc.function.arguments;
                   toolCalls.set(idx, cur);
                 }
+              }
+              if (parsed.usage) {
+                measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
               }
             } catch {
               // Ignore malformed partial events
@@ -485,6 +500,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                   model: "google/gemini-3-flash-preview",
                   messages: msgs,
                   stream: true,
+                  stream_options: { include_usage: true },
                   ...(includeTools ? { tools: gatewayTools, tool_choice: "auto" } : {}),
                 }),
               });
@@ -673,11 +689,13 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
               queryTopic: answerTopic,
               liveSourceRegistry: sourceRegistry,
             });
+            await billMeasuredCost();
             close();
           } catch (error: any) {
             edgeLog("extension-agent", "stream_error", { message: String(error?.message || error) });
             console.error("extension-agent stream error:", error?.message || error);
             send({ type: "error", error: error?.message || "An internal error occurred" });
+            await billMeasuredCost();
             close();
           }
         })();
