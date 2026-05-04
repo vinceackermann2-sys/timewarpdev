@@ -8,6 +8,30 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
+const FAQS = [
+  {
+    q: "What counts as an action?",
+    a: "An action is any AI task you run — sending a message in chat, having an employee execute a workflow, generating a graphic, or running a browser agent. Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute. Each action costs us around $0.08, and we charge based on actual usage at the end of each run.",
+  },
+  {
+    q: "Can I change plans later?",
+    a: "Yes — upgrade, downgrade, or cancel anytime from this page. Changes take effect immediately and your remaining actions carry over for the current billing period.",
+  },
+  {
+    q: "What happens when I run out of actions?",
+    a: "You'll be prompted to either upgrade your plan or buy an Action Pack (one-time top-up, no subscription). Your last in-progress task is always allowed to finish — you'll never get cut off mid-run.",
+  },
+  {
+    q: "Is there a free trial?",
+    a: "Yes. Every new account starts on the Free plan with 10 actions so you can try the product end-to-end before committing. No credit card required to sign up.",
+  },
+  {
+    q: "Do I need connectors?",
+    a: "No — you can use TimeWarp without connecting any tools. But connecting Gmail, Calendar, HubSpot, Slack, etc. makes your AI dramatically smarter because it can pull live context from your real business data instead of guessing.",
+  },
+];
 
 type BillingPeriod = "monthly" | "quarterly" | "annually";
 type PlanKey = "co_founder" | "aristotle" | "timewarp_og";
@@ -478,6 +502,25 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
             </div>
           </div>
         )}
+
+        {/* FAQ */}
+        <div className="max-w-3xl mx-auto w-full pt-4">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-center mb-6">
+            Frequently asked questions
+          </h2>
+          <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card divide-y divide-border">
+            {FAQS.map((item, i) => (
+              <AccordionItem key={i} value={`faq-${i}`} className="border-0 px-5">
+                <AccordionTrigger className="text-left text-base font-medium hover:no-underline py-4">
+                  {item.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
 
       </div>
     </div>
