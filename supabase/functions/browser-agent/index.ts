@@ -26,9 +26,10 @@ serve(async (req) => {
 
     const { messages, pageContext, workspaceId } = await req.json();
 
-    // Check and increment action usage against the workspace's shared pool
-    const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-    const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId);
+    // Pre-check that the workspace still has actions left. We deduct the
+    // estimated cost AFTER the call below.
+    const { checkWorkspaceActionsAvailable, consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
+    const usage = await checkWorkspaceActionsAvailable(supabase, user.id, workspaceId);
     if (!usage.allowed) {
       return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
