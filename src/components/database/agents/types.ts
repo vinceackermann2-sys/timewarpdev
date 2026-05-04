@@ -10,6 +10,7 @@
 export type AgentTriggerType = "manual" | "event" | "schedule" | "threshold";
 export type AgentStatus = "draft" | "active" | "paused";
 export type AgentRunStatus = "running" | "success" | "failure" | "escalated";
+export type AgentExecutionMode = "api" | "computer";
 
 /** One step in an agent's SOP. Atomic + testable, no ambiguity. */
 export interface AgentSopStep {
@@ -30,6 +31,7 @@ export interface AIAgent {
   name: string;
   description: string | null;
   status: AgentStatus;
+  execution_mode: AgentExecutionMode;
 
   trigger_type: AgentTriggerType;
   trigger_source: string | null;
@@ -93,6 +95,7 @@ export function normalizeAgentRow(row: any): AIAgent {
     name: row.name ?? "Untitled agent",
     description: row.description ?? null,
     status: (row.status as AgentStatus) ?? "draft",
+    execution_mode: (row.execution_mode as AgentExecutionMode) ?? "api",
     trigger_type: (row.trigger_type as AgentTriggerType) ?? "manual",
     trigger_source: row.trigger_source ?? null,
     trigger_condition: row.trigger_condition ?? null,

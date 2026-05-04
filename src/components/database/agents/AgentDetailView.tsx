@@ -194,6 +194,9 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
                 {agent.name}
               </h1>
               <Badge className={cn("capitalize", statusTone)}>{STATUS_LABEL[agent.status]}</Badge>
+              <Badge variant="outline" className="text-[10px] capitalize">
+                {agent.execution_mode === "computer" ? "Computer-based" : "API-based"}
+              </Badge>
             </div>
             {agent.description && <p className="text-sm text-muted-foreground mt-1.5">{agent.description}</p>}
             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">

@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AgentExecutionMode,
   AgentSopStep,
   AgentTriggerType,
   TRIGGER_TYPE_LABEL,
@@ -94,6 +95,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
   // Step 1: Identity + trigger
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [executionMode, setExecutionMode] = useState<AgentExecutionMode>("api");
   const [triggerType, setTriggerType] = useState<AgentTriggerType>("manual");
   const [triggerSource, setTriggerSource] = useState("");
   const [triggerCondition, setTriggerCondition] = useState("");
@@ -217,6 +219,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
           name: name.trim(),
           description: description.trim() || null,
           status,
+          execution_mode: executionMode,
           trigger_type: triggerType,
           trigger_source: triggerSource.trim() || null,
           trigger_condition: triggerCondition.trim() || null,
@@ -293,6 +296,31 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
                     placeholder="One sentence: what does this agent do?"
                     rows={2}
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Execution mode</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { id: "api", title: "API-based", desc: "Runs through connected integrations (Gmail, Slack, HubSpot, etc.)." },
+                      { id: "computer", title: "Computer-based", desc: "Runs via browser automation when no API is available." },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setExecutionMode(opt.id)}
+                        className={cn(
+                          "p-3 rounded-lg border text-left transition-colors",
+                          executionMode === opt.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40",
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{opt.title}</span>
+                          {executionMode === opt.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </SectionCard>
