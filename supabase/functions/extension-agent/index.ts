@@ -362,6 +362,9 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                   toolCalls.set(idx, cur);
                 }
               }
+              if (parsed.usage) {
+                measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+              }
             } catch {
               // Ignore malformed partial events
             }
