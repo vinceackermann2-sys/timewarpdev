@@ -41,8 +41,8 @@ import { useQuery } from "@tanstack/react-query";
  */
 
 const ACTION_LIMITS_SETTINGS: Record<string, number> = {
-  co_founder: 500,
-  aristotle: 2500,
+  co_founder: 100,
+  aristotle: 500,
   timewarp_og: Infinity,
 };
 const FREE_LIMIT_SETTINGS = 10;
