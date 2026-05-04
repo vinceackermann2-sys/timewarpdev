@@ -146,6 +146,21 @@ For multi-step tasks, return an array of actions:
       throw new Error("AI service unavailable");
     }
 
+    // Charge actions based on the estimated cost of this AI call.
+    try {
+      const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
+      const promptText = systemPrompt + "\n" +
+        (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "");
+      const costUsd = estimateAiCostUsd({
+        model: "google/gemini-3-flash-preview",
+        promptText,
+        estimatedCompletionTokens: 1000,
+      });
+      await consumeWorkspaceAction(supabase, user.id, workspaceId, costUsd);
+    } catch (e) {
+      console.error("[browser-agent] consume action failed:", (e as Error)?.message);
+    }
+
     // Save chat to timewarp_chats
     const userMsg = messages?.[messages.length - 1]?.content || "";
     supabase.from("timewarp_chats").insert({
