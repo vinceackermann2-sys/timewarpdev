@@ -399,6 +399,9 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
           if (repairResponse.ok) {
             const repairJson = await repairResponse.json();
             const repaired = repairJson?.choices?.[0]?.message?.content || "";
+            if (repairJson?.usage) {
+              measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson.usage });
+            }
             if (validateActionPayload(repaired).valid) {
               content = repaired;
             }
@@ -417,6 +420,17 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         lastUserMessage: lastUserMsg,
       });
       return { content, continuation: timedOut && content.length > 0 };
+    };
+
+    const billMeasuredCost = async () => {
+      if (skip_action) return;
+      try {
+        let costUsd = computeCallCostUsd({ ai: measuredAiCalls });
+        if (!isFinite(costUsd) || costUsd <= 0) costUsd = 0.08;
+        await consumeWorkspaceAction(supabase, user.id, workspaceId || employee.workspace_id, costUsd);
+      } catch (e) {
+        console.error("[run-employee] billMeasuredCost error:", (e as Error)?.message);
+      }
     };
 
     if (isBrowserMode) {
