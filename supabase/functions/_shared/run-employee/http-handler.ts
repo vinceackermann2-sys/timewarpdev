@@ -569,6 +569,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
             });
 
             send({ type: "result", ...result, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic, liveSourceRegistry: sourceRegistry });
+            await billMeasuredCost();
             close();
           } catch (error: any) {
             edgeLog(branding.logTag, "stream_error", { message: String(error?.message || error) });
@@ -580,6 +581,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               logLine: "Task failed",
             });
             send({ type: "error", error: error?.message || "An internal error occurred" });
+            await billMeasuredCost();
             close();
           }
         })();
