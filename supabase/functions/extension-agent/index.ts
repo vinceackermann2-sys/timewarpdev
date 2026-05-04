@@ -106,10 +106,18 @@ serve(async (req) => {
       });
     }
 
-    // Check and increment action usage against the active workspace's shared pool
+    // Cost-based action consumption: estimate from prompt size since the
+    // multi-step runner streams progress back to the client.
     const requestedWorkspaceId = (jsonBody as any)?.workspaceId ?? null;
     const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-    const usage = await consumeWorkspaceAction(supabase, user.id, requestedWorkspaceId);
+    const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
+    const _promptApprox = JSON.stringify((jsonBody as any)?.messages ?? []);
+    const _costUsd = estimateAiCostUsd({
+      model: "google/gemini-3-flash-preview",
+      promptText: _promptApprox,
+      estimatedCompletionTokens: 1500,
+    });
+    const usage = await consumeWorkspaceAction(supabase, user.id, requestedWorkspaceId, _costUsd);
     if (!usage.allowed) {
       return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },

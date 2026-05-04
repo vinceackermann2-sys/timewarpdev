@@ -26,9 +26,10 @@ serve(async (req) => {
 
     const { messages, pageContext, workspaceId } = await req.json();
 
-    // Check and increment action usage against the workspace's shared pool
-    const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-    const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId);
+    // Pre-check that the workspace still has actions left. We deduct the
+    // estimated cost AFTER the call below.
+    const { checkWorkspaceActionsAvailable, consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
+    const usage = await checkWorkspaceActionsAvailable(supabase, user.id, workspaceId);
     if (!usage.allowed) {
       return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -143,6 +144,21 @@ For multi-step tasks, return an array of actions:
       }
       console.error("AI gateway error: status", status);
       throw new Error("AI service unavailable");
+    }
+
+    // Charge actions based on the estimated cost of this AI call.
+    try {
+      const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
+      const promptText = systemPrompt + "\n" +
+        (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "");
+      const costUsd = estimateAiCostUsd({
+        model: "google/gemini-3-flash-preview",
+        promptText,
+        estimatedCompletionTokens: 1000,
+      });
+      await consumeWorkspaceAction(supabase, user.id, workspaceId, costUsd);
+    } catch (e) {
+      console.error("[browser-agent] consume action failed:", (e as Error)?.message);
     }
 
     // Save chat to timewarp_chats

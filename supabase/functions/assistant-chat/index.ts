@@ -119,7 +119,10 @@ serve(async (req) => {
       hasPageContext: !!pageContext,
     });
 
-    const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId ?? null);
+    // Pre-check that the workspace still has actions left. We deduct the
+    // measured/estimated cost AFTER the AI call(s) below.
+    const { checkWorkspaceActionsAvailable } = await import("../_shared/workspace-actions.ts");
+    const usage = await checkWorkspaceActionsAvailable(supabase, user.id, workspaceId ?? null);
     if (!usage.allowed) {
       return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
         status: 403,
@@ -251,6 +254,9 @@ serve(async (req) => {
 
       const aiResult = await response.json();
       let content = aiResult.choices?.[0]?.message?.content || "";
+      const aiCalls: { model: string; usage?: any }[] = [
+        { model: "google/gemini-3-flash-preview", usage: aiResult?.usage },
+      ];
       const actionValidation = validateActionPayload(content);
       if (!actionValidation.valid) {
         const repairResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -272,6 +278,7 @@ serve(async (req) => {
           const repairJson = await repairResponse.json();
           const repaired = repairJson?.choices?.[0]?.message?.content || "";
           if (validateActionPayload(repaired).valid) content = repaired;
+          aiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson?.usage });
         }
       }
       content = runPostflightGuardrails(content, safetySettings);
@@ -297,6 +304,16 @@ serve(async (req) => {
           outcome: guardrailIntervened ? "negative" : "positive",
         },
       });
+
+      // Charge actions based on the actual measured AI cost.
+      try {
+        const { computeCallCostUsd } = await import("../_shared/ai-cost.ts");
+        const costUsd = computeCallCostUsd({ ai: aiCalls });
+        await consumeWorkspaceAction(supabase, user.id, workspaceId ?? null, costUsd);
+      } catch (e) {
+        console.error("[assistant-chat:browser] consume action failed:", (e as Error)?.message);
+      }
+
       return new Response(
         JSON.stringify({
           content,
@@ -308,6 +325,22 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Streaming SSE path: estimate cost from prompt size and consume up-front
+    // (we can't easily measure completion tokens out of the streamed response).
+    try {
+      const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
+      const promptText = (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "")
+        + "\n" + (profileContext || "") + "\n" + (lastUserMsg || "");
+      const costUsd = estimateAiCostUsd({
+        model: "google/gemini-3-flash-preview",
+        promptText,
+        estimatedCompletionTokens: 1500,
+      });
+      await consumeWorkspaceAction(supabase, user.id, workspaceId ?? null, costUsd);
+    } catch (e) {
+      console.error("[assistant-chat:sse] consume action failed:", (e as Error)?.message);
     }
 
     return createAssistantChatSseResponse(

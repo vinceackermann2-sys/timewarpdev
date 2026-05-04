@@ -133,13 +133,16 @@ serve(async (req) => {
     let userContext = "";
     let liveConnectionsContext = "";
     let liveSourceRegistryForResponse: LiveSourceRegistry = {};
+    let userId: string | null = null;
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user } } = await supabase.auth.getUser(token);
       if (user) {
-        // Check and increment action usage against the workspace's shared pool
-        const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-        const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId);
+        userId = user.id;
+        // Pre-check that the workspace still has actions left. We deduct the
+        // estimated cost AFTER the AI call (see below) since this response is streamed.
+        const { checkWorkspaceActionsAvailable } = await import("../_shared/workspace-actions.ts");
+        const usage = await checkWorkspaceActionsAvailable(supabase, user.id, workspaceId);
         if (!usage.allowed) {
           return new Response(JSON.stringify({ error: usage.reason || "Action limit reached. Upgrade your plan." }), {
             status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -310,6 +313,24 @@ ${responseShape}
       }
       console.error("AI gateway error: status", status);
       throw new Error("AI service unavailable");
+    }
+
+    // Charge actions based on the estimated cost of this AI call.
+    if (userId) {
+      try {
+        const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
+        const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
+        const promptText = systemPrompt + "\n" +
+          (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "");
+        const costUsd = estimateAiCostUsd({
+          model: "google/gemini-3-flash-preview",
+          promptText,
+          estimatedCompletionTokens: 1200,
+        });
+        await consumeWorkspaceAction(supabase, userId, workspaceId, costUsd);
+      } catch (e) {
+        console.error("[research-chat] consume action failed:", (e as Error)?.message);
+      }
     }
 
     const regHeader = encodeLiveSourceRegistryHeader(liveSourceRegistryForResponse);

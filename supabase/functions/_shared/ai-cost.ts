@@ -39,11 +39,40 @@ export interface AiUsage {
   total_tokens?: number;
 }
 
+export function rateFor(model: string): ModelRate {
+  return MODEL_RATES[model] ?? FALLBACK_RATE;
+}
+
 export function tokenCostUsd(model: string, usage: AiUsage | null | undefined): number {
   if (!usage) return 0;
-  const rate = MODEL_RATES[model] ?? FALLBACK_RATE;
+  const rate = rateFor(model);
   const promptT = Number(usage.prompt_tokens ?? 0);
   const compT = Number(usage.completion_tokens ?? 0);
+  return (promptT / 1_000_000) * rate.inputPer1M + (compT / 1_000_000) * rate.outputPer1M;
+}
+
+/** Rough chars-per-token heuristic (Gemini & GPT both average ~4). */
+export function estimateTokens(text: string | undefined | null): number {
+  if (!text) return 0;
+  return Math.ceil(String(text).length / 4);
+}
+
+/**
+ * Estimate the USD cost of an AI call BEFORE we run it (or when the response
+ * is streamed and we can't easily count completion tokens). Works from prompt
+ * text size + an assumed completion size.
+ *
+ * Defaults assume a reasonable medium-length response (~800 tokens).
+ */
+export function estimateAiCostUsd(opts: {
+  model: string;
+  promptText?: string;          // full prompt (system + history + user)
+  promptTokens?: number;        // OR pass tokens directly
+  estimatedCompletionTokens?: number; // expected response size in tokens
+}): number {
+  const rate = rateFor(opts.model);
+  const promptT = opts.promptTokens ?? estimateTokens(opts.promptText);
+  const compT = opts.estimatedCompletionTokens ?? 800;
   return (promptT / 1_000_000) * rate.inputPer1M + (compT / 1_000_000) * rate.outputPer1M;
 }
 

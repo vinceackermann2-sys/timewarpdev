@@ -129,10 +129,18 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
       });
     }
 
-    // Increment action usage against the workspace's shared pool
+    // Cost-based action consumption: employees run multi-step loops, so we
+    // estimate from the prompt size and let the run proceed.
     if (!skip_action) {
       const { consumeWorkspaceAction } = await import("../_shared/workspace-actions.ts");
-      const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId || employee.workspace_id);
+      const { estimateAiCostUsd } = await import("../_shared/ai-cost.ts");
+      const _promptApprox = JSON.stringify({ employee: employee?.name, brandId, sop: employee?.sop_procedure }) + (typeof message === "string" ? message : "");
+      const _costUsd = estimateAiCostUsd({
+        model: "google/gemini-3-flash-preview",
+        promptText: _promptApprox,
+        estimatedCompletionTokens: 2000,
+      });
+      const usage = await consumeWorkspaceAction(supabase, user.id, workspaceId || employee.workspace_id, _costUsd);
       if (!usage.allowed) {
         return new Response(JSON.stringify({ error: usage.reason || "Action limit reached" }), {
           status: 402,
