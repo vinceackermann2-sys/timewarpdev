@@ -77,7 +77,12 @@ function PlanUsageSummary({ fallbackPlan, userId }: { fallbackPlan: string | nul
     : "Free";
   const limit = dbPlan ? ACTION_LIMITS_SETTINGS[dbPlan] ?? FREE_LIMIT_SETTINGS : FREE_LIMIT_SETTINGS;
   const totalNum = limit === Infinity ? Infinity : limit + bonus;
-  const remaining = totalNum === Infinity ? "∞" : String(Math.max(0, totalNum - used));
+  const remainingNum = totalNum === Infinity ? Infinity : Math.max(0, totalNum - used);
+  // Show up to 2 decimals, but trim trailing zeros (e.g. "87.25", "100", "12.5")
+  const remaining =
+    remainingNum === Infinity
+      ? "∞"
+      : Number(remainingNum.toFixed(2)).toString();
 
   return (
     <div className="rounded-xl border border-border p-5 space-y-4 bg-gray-100">

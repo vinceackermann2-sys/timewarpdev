@@ -149,7 +149,7 @@ export function ActionsDialog({ open, onOpenChange }: ActionsDialogProps) {
           <div className="flex items-center justify-center gap-3 mb-3">
             <WandSparkles className="h-7 w-7 bg-primary/0 text-primary" />
             <span className="text-4xl font-bold text-foreground">
-              {isUnlimited ? "∞" : remaining} Actions
+              {isUnlimited ? "∞" : Number(remaining.toFixed(2))} Actions
             </span>
           </div>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
