@@ -958,8 +958,9 @@ export async function searchConnectedProviders(
   topic?: string,
   /** Goal-derived terms merged into live search query (avoid literal-only vague phrases). */
   connectorQueryBoost?: string,
-): Promise<{ connectionContext: string; sourceRegistry: LiveSourceRegistry; searchedProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
+): Promise<{ connectionContext: string; sourceRegistry: LiveSourceRegistry; searchedProviders: string[]; contributingProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
   const searchedProviders: string[] = [];
+  const contributingProviders: string[] = [];
   const skippedProviders: string[] = [];
   const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
