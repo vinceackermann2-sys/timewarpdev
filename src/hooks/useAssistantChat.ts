@@ -219,6 +219,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
           workspaceId: activeWorkspaceId,
           sessionMemory: sessionMemory || undefined,
           taskType: "chat",
+          planMode: !!planMode,
         }),
       },
       timeoutForTask("chat"),
