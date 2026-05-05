@@ -114,7 +114,12 @@ function SuggestionCard({
   isLast: boolean;
   totalSteps: number;
 }) {
-  const visibleSuggestions = group.suggestions.slice(0, 4);
+  const CUSTOM_LIKE_REGEX = /\b(custom|something\s+else|other|else\b|own\s+(?:answer|workflow|idea)|write\s+my\s+own|type\s+(?:my|your)\s+own)\b/i;
+  const filteredSuggestions = group.suggestions.filter((s) => {
+    const { label } = splitEmoji(s);
+    return !CUSTOM_LIKE_REGEX.test(label.trim());
+  });
+  const visibleSuggestions = filteredSuggestions.slice(0, 4);
   const headerTitle = group.title?.trim();
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
