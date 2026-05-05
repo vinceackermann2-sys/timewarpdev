@@ -302,9 +302,16 @@ function RunRow({ run }: { run: AgentRun }) {
   const [open, setOpen] = useState(false);
   const status = run.status as AgentRunStatus;
   const Icon = RUN_STATUS_ICON[status];
-  const output: any = run.output;
+  const output: any = run.output || {};
   const toolCalls: any[] = Array.isArray(output?.tool_calls) ? output.tool_calls : [];
-  const hasDetails = !!run.message || !!run.error || toolCalls.length > 0 || !!output;
+  const stepLog: any[] = Array.isArray(output?.step_log) ? output.step_log : [];
+  const summary: string =
+    (typeof output?.output === "string" && output.output) ||
+    (typeof output?.summary === "string" && output.summary) ||
+    "";
+  const cleanMessage = run.message && run.message !== "null" ? run.message : "";
+  const cleanError = run.error && run.error !== "null" ? run.error : "";
+  const hasDetails = !!cleanMessage || !!cleanError || toolCalls.length > 0 || stepLog.length > 0 || !!summary;
 
   return (
     <li className="py-3">
@@ -321,37 +328,48 @@ function RunRow({ run }: { run: AgentRun }) {
               <span className="font-normal text-muted-foreground"> · {toolCalls.length} action{toolCalls.length !== 1 ? "s" : ""}</span>
             )}
           </p>
-          {run.message && <p className="text-xs text-muted-foreground line-clamp-1">{run.message}</p>}
-          {run.error && <p className="text-xs text-destructive mt-0.5 line-clamp-1">{run.error}</p>}
+          {summary ? (
+            <p className="text-xs text-muted-foreground line-clamp-1">{summary}</p>
+          ) : cleanMessage ? (
+            <p className="text-xs text-muted-foreground line-clamp-1">{cleanMessage}</p>
+          ) : null}
+          {cleanError && <p className="text-xs text-destructive mt-0.5 line-clamp-1">{cleanError}</p>}
         </div>
         <p className="text-xs text-muted-foreground shrink-0">{new Date(run.started_at).toLocaleString()}</p>
       </button>
       {open && hasDetails && (
-        <div className="mt-3 ml-7 space-y-3 text-xs">
-          {run.message && (
-            <div>
-              <p className="font-semibold text-muted-foreground mb-1">Message</p>
-              <p className="whitespace-pre-wrap">{run.message}</p>
-            </div>
+        <div className="mt-3 ml-7 space-y-4">
+          {summary && (
+            <p className="text-sm whitespace-pre-wrap">{summary}</p>
           )}
-          {run.error && (
-            <div>
-              <p className="font-semibold text-destructive mb-1">Error</p>
-              <p className="whitespace-pre-wrap text-destructive">{run.error}</p>
-            </div>
-          )}
+
           {toolCalls.length > 0 && (
             <div>
-              <p className="font-semibold text-muted-foreground mb-1">Actions performed</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Actions performed</p>
+              <ul className="space-y-2">
+                {toolCalls.map((tc, i) => (
+                  <ToolCallCard key={i} tc={tc} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {stepLog.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Steps</p>
               <ol className="space-y-1.5">
-                {toolCalls.map((tc, i) => {
-                  const { title, detail } = describeToolCall(tc);
+                {stepLog.map((s, i) => {
+                  const skipped = typeof s.result === "string" && /^N\/A/i.test(s.result);
                   return (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-muted-foreground shrink-0">{i + 1}.</span>
-                      <div className="min-w-0">
-                        <p className="text-sm">{title}</p>
-                        {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
+                    <li key={i} className="flex items-start gap-2.5">
+                      {skipped ? (
+                        <div className="h-5 w-5 rounded-full border border-dashed border-border flex items-center justify-center shrink-0 mt-0.5 text-[10px] text-muted-foreground">–</div>
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("text-sm font-medium", skipped && "text-muted-foreground")}>{s.label || `Step ${s.step ?? i + 1}`}</p>
+                        {s.result && <p className="text-xs text-muted-foreground">{s.result}</p>}
                       </div>
                     </li>
                   );
@@ -359,10 +377,11 @@ function RunRow({ run }: { run: AgentRun }) {
               </ol>
             </div>
           )}
-          {output?.summary && (
+
+          {cleanError && (
             <div>
-              <p className="font-semibold text-muted-foreground mb-1">Summary</p>
-              <p className="whitespace-pre-wrap">{output.summary}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-destructive mb-1">Error</p>
+              <p className="text-sm text-destructive whitespace-pre-wrap">{cleanError}</p>
             </div>
           )}
         </div>
@@ -371,74 +390,118 @@ function RunRow({ run }: { run: AgentRun }) {
   );
 }
 
-function describeToolCall(tc: any): { title: string; detail?: string } {
+const TOOL_LOGOS: Record<string, string> = {
+  gmail: logoGmail,
+  outlook: logoOutlook,
+  gcal: logoGcal,
+  google_calendar: logoGcal,
+  calendar: logoGcal,
+  hubspot: logoHubspot,
+  slack: logoSlack,
+  zoom: logoZoom,
+};
+
+function logoFor(name: string): string | null {
+  const n = name.toLowerCase();
+  for (const key of Object.keys(TOOL_LOGOS)) {
+    if (n.startsWith(key)) return TOOL_LOGOS[key];
+  }
+  return null;
+}
+
+function ToolCallCard({ tc }: { tc: any }) {
   const name: string = tc?.tool || tc?.name || "action";
   const args = tc?.args || {};
   const result = tc?.result;
   const ok = result?.ok !== false && !result?.error;
+  const { title, detail } = describeToolCall(name, args, result);
+  const logo = logoFor(name);
 
-  const trim = (s: any, n = 80) => {
+  return (
+    <li className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
+      <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+        {logo ? (
+          <img src={logo} alt="" className="h-5 w-5 object-contain" />
+        ) : (
+          <Zap className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium truncate">{title}</p>
+          {ok ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+          ) : (
+            <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+          )}
+        </div>
+        {detail && <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>}
+      </div>
+    </li>
+  );
+}
+
+function describeToolCall(name: string, args: any, result: any): { title: string; detail?: string } {
+  const trim = (s: any, n = 90) => {
     const str = typeof s === "string" ? s : s == null ? "" : String(s);
     return str.length > n ? str.slice(0, n) + "…" : str;
   };
+  const n = name.toLowerCase();
 
-  const map: Record<string, () => { title: string; detail?: string }> = {
-    gmail_send: () => ({
-      title: `Sent email via Gmail to ${args.to || "recipient"}`,
-      detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined,
-    }),
-    gmail_draft: () => ({
-      title: `Created Gmail draft to ${args.to || "recipient"}`,
-      detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined,
-    }),
-    gmail_list: () => ({
-      title: `Listed Gmail messages${args.query ? ` matching "${trim(args.query, 40)}"` : ""}`,
-      detail: Array.isArray(result?.messages) ? `${result.messages.length} message(s)` : undefined,
-    }),
-    outlook_send: () => ({
-      title: `Sent email via Outlook to ${args.to || "recipient"}`,
-      detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined,
-    }),
-    outlook_list: () => ({
-      title: `Listed Outlook messages`,
-      detail: Array.isArray(result?.messages) ? `${result.messages.length} message(s)` : undefined,
-    }),
-    gcal_list: () => ({
-      title: `Listed calendar events`,
-      detail: Array.isArray(result?.events) ? `${result.events.length} event(s)` : undefined,
-    }),
-    gcal_create: () => ({
-      title: `Created calendar event: ${trim(args.summary || "Untitled")}`,
-      detail: args.start ? `Starts ${args.start}` : undefined,
-    }),
-    hubspot_search_contacts: () => ({
-      title: `Searched HubSpot contacts${args.query ? ` for "${trim(args.query, 40)}"` : ""}`,
-      detail: Array.isArray(result?.contacts) ? `${result.contacts.length} contact(s)` : undefined,
-    }),
-    hubspot_create_contact: () => ({
-      title: `Created HubSpot contact: ${args.email || args.firstname || "new contact"}`,
-    }),
-    hubspot_create_note: () => ({
-      title: `Added HubSpot note`,
-      detail: args.body ? trim(args.body) : undefined,
-    }),
-    slack_post: () => ({
-      title: `Posted Slack message to ${args.channel || "channel"}`,
-      detail: args.text ? trim(args.text) : undefined,
-    }),
-  };
-
-  const friendly = map[name]?.() ?? {
-    title: name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-  };
-
-  if (!ok) {
+  // Gmail
+  if (n.includes("gmail") && (n.includes("send"))) {
+    return { title: `Sent email to ${args.to || "recipient"}`, detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined };
+  }
+  if (n.includes("gmail") && n.includes("draft")) {
+    return { title: `Drafted email to ${args.to || "recipient"}`, detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined };
+  }
+  if (n.includes("gmail") && (n.includes("list") || n.includes("search"))) {
+    const count = Array.isArray(result?.messages) ? result.messages.length : null;
     return {
-      title: `${friendly.title} — failed`,
-      detail: trim(result?.error || result?.message || friendly.detail || "Action did not complete"),
+      title: `Read inbox${args.query ? ` (${trim(args.query, 40)})` : ""}`,
+      detail: count != null ? `Found ${count} message${count !== 1 ? "s" : ""}` : undefined,
     };
   }
-  return friendly;
+
+  // Outlook
+  if (n.includes("outlook") && n.includes("send")) {
+    return { title: `Sent Outlook email to ${args.to || "recipient"}`, detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined };
+  }
+  if (n.includes("outlook") && (n.includes("list") || n.includes("read"))) {
+    const count = Array.isArray(result?.messages) ? result.messages.length : null;
+    return { title: `Read Outlook inbox`, detail: count != null ? `Found ${count} message${count !== 1 ? "s" : ""}` : undefined };
+  }
+
+  // Calendar
+  if ((n.includes("gcal") || n.includes("calendar")) && (n.includes("list") || n.includes("get"))) {
+    const count = Array.isArray(result?.events) ? result.events.length : null;
+    return { title: `Checked calendar`, detail: count != null ? `${count} event${count !== 1 ? "s" : ""}` : undefined };
+  }
+  if ((n.includes("gcal") || n.includes("calendar")) && n.includes("create")) {
+    return { title: `Created event: ${trim(args.summary || "Untitled")}`, detail: args.start ? `Starts ${args.start}` : undefined };
+  }
+
+  // HubSpot
+  if (n.includes("hubspot") && n.includes("contact") && n.includes("search")) {
+    const count = Array.isArray(result?.contacts) ? result.contacts.length : null;
+    return { title: `Searched HubSpot contacts`, detail: count != null ? `${count} contact${count !== 1 ? "s" : ""}` : undefined };
+  }
+  if (n.includes("hubspot") && n.includes("contact") && n.includes("create")) {
+    return { title: `Created HubSpot contact${args.email ? `: ${args.email}` : ""}` };
+  }
+  if (n.includes("hubspot") && n.includes("note")) {
+    return { title: `Added HubSpot note`, detail: args.body ? trim(args.body) : undefined };
+  }
+
+  // Slack
+  if (n.includes("slack") && (n.includes("post") || n.includes("send"))) {
+    return { title: `Posted to Slack ${args.channel ? `#${args.channel}` : ""}`.trim(), detail: args.text ? trim(args.text) : undefined };
+  }
+
+  // Fallback
+  return {
+    title: name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+  };
 }
 
 function KV({ label, value }: { label: string; value: string }) {
