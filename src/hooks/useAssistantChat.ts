@@ -121,6 +121,7 @@ export interface AgentChatTransportDeps {
   fetchWithTimeout: (url: string, options: RequestInit, timeoutMs?: number) => Promise<Response>;
   extension: ExtensionBridgeActions;
   cancelledRef?: { current: boolean };
+  planMode?: boolean;
 }
 
 export function useAssistantChat(deps: AgentChatTransportDeps) {
