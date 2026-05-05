@@ -359,7 +359,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const evidenceAudit = runEvidenceAudit(contentNoSources, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
-      content: contentNoSources,
+      content: isQuestionPause ? "" : contentNoSources,
       modelTurnContent: (modelReplayContent || "").trim().length > 0 ? modelReplayContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
@@ -802,7 +802,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const evidenceAudit = runEvidenceAudit(contentNoSources, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
-      content: contentNoSources,
+      content: isQuestionPause ? "" : contentNoSources,
       modelTurnContent: (modelReplayContent || "").trim().length > 0 ? modelReplayContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
