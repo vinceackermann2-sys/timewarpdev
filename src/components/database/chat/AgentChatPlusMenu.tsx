@@ -11,8 +11,9 @@ type Props = {
   extensionConnected: boolean;
   isActionMode: boolean;
   setIsActionMode: (v: boolean | ((p: boolean) => boolean)) => void;
+  isPlanMode: boolean;
+  setIsPlanMode: (v: boolean | ((p: boolean) => boolean)) => void;
   setIsDropupOpen: (v: boolean | ((p: boolean) => boolean)) => void;
-  setIsSettingsOpen: (v: boolean) => void;
   /** Mobile: show reference URL picker when user types @ */
   mentionActive?: boolean;
   referenceSubContent?: ReactNode;
