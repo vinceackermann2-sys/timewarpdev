@@ -635,8 +635,8 @@ serve(async (req) => {
     if (hasGoogleDrive) {
       searchPromises.push((async () => {
         try {
-          const gToken = await getGoogleToken();
-          if (!gToken) return;
+          const gToken = await getGoogleScopedToken("google_drive");
+          if (!gToken) { console.log("[dashboard-insights] Drive: no token resolved"); return; }
           // ALL files modified last 30 days (paginated, cap 500)
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
           const allFiles: any[] = [];
