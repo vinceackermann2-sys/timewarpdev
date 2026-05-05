@@ -233,7 +233,11 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             return { content, toolCalls };
           };
 
-          const initialMessages = [{ role: "system", content: systemPrompt }, ...messages];
+          const planModeDirective = planMode
+            ? `\n\n## ⚡ PLAN MODE ENABLED (user toggled the Planning chip)\nThe user explicitly enabled Planning mode. You MUST deliver a complete, thoroughly-researched strategic plan in this single reply — do not stop to ask clarifying questions. If information is missing, make reasonable assumptions and label them clearly ("Assumption:"). Use the FULL strategic_plan structure with all required sections (Plan Overview, First-Principles Breakdown, Evidence Base, Strategic Options & Trade-offs, 30/60/90 Execution Plan, KPI Tree, Risks & Validation Tests, Confidence & Data Gaps). The complete plan markdown MUST be wrapped in [PLAN_ARTIFACT]…[/PLAN_ARTIFACT] so the user can open it as a document. Do NOT skip the artifact wrapper — it is mandatory in plan mode. Aim for depth: at least 700 words inside the artifact.`
+            : "";
+          const finalSystemPrompt = systemPrompt + planModeDirective;
+          const initialMessages = [{ role: "system", content: finalSystemPrompt }, ...messages];
           const response = await callGateway(initialMessages, offerTools);
           if (!response.ok) {
             const status = response.status;
