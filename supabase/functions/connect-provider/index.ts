@@ -291,8 +291,8 @@ serve(async (req) => {
           case "hubspot": {
             const clientId = getRequiredEnv("HUBSPOT_CLIENT_ID");
             const redirectUri = `${redirectBase}/hubspot-oauth-callback`;
-            const requiredScopes = "oauth";
-            const optionalScopes = "crm.objects.contacts.read crm.objects.companies.read crm.objects.deals.read crm.objects.owners.read sales-email-read";
+            const requiredScopes = "oauth crm.objects.contacts.read crm.objects.contacts.write";
+            const optionalScopes = "crm.objects.companies.read crm.objects.companies.write crm.objects.deals.read crm.objects.deals.write crm.objects.owners.read crm.schemas.contacts.read crm.schemas.companies.read crm.schemas.deals.read sales-email-read";
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
             authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(requiredScopes)}&optional_scope=${encodeURIComponent(optionalScopes)}&state=${state}`;
             break;
