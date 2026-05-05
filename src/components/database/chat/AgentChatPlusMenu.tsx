@@ -167,13 +167,18 @@ export function AgentChatPlusMenu({
       <button
         type="button"
         onClick={() => {
-          setIsSettingsOpen(true);
+          setIsPlanMode(!isPlanMode);
           setIsDropupOpen(false);
         }}
-        className={row()}
+        className={row("justify-between")}
       >
-        <Settings className="w-4 h-4 text-muted-foreground" />
-        Settings
+        <div className="flex items-center gap-3">
+          <Target className={cn("w-4 h-4", isPlanMode ? "text-primary" : "text-muted-foreground")} />
+          Planning
+        </div>
+        <span className={cn("text-xs font-semibold", isPlanMode ? "text-primary" : "text-muted-foreground")}>
+          {isPlanMode ? "ON" : "OFF"}
+        </span>
       </button>
     </>
   );
