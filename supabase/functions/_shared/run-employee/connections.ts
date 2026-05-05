@@ -1349,11 +1349,12 @@ export async function searchConnectedProviders(
     );
   }
 
-  console.log("[connections] Final searchedProviders:", searchedProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);
+  console.log("[connections] Final searchedProviders:", searchedProviders, "contributing:", contributingProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);
   return {
     connectionContext,
     sourceRegistry: liveSourceRegistry,
     searchedProviders,
+    contributingProviders,
     skippedProviders,
     skippedProviderDetails,
     connectionDecision: decision,
