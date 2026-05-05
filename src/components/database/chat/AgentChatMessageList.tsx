@@ -169,9 +169,8 @@ export function AgentChatMessageList({
                       {contentForMarkdown}
                     </ReactMarkdown>
                   )}
-                  {sourceAttribution && <AssistantSourceBadges attribution={sourceAttribution} />}
-                  {!hideStreamingBody && msg.sources && msg.sources.length > 0 && (
-                    <SourcesPanel sources={msg.sources} />
+                  {!hideStreamingBody && (sourceAttribution || (msg.sources && msg.sources.length > 0)) && (
+                    <AssistantSources attribution={sourceAttribution} detailedSources={msg.sources} />
                   )}
                   {showWaitingRow && (
                     <div className="flex flex-col items-start gap-2 py-2 mt-1">
