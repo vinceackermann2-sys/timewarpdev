@@ -252,7 +252,7 @@ serve(async (req) => {
           case "microsoft": {
             const clientId = getRequiredEnv("MICROSOFT_CLIENT_ID");
             const redirectUri = `${redirectBase}/microsoft-oauth-callback`;
-            const scopes = "openid profile email offline_access Mail.Read Calendars.Read Files.Read.All User.Read Contacts.Read Notes.Read Tasks.Read";
+            const scopes = "openid profile email offline_access Mail.ReadWrite Mail.Send Calendars.ReadWrite Files.ReadWrite.All User.Read Contacts.ReadWrite Notes.ReadWrite.All Tasks.ReadWrite";
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
             authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_mode=query`;
             break;
@@ -260,7 +260,7 @@ serve(async (req) => {
           case "google": {
             const clientId = getRequiredEnv("GOOGLE_CLIENT_ID");
             const redirectUri = `${redirectBase}/google-oauth-callback`;
-            const scopes = "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly";
+            const scopes = "openid email profile https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/presentations";
             const state = btoa(JSON.stringify(stateBase));
             authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&access_type=offline&prompt=consent`;
             break;
