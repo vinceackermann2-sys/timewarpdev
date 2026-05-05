@@ -1112,9 +1112,11 @@ export async function searchConnectedProviders(
           });
           if (results.emails.length > 0) {
             connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${appendLiveChunks(results.emails, liveSourceRegistry, liveChunkCounter)}`;
+            if (runOutlookEmail) contributingProviders.push("microsoft_outlook");
           }
           if (results.files.length > 0) {
             connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${appendLiveChunks(results.files, liveSourceRegistry, liveChunkCounter)}`;
+            if (runOnedriveFiles) contributingProviders.push("microsoft_onedrive");
           }
           if (runOutlookEmail) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
           if (runOnedriveFiles) emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "done", action: "connections" });
