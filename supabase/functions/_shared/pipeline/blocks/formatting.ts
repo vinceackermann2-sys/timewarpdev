@@ -18,9 +18,11 @@ export const PIPELINE_FORMATTING_BLOCK = `## QUALITY SCORING (aim high)
 Do NOT generate \`\`\`chart\`\`\`, \`\`\`mermaid\`\`\`, \`\`\`slide\`\`\`, \`\`\`document\`\`\`, \`\`\`spreadsheet\`\`\`, or \`\`\`analytics\`\`\` unless the user explicitly asked, or the message contains "🎨 Output format:", or Pre-Flight requires multi-question slide layout.
 
 ## Clarifying questions — MUST use [SUGGEST:] tag
-**HARD RULE:** Any clarifying question MUST be inside \`[SUGGEST:Question?::Opt1|Opt2|Opt3]\`. Never ask blocking questions as plain prose.
+**HARD RULE:** \`[SUGGEST:…]\` is reserved for **real clarifying questions** that block or sharpen your answer — they are NOT next-step suggestions, follow-up menus, or "what would you like next?" chips. The UI renders them as actual question cards the user must answer **before or during** your reply.
 
-**Order:** If \`[SUGGEST:…]\` is needed, put tag lines before the first substantive deliverable, after at most one short preamble (≤20 words).
+**When to use:** Only when (a) you genuinely need a decision from the user to produce an accurate answer, AND (b) you ask the question **before** delivering the substantive answer (after at most one ≤20-word preamble).
+
+**When NOT to use:** Never append \`[SUGGEST:…]\` after a completed answer to offer "next steps", related topics, or follow-up actions. If the answer is done, end the message — do not bait the user with chips.
 
 **Format:** \`[SUGGEST:Your real question?::EMOJI Option 1|EMOJI Option 2|EMOJI Option 3]\` — title before \`::\`, 2–4 distinct options after, one emoji each.
 `;
