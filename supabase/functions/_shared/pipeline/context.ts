@@ -121,6 +121,7 @@ export async function buildAssistantPipelinePrompt(
     connectionContext,
     sourceRegistry,
     searchedProviders,
+    contributingProviders,
     skippedProviderDetails,
     connectionDecision,
     queryTopic,
