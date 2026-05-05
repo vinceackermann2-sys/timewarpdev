@@ -116,6 +116,10 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
 
       (async () => {
         try {
+          // Immediate ack so the UI shows activity before the pipeline kicks in.
+          sendStep("Reading your message…", "running", "thinking");
+          sendStep("Reading your message…", "done", "thinking");
+          sendStep("Thinking…", "running", "thinking");
           if (
             questionGate &&
             !questionGate.complete &&
@@ -126,6 +130,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             // card renders them above the chat input (not as prose in the bubble).
             const qs = questionGate.mandatoryQuestions.slice(0, 3);
             send({ type: "questions", questions: qs });
+            sendStep("Thinking…", "done", "thinking");
             sendStep("Need clarification", "done", "question");
             send({
               type: "result",
@@ -136,6 +141,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             return;
           }
 
+          sendStep("Thinking…", "done", "thinking");
           const {
             systemPrompt,
             offerTools,
