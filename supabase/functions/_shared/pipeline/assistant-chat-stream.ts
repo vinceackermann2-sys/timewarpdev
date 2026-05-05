@@ -140,6 +140,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             return;
           }
 
+          sendStep("Thinking…", "done", "thinking");
           const {
             systemPrompt,
             offerTools,
