@@ -30,8 +30,8 @@ function assistantOpenLoop(msg: ChatMessage): TaskStepsOpenLoop {
   // are post-answer next-step chips — they should NOT show the
   // "Waiting for a reply" row, because the answer is already complete.
   const hasRealQuestions =
-    !!msg.isQuestionPause ||
-    (msg.suggestionQuestions && msg.suggestionQuestions.length > 0);
+    !!msg.isQuestionPause &&
+    (msg.suggestionQuestions || []).some((q) => /\?\s*$/.test((q.title || "").trim()));
   if (hasRealQuestions) return "awaiting_user";
   const raw = `${msg.modelTurnContent || ""}\n${msg.content || ""}`;
   // "still in progress" tail only counts when the body is otherwise empty —
