@@ -809,7 +809,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   };
 
   const tabCards = allTabCards[activeTab] || [];
-  const displayCards = activeTab === "Objectives" ? [...customObjectives, ...tabCards] : tabCards;
+  const baseCards = activeTab === "Objectives" ? [...customObjectives, ...tabCards] : tabCards;
+  const displayCards = baseCards.filter((c) => !dismissedIds.has(c.id));
   const filteredCards = searchQuery
     ? displayCards.filter((c) =>
         c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
