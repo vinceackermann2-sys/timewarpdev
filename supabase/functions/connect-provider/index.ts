@@ -55,22 +55,22 @@ async function parseRequestBody(req: Request) {
   }
 }
 
-// Microsoft sub-service scopes — each gets only what it needs
+// Microsoft sub-service scopes — read + write
 const MICROSOFT_SERVICES: Record<string, { scopes: string; label: string }> = {
-  microsoft_outlook: { scopes: "openid profile email offline_access User.Read Mail.Read Calendars.Read", label: "Outlook" },
-  microsoft_onedrive: { scopes: "openid profile email offline_access User.Read Files.Read.All", label: "OneDrive" },
-  microsoft_onenote: { scopes: "openid profile email offline_access User.Read Notes.Read", label: "OneNote" },
-  microsoft_teams: { scopes: "openid profile offline_access User.Read Team.ReadBasic.All OnlineMeetings.Read", label: "Teams" },
+  microsoft_outlook: { scopes: "openid profile email offline_access User.Read Mail.ReadWrite Mail.Send Calendars.ReadWrite", label: "Outlook" },
+  microsoft_onedrive: { scopes: "openid profile email offline_access User.Read Files.ReadWrite.All", label: "OneDrive" },
+  microsoft_onenote: { scopes: "openid profile email offline_access User.Read Notes.ReadWrite.All", label: "OneNote" },
+  microsoft_teams: { scopes: "openid profile offline_access User.Read Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Send OnlineMeetings.ReadWrite", label: "Teams" },
 };
 
-// Google sub-service scopes — each gets only what it needs
+// Google sub-service scopes — read + write
 const GOOGLE_SERVICES: Record<string, { scopes: string; label: string }> = {
-  google_calendar: { scopes: "openid email profile https://www.googleapis.com/auth/calendar.readonly", label: "Google Calendar" },
-  google_drive: { scopes: "openid email profile https://www.googleapis.com/auth/drive.readonly", label: "Google Drive" },
-  google_docs: { scopes: "openid email profile https://www.googleapis.com/auth/documents.readonly", label: "Google Docs" },
-  google_sheets: { scopes: "openid email profile https://www.googleapis.com/auth/spreadsheets.readonly", label: "Google Sheets" },
-  google_slides: { scopes: "openid email profile https://www.googleapis.com/auth/presentations.readonly", label: "Google Slides" },
-  google_gmail: { scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly", label: "Gmail" },
+  google_calendar: { scopes: "openid email profile https://www.googleapis.com/auth/calendar", label: "Google Calendar" },
+  google_drive: { scopes: "openid email profile https://www.googleapis.com/auth/drive", label: "Google Drive" },
+  google_docs: { scopes: "openid email profile https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file", label: "Google Docs" },
+  google_sheets: { scopes: "openid email profile https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file", label: "Google Sheets" },
+  google_slides: { scopes: "openid email profile https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file", label: "Google Slides" },
+  google_gmail: { scopes: "openid email profile https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send", label: "Gmail" },
 };
 
 function isMicrosoftSubService(provider: string): boolean {
