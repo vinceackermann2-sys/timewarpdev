@@ -496,10 +496,10 @@ export function AgentChatView({
     setIsSending(false);
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (overrideText?: string) => {
     if (isSending) return;
     cancelledRef.current = false;
-    const inputText = chatInputRef.current?.innerText?.trim() || "";
+    const inputText = (overrideText ?? chatInputRef.current?.innerText ?? "").trim();
     if (!inputText && uploadedFiles.length === 0) return;
 
     const {
@@ -855,11 +855,10 @@ export function AgentChatView({
                 onSelect={(suggestion) => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
                   const mapped = lastAssistant.planActionPayloads?.[suggestion];
-                  if (chatInputRef.current) {
-                    chatInputRef.current.innerText = mapped || suggestion;
-                    chatInputRef.current.focus();
-                  }
-                  setTimeout(() => void handleSendMessage(), 0);
+                  const textToSend = (mapped || suggestion || "").trim();
+                  if (!textToSend) return;
+                  if (chatInputRef.current) chatInputRef.current.innerHTML = "";
+                  setTimeout(() => void handleSendMessage(textToSend), 0);
                 }}
                 onDismiss={() => {
                   setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
