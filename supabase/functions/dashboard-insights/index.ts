@@ -606,8 +606,8 @@ serve(async (req) => {
     if (hasGoogleCalendar) {
       searchPromises.push((async () => {
         try {
-          const gToken = await getGoogleToken();
-          if (!gToken) return;
+          const gToken = await getGoogleScopedToken("google_calendar");
+          if (!gToken) { console.log("[dashboard-insights] GCal: no token resolved"); return; }
           // ALL upcoming events next 30 days (paginated, cap 250)
           const now = new Date().toISOString();
           const thirtyDaysOut = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
