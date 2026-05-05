@@ -78,6 +78,15 @@ function isClarifierOnlyContent(content: string): boolean {
   return /\?\s*$/.test(cleaned) || /^(quick clarifier|i need (a few details|one detail)|before i (answer|continue)|pick or type your reply)/i.test(cleaned);
 }
 
+function buildQuestionReplayContent(content: string, groups: SuggestionGroup[]): string {
+  const visibleQuestions = groups.map((g) => g.title).filter(Boolean).join("\n");
+  const tags = groups
+    .filter(hasQuestionTitle)
+    .map((g) => `[SUGGEST:${g.title}::Type your answer]`)
+    .join("\n");
+  return [content.trim() || visibleQuestions, tags].filter(Boolean).join("\n\n");
+}
+
 /** Build chat history for the edge function — assistant rows use raw model text when present. */
 function toChatApiPayload(messages: ChatMessage[]): { role: string; content: string }[] {
   return messages
