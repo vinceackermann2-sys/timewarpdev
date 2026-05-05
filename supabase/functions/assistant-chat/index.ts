@@ -368,6 +368,7 @@ serve(async (req) => {
         businessId,
         profileContext,
         questionGate,
+        planMode,
       },
       corsHeaders,
     );
