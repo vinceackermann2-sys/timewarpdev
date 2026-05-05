@@ -423,6 +423,7 @@ export function AgentChatView({
     fetchWithTimeout,
     extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay, cancelPending },
     cancelledRef,
+    planMode: isPlanMode,
   });
   const { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode } = transport;
 
