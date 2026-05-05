@@ -2,7 +2,7 @@
 name: Graphics
 pillars: Brand, Product, Financial, Growth
 surface: assistant-chat
-trigger: create a graphic, generate a chart, make a graph, build a spreadsheet, create a slide, make a document, visualise data, show me a chart, create a report, analytics report, data visualisation, graph my data, table of, spreadsheet for, presentation slide, format as document, build a graph, chart this, plot this, visual summary
+trigger: create a graphic, generate a chart, make a graph, build a spreadsheet, create a slide, make a document, visualise data, show me a chart, create a report, analytics report, data visualisation, graph my data, table of, spreadsheet for, presentation slide, format as document, build a graph, chart this, plot this, visual summary, pptx, .pptx, powerpoint, ppt, slide deck, slides, deck, presentation, pitch deck, make a deck, build a deck, create a deck, dashboard, kpi dashboard, kpis
 mode: graphics
 ---
 
