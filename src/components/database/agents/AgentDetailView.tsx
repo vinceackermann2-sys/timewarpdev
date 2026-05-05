@@ -292,6 +292,78 @@ function SpecCard({
   );
 }
 
+function RunRow({ run }: { run: AgentRun }) {
+  const [open, setOpen] = useState(false);
+  const status = run.status as AgentRunStatus;
+  const Icon = RUN_STATUS_ICON[status];
+  const output: any = run.output;
+  const toolCalls: any[] = Array.isArray(output?.tool_calls) ? output.tool_calls : [];
+  const hasDetails = !!run.message || !!run.error || toolCalls.length > 0 || !!output;
+
+  return (
+    <li className="py-3">
+      <button
+        type="button"
+        onClick={() => hasDetails && setOpen((v) => !v)}
+        className={cn("w-full flex items-start gap-3 text-left", hasDetails && "cursor-pointer")}
+      >
+        <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", RUN_STATUS_TONE[status], status === "running" && "animate-spin")} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium capitalize">
+            {status} · <span className="font-normal text-muted-foreground">{run.trigger_kind}</span>
+            {toolCalls.length > 0 && (
+              <span className="font-normal text-muted-foreground"> · {toolCalls.length} action{toolCalls.length !== 1 ? "s" : ""}</span>
+            )}
+          </p>
+          {run.message && <p className="text-xs text-muted-foreground line-clamp-1">{run.message}</p>}
+          {run.error && <p className="text-xs text-destructive mt-0.5 line-clamp-1">{run.error}</p>}
+        </div>
+        <p className="text-xs text-muted-foreground shrink-0">{new Date(run.started_at).toLocaleString()}</p>
+      </button>
+      {open && hasDetails && (
+        <div className="mt-3 ml-7 space-y-3 text-xs">
+          {run.message && (
+            <div>
+              <p className="font-semibold text-muted-foreground mb-1">Message</p>
+              <p className="whitespace-pre-wrap">{run.message}</p>
+            </div>
+          )}
+          {run.error && (
+            <div>
+              <p className="font-semibold text-destructive mb-1">Error</p>
+              <p className="whitespace-pre-wrap text-destructive">{run.error}</p>
+            </div>
+          )}
+          {toolCalls.length > 0 && (
+            <div>
+              <p className="font-semibold text-muted-foreground mb-1">Actions performed</p>
+              <ol className="space-y-2">
+                {toolCalls.map((tc, i) => (
+                  <li key={i} className="rounded-md border border-border/60 bg-muted/30 p-2">
+                    <p className="font-medium">{i + 1}. {tc.tool || tc.name || "tool"}</p>
+                    {tc.args && (
+                      <pre className="mt-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-all">{JSON.stringify(tc.args, null, 2)}</pre>
+                    )}
+                    {tc.result && (
+                      <pre className="mt-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-all">{typeof tc.result === "string" ? tc.result : JSON.stringify(tc.result, null, 2)}</pre>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+          {output?.summary && (
+            <div>
+              <p className="font-semibold text-muted-foreground mb-1">Summary</p>
+              <p className="whitespace-pre-wrap">{output.summary}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
 function KV({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-2 text-sm">
