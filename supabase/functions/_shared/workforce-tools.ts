@@ -20,10 +20,10 @@ export const workforceTools = [
         properties: {
           name: { type: "string", description: "Short agent name, 2-40 chars (e.g. 'Slack Triage Agent')." },
           description: { type: "string", description: "One-sentence purpose." },
-          trigger_type: { type: "string", enum: ["manual", "schedule", "event"], description: "How the agent starts." },
-          trigger_source: { type: "string", description: "Integration or surface that fires it (e.g. 'slack', 'gmail', 'manual')." },
-          trigger_condition: { type: "string", description: "Plain-English condition for event triggers (e.g. 'new message in #support')." },
-          trigger_schedule: { type: "string", description: "Plain-English schedule for schedule triggers (e.g. 'every weekday at 9am')." },
+          trigger_type: { type: "string", enum: ["manual", "schedule"], description: "How the agent starts. Only 'manual' (user clicks Run) and 'schedule' (cron poll) actually fire — there is NO inbound event bus, so do not invent an 'event' trigger. For 'reply when X happens' use a polling schedule." },
+          trigger_source: { type: "string", description: "Integration the agent reads from (e.g. 'gmail', 'slack', 'manual')." },
+          trigger_condition: { type: "string", description: "Plain-English filter applied each run (e.g. 'new unread message from VIP sender')." },
+          trigger_schedule: { type: "string", description: "REQUIRED when trigger_type='schedule'. Concrete cadence (e.g. 'every 5 minutes', 'every weekday at 9am')." },
           required_integrations: {
             type: "array",
             items: { type: "string" },
