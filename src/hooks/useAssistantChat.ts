@@ -341,6 +341,9 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const bareClarifier = mergedQuestions.length === 0 ? extractBareClarifyingQuestion(contentNoSources) : null;
     if (bareClarifier) mergedQuestions = [bareClarifier];
     const isQuestionPause = mergedQuestions.some(hasQuestionTitle) && isClarifierOnlyContent(contentNoSources);
+    const modelReplayContent = isQuestionPause
+      ? buildQuestionReplayContent(contentNoSources, mergedQuestions)
+      : fullContent;
     const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
     const fallbackTitle: string | undefined = suggestionTitle;
     const actionPayloads: Record<string, string> = {};
@@ -357,7 +360,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: contentNoSources,
-      modelTurnContent: (fullContent || "").trim().length > 0 ? fullContent : undefined,
+      modelTurnContent: (modelReplayContent || "").trim().length > 0 ? modelReplayContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
@@ -783,6 +786,9 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const bareClarifier = mergedQuestions.length === 0 ? extractBareClarifyingQuestion(contentNoSources) : null;
     if (bareClarifier) mergedQuestions = [bareClarifier];
     const isQuestionPause = mergedQuestions.some(hasQuestionTitle) && isClarifierOnlyContent(contentNoSources);
+    const modelReplayContent = isQuestionPause
+      ? buildQuestionReplayContent(contentNoSources, mergedQuestions)
+      : accumulatedContent;
     const actionPayloads: Record<string, string> = {};
     const keyFor = (label: string) => label.replace(/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u, "").trim();
     for (const pa of planActions || []) {
@@ -797,7 +803,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
       content: contentNoSources,
-      modelTurnContent: (accumulatedContent || "").trim().length > 0 ? accumulatedContent : undefined,
+      modelTurnContent: (modelReplayContent || "").trim().length > 0 ? modelReplayContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
