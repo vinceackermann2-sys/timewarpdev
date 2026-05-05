@@ -10,6 +10,7 @@ type FileChip = { id: string; name: string; file?: File };
 
 export function AgentChatInput({
   composerOverlay,
+  hideComposerBar = false,
   dropupRef,
   fileInputRef,
   chatInputRef,
@@ -49,6 +50,7 @@ export function AgentChatInput({
   referenceSubContent,
 }: {
   composerOverlay?: ReactNode;
+  hideComposerBar?: boolean;
   dropupRef: RefObject<HTMLDivElement | null>;
   fileInputRef: RefObject<HTMLInputElement | null>;
   chatInputRef: RefObject<HTMLDivElement | null>;
@@ -113,6 +115,8 @@ export function AgentChatInput({
         }}
       />
       {composerOverlay}
+
+      {hideComposerBar ? null : (
 
       <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
 
@@ -239,6 +243,7 @@ export function AgentChatInput({
           )}
         </div>
       </div>
+      )}
     </footer>
   );
 }

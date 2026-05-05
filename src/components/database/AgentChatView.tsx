@@ -830,19 +830,23 @@ export function AgentChatView({
 
   const isOnboardingActive = !hasMessages && (forceOnboarding || onboardingLocked);
 
-  const composerSuggestionOverlay =
+  const activeComposerPrompt =
     !isOnboardingActive && hasMessages
+      ? [...messages].reverse().find(
+          (m) =>
+            m.role === "assistant" &&
+            !m.isStreaming &&
+            !dismissedSuggestionIds.has(m.id) &&
+            ((m.suggestionQuestions && m.suggestionQuestions.length > 0) || (m.suggestions && m.suggestions.length > 0)),
+        )
+      : null;
+  const composerHasQuestions = !!activeComposerPrompt?.suggestionQuestions?.length;
+
+  const composerSuggestionOverlay = activeComposerPrompt
       ? (() => {
-          const lastAssistant = [...messages].reverse().find(
-            (m) =>
-              m.role === "assistant" &&
-              !m.isStreaming &&
-              ((m.suggestions && m.suggestions.length > 0) ||
-                (m.suggestionQuestions && m.suggestionQuestions.length > 0)),
-          );
-          if (!lastAssistant || dismissedSuggestionIds.has(lastAssistant.id)) return null;
+          const lastAssistant = activeComposerPrompt;
           return (
-            <div className="mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
               <AssistantSuggestions
                 questions={lastAssistant.suggestionQuestions}
                 suggestions={lastAssistant.suggestions}
@@ -945,6 +949,7 @@ export function AgentChatView({
         {!isOnboardingActive && (
         <AgentChatInput
           composerOverlay={composerSuggestionOverlay}
+          hideComposerBar={composerHasQuestions}
           dropupRef={dropupRef}
           fileInputRef={fileInputRef}
           chatInputRef={chatInputRef}
