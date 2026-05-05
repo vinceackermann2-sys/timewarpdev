@@ -56,10 +56,10 @@ function PeopleAvatars() {
         <img
           src={avatarUrl}
           alt={fullName}
-          className="w-6 h-6 rounded-full ring-2 ring-card object-cover"
+          className="w-6 h-6 rounded-full ring-1 ring-white/40 object-cover backdrop-blur-md bg-white/30 shadow-sm"
         />
       ) : (
-        <span className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${swatch.bg} ${swatch.text}`}>
+        <span className={`w-6 h-6 rounded-full ring-1 ring-white/40 flex items-center justify-center text-[9px] font-bold backdrop-blur-md bg-white/30 shadow-sm ${swatch.text}`}>
           {initials(fullName)}
         </span>
       )}
