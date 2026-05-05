@@ -671,6 +671,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
             skip_action: continuationCount > 0,
             sessionMemory: sessionMemory || undefined,
               taskType: "chat",
+              planMode: !!planMode,
               continuationKey: assistantId,
               continuationIndex: continuationCount,
             ...(accumulatedContent ? { continuationContent: accumulatedContent } : {}),
