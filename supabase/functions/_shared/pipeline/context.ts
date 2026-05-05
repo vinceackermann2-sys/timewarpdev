@@ -237,7 +237,10 @@ export async function buildAssistantPipelinePrompt(
   const challenge = buildDataIntegrityChallengeBlock(lastUserMsg, connectionContext);
   if (challenge) systemPrompt += `\n\n${challenge}`;
   systemPrompt +=
-    "\n\n## Graphics\nDo not output generated graphics or image-generation instructions unless the user explicitly asked for a visual **or** they already confirmed in this thread after you asked.";
+    "\n\n## Graphics\n" +
+    "**You CAN render visual graphics directly in this chat.** When the user asks for a slide, deck, presentation, pptx, chart, graph, dashboard, spreadsheet, table, document, memo, brief, or report — output the appropriate fenced code block (`slide`, `chart`, `spreadsheet`, or `document`) populated with real data from Business DNA. The chat UI renders these as live, downloadable artifacts (slide → PPTX, document → PDF, spreadsheet → CSV, chart → PNG). " +
+    "Never reply 'I can render that' without producing the block in the same message. " +
+    "Do NOT output generated graphics when the user did NOT ask for one — no unsolicited charts/decks.";
 
   const searchedList = Array.isArray(searchedProviders) ? searchedProviders as string[] : [];
   const contributingList = Array.isArray(contributingProviders) ? contributingProviders as string[] : [];
