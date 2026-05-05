@@ -123,6 +123,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
           sendStep("Reading your message…", "done", "thinking");
           sendStep("Thinking…", "running", "thinking");
           if (
+            !planMode &&
             questionGate &&
             !questionGate.complete &&
             !questionGate.isAnswerToPriorQuestion &&
