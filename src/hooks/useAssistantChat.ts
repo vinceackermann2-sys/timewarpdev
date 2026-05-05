@@ -34,9 +34,14 @@ function mergePipelineSources(evt: PipelineSourcesPayload): SourceEntry[] {
     url: r.url,
     snippet: r.snippet,
   });
-  const all = [...(evt.conclusionSources || []).map(map), ...(evt.dataSources || []).map(map)];
+  // Only surface evidence that ACTUALLY shaped the reply. Connectors that
+  // were searched but returned no rows live in `dataSources` — they're useful
+  // for debugging but should not appear under "Data-backed", since the model
+  // never cited them. This prevents misleading badges like "HubSpot used"
+  // when HubSpot's API call returned zero matches.
+  const conclusion = (evt.conclusionSources || []).map(map);
   const seen = new Set<string>();
-  return all.filter((s) => {
+  return conclusion.filter((s) => {
     const k = `${s.type}|${s.label}|${s.provider ?? ""}|${s.url ?? ""}`;
     if (seen.has(k)) return false;
     seen.add(k);
