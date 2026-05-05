@@ -22,12 +22,14 @@ export function buildSourceRegistryPayload(params: {
   dnaRouterRan: boolean;
   performanceRan: boolean;
   dashboardRan: boolean;
+  skillsApplied?: string[];
 }): SourceRegistryPayload {
-  const dataSources: PipelineSourceEntry[] = [];
-  const conclusionSources: PipelineSourceEntry[] = [];
+  // Single deduped list — only surface tiers/blocks that ACTUALLY contributed
+  // to forming the reply this turn. No placeholder/topic-only entries.
+  const sources: PipelineSourceEntry[] = [];
 
   for (const p of params.searchedProviders || []) {
-    dataSources.push({
+    sources.push({
       type: "connector",
       label: `Live ${p.replace(/_/g, " ")}`,
       provider: p,
@@ -36,32 +38,30 @@ export function buildSourceRegistryPayload(params: {
   }
 
   if (params.dnaRouterRan) {
-    dataSources.push({ type: "internal", label: "Business DNA (routed pillars)" });
-    conclusionSources.push({ type: "internal", label: "DNA pillars used for this reply" });
+    sources.push({ type: "internal", label: "Business DNA" });
   }
 
   if (params.performanceRan) {
-    dataSources.push({ type: "internal", label: "KPI / performance windows" });
-    conclusionSources.push({ type: "internal", label: "Historical performance evidence" });
+    sources.push({ type: "internal", label: "KPI / performance windows" });
   }
 
   if (params.dashboardRan) {
-    dataSources.push({ type: "internal", label: "CEO dashboard snapshot" });
-    conclusionSources.push({ type: "internal", label: "Dashboard cards (when matched)" });
+    sources.push({ type: "internal", label: "Dashboard snapshot" });
   }
 
   if (params.webSnapshotRan) {
-    dataSources.push({ type: "external", label: "Web research (Firecrawl or fallback)" });
-    conclusionSources.push({ type: "external", label: "Public web snapshot" });
+    sources.push({ type: "external", label: "Public web snapshot" });
   }
 
-  if (params.queryTopic && !params.searchedProviders?.length) {
-    dataSources.push({
-      type: "connector",
-      label: "Connector query topic",
-      snippet: params.queryTopic,
+  const skills = (params.skillsApplied || []).filter(Boolean);
+  if (skills.length > 0) {
+    sources.push({
+      type: "internal",
+      label: `Skill playbook${skills.length > 1 ? "s" : ""}: ${skills.join(", ")}`,
     });
   }
 
-  return { conclusionSources, dataSources };
+  // Keep both keys in payload for back-compat with the SSE client; both point
+  // to the same deduped list so the UI never shows a duplicate.
+  return { conclusionSources: sources, dataSources: sources };
 }
