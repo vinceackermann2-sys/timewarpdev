@@ -25,12 +25,19 @@ function stripStillInProgressTail(text: string): string {
 
 function assistantOpenLoop(msg: ChatMessage): TaskStepsOpenLoop {
   if (msg.isStreaming) return null;
-  const hasChips =
-    (msg.suggestionQuestions && msg.suggestionQuestions.length > 0) ||
-    (msg.suggestions && msg.suggestions.length > 0);
-  if (hasChips) return "awaiting_user";
+  // ONLY treat as awaiting-user when the assistant emitted real clarifying
+  // questions (suggestionQuestions / isQuestionPause). Plain `suggestions`
+  // are post-answer next-step chips — they should NOT show the
+  // "Waiting for a reply" row, because the answer is already complete.
+  const hasRealQuestions =
+    !!msg.isQuestionPause ||
+    (msg.suggestionQuestions && msg.suggestionQuestions.length > 0);
+  if (hasRealQuestions) return "awaiting_user";
   const raw = `${msg.modelTurnContent || ""}\n${msg.content || ""}`;
-  if (STILL_IN_PROGRESS_RE.test(raw)) return "incomplete_note";
+  // "still in progress" tail only counts when the body is otherwise empty —
+  // otherwise the model already answered and the tail is a stray artifact.
+  const bodyHasContent = (msg.content || "").replace(/\s+/g, "").length > 0;
+  if (!bodyHasContent && STILL_IN_PROGRESS_RE.test(raw)) return "incomplete_note";
   return null;
 }
 
