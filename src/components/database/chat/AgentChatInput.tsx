@@ -122,8 +122,17 @@ export function AgentChatInput({
 
       <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
 
-        {(uploadedFiles.length > 0 || (isActionMode && extensionConnected)) && (
+        {(uploadedFiles.length > 0 || (isActionMode && extensionConnected) || isPlanMode) && (
           <div className="flex flex-wrap gap-1.5 px-1 pb-2">
+            {isPlanMode && (
+              <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5">
+                <Target className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">Planning</span>
+                <button type="button" onClick={() => setIsPlanMode(false)} className="text-primary/60 hover:text-primary">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
             {isActionMode && extensionConnected && (
               <div className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5">
                 <Monitor className="w-3.5 h-3.5 text-foreground" />
