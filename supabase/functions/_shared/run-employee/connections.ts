@@ -1141,6 +1141,7 @@ export async function searchConnectedProviders(
           const results = await searchOneNoteData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from OneNote\n#### Recent Notes\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("microsoft_onenote");
           }
           emitProgress?.({ label: `Searching OneNote pages for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1168,6 +1169,7 @@ export async function searchConnectedProviders(
           const results = await searchGmailData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from Gmail\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("google_gmail");
           }
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1188,6 +1190,7 @@ export async function searchConnectedProviders(
           const results = await searchGoogleDriveData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from Google Drive\n#### Recent Files\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("google_drive");
           }
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1211,6 +1214,7 @@ export async function searchConnectedProviders(
           const results = await searchGoogleCalendarData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from Google Calendar\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("google_calendar");
           }
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1236,6 +1240,7 @@ export async function searchConnectedProviders(
         const results = await searchSlackData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Slack\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("slack");
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1259,6 +1264,7 @@ export async function searchConnectedProviders(
         const results = await searchHubspotData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from HubSpot\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("hubspot");
         }
         emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1282,6 +1288,7 @@ export async function searchConnectedProviders(
         const results = await searchZoomData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Zoom\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("zoom");
         }
         emitProgress?.({ label: getProviderSearchLabel("zoom", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1305,6 +1312,7 @@ export async function searchConnectedProviders(
         const results = await searchStripeData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Stripe\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("stripe");
         } else {
           // Stripe IS connected and the API call succeeded — there are simply no charges,
           // customers, or active subscriptions yet. Make this explicit so the assistant
