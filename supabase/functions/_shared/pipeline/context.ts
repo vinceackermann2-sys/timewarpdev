@@ -251,7 +251,13 @@ export async function buildAssistantPipelinePrompt(
   const toolDefinitionsBlock =
     "## Available tools (this turn)\n" +
     `You may call: **${toolNames.join("**, **")}**. ` +
-    "Use **memory_write** only for durable decisions. Use **web_search** only when external facts are needed and not already in context.\n" +
+    "Use **memory_write** only for durable decisions. Use **web_search** only when external facts are needed and not already in context.\n\n" +
+    "### MANDATORY tool-call rules — DO NOT describe an action you can perform with a tool; CALL the tool.\n" +
+    "- If the user agreed to / asked you to **create / build / set up / make / spin up / deploy** an **agent**, you MUST emit a `create_agent` tool_call this turn (never just describe it in prose). It is a hard failure to write 'I've created your agent' without firing `create_agent`.\n" +
+    "- Same rule for **employees** → `create_employee`. For dashboard cards (todo / objective / briefing / update) → call the matching tool.\n" +
+    "- The ONLY time you may skip the tool is when you still need a missing required field (name, trigger, SOP steps, safety boundaries) — in that case ask ONE clarifying question via [SUGGEST:…] and stop.\n" +
+    "- After the tool runs, the UI shows a confirmation card. Do NOT also restate 'I created it' — just say what's next (e.g. 'Open it in Workforce → Agents to enable').\n" +
+    "- **Reality check before calling `create_agent`**: if the agent requires receiving inbound events from Slack/Discord/etc. (e.g. 'answer questions in a Slack channel', '@mention bot', 'reply when someone posts'), the managed Slack connector is **send-only** and cannot subscribe to incoming events. Tell the user this honestly and offer the alternatives: (a) a scheduled digest/poll agent that posts into the channel, or (b) a custom Slack App (they create it at api.slack.com, you wire up the webhook). Do NOT silently create a fake event-driven agent that won't fire.\n\n" +
     JSON.stringify(toolDefs.map((t: any) => ({ name: t.function?.name, description: t.function?.description })), null, 0);
 
   let systemPrompt = composeAssistantSystemPrompt({
