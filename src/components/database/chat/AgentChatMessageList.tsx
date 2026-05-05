@@ -127,16 +127,8 @@ export function AgentChatMessageList({
                       📋 Strategic Plan
                     </div>
                   )}
-                  {!hideStreamingBody && msg.replyContract === "live_lookup" && !msg.isStreaming && (
-                    <div className="mb-2 inline-flex items-center rounded-full bg-sky-100 text-sky-700 text-[11px] px-2 py-0.5">
-                      🔎 Live Lookup
-                    </div>
-                  )}
-                  {!hideStreamingBody && msg.evidenceAudit?.status === "warn" && !msg.isStreaming && (
-                    <div className="mb-2 inline-flex items-center rounded-full bg-amber-100 text-amber-700 text-[11px] px-2 py-0.5">
-                      ⚠ Evidence check: {msg.evidenceAudit.warnings[0] || "Needs stronger grounding"}
-                    </div>
-                  )}
+                  {/* Live Lookup + Evidence-check badges removed: source credibility is shown
+                      by the unified <AssistantSources /> component below. */}
                   {displayTaskSteps.length > 0 && (
                     <TaskStepsDisplay
                       steps={displayTaskSteps}
