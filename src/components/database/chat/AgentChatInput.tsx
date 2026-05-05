@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { ArrowUp, FileUp, Monitor, Square, X } from "lucide-react";
+import { ArrowUp, FileUp, Monitor, Square, Target, X } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -37,7 +37,8 @@ export function AgentChatInput({
   setShowGraphicsMenu,
   showEmployeesMenu,
   setShowEmployeesMenu,
-  setIsSettingsOpen,
+  isPlanMode,
+  setIsPlanMode,
   isSending,
   mentionState,
   referenceUrlInput,
@@ -79,7 +80,8 @@ export function AgentChatInput({
   setShowGraphicsMenu: (v: boolean | ((p: boolean) => boolean)) => void;
   showEmployeesMenu: boolean;
   setShowEmployeesMenu: (v: boolean | ((p: boolean) => boolean)) => void;
-  setIsSettingsOpen: (v: boolean) => void;
+  isPlanMode: boolean;
+  setIsPlanMode: (v: boolean | ((p: boolean) => boolean)) => void;
   isSending: boolean;
   mentionState: MentionState;
   referenceUrlInput: string;
@@ -120,8 +122,17 @@ export function AgentChatInput({
 
       <div ref={dropupRef} className="relative flex flex-col bg-card shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border rounded-2xl p-2">
 
-        {(uploadedFiles.length > 0 || (isActionMode && extensionConnected)) && (
+        {(uploadedFiles.length > 0 || (isActionMode && extensionConnected) || isPlanMode) && (
           <div className="flex flex-wrap gap-1.5 px-1 pb-2">
+            {isPlanMode && (
+              <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1.5">
+                <Target className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">Planning</span>
+                <button type="button" onClick={() => setIsPlanMode(false)} className="text-primary/60 hover:text-primary">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
             {isActionMode && extensionConnected && (
               <div className="flex items-center gap-1.5 bg-foreground/10 border border-foreground/20 rounded-lg px-2.5 py-1.5">
                 <Monitor className="w-3.5 h-3.5 text-foreground" />
@@ -154,7 +165,8 @@ export function AgentChatInput({
                   isActionMode={isActionMode}
                   setIsActionMode={setIsActionMode}
                   setIsDropupOpen={setIsDropupOpen}
-                  setIsSettingsOpen={setIsSettingsOpen}
+                  isPlanMode={isPlanMode}
+                  setIsPlanMode={setIsPlanMode}
                 />
               </div>
               {showReference && (
@@ -185,7 +197,8 @@ export function AgentChatInput({
                   isActionMode={isActionMode}
                   setIsActionMode={setIsActionMode}
                   setIsDropupOpen={setIsDropupOpen}
-                  setIsSettingsOpen={setIsSettingsOpen}
+                  isPlanMode={isPlanMode}
+                  setIsPlanMode={setIsPlanMode}
                   mentionActive={mentionState.active}
                   referenceSubContent={referenceSubContent}
                 />

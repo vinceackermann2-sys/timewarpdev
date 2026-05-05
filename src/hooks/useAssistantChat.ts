@@ -121,6 +121,7 @@ export interface AgentChatTransportDeps {
   fetchWithTimeout: (url: string, options: RequestInit, timeoutMs?: number) => Promise<Response>;
   extension: ExtensionBridgeActions;
   cancelledRef?: { current: boolean };
+  planMode?: boolean;
 }
 
 export function useAssistantChat(deps: AgentChatTransportDeps) {
@@ -136,6 +137,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     fetchWithTimeout,
     extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
     cancelledRef,
+    planMode,
   } = deps;
 
   const throwIfCancelled = useCallback(() => {
@@ -217,6 +219,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
           workspaceId: activeWorkspaceId,
           sessionMemory: sessionMemory || undefined,
           taskType: "chat",
+          planMode: !!planMode,
         }),
       },
       timeoutForTask("chat"),
@@ -668,6 +671,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
             skip_action: continuationCount > 0,
             sessionMemory: sessionMemory || undefined,
               taskType: "chat",
+              planMode: !!planMode,
               continuationKey: assistantId,
               continuationIndex: continuationCount,
             ...(accumulatedContent ? { continuationContent: accumulatedContent } : {}),

@@ -108,15 +108,18 @@ serve(async (req) => {
       browserMode,
       sessionMemory,
       taskType = "chat",
+      planMode: rawPlanMode,
     } = data;
     const messages = rawMessages ?? [];
     const brandId = rawBrandId ?? undefined;
     const workspaceId = rawWorkspaceId ?? undefined;
+    const planMode = !!rawPlanMode;
 
     edgeLog("assistant-chat", "request", {
       user: userIdShort(user.id),
       browserMode: !!browserMode,
       hasPageContext: !!pageContext,
+      planMode,
     });
 
     // Pre-check that the workspace still has actions left. We deduct the
@@ -144,7 +147,13 @@ serve(async (req) => {
         content: String(m.content || ""),
       }))
       : [];
-    const replyContract = resolveAssistantReplyContract(lastUserMsg, historyForGate);
+    // Plan-mode chip controls the strategic-plan contract. When OFF, never
+    // emit the [PLAN_ARTIFACT] document even if the user's wording matches
+    // strategic keywords — answer inline like a normal chat reply.
+    const autoContract = resolveAssistantReplyContract(lastUserMsg, historyForGate);
+    const replyContract = planMode
+      ? "strategic_plan"
+      : (autoContract === "strategic_plan" ? "direct" : autoContract);
     const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
       userId: user.id,
       brandId,

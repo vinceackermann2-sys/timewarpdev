@@ -80,6 +80,7 @@ export function AgentChatView({
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [isActionMode, setIsActionMode] = useState(false);
+  const [isPlanMode, setIsPlanMode] = useState(false);
   const [settingsTab, setSettingsTab] = useState("safety");
   const [showReference, setShowReference] = useState(false);
   const [showGraphicsMenu, setShowGraphicsMenu] = useState(false);
@@ -422,6 +423,7 @@ export function AgentChatView({
     fetchWithTimeout,
     extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay, cancelPending },
     cancelledRef,
+    planMode: isPlanMode,
   });
   const { runAgentChat, runAgentChatWithBrowser, runEmployeeChat, runComputerMode } = transport;
 
@@ -975,7 +977,8 @@ export function AgentChatView({
           setShowGraphicsMenu={setShowGraphicsMenu}
           showEmployeesMenu={showEmployeesMenu}
           setShowEmployeesMenu={setShowEmployeesMenu}
-          setIsSettingsOpen={setIsSettingsOpen}
+          isPlanMode={isPlanMode}
+          setIsPlanMode={setIsPlanMode}
           isSending={isSending}
           mentionState={mentionState}
           searchResults={searchResults}

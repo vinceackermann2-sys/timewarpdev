@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ExternalLink, FileUp, Monitor, Plus, Settings } from "lucide-react";
+import { ExternalLink, FileUp, Monitor, Plus, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EDGE_EXT_URL =
@@ -11,8 +11,9 @@ type Props = {
   extensionConnected: boolean;
   isActionMode: boolean;
   setIsActionMode: (v: boolean | ((p: boolean) => boolean)) => void;
+  isPlanMode: boolean;
+  setIsPlanMode: (v: boolean | ((p: boolean) => boolean)) => void;
   setIsDropupOpen: (v: boolean | ((p: boolean) => boolean)) => void;
-  setIsSettingsOpen: (v: boolean) => void;
   /** Mobile: show reference URL picker when user types @ */
   mentionActive?: boolean;
   referenceSubContent?: ReactNode;
@@ -24,8 +25,9 @@ export function AgentChatPlusMenu({
   extensionConnected,
   isActionMode,
   setIsActionMode,
+  isPlanMode,
+  setIsPlanMode,
   setIsDropupOpen,
-  setIsSettingsOpen,
   mentionActive,
   referenceSubContent,
 }: Props) {
@@ -93,13 +95,18 @@ export function AgentChatPlusMenu({
         <button
           type="button"
           onClick={() => {
-            setIsSettingsOpen(true);
+            setIsPlanMode(!isPlanMode);
             setIsDropupOpen(false);
           }}
-          className={row()}
+          className={row("justify-between")}
         >
-          <Settings className="w-4 h-4 text-muted-foreground" />
-          Settings
+          <div className="flex items-center gap-3">
+            <Target className={cn("w-4 h-4", isPlanMode ? "text-primary" : "text-muted-foreground")} />
+            Planning
+          </div>
+          <span className={cn("text-xs font-semibold", isPlanMode ? "text-primary" : "text-muted-foreground")}>
+            {isPlanMode ? "ON" : "OFF"}
+          </span>
         </button>
       </>
     );
@@ -160,13 +167,18 @@ export function AgentChatPlusMenu({
       <button
         type="button"
         onClick={() => {
-          setIsSettingsOpen(true);
+          setIsPlanMode(!isPlanMode);
           setIsDropupOpen(false);
         }}
-        className={row()}
+        className={row("justify-between")}
       >
-        <Settings className="w-4 h-4 text-muted-foreground" />
-        Settings
+        <div className="flex items-center gap-3">
+          <Target className={cn("w-4 h-4", isPlanMode ? "text-primary" : "text-muted-foreground")} />
+          Planning
+        </div>
+        <span className={cn("text-xs font-semibold", isPlanMode ? "text-primary" : "text-muted-foreground")}>
+          {isPlanMode ? "ON" : "OFF"}
+        </span>
       </button>
     </>
   );
