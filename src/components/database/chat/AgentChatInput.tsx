@@ -188,7 +188,8 @@ export function AgentChatInput({
                   isActionMode={isActionMode}
                   setIsActionMode={setIsActionMode}
                   setIsDropupOpen={setIsDropupOpen}
-                  setIsSettingsOpen={setIsSettingsOpen}
+                  isPlanMode={isPlanMode}
+                  setIsPlanMode={setIsPlanMode}
                   mentionActive={mentionState.active}
                   referenceSubContent={referenceSubContent}
                 />
