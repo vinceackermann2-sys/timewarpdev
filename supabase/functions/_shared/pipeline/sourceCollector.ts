@@ -1,5 +1,13 @@
 /**
- * Structured sources for SSE + Sources panel (conclusion vs raw data).
+ * Structured sources for SSE + Sources panel.
+ *
+ * We distinguish two layers:
+ *  - **conclusionSources**: evidence that actually shaped the reply (contributed
+ *    rows / blocks that the model can cite). Connectors only land here when
+ *    they returned data.
+ *  - **dataSources**: every backend block we *consulted* this turn (including
+ *    connectors that were searched but came back empty). Useful for the
+ *    "looked here too" detail row, but not the headline attribution.
  */
 
 export type PipelineSourceEntry = {
@@ -17,6 +25,8 @@ export type SourceRegistryPayload = {
 
 export function buildSourceRegistryPayload(params: {
   searchedProviders: string[];
+  /** Providers whose API calls actually returned rows that fed connectionContext. */
+  contributingProviders?: string[];
   queryTopic: string;
   webSnapshotRan: boolean;
   dnaRouterRan: boolean;
@@ -24,44 +34,46 @@ export function buildSourceRegistryPayload(params: {
   dashboardRan: boolean;
   skillsApplied?: string[];
 }): SourceRegistryPayload {
-  // Single deduped list — only surface tiers/blocks that ACTUALLY contributed
-  // to forming the reply this turn. No placeholder/topic-only entries.
-  const sources: PipelineSourceEntry[] = [];
+  const conclusion: PipelineSourceEntry[] = [];
+  const data: PipelineSourceEntry[] = [];
+
+  const contributing = new Set((params.contributingProviders || []).filter(Boolean));
 
   for (const p of params.searchedProviders || []) {
-    sources.push({
+    const entry: PipelineSourceEntry = {
       type: "connector",
       label: `Live ${p.replace(/_/g, " ")}`,
       provider: p,
       snippet: params.queryTopic ? `Query focus: ${params.queryTopic}` : undefined,
-    });
+    };
+    data.push(entry);
+    if (contributing.has(p)) conclusion.push(entry);
   }
 
   if (params.dnaRouterRan) {
-    sources.push({ type: "internal", label: "Business DNA" });
+    const e: PipelineSourceEntry = { type: "internal", label: "Business DNA" };
+    conclusion.push(e); data.push(e);
   }
-
   if (params.performanceRan) {
-    sources.push({ type: "internal", label: "KPI / performance windows" });
+    const e: PipelineSourceEntry = { type: "internal", label: "KPI / performance windows" };
+    conclusion.push(e); data.push(e);
   }
-
   if (params.dashboardRan) {
-    sources.push({ type: "internal", label: "Dashboard snapshot" });
+    const e: PipelineSourceEntry = { type: "internal", label: "Dashboard snapshot" };
+    conclusion.push(e); data.push(e);
   }
-
   if (params.webSnapshotRan) {
-    sources.push({ type: "external", label: "Public web snapshot" });
+    const e: PipelineSourceEntry = { type: "external", label: "Public web snapshot" };
+    conclusion.push(e); data.push(e);
   }
-
   const skills = (params.skillsApplied || []).filter(Boolean);
   if (skills.length > 0) {
-    sources.push({
+    const e: PipelineSourceEntry = {
       type: "internal",
       label: `Skill playbook${skills.length > 1 ? "s" : ""}: ${skills.join(", ")}`,
-    });
+    };
+    conclusion.push(e); data.push(e);
   }
 
-  // Keep both keys in payload for back-compat with the SSE client; both point
-  // to the same deduped list so the UI never shows a duplicate.
-  return { conclusionSources: sources, dataSources: sources };
+  return { conclusionSources: conclusion, dataSources: data };
 }
