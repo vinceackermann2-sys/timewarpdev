@@ -312,8 +312,8 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       evidenceEnforcement: typeof postFlightMeta !== "undefined" ? postFlightMeta : undefined,
       memoryOps: toolCallsMeta.length > 0 ? toolCallsMeta : undefined,
       replyContract: replyContractMeta,
-      taskSteps: [],
-      currentStepIndex: undefined,
+      taskSteps: [...taskSteps],
+      currentStepIndex: taskSteps.length - 1,
       elapsedSeconds:
         typeof m.elapsedSeconds === "number" && Number.isFinite(m.elapsedSeconds)
           ? m.elapsedSeconds
