@@ -989,7 +989,7 @@ export async function searchConnectedProviders(
       const invProviders = (invConns || []).map((c: any) => c.provider);
       connectionContext = buildConnectedToolsInventory(invProviders);
     } catch (_e) { /* non-fatal */ }
-    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
+    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, contributingProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   emitProgress?.({ label: connectionCheckLabel, status: "running", action: "connections", detail: decision.reason });
@@ -1017,7 +1017,7 @@ export async function searchConnectedProviders(
       "No connected tools are linked yet — I have nothing live to look at",
     );
     emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: "Nothing connected yet" });
-    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
+    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, contributingProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   const connectedProviders = connections.map((c: any) => c.provider);
