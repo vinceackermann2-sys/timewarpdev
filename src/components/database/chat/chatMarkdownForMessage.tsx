@@ -8,6 +8,30 @@ import { InlineDocument, InlineSpreadsheet, InlineSlide } from "@/components/dat
 
 /** Markdown `components` map for assistant bubbles (live citations + inline graphics). */
 export function buildChatMarkdownComponents(msg: ChatMessage): Partial<Components> {
+  const inferGraphicKindFromJson = (
+    text: string,
+  ): "chart" | "analytics" | "document" | "spreadsheet" | "slide" | null => {
+    try {
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== "object") return null;
+      const rec = parsed as Record<string, unknown>;
+      if (typeof rec.type === "string" && Array.isArray(rec.data)) return "chart";
+      if (Array.isArray(rec.metrics) || Array.isArray(rec.insights)) return "analytics";
+      if (Array.isArray(rec.sections)) return "document";
+      if (Array.isArray(rec.headers) && Array.isArray(rec.rows)) return "spreadsheet";
+      if (
+        typeof rec.layout === "string" ||
+        Array.isArray(rec.bullets) ||
+        Array.isArray(rec.stats) ||
+        Array.isArray(rec.left_column) ||
+        Array.isArray(rec.right_column)
+      ) return "slide";
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   return {
     h1: ({ children }) => <h1 className="text-xl font-bold text-foreground mt-6 mb-3 first:mt-0">{children}</h1>,
     h2: ({ children }) => <h2 className="text-lg font-bold text-foreground mt-6 mb-3 first:mt-0">{children}</h2>,
@@ -23,6 +47,7 @@ export function buildChatMarkdownComponents(msg: ChatMessage): Partial<Component
     hr: () => <hr className="my-6 border-border/50" />,
     code: ({ children, className }) => {
       const text = String(children).replace(/\n$/, "");
+      const inferredJsonKind = className?.includes("language-json") ? inferGraphicKindFromJson(text) : null;
       if (className?.includes("language-chart") || className?.includes("language-graph")) {
         return <InlineChatAnalytics jsonString={text} />;
       }
@@ -36,6 +61,18 @@ export function buildChatMarkdownComponents(msg: ChatMessage): Partial<Component
         return <InlineSpreadsheet jsonString={text} />;
       }
       if (className?.includes("language-slide")) {
+        return <InlineSlide jsonString={text} />;
+      }
+      if (inferredJsonKind === "chart" || inferredJsonKind === "analytics") {
+        return <InlineChatAnalytics jsonString={text} />;
+      }
+      if (inferredJsonKind === "document") {
+        return <InlineDocument jsonString={text} />;
+      }
+      if (inferredJsonKind === "spreadsheet") {
+        return <InlineSpreadsheet jsonString={text} />;
+      }
+      if (inferredJsonKind === "slide") {
         return <InlineSlide jsonString={text} />;
       }
       if (className?.includes("language-assistant_sources")) {

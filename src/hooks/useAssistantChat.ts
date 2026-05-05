@@ -11,6 +11,7 @@ import { extractPlanArtifact } from "@/lib/agentChat/planArtifacts";
 import { extractPlanActions } from "@/lib/agentChat/planActionExtractor";
 import { runEvidenceAudit } from "@/lib/agentChat/evidenceAudit";
 import type { ChatMessage, SourceEntry } from "@/lib/agentChat/types";
+import type { SuggestionGroup } from "@/lib/parseSuggestions";
 import type { PipelineSourcesPayload } from "@/lib/streamReaders";
 import type { LiveSourceRegistry } from "@/lib/liveSourceRegistry";
 import { consumeAgentChatSseStream, consumeOpenAiStyleSseStream } from "@/lib/streamReaders";
@@ -34,6 +35,13 @@ function mergePipelineSources(evt: PipelineSourcesPayload): SourceEntry[] {
     snippet: r.snippet,
   });
   return [...(evt.conclusionSources || []).map(map), ...(evt.dataSources || []).map(map)];
+}
+
+function toQuestionGroups(questions: string[]): SuggestionGroup[] {
+  return questions
+    .map((q) => String(q || "").trim())
+    .filter(Boolean)
+    .map((q) => ({ title: q, suggestions: [] }));
 }
 
 /** Build chat history for the edge function — assistant rows use raw model text when present. */
@@ -112,12 +120,14 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const taskSteps: ChatMessage["taskSteps"] = [];
     let extensionLiveReg: LiveSourceRegistry | undefined;
     let pipelineSourcesForTurn: SourceEntry[] = [];
+    let streamedQuestionGroups: SuggestionGroup[] = [];
     const syncTaskSteps = (content?: string) => {
       setMessages(prev => prev.map(m => m.id === assistantId ? {
         ...m,
         ...(content !== undefined ? { content } : {}),
         ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
         ...(pipelineSourcesForTurn.length ? { sources: pipelineSourcesForTurn } : {}),
+        ...(streamedQuestionGroups.length > 0 ? { suggestionQuestions: streamedQuestionGroups, isQuestionPause: true } : {}),
         taskSteps: [...(taskSteps || [])],
         currentStepIndex: (taskSteps?.length ?? 0) - 1,
         isStreaming: true,
@@ -211,6 +221,13 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
           pipelineSourcesForTurn = mergePipelineSources(evt);
           syncTaskSteps(streaming);
         },
+        onQuestions: (questions) => {
+          streamedQuestionGroups = toQuestionGroups(questions);
+          if (!streaming.trim()) {
+            streaming = "I need a few details before I continue:";
+          }
+          syncTaskSteps(streaming);
+        },
         onCreatedEntity: (evt) => {
           setMessages((prev) =>
             prev.map((m) =>
@@ -288,6 +305,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
+      isQuestionPause: mergedQuestions.length > 0 && !(contentNoSources || "").trim(),
       suggestionTitle: fallbackTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
@@ -528,6 +546,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const taskSteps: ChatMessage["taskSteps"] = [];
     let employeeLiveReg: LiveSourceRegistry | undefined;
     let employeePipelineSources: SourceEntry[] = [];
+    let streamedQuestionGroups: SuggestionGroup[] = [];
 
     const syncUI = (content?: string) => {
       setMessages(prev => prev.map(m => m.id === assistantId ? {
@@ -535,6 +554,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         ...(content !== undefined ? { content } : {}),
         ...(employeeLiveReg ? { liveSourceRegistry: employeeLiveReg } : {}),
         ...(employeePipelineSources.length ? { sources: employeePipelineSources } : {}),
+        ...(streamedQuestionGroups.length > 0 ? { suggestionQuestions: streamedQuestionGroups, isQuestionPause: true } : {}),
         taskSteps: [...(taskSteps || [])],
         currentStepIndex: (taskSteps?.length ?? 0) - 1,
         isStreaming: true,
@@ -636,6 +656,11 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
             employeePipelineSources = mergePipelineSources(evt);
             syncUI(acc);
           },
+          onQuestions: (questions) => {
+            streamedQuestionGroups = toQuestionGroups(questions);
+            if (!acc.trim()) acc = "I need a few details before I continue:";
+            syncUI(acc);
+          },
           onResult: (evt) => {
             if (evt.content) acc = evt.content;
             if (evt.liveSourceRegistry && Object.keys(evt.liveSourceRegistry).length > 0) {
@@ -715,6 +740,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
+      isQuestionPause: mergedQuestions.length > 0 && !(contentNoSources || "").trim(),
       suggestionTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
@@ -742,9 +768,31 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const emp = userMsg.employees?.[0];
     if (!emp) { toast.error("Select an employee to use Computer mode"); return; }
 
+    let initialPageContext: any;
+    try {
+      initialPageContext = await getPageContext();
+    } catch {
+      const msg = "Browser extension not connected. Open/enable the extension, then retry Computer mode.";
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));
+      toast.error(msg);
+      return;
+    }
+    if (!initialPageContext) {
+      const msg = "Could not read browser page context. Check extension permissions and active tab.";
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));
+      toast.error(msg);
+      return;
+    }
+
     const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
     const startUrl = urlMatch ? urlMatch[0] : undefined;
-    await signalStart(emp.id, emp.name, { startUrl, focusGroup: true });
+    const signaled = await signalStart(emp.id, emp.name, { startUrl, focusGroup: true });
+    if (!signaled) {
+      const msg = "Could not start extension browser session. Please reconnect the extension and try again.";
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));
+      toast.error(msg);
+      return;
+    }
     updateOverlay({ visible: true, employeeName: emp.name, currentStep: "Starting..." });
 
     let stepCount = 0;
@@ -767,7 +815,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     try {
       while (stepCount < maxSteps) {
         throwIfCancelled();
-        const pageContext = await getPageContext();
+        const pageContext = stepCount === 0 ? initialPageContext : await getPageContext();
         throwIfCancelled();
         const stepTime = new Date();
 
@@ -783,17 +831,13 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
             body: JSON.stringify({
-              employee_id: emp.id,
               messages: conversationHistory.slice(-6),
-              connectionQuery: userMsg.content,
               pageContext,
-              skip_action: stepCount > 0,
+              browserMode: true,
               brandId: (() => { const ab = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent); return ab ? (ab as BrandRow)._rowId : undefined; })(),
               workspaceId: activeWorkspaceId,
               sessionMemory: sessionMemory || undefined,
               taskType: "crawl",
-              continuationKey: assistantId,
-              continuationIndex: stepCount,
             }),
           },
           timeoutForTask("crawl"),

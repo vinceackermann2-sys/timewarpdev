@@ -106,6 +106,17 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             questionGate.mandatoryQuestions?.length
           ) {
             send({ type: "questions", questions: questionGate.mandatoryQuestions });
+            sendStep("Need clarification", "done", "question");
+            send({
+              type: "result",
+              content: `Before I answer, I need a few details:\n\n${questionGate.mandatoryQuestions
+                .slice(0, 3)
+                .map((q, i) => `${i + 1}. ${q}`)
+                .join("\n")}\n\nReply with your answers and I will continue immediately.`,
+              replyContract,
+            });
+            close();
+            return;
           }
 
           const {
