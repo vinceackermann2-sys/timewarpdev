@@ -56,6 +56,28 @@ function toQuestionGroups(questions: string[]): SuggestionGroup[] {
     .map((q) => ({ title: q, suggestions: [] }));
 }
 
+function hasQuestionTitle(group: SuggestionGroup): boolean {
+  const title = (group.title || "").trim();
+  return title.length > 0 && /\?\s*$/.test(title);
+}
+
+function extractBareClarifyingQuestion(content: string): SuggestionGroup | null {
+  const cleaned = String(content || "")
+    .replace(/^(quick( one)?|before i (answer|continue)|one thing|clarifier)[:,\s-]*/i, "")
+    .trim();
+  if (!cleaned || cleaned.length > 260 || !/\?\s*$/.test(cleaned)) return null;
+  const questionCount = (cleaned.match(/\?/g) || []).length;
+  if (questionCount > 2) return null;
+  return { title: cleaned, suggestions: [] };
+}
+
+function isClarifierOnlyContent(content: string): boolean {
+  const cleaned = String(content || "").trim();
+  if (!cleaned) return true;
+  if (cleaned.length > 280) return false;
+  return /\?\s*$/.test(cleaned) || /^(quick clarifier|i need (a few details|one detail)|before i (answer|continue)|pick or type your reply)/i.test(cleaned);
+}
+
 /** Build chat history for the edge function — assistant rows use raw model text when present. */
 function toChatApiPayload(messages: ChatMessage[]): { role: string; content: string }[] {
   return messages
