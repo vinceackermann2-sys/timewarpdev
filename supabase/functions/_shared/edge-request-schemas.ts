@@ -47,6 +47,7 @@ export const assistantChatRequestSchema = z.object({
   browserMode: z.boolean().optional(),
   sessionMemory: z.string().optional().nullable(),
   taskType: z.enum(["chat", "crawl", "enrichment"]).optional(),
+  planMode: z.boolean().optional(),
   skip_action: z.boolean().optional(),
   continuationContent: z.string().optional().nullable(),
   connectionQuery: z.string().optional().nullable(),
