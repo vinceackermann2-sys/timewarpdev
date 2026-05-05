@@ -25,8 +25,9 @@ export function AgentChatPlusMenu({
   extensionConnected,
   isActionMode,
   setIsActionMode,
+  isPlanMode,
+  setIsPlanMode,
   setIsDropupOpen,
-  setIsSettingsOpen,
   mentionActive,
   referenceSubContent,
 }: Props) {
