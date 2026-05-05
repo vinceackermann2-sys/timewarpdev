@@ -102,13 +102,43 @@ export async function buildAssistantPipelinePrompt(
   const connectorBoost = expandQueryForConnectors(goal, topic);
   const initialConnectionDecision = shouldSearchConnections(lastUserMsg);
 
+  // Goal-driven gating: only load context that the user's actual goal needs.
+  // This stops the assistant from confusing itself with irrelevant data
+  // (e.g. running connectors for a pure creative-writing prompt).
+  const needsConnectors =
+    initialConnectionDecision.shouldSearch &&
+    goal.dataTier !== "external" &&
+    goal.type !== "creation";
+  const needsDashboard =
+    !!brandId &&
+    !!lastUserMsg &&
+    taskType === "chat" &&
+    (goal.type === "analysis" || goal.type === "planning" || goal.dataTier === "user_ai");
+  const needsPerformanceEvidence =
+    goal.dataTier === "user_ai" || goal.type === "analysis" || goal.type === "planning";
+
+  console.log("[pipeline] goal-routing", JSON.stringify({
+    goalType: goal.type,
+    dataTier: goal.dataTier,
+    needsConnectors,
+    needsDashboard,
+    needsPerformanceEvidence,
+    webScheduledHint: shouldFetchPublicWebContext(lastUserMsg, replyContract),
+  }));
+
   {
     const s = buildConnectorProgressLabel("start", goal);
     sendStep(s.label, "running", s.action);
     sendStep(s.label, "done", s.action);
   }
-  const connPhase = buildConnectorProgressLabel("connectors", goal, initialConnectionDecision.reason);
-  sendStep(connPhase.label, "running", connPhase.action);
+
+  let connectionContext = "";
+  let sourceRegistry: any = {};
+  let searchedProviders: any[] = [];
+  let contributingProviders: any[] = [];
+  let skippedProviderDetails: any = null;
+  let connectionDecision: any = initialConnectionDecision;
+  let queryTopic = topic;
   const relevantContext = await retrieveRelevantContextForAssistant(
     supabase,
     userId,
@@ -117,38 +147,42 @@ export async function buildAssistantPipelinePrompt(
     brandId || undefined,
     false,
   );
-  const {
-    connectionContext,
-    sourceRegistry,
-    searchedProviders,
-    contributingProviders,
-    skippedProviderDetails,
-    connectionDecision,
-    queryTopic,
-  } = await searchConnectedProviders(
-    supabase,
-    userId,
-    lastUserMsg,
-    (step) => send({ type: "progress", step }),
-    topic,
-    connectorBoost,
-  );
+
+  if (needsConnectors) {
+    const connPhase = buildConnectorProgressLabel("connectors", goal, initialConnectionDecision.reason);
+    sendStep(connPhase.label, "running", connPhase.action);
+    const res = await searchConnectedProviders(
+      supabase,
+      userId,
+      lastUserMsg,
+      (step) => send({ type: "progress", step }),
+      topic,
+      connectorBoost,
+    );
+    connectionContext = res.connectionContext;
+    sourceRegistry = res.sourceRegistry;
+    searchedProviders = res.searchedProviders as any[];
+    contributingProviders = res.contributingProviders as any[];
+    skippedProviderDetails = res.skippedProviderDetails;
+    connectionDecision = res.connectionDecision;
+    queryTopic = res.queryTopic;
+    sendStep(connPhase.label, "done", connPhase.action, connectionDecision?.reason);
+  }
   const registryObj = (sourceRegistry && typeof sourceRegistry === "object")
     ? sourceRegistry as Record<string, unknown>
     : {};
   if (registryObj && Object.keys(registryObj).length > 0) {
     send({ type: "live_sources", registry: registryObj });
   }
-  sendStep(connPhase.label, "done", connPhase.action, connectionDecision?.reason);
 
   let dashboardMarkdown = "";
   let dashboardRan = false;
-  if (brandId && lastUserMsg && taskType === "chat") {
+  if (needsDashboard) {
     const d0 = buildConnectorProgressLabel("dashboard", goal);
     sendStep(d0.label, "running", d0.action);
     const dash = await resolveDashboardCardsForChat(supabase, {
       userId,
-      brandId,
+      brandId: brandId!,
       userMessage: lastUserMsg,
       send,
     });
@@ -172,7 +206,7 @@ export async function buildAssistantPipelinePrompt(
     sendStep(w0.label, "done", w0.action);
   }
 
-  const performanceEvidence = businessId
+  const performanceEvidence = needsPerformanceEvidence && businessId
     ? await buildPerformanceEvidenceMarkdown(supabase, businessId, 30)
     : "";
 
