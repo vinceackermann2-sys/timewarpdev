@@ -267,9 +267,6 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         },
         onQuestions: (questions) => {
           streamedQuestionGroups = toQuestionGroups(questions);
-          if (!streaming.trim()) {
-            streaming = "I need a few details before I continue:";
-          }
           syncTaskSteps(streaming);
         },
         onCreatedEntity: (evt) => {
@@ -313,7 +310,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     // surface alongside the AI-authored options on the legacy single-card
     // path. When the AI asks multiple questions, the parser already
     // produces multiple groups — preserve them as-is.
-    const mergedQuestions = (() => {
+    let mergedQuestions = (() => {
       if (questions.length === 0 && derivedPlanActions.length > 0) {
         return [{ suggestions: derivedPlanActions.map((a) => a.label).slice(0, 4) }];
       }
@@ -329,6 +326,12 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       }
       return questions;
     })();
+    if (mergedQuestions.length === 0 && streamedQuestionGroups.length > 0) {
+      mergedQuestions = streamedQuestionGroups;
+    }
+    const bareClarifier = mergedQuestions.length === 0 ? extractBareClarifyingQuestion(contentNoSources) : null;
+    if (bareClarifier) mergedQuestions = [bareClarifier];
+    const isQuestionPause = mergedQuestions.some(hasQuestionTitle) && isClarifierOnlyContent(contentNoSources);
     const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
     const fallbackTitle: string | undefined = suggestionTitle;
     const actionPayloads: Record<string, string> = {};
@@ -349,7 +352,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
-      isQuestionPause: mergedQuestions.length > 0 && !(contentNoSources || "").trim(),
+      isQuestionPause,
       suggestionTitle: fallbackTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
