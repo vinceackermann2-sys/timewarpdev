@@ -238,9 +238,10 @@ export async function buildAssistantPipelinePrompt(
   if (challenge) systemPrompt += `\n\n${challenge}`;
   systemPrompt +=
     "\n\n## Graphics\n" +
-    "**You CAN render visual graphics directly in this chat.** When the user asks for a slide, deck, presentation, pptx, chart, graph, dashboard, spreadsheet, table, document, memo, brief, or report — output the appropriate fenced code block (`slide`, `chart`, `spreadsheet`, or `document`) populated with real data from Business DNA. The chat UI renders these as live, downloadable artifacts (slide → PPTX, document → PDF, spreadsheet → CSV, chart → PNG). " +
+    "**You CAN render visual graphics directly in this chat.** When the user asks for a chart, graph, dashboard, spreadsheet, table, document, memo, brief, analytics report, or report — output the appropriate fenced code block (`chart`, `analytics`, `spreadsheet`, or `document`) populated with real data from Business DNA. The chat UI renders these as live, downloadable artifacts (document → PDF, spreadsheet → CSV, chart → PNG). " +
     "Never reply 'I can render that' without producing the block in the same message. " +
-    "Do NOT output generated graphics when the user did NOT ask for one — no unsolicited charts/decks.";
+    "Do NOT output generated graphics when the user did NOT ask for one — no unsolicited charts. " +
+    "**Slides / decks / PPTX are DISABLED — never produce a `slide` block.** If asked for a deck or PPTX, say it isn't available and offer a Document or Analytics report instead.";
 
   const searchedList = Array.isArray(searchedProviders) ? searchedProviders as string[] : [];
   const contributingList = Array.isArray(contributingProviders) ? contributingProviders as string[] : [];
