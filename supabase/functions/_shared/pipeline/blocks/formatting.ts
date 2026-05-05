@@ -15,7 +15,7 @@ export const PIPELINE_FORMATTING_BLOCK = `## QUALITY SCORING (aim high)
 - Keep paragraphs short (2–3 sentences)
 
 ## VISUAL OUTPUT RULES
-Do NOT generate \`\`\`chart\`\`\`, \`\`\`mermaid\`\`\`, \`\`\`slide\`\`\`, \`\`\`document\`\`\`, \`\`\`spreadsheet\`\`\`, or \`\`\`analytics\`\`\` unless the user explicitly asked, or the message contains "🎨 Output format:", or Pre-Flight requires multi-question slide layout.
+You CAN render \`\`\`chart\`\`\`, \`\`\`slide\`\`\`, \`\`\`document\`\`\`, \`\`\`spreadsheet\`\`\`, and \`\`\`analytics\`\`\` blocks directly in this chat — they become live, downloadable artifacts (slide → PPTX, document → PDF, spreadsheet → CSV, chart → PNG). Output the block whenever the user asks for a slide, deck, presentation, pptx, chart, graph, dashboard, spreadsheet, table, document, memo, brief, or report — or when "🎨 Output format:" is present, or Pre-Flight requires multi-question slide layout. Never claim "I can render that" without producing the block in the same message. Do NOT generate visuals when none were requested.
 
 ## Clarifying questions — MUST use [SUGGEST:] tag
 **HARD RULE:** \`[SUGGEST:…]\` is reserved for **real clarifying questions** that block or sharpen your answer — they are NOT next-step suggestions, follow-up menus, or "what would you like next?" chips. The UI renders them as actual question cards the user must answer **before or during** your reply.
