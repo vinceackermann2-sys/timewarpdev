@@ -16,6 +16,16 @@ const jsonResponse = (payload: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+function expandLegacyProvider(provider: string): string[] {
+  if (provider === "google") {
+    return ["google_gmail", "google_drive", "google_docs", "google_sheets", "google_slides", "google_calendar"];
+  }
+  if (provider === "microsoft") {
+    return ["microsoft_outlook", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
+  }
+  return [provider];
+}
+
 function getRequiredEnv(name: string): string {
   const value = Deno.env.get(name);
   if (!value) {
@@ -144,8 +154,9 @@ serve(async (req) => {
         .eq("user_id", user.id);
 
       if (workspaceId) {
-        connectionsQuery.eq("workspace_id", workspaceId);
-        tokensQuery.eq("workspace_id", workspaceId);
+        // Include workspace-scoped rows and legacy global rows (workspace_id is null).
+        connectionsQuery.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`);
+        tokensQuery.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`);
       }
 
       const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);
@@ -169,11 +180,18 @@ serve(async (req) => {
 
       const deduped = new Map<string, { provider: string; email?: string | null }>();
       for (const connection of connectionsResult.data ?? []) {
-        if (!tokenEmailByProvider.has(connection.provider) || deduped.has(connection.provider)) continue;
-        deduped.set(connection.provider, {
-          provider: connection.provider,
-          email: tokenEmailByProvider.get(connection.provider) ?? undefined,
-        });
+        const expandedProviders = expandLegacyProvider(connection.provider);
+        const fallbackEmail = tokenEmailByProvider.get(connection.provider) ?? undefined;
+        for (const expanded of expandedProviders) {
+          if (deduped.has(expanded)) continue;
+          const email = tokenEmailByProvider.get(expanded) ?? fallbackEmail;
+          // Keep rows even without a matching token so old connections still show;
+          // runtime refresh/search paths will decide if reconnect is needed.
+          deduped.set(expanded, {
+            provider: expanded,
+            email,
+          });
+        }
       }
 
       return jsonResponse({ connected: Array.from(deduped.values()) });
