@@ -20,10 +20,10 @@ export const workforceTools = [
         properties: {
           name: { type: "string", description: "Short agent name, 2-40 chars (e.g. 'Slack Triage Agent')." },
           description: { type: "string", description: "One-sentence purpose." },
-          trigger_type: { type: "string", enum: ["manual", "schedule", "event"], description: "How the agent starts." },
-          trigger_source: { type: "string", description: "Integration or surface that fires it (e.g. 'slack', 'gmail', 'manual')." },
-          trigger_condition: { type: "string", description: "Plain-English condition for event triggers (e.g. 'new message in #support')." },
-          trigger_schedule: { type: "string", description: "Plain-English schedule for schedule triggers (e.g. 'every weekday at 9am')." },
+          trigger_type: { type: "string", enum: ["manual", "schedule"], description: "How the agent starts. Only 'manual' (user clicks Run) and 'schedule' (cron poll) actually fire — there is NO inbound event bus, so do not invent an 'event' trigger. For 'reply when X happens' use a polling schedule." },
+          trigger_source: { type: "string", description: "Integration the agent reads from (e.g. 'gmail', 'slack', 'manual')." },
+          trigger_condition: { type: "string", description: "Plain-English filter applied each run (e.g. 'new unread message from VIP sender')." },
+          trigger_schedule: { type: "string", description: "REQUIRED when trigger_type='schedule'. Concrete cadence (e.g. 'every 5 minutes', 'every weekday at 9am')." },
           required_integrations: {
             type: "array",
             items: { type: "string" },
@@ -229,6 +229,35 @@ export async function executeWorkforceToolCall(
             )
             .filter((s: any) => s.label.length > 0)
         : [];
+
+      // ── Trigger validation ───────────────────────────────────────────
+      // Platform reality: only `manual` and `schedule` triggers actually
+      // fire. There is no inbound event bus yet, so silently accepting
+      // `event` produces dead agents that never run. Reject and force
+      // the assistant to redesign as a scheduled poll.
+      const rawTriggerType = String(args.trigger_type || "manual").toLowerCase();
+      if (rawTriggerType === "event") {
+        return {
+          ok: false,
+          kind: "agent",
+          error:
+            "Event-driven triggers are not supported yet — there is no inbound webhook listener. " +
+            "Re-spec this agent with trigger_type='schedule' and a concrete trigger_schedule (e.g. 'every 5 minutes') that polls for the condition, then call create_agent again.",
+        };
+      }
+      const triggerType = rawTriggerType === "schedule" ? "schedule" : "manual";
+      if (triggerType === "schedule" && !String(args.trigger_schedule || "").trim()) {
+        return {
+          ok: false,
+          kind: "agent",
+          error:
+            "Schedule triggers require a concrete trigger_schedule string (e.g. 'every 5 minutes', 'every weekday at 9am'). Ask the user for the polling cadence, then call create_agent again.",
+        };
+      }
+      if (steps.length < 1) {
+        return { ok: false, kind: "agent", error: "sop_steps must have at least 1 step (3-8 recommended)." };
+      }
+
       const { data, error } = await ctx.supabase
         .from("ai_agents")
         .insert({
@@ -238,7 +267,7 @@ export async function executeWorkforceToolCall(
           name: String(args.name || "").trim().slice(0, 80) || "Untitled Agent",
           description: args.description ? String(args.description).slice(0, 500) : null,
           status: "draft",
-          trigger_type: args.trigger_type || "manual",
+          trigger_type: triggerType,
           trigger_source: args.trigger_source || null,
           trigger_condition: args.trigger_condition || null,
           trigger_schedule: args.trigger_schedule || null,
