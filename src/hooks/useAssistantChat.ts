@@ -744,8 +744,8 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       suggestionTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
-      taskSteps: [],
-      currentStepIndex: undefined,
+      taskSteps: [...taskSteps],
+      currentStepIndex: taskSteps.length - 1,
       elapsedSeconds:
         typeof m.elapsedSeconds === "number" && Number.isFinite(m.elapsedSeconds)
           ? m.elapsedSeconds
