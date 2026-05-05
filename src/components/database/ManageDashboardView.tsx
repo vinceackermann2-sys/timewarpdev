@@ -636,6 +636,19 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
   const [detailMinimized, setDetailMinimized] = useState(false);
   const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const ids: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("dash-dismissed:") && localStorage.getItem(k) === "1") {
+          ids.push(k.slice("dash-dismissed:".length));
+        }
+      }
+      return new Set(ids);
+    } catch { return new Set(); }
+  });
   const [stale, setStale] = useState(false);
 
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
