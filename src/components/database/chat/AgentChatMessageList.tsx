@@ -13,8 +13,7 @@ import { cn } from "@/lib/utils";
 import { buildChatMarkdownComponents } from "@/components/database/chat/chatMarkdownForMessage";
 import type { ChatMessage } from "@/lib/agentChat/types";
 import { extractAssistantSources } from "@/lib/agentChat/parseAssistantSources";
-import { AssistantSourceBadges } from "./AssistantSourceBadges";
-import { SourcesPanel } from "./SourcesPanel";
+import { AssistantSources } from "./AssistantSources";
 import { TaskReportViewer } from "./TaskReportViewer";
 
 const STILL_IN_PROGRESS_RE = /\*\*still in progress\*\*|still in progress:/i;
@@ -170,9 +169,8 @@ export function AgentChatMessageList({
                       {contentForMarkdown}
                     </ReactMarkdown>
                   )}
-                  {sourceAttribution && <AssistantSourceBadges attribution={sourceAttribution} />}
-                  {!hideStreamingBody && msg.sources && msg.sources.length > 0 && (
-                    <SourcesPanel sources={msg.sources} />
+                  {!hideStreamingBody && (sourceAttribution || (msg.sources && msg.sources.length > 0)) && (
+                    <AssistantSources attribution={sourceAttribution} detailedSources={msg.sources} />
                   )}
                   {showWaitingRow && (
                     <div className="flex flex-col items-start gap-2 py-2 mt-1">
