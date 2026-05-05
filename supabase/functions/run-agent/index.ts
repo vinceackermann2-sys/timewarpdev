@@ -11,6 +11,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 import { loadAccountSafetySettings } from "../_shared/account-safety.ts";
+import { buildToolsFor, runTool } from "../_shared/run-agent/integration-tools.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,7 +107,13 @@ function buildSystemPrompt(agent: AgentRow, supervisorRole: string | null, accou
       : "  🚨 ESCALATE: notify the supervising Employee on anything outside scope.",
     buildAccountSafetyBlock(accountSafety),
     "",
-    "RESPONSE FORMAT — return strict JSON with this shape:",
+    "TOOLS — you have function tools available that map to the user's connected integrations.",
+    "You MUST call those tools to actually perform actions in the real world.",
+    "Do NOT fabricate results. If a tool returns an error (e.g. 'not connected'),",
+    "set status to 'failure' and include the error in escalation_reason.",
+    "After all tool calls finish, return ONE final message containing strict JSON:",
+    "",
+    "RESPONSE FORMAT (final message only) — strict JSON:",
     `{`,
     `  "status": "success" | "escalated" | "failure",`,
     `  "output": <free-form result of the SOP>,`,
@@ -121,33 +128,79 @@ function buildSystemPrompt(agent: AgentRow, supervisorRole: string | null, accou
     .join("\n");
 }
 
-async function callAi(systemPrompt: string, userPrompt: string): Promise<any> {
+async function runAiLoop(
+  systemPrompt: string,
+  userPrompt: string,
+  tools: any[],
+  toolCtx: { supabase: any; userId: string; workspaceId: string | null },
+): Promise<{ result: any; toolLog: Array<{ name: string; args: any; result: any }> }> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`AI gateway ${res.status}: ${txt.slice(0, 200)}`);
+
+  const messages: any[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
+  ];
+  const toolLog: Array<{ name: string; args: any; result: any }> = [];
+  const MAX_ITER = 8;
+
+  for (let iter = 0; iter < MAX_ITER; iter++) {
+    const isLast = iter === MAX_ITER - 1;
+    const body: any = {
+      model: "google/gemini-2.5-flash",
+      messages,
+    };
+    if (tools.length && !isLast) body.tools = tools;
+    if (isLast) body.response_format = { type: "json_object" };
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`AI gateway ${res.status}: ${txt.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    const msg = data?.choices?.[0]?.message;
+    if (!msg) throw new Error("AI returned no message");
+
+    const calls = msg.tool_calls || [];
+    if (calls.length) {
+      messages.push({ role: "assistant", content: msg.content ?? "", tool_calls: calls });
+      for (const call of calls) {
+        let args: any = {};
+        try { args = JSON.parse(call.function?.arguments || "{}"); } catch { /* ignore */ }
+        let result: any;
+        try {
+          result = await runTool(toolCtx, call.function?.name, args);
+        } catch (e) {
+          result = { error: e instanceof Error ? e.message : String(e) };
+        }
+        toolLog.push({ name: call.function?.name, args, result });
+        messages.push({
+          role: "tool",
+          tool_call_id: call.id,
+          content: JSON.stringify(result).slice(0, 4000),
+        });
+      }
+      continue;
+    }
+
+    const raw = msg.content || "{}";
+    try {
+      return { result: JSON.parse(raw), toolLog };
+    } catch {
+      const stripped = String(raw).replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+      try { return { result: JSON.parse(stripped), toolLog }; }
+      catch { return { result: { status: "success", output: raw }, toolLog }; }
+    }
   }
-  const data = await res.json();
-  const raw = data?.choices?.[0]?.message?.content || "{}";
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const stripped = raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
-    return JSON.parse(stripped);
-  }
+  return {
+    result: { status: "failure", escalation_reason: "Max tool iterations reached without final answer." },
+    toolLog,
+  };
 }
 
 serve(async (req) => {
@@ -223,9 +276,20 @@ serve(async (req) => {
       "Execute the SOP and return the JSON response described in your system prompt.",
     ].join("\n");
 
+    const tools = agent.execution_mode === "api"
+      ? buildToolsFor(agent.required_integrations)
+      : [];
+
     let aiResult: any;
+    let toolLog: any[] = [];
     try {
-      aiResult = await callAi(systemPrompt, userPrompt);
+      const out = await runAiLoop(systemPrompt, userPrompt, tools, {
+        supabase,
+        userId: agent.user_id,
+        workspaceId: agent.workspace_id,
+      });
+      aiResult = out.result;
+      toolLog = out.toolLog;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       await supabase
@@ -239,19 +303,23 @@ serve(async (req) => {
       return jsonResponse({ run_id: runId, status: "failure", error: msg }, 500);
     }
 
-    const status: "success" | "escalated" | "failure" =
+    const hadToolError = toolLog.some((t) => t?.result?.error);
+    let status: "success" | "escalated" | "failure" =
       aiResult?.status === "escalated"
         ? "escalated"
         : aiResult?.status === "failure"
         ? "failure"
         : "success";
+    if (status === "success" && hadToolError && toolLog.every((t) => t?.result?.error)) {
+      status = "failure";
+    }
 
     const finishedAt = new Date().toISOString();
     await supabase
       .from("ai_agent_runs")
       .update({
         status,
-        output: aiResult ?? null,
+        output: { ...(aiResult ?? {}), tool_calls: toolLog },
         message: aiResult?.escalation_reason || `Agent run ${status}`,
         finished_at: finishedAt,
       })
