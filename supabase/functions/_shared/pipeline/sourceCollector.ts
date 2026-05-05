@@ -30,6 +30,7 @@ export function buildSourceRegistryPayload(params: {
   queryTopic: string;
   webSnapshotRan: boolean;
   dnaRouterRan: boolean;
+  includeDnaConclusion?: boolean;
   performanceRan: boolean;
   dashboardRan: boolean;
   skillsApplied?: string[];
@@ -52,7 +53,8 @@ export function buildSourceRegistryPayload(params: {
 
   if (params.dnaRouterRan) {
     const e: PipelineSourceEntry = { type: "internal", label: "Business DNA" };
-    conclusion.push(e); data.push(e);
+    if (params.includeDnaConclusion) conclusion.push(e);
+    data.push(e);
   }
   if (params.performanceRan) {
     const e: PipelineSourceEntry = { type: "internal", label: "KPI / performance windows" };
@@ -72,7 +74,7 @@ export function buildSourceRegistryPayload(params: {
       type: "internal",
       label: `Skill playbook${skills.length > 1 ? "s" : ""}: ${skills.join(", ")}`,
     };
-    conclusion.push(e); data.push(e);
+    data.push(e);
   }
 
   return { conclusionSources: conclusion, dataSources: data };

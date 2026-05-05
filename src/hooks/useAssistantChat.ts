@@ -56,6 +56,37 @@ function toQuestionGroups(questions: string[]): SuggestionGroup[] {
     .map((q) => ({ title: q, suggestions: [] }));
 }
 
+function hasQuestionTitle(group: SuggestionGroup): boolean {
+  const title = (group.title || "").trim();
+  return title.length > 0 && /\?\s*$/.test(title);
+}
+
+function extractBareClarifyingQuestion(content: string): SuggestionGroup | null {
+  const cleaned = String(content || "")
+    .replace(/^(quick( one)?|before i (answer|continue)|one thing|clarifier)[:,\s-]*/i, "")
+    .trim();
+  if (!cleaned || cleaned.length > 260 || !/\?\s*$/.test(cleaned)) return null;
+  const questionCount = (cleaned.match(/\?/g) || []).length;
+  if (questionCount > 2) return null;
+  return { title: cleaned, suggestions: [] };
+}
+
+function isClarifierOnlyContent(content: string): boolean {
+  const cleaned = String(content || "").trim();
+  if (!cleaned) return true;
+  if (cleaned.length > 280) return false;
+  return /\?\s*$/.test(cleaned) || /^(quick clarifier|i need (a few details|one detail)|before i (answer|continue)|pick or type your reply)/i.test(cleaned);
+}
+
+function buildQuestionReplayContent(content: string, groups: SuggestionGroup[]): string {
+  const visibleQuestions = groups.map((g) => g.title).filter(Boolean).join("\n");
+  const tags = groups
+    .filter(hasQuestionTitle)
+    .map((g) => `[SUGGEST:${g.title}::Type your answer]`)
+    .join("\n");
+  return [content.trim() || visibleQuestions, tags].filter(Boolean).join("\n\n");
+}
+
 /** Build chat history for the edge function — assistant rows use raw model text when present. */
 function toChatApiPayload(messages: ChatMessage[]): { role: string; content: string }[] {
   return messages
@@ -245,9 +276,6 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         },
         onQuestions: (questions) => {
           streamedQuestionGroups = toQuestionGroups(questions);
-          if (!streaming.trim()) {
-            streaming = "I need a few details before I continue:";
-          }
           syncTaskSteps(streaming);
         },
         onCreatedEntity: (evt) => {
@@ -291,7 +319,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     // surface alongside the AI-authored options on the legacy single-card
     // path. When the AI asks multiple questions, the parser already
     // produces multiple groups — preserve them as-is.
-    const mergedQuestions = (() => {
+    let mergedQuestions = (() => {
       if (questions.length === 0 && derivedPlanActions.length > 0) {
         return [{ suggestions: derivedPlanActions.map((a) => a.label).slice(0, 4) }];
       }
@@ -307,6 +335,15 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       }
       return questions;
     })();
+    if (mergedQuestions.length === 0 && streamedQuestionGroups.length > 0) {
+      mergedQuestions = streamedQuestionGroups;
+    }
+    const bareClarifier = mergedQuestions.length === 0 ? extractBareClarifyingQuestion(contentNoSources) : null;
+    if (bareClarifier) mergedQuestions = [bareClarifier];
+    const isQuestionPause = mergedQuestions.some(hasQuestionTitle) && isClarifierOnlyContent(contentNoSources);
+    const modelReplayContent = isQuestionPause
+      ? buildQuestionReplayContent(contentNoSources, mergedQuestions)
+      : fullContent;
     const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
     const fallbackTitle: string | undefined = suggestionTitle;
     const actionPayloads: Record<string, string> = {};
@@ -322,12 +359,12 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const evidenceAudit = runEvidenceAudit(contentNoSources, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
-      content: contentNoSources,
-      modelTurnContent: (fullContent || "").trim().length > 0 ? fullContent : undefined,
+      content: isQuestionPause ? "" : contentNoSources,
+      modelTurnContent: (modelReplayContent || "").trim().length > 0 ? modelReplayContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
-      isQuestionPause: mergedQuestions.length > 0 && !(contentNoSources || "").trim(),
+      isQuestionPause,
       suggestionTitle: fallbackTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,
@@ -680,7 +717,6 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
           },
           onQuestions: (questions) => {
             streamedQuestionGroups = toQuestionGroups(questions);
-            if (!acc.trim()) acc = "I need a few details before I continue:";
             syncUI(acc);
           },
           onResult: (evt) => {
@@ -728,7 +764,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     });
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
     const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
-    const mergedQuestions = (() => {
+    let mergedQuestions = (() => {
       if (questions.length === 0 && derivedPlanActions.length > 0) {
         return [{ suggestions: derivedPlanActions.map((a) => a.label).slice(0, 4) }];
       }
@@ -744,6 +780,15 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       }
       return questions;
     })();
+    if (mergedQuestions.length === 0 && streamedQuestionGroups.length > 0) {
+      mergedQuestions = streamedQuestionGroups;
+    }
+    const bareClarifier = mergedQuestions.length === 0 ? extractBareClarifyingQuestion(contentNoSources) : null;
+    if (bareClarifier) mergedQuestions = [bareClarifier];
+    const isQuestionPause = mergedQuestions.some(hasQuestionTitle) && isClarifierOnlyContent(contentNoSources);
+    const modelReplayContent = isQuestionPause
+      ? buildQuestionReplayContent(contentNoSources, mergedQuestions)
+      : accumulatedContent;
     const actionPayloads: Record<string, string> = {};
     const keyFor = (label: string) => label.replace(/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u, "").trim();
     for (const pa of planActions || []) {
@@ -757,12 +802,12 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const evidenceAudit = runEvidenceAudit(contentNoSources, [userMsg.content || "", sessionMemory || ""]);
     setMessages(prev => prev.map(m => m.id === assistantId ? {
       ...m,
-      content: contentNoSources,
-      modelTurnContent: (accumulatedContent || "").trim().length > 0 ? accumulatedContent : undefined,
+      content: isQuestionPause ? "" : contentNoSources,
+      modelTurnContent: (modelReplayContent || "").trim().length > 0 ? modelReplayContent : undefined,
       dataSourceAttribution,
       suggestions: mergedSuggestions,
       suggestionQuestions: mergedQuestions.length > 0 ? mergedQuestions : undefined,
-      isQuestionPause: mergedQuestions.length > 0 && !(contentNoSources || "").trim(),
+      isQuestionPause,
       suggestionTitle,
       planActionPayloads: Object.keys(actionPayloads).length ? actionPayloads : undefined,
       evidenceAudit,

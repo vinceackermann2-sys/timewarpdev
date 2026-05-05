@@ -18,6 +18,8 @@ export interface AssistantGoal {
 
 const DATA_FETCH_RE =
   /\b(last|recent|latest|show|list|pull|fetch|get|what are my|how many|emails?|messages?|threads?|invoices?|payments?|transactions?)\b/i;
+const SYSTEM_CREATION_RE =
+  /\b(agent|employee|bot|assistant|notifier|notificator|notification|automation|workflow|webhook|api[- ]?based|integration)\b/i;
 
 export function classifyAssistantGoal(lastUserMessage: string): AssistantGoal {
   const raw = String(lastUserMessage || "").trim();
@@ -49,8 +51,13 @@ export function classifyAssistantGoal(lastUserMessage: string): AssistantGoal {
     dataTier = "user_ai";
   }
 
-  if (/\b(create|write|draft|design|build me|make a)\b/i.test(lower) && !DATA_FETCH_RE.test(raw)) {
+  if (/\b(create|write|draft|design|build me|make a|set up|setup|spin up|deploy)\b/i.test(lower) && !DATA_FETCH_RE.test(raw)) {
     type = "creation";
+  }
+
+  if (SYSTEM_CREATION_RE.test(lower) && /\b(create|build|make|set up|setup|inside|in slack|in gmail|api|webhook|notifier|notificator)\b/i.test(lower)) {
+    type = "creation";
+    dataTier = "mixed";
   }
 
   if (/\b(plan|roadmap|strategy|prioritize|next steps)\b/i.test(lower)) {
