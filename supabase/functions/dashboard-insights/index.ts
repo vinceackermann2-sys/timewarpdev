@@ -221,9 +221,15 @@ serve(async (req) => {
     const hasMsTeams = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_teams");
     const hasMsCalendar = connectedProviders.some((p: string) => p === "microsoft" || p === "microsoft_calendar" || p === "microsoft_outlook");
 
-    const msProviders = ["microsoft", "microsoft_outlook", "microsoft_calendar", "microsoft_onedrive", "microsoft_onenote", "microsoft_teams"];
-    const getMsToken = async () => {
-      for (const p of msProviders) {
+    // Microsoft sub-services — same scope-isolation problem as Google.
+    // microsoft_outlook only carries Mail scope, microsoft_onedrive only Files scope, etc.
+    // Resolve the token for the SPECIFIC sub-provider, fall back to umbrella "microsoft".
+    const getMsScopedToken = async (specific: string): Promise<string | null> => {
+      const candidates = connectedProviders.includes(specific)
+        ? [specific, "microsoft"]
+        : ["microsoft"];
+      for (const p of candidates) {
+        if (!connectedProviders.includes(p)) continue;
         const t = await getValidProviderToken(supabase, user.id, p);
         if (t) return t;
       }
