@@ -240,8 +240,10 @@ export async function buildAssistantPipelinePrompt(
     "\n\n## Graphics\nDo not output generated graphics or image-generation instructions unless the user explicitly asked for a visual **or** they already confirmed in this thread after you asked.";
 
   const searchedList = Array.isArray(searchedProviders) ? searchedProviders as string[] : [];
+  const contributingList = Array.isArray(contributingProviders) ? contributingProviders as string[] : [];
   const sourcesPayload = buildSourceRegistryPayload({
     searchedProviders: searchedList,
+    contributingProviders: contributingList,
     queryTopic: String(queryTopic || answerTopic || topic || ""),
     webSnapshotRan: webScheduled,
     dnaRouterRan: !!dnaRouterBlock?.trim(),
@@ -249,6 +251,15 @@ export async function buildAssistantPipelinePrompt(
     dashboardRan,
     skillsApplied: matchedSkills.map((s) => s.name).filter(Boolean),
   });
+  console.log("[pipeline] sources payload:", JSON.stringify({
+    searched: searchedList,
+    contributing: contributingList,
+    web: webScheduled,
+    dna: !!dnaRouterBlock?.trim(),
+    perf: !!String(performanceEvidence || "").trim(),
+    dashboard: dashboardRan,
+    skills: matchedSkills.map((s) => s.name),
+  }));
   send({ type: "sources", ...sourcesPayload });
 
   return {
