@@ -229,6 +229,35 @@ export async function executeWorkforceToolCall(
             )
             .filter((s: any) => s.label.length > 0)
         : [];
+
+      // ── Trigger validation ───────────────────────────────────────────
+      // Platform reality: only `manual` and `schedule` triggers actually
+      // fire. There is no inbound event bus yet, so silently accepting
+      // `event` produces dead agents that never run. Reject and force
+      // the assistant to redesign as a scheduled poll.
+      const rawTriggerType = String(args.trigger_type || "manual").toLowerCase();
+      if (rawTriggerType === "event") {
+        return {
+          ok: false,
+          kind: "agent",
+          error:
+            "Event-driven triggers are not supported yet — there is no inbound webhook listener. " +
+            "Re-spec this agent with trigger_type='schedule' and a concrete trigger_schedule (e.g. 'every 5 minutes') that polls for the condition, then call create_agent again.",
+        };
+      }
+      const triggerType = rawTriggerType === "schedule" ? "schedule" : "manual";
+      if (triggerType === "schedule" && !String(args.trigger_schedule || "").trim()) {
+        return {
+          ok: false,
+          kind: "agent",
+          error:
+            "Schedule triggers require a concrete trigger_schedule string (e.g. 'every 5 minutes', 'every weekday at 9am'). Ask the user for the polling cadence, then call create_agent again.",
+        };
+      }
+      if (steps.length < 1) {
+        return { ok: false, kind: "agent", error: "sop_steps must have at least 1 step (3-8 recommended)." };
+      }
+
       const { data, error } = await ctx.supabase
         .from("ai_agents")
         .insert({
@@ -238,7 +267,7 @@ export async function executeWorkforceToolCall(
           name: String(args.name || "").trim().slice(0, 80) || "Untitled Agent",
           description: args.description ? String(args.description).slice(0, 500) : null,
           status: "draft",
-          trigger_type: args.trigger_type || "manual",
+          trigger_type: triggerType,
           trigger_source: args.trigger_source || null,
           trigger_condition: args.trigger_condition || null,
           trigger_schedule: args.trigger_schedule || null,
