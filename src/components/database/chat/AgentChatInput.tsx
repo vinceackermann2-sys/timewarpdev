@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode, type RefObject } from "react";
-import { ArrowUp, FileUp, Monitor, Square, X } from "lucide-react";
+import { ArrowUp, FileUp, Monitor, Square, Target, X } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
