@@ -25,6 +25,7 @@ export interface AssistantChatStreamInput {
   businessId: string | null | undefined;
   profileContext: string;
   questionGate?: QuestionGateResult;
+  planMode?: boolean;
 }
 
 type AccumulatedToolCall = { id?: string; name: string; arguments: string };
