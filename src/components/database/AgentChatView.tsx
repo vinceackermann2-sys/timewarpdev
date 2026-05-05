@@ -496,10 +496,10 @@ export function AgentChatView({
     setIsSending(false);
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (overrideText?: string) => {
     if (isSending) return;
     cancelledRef.current = false;
-    const inputText = chatInputRef.current?.innerText?.trim() || "";
+    const inputText = (overrideText ?? chatInputRef.current?.innerText ?? "").trim();
     if (!inputText && uploadedFiles.length === 0) return;
 
     const {
