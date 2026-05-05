@@ -105,14 +105,14 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             !questionGate.isAnswerToPriorQuestion &&
             questionGate.mandatoryQuestions?.length
           ) {
-            send({ type: "questions", questions: questionGate.mandatoryQuestions });
+            // Emit the questions as structured chips so the AssistantSuggestions
+            // card renders them above the chat input (not as prose in the bubble).
+            const qs = questionGate.mandatoryQuestions.slice(0, 3);
+            send({ type: "questions", questions: qs });
             sendStep("Need clarification", "done", "question");
             send({
               type: "result",
-              content: `Before I answer, I need a few details:\n\n${questionGate.mandatoryQuestions
-                .slice(0, 3)
-                .map((q, i) => `${i + 1}. ${q}`)
-                .join("\n")}\n\nReply with your answers and I will continue immediately.`,
+              content: "Quick clarifier before I answer — pick or type your reply below.",
               replyContract,
             });
             close();

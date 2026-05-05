@@ -55,7 +55,7 @@ const CATEGORY_RULES: Array<{
   },
   {
     intent: "campaign_ad_creation",
-    re: /\b(campaign|ads?|creative|copy|launch|funnel|performance marketing)\b/i,
+    re: /\b(campaign|paid ads?|ad creative|launch (a |an )?(campaign|ad)|sales funnel|performance marketing)\b/i,
     requiredSlots: ["audience", "channel", "budget", "goal", "timeframe"],
     questionBySlot: {
       audience: "Which audience should this target?",
