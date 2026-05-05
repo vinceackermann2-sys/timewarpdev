@@ -857,13 +857,30 @@ export function buildConnectedToolsInventory(connectedProviders: string[]): stri
 
 // --- Intent Analysis (shouldSearchConnections lives in connection-search-decision.ts) ---
 
+// Stopwords specifically for personal-topic phrasing — strip provider names so
+// the label doesn't echo "Searching Gmail for last gmail".
+const TOPIC_PROVIDER_WORDS = new Set([
+  "gmail","gmails","email","emails","mail","mails","inbox","message","messages",
+  "drive","file","files","document","documents","doc","docs","folder","folders",
+  "calendar","meeting","meetings","event","events","appointment","appointments",
+  "outlook","onedrive","onenote","slack","zoom","hubspot","stripe",
+  "google","microsoft",
+]);
+
 export function extractQueryTopic(query: string): string {
   if (!query || query.length < 3) return "your request";
   const q = query.toLowerCase().trim();
+  // Personalised "your last/recent X" phrasing — pick the user's actual subject.
+  const recentEmail = /\b(last|latest|recent|newest)\s*(\d+\s*)?(emails?|mails?|messages?|inbox|gmails?|outlook)\b/i.test(q);
+  if (recentEmail) return "your last emails";
+  const recentDoc = /\b(last|latest|recent|newest)\s*(\d+\s*)?(documents?|docs?|files?|attachments?|drive)\b/i.test(q);
+  if (recentDoc) return "your recent files";
+  const recentMeeting = /\b(last|latest|recent|newest|upcoming|next)\s*(\d+\s*)?(meetings?|events?|appointments?|calendar|calls?)\b/i.test(q);
+  if (recentMeeting) return "your recent meetings";
+  const unread = /\bunread\b.*\b(emails?|mails?|messages?|inbox)\b/i.test(q);
+  if (unread) return "your unread emails";
+
   const topicPatterns: [RegExp, string][] = [
-    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(documents?|docs?|files?|attachments?)\b/i, "recent documents"],
-    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(emails?|mails?|messages?)\b/i, "recent messages"],
-    [/\b(my|our|the)?\s*(last|latest|recent)\s*\d*\s*(meetings?|events?|appointments?|calendar)\b/i, "recent meetings"],
     [/\bcollabs?\b/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(collaborat\w*|partnership\w*)/i, "collaborations & partnerships"],
     [/\b(?:any|are there|check for|find)\b.{0,10}\b(complaint\w*|issue\w*|problem\w*)/i, "complaints & issues"],
@@ -886,7 +903,10 @@ export function extractQueryTopic(query: string): string {
   for (const [pattern, topic] of topicPatterns) {
     if (pattern.test(q)) return topic;
   }
-  const words = q.replace(/[^\w\s]/g, "").split(/\s+/).filter(w => w.length > 2 && !STOPWORDS.has(w));
+  // Generic fallback: drop stopwords AND provider names so we never echo
+  // "whats last gmail" back as the topic.
+  const words = q.replace(/[^\w\s]/g, "").split(/\s+/)
+    .filter(w => w.length > 2 && !STOPWORDS.has(w) && !TOPIC_PROVIDER_WORDS.has(w));
   if (words.length >= 2) return words.slice(0, 3).join(" ");
   if (words.length === 1) return words[0];
   return "your request";
