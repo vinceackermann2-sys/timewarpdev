@@ -246,6 +246,7 @@ export async function buildAssistantPipelinePrompt(
     dnaRouterRan: !!dnaRouterBlock?.trim(),
     performanceRan: !!String(performanceEvidence || "").trim(),
     dashboardRan,
+    skillsApplied: matchedSkills.map((s) => s.name).filter(Boolean),
   });
   send({ type: "sources", ...sourcesPayload });
 

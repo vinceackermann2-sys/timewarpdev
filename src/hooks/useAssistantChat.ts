@@ -34,7 +34,14 @@ function mergePipelineSources(evt: PipelineSourcesPayload): SourceEntry[] {
     url: r.url,
     snippet: r.snippet,
   });
-  return [...(evt.conclusionSources || []).map(map), ...(evt.dataSources || []).map(map)];
+  const all = [...(evt.conclusionSources || []).map(map), ...(evt.dataSources || []).map(map)];
+  const seen = new Set<string>();
+  return all.filter((s) => {
+    const k = `${s.type}|${s.label}|${s.provider ?? ""}|${s.url ?? ""}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 function toQuestionGroups(questions: string[]): SuggestionGroup[] {
