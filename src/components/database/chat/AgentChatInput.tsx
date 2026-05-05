@@ -80,7 +80,8 @@ export function AgentChatInput({
   setShowGraphicsMenu: (v: boolean | ((p: boolean) => boolean)) => void;
   showEmployeesMenu: boolean;
   setShowEmployeesMenu: (v: boolean | ((p: boolean) => boolean)) => void;
-  setIsSettingsOpen: (v: boolean) => void;
+  isPlanMode: boolean;
+  setIsPlanMode: (v: boolean | ((p: boolean) => boolean)) => void;
   isSending: boolean;
   mentionState: MentionState;
   referenceUrlInput: string;
