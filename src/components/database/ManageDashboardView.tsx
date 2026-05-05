@@ -972,7 +972,16 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           onExecuteAction={onExecuteAction}
           minimized={detailMinimized}
           onMinimizedChange={setDetailMinimized}
-          onTrackEvent={trackLearningEvent}
+          onTrackEvent={(eventType, card, extra) => {
+            if (eventType === "dismissed") {
+              setDismissedIds((prev) => {
+                const next = new Set(prev);
+                next.add(card.id);
+                return next;
+              });
+            }
+            return trackLearningEvent(eventType, card, extra);
+          }}
         />
       )}
     </div>
