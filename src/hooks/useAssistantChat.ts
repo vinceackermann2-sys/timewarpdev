@@ -158,7 +158,17 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       syncTaskSteps();
     };
 
-    setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: "", isStreaming: true, streamStartTime: m.streamStartTime || Date.now(), taskSteps: [], currentStepIndex: -1 } : m));
+    // Seed an immediate "thinking" step so the UI shows activity instantly,
+    // before the network round-trip and SSE handshake complete.
+    taskSteps.push({ action: "thinking", label: "Reading your message…", status: "running" });
+    setMessages(prev => prev.map(m => m.id === assistantId ? {
+      ...m,
+      content: "",
+      isStreaming: true,
+      streamStartTime: m.streamStartTime || Date.now(),
+      taskSteps: [...taskSteps],
+      currentStepIndex: 0,
+    } : m));
 
     const response = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
