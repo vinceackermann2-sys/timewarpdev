@@ -975,7 +975,8 @@ export function AgentChatView({
           setShowGraphicsMenu={setShowGraphicsMenu}
           showEmployeesMenu={showEmployeesMenu}
           setShowEmployeesMenu={setShowEmployeesMenu}
-          setIsSettingsOpen={setIsSettingsOpen}
+          isPlanMode={isPlanMode}
+          setIsPlanMode={setIsPlanMode}
           isSending={isSending}
           mentionState={mentionState}
           searchResults={searchResults}
