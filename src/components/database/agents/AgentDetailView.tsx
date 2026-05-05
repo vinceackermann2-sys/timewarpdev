@@ -17,6 +17,12 @@ import {
   Clock,
   PlayCircle,
 } from "lucide-react";
+import logoGmail from "@/assets/logo-gmail.svg";
+import logoGcal from "@/assets/logo-google-calendar.svg";
+import logoOutlook from "@/assets/logo-ms-outlook.svg";
+import logoHubspot from "@/assets/logo-hubspot.svg";
+import logoSlack from "@/assets/logo-slack.png";
+import logoZoom from "@/assets/logo-zoom.svg";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
