@@ -156,7 +156,8 @@ export function AgentChatInput({
                   isActionMode={isActionMode}
                   setIsActionMode={setIsActionMode}
                   setIsDropupOpen={setIsDropupOpen}
-                  setIsSettingsOpen={setIsSettingsOpen}
+                  isPlanMode={isPlanMode}
+                  setIsPlanMode={setIsPlanMode}
                 />
               </div>
               {showReference && (
