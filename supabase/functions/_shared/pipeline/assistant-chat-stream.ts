@@ -116,6 +116,10 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
 
       (async () => {
         try {
+          // Immediate ack so the UI shows activity before the pipeline kicks in.
+          sendStep("Reading your message…", "running", "thinking");
+          sendStep("Reading your message…", "done", "thinking");
+          sendStep("Thinking…", "running", "thinking");
           if (
             questionGate &&
             !questionGate.complete &&
