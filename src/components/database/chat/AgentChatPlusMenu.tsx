@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ExternalLink, FileUp, Monitor, Plus, Settings } from "lucide-react";
+import { ExternalLink, FileUp, Monitor, Plus, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EDGE_EXT_URL =
