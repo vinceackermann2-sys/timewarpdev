@@ -4,7 +4,12 @@ const TRIVIAL = /^(ok|thanks|thank you|ty|yes|no|sure|got it|cool|nice)\b[!.\s]*
 
 /**
  * Ensures substantive assistant replies get a Sources row when the model omitted
- * ```assistant_sources``` or left sources empty.
+ * ```assistant_sources```. We do NOT fabricate evidence — only surface what the
+ * model actually declared, plus a single "Connected apps" entry for live_lookup
+ * replies (which by contract pulled fresh data from the user's integrations).
+ *
+ * The previous implementation auto-attached "Business profile" + "Your request"
+ * to every reply, which made the Data-backed badge dishonest.
  */
 export function ensureAssistantSourceAttribution(
   bodyForUi: string,
@@ -16,25 +21,20 @@ export function ensureAssistantSourceAttribution(
     return parsed?.sources?.length ? parsed : { dataBacked: false, sources: [] };
   }
 
+  // Trust the model's own attribution first.
   if (parsed && parsed.sources.length > 0) {
     return { ...parsed, dataBacked: true };
   }
 
-  const sources: DataSourceAttributionItem[] = [{ tier: "internal", key: "dna", label: "Business profile" }];
+  // Live-lookup replies are guaranteed to come from connector data, so we can
+  // safely surface a single connector tier even if the model forgot the fence.
   if (opts?.replyContract === "live_lookup") {
-    sources.push({ tier: "internal", key: "live", label: "Connected apps" });
-  }
-  if (/\bhttps?:\/\/|\bwww\.|firecrawl|web snapshot|external tier/i.test(t)) {
-    sources.push({ tier: "external", key: "web", label: "Web or links" });
-  }
-  const u = (opts?.userSnippet || "").trim();
-  if (u.length >= 8) {
-    sources.push({ tier: "feedback", key: "user", label: "Your request" });
+    return {
+      dataBacked: true,
+      sources: [{ tier: "connector", key: "live", label: "Connected apps" }],
+    };
   }
 
-  if (parsed?.dataBacked === false && parsed.sources.length === 0 && t.length < 80) {
-    return parsed;
-  }
-
-  return { dataBacked: true, sources };
+  // Otherwise: don't fabricate. No fence + no connector data = no badge.
+  return { dataBacked: false, sources: [] };
 }

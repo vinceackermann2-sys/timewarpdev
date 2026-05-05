@@ -14,7 +14,7 @@ const tierStyle = {
 const tierLabel: Record<string, string> = {
   internal: "Internal",
   external: "External",
-  feedback: "Your input",
+  feedback: "What you told me",
   connector: "Connected app",
 };
 
