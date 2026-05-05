@@ -83,6 +83,23 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
     });
   }
 
+  console.log("[assistant-chat-stream] SSE starting", JSON.stringify({
+    userId: user?.id?.slice(0, 8),
+    brandId: (brandId as string | undefined)?.slice(0, 8) ?? null,
+    workspaceId: (workspaceId as string | undefined)?.slice(0, 8) ?? null,
+    taskType,
+    replyContract,
+    msgChars: typeof lastUserMsg === "string" ? lastUserMsg.length : 0,
+    historyLen: Array.isArray(messages) ? messages.length : 0,
+    hasQuestionGate: !!questionGate,
+    ts: new Date().toISOString(),
+  }));
+  edgeLog("assistant-chat", "sse_start", {
+    user: user?.id?.slice(0, 8),
+    taskType,
+    replyContract,
+  });
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
