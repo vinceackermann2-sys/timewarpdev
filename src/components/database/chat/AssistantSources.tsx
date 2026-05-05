@@ -54,7 +54,7 @@ export function AssistantSources({
       >
         <BookOpen className="w-3.5 h-3.5 text-primary shrink-0" />
         <span className="flex-1">
-          {attribution?.dataBacked ? "Data-backed" : "Sources"} · {totalCount}
+          {attribution?.dataBacked ? "Data backing this conclusion" : "Sources"} · {totalCount}
         </span>
         <div className="flex items-center gap-1 mr-1">
           {tiers.slice(0, 4).map((s, i) => (

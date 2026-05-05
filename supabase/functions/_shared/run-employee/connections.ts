@@ -958,8 +958,9 @@ export async function searchConnectedProviders(
   topic?: string,
   /** Goal-derived terms merged into live search query (avoid literal-only vague phrases). */
   connectorQueryBoost?: string,
-): Promise<{ connectionContext: string; sourceRegistry: LiveSourceRegistry; searchedProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
+): Promise<{ connectionContext: string; sourceRegistry: LiveSourceRegistry; searchedProviders: string[]; contributingProviders: string[]; skippedProviders: string[]; skippedProviderDetails: SkippedProviderDetail[]; connectionDecision: { shouldSearch: boolean; reason: string }; queryTopic: string }> {
   const searchedProviders: string[] = [];
+  const contributingProviders: string[] = [];
   const skippedProviders: string[] = [];
   const skippedProviderDetails: SkippedProviderDetail[] = [];
   let connectionContext = "";
@@ -988,7 +989,7 @@ export async function searchConnectedProviders(
       const invProviders = (invConns || []).map((c: any) => c.provider);
       connectionContext = buildConnectedToolsInventory(invProviders);
     } catch (_e) { /* non-fatal */ }
-    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
+    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, contributingProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   emitProgress?.({ label: connectionCheckLabel, status: "running", action: "connections", detail: decision.reason });
@@ -1016,7 +1017,7 @@ export async function searchConnectedProviders(
       "No connected tools are linked yet — I have nothing live to look at",
     );
     emitProgress?.({ label: connectionCheckLabel, status: "done", action: "connections", detail: "Nothing connected yet" });
-    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
+    return { connectionContext, sourceRegistry: emptyRegistry, searchedProviders, contributingProviders, skippedProviders, skippedProviderDetails, connectionDecision: decision, queryTopic: t };
   }
 
   const connectedProviders = connections.map((c: any) => c.provider);
@@ -1111,9 +1112,11 @@ export async function searchConnectedProviders(
           });
           if (results.emails.length > 0) {
             connectionContext += `\n\n### Live Data from Outlook\n#### Recent Emails\n${appendLiveChunks(results.emails, liveSourceRegistry, liveChunkCounter)}`;
+            if (runOutlookEmail) contributingProviders.push("microsoft_outlook");
           }
           if (results.files.length > 0) {
             connectionContext += `\n\n### Live Data from OneDrive\n#### Recent Files\n${appendLiveChunks(results.files, liveSourceRegistry, liveChunkCounter)}`;
+            if (runOnedriveFiles) contributingProviders.push("microsoft_onedrive");
           }
           if (runOutlookEmail) emitProgress?.({ label: `Searching Outlook emails for ${t}`, status: "done", action: "connections" });
           if (runOnedriveFiles) emitProgress?.({ label: `Searching OneDrive files for ${t}`, status: "done", action: "connections" });
@@ -1138,6 +1141,7 @@ export async function searchConnectedProviders(
           const results = await searchOneNoteData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from OneNote\n#### Recent Notes\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("microsoft_onenote");
           }
           emitProgress?.({ label: `Searching OneNote pages for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1165,6 +1169,7 @@ export async function searchConnectedProviders(
           const results = await searchGmailData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from Gmail\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("google_gmail");
           }
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1185,6 +1190,7 @@ export async function searchConnectedProviders(
           const results = await searchGoogleDriveData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from Google Drive\n#### Recent Files\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("google_drive");
           }
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1208,6 +1214,7 @@ export async function searchConnectedProviders(
           const results = await searchGoogleCalendarData(token, effectiveQuery, searchTopicForApis);
           if (results.length > 0) {
             connectionContext += `\n\n### Live Data from Google Calendar\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("google_calendar");
           }
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "done", action: "connections" });
         } catch (e) {
@@ -1233,6 +1240,7 @@ export async function searchConnectedProviders(
         const results = await searchSlackData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Slack\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("slack");
         }
         emitProgress?.({ label: getProviderSearchLabel("slack", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1256,6 +1264,7 @@ export async function searchConnectedProviders(
         const results = await searchHubspotData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from HubSpot\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("hubspot");
         }
         emitProgress?.({ label: getProviderSearchLabel("hubspot", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1279,6 +1288,7 @@ export async function searchConnectedProviders(
         const results = await searchZoomData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Zoom\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("zoom");
         }
         emitProgress?.({ label: getProviderSearchLabel("zoom", t), status: "done", action: "connections" });
       } catch (e) {
@@ -1302,6 +1312,7 @@ export async function searchConnectedProviders(
         const results = await searchStripeData(token, effectiveQuery, searchTopicForApis);
         if (results.length > 0) {
           connectionContext += `\n\n### Live Data from Stripe\n${appendLiveChunks(results, liveSourceRegistry, liveChunkCounter)}`;
+            contributingProviders.push("stripe");
         } else {
           // Stripe IS connected and the API call succeeded — there are simply no charges,
           // customers, or active subscriptions yet. Make this explicit so the assistant
@@ -1338,11 +1349,12 @@ export async function searchConnectedProviders(
     );
   }
 
-  console.log("[connections] Final searchedProviders:", searchedProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);
+  console.log("[connections] Final searchedProviders:", searchedProviders, "contributing:", contributingProviders, "skipped:", skippedProviders, "hasContext:", connectionContext.length > 0);
   return {
     connectionContext,
     sourceRegistry: liveSourceRegistry,
     searchedProviders,
+    contributingProviders,
     skippedProviders,
     skippedProviderDetails,
     connectionDecision: decision,
