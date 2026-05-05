@@ -1209,7 +1209,7 @@ export function DashCardDetailPanel({ card, open, onClose, onExecuteAction, mini
     if (!card?.id) return;
     try { localStorage.setItem(`dash-dismissed:${card.id}`, "1"); } catch { /* ignore */ }
     onTrackEvent?.("dismissed", card, { priority: card.priority, theme: (card.category || "").toLowerCase() });
-    toast({ description: "Card hidden — refresh to remove from list" });
+    toast({ description: "Card dismissed" });
     onClose();
   };
 
