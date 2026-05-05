@@ -74,6 +74,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
     businessId,
     profileContext,
     questionGate,
+    planMode,
   } = input;
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
