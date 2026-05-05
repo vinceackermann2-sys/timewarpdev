@@ -56,10 +56,10 @@ function PeopleAvatars() {
         <img
           src={avatarUrl}
           alt={fullName}
-          className="w-6 h-6 rounded-full ring-2 ring-card object-cover"
+          className="w-6 h-6 rounded-full ring-1 ring-white/40 object-cover backdrop-blur-md bg-white/30 shadow-sm"
         />
       ) : (
-        <span className={`w-6 h-6 rounded-full ring-2 ring-card flex items-center justify-center text-[9px] font-bold ${swatch.bg} ${swatch.text}`}>
+        <span className={`w-6 h-6 rounded-full ring-1 ring-white/40 flex items-center justify-center text-[9px] font-bold backdrop-blur-md bg-white/30 shadow-sm ${swatch.text}`}>
           {initials(fullName)}
         </span>
       )}
@@ -636,6 +636,19 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
   const [detailMinimized, setDetailMinimized] = useState(false);
   const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const ids: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("dash-dismissed:") && localStorage.getItem(k) === "1") {
+          ids.push(k.slice("dash-dismissed:".length));
+        }
+      }
+      return new Set(ids);
+    } catch { return new Set(); }
+  });
   const [stale, setStale] = useState(false);
 
   const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
@@ -796,7 +809,8 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   };
 
   const tabCards = allTabCards[activeTab] || [];
-  const displayCards = activeTab === "Objectives" ? [...customObjectives, ...tabCards] : tabCards;
+  const baseCards = activeTab === "Objectives" ? [...customObjectives, ...tabCards] : tabCards;
+  const displayCards = baseCards.filter((c) => !dismissedIds.has(c.id));
   const filteredCards = searchQuery
     ? displayCards.filter((c) =>
         c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -958,7 +972,16 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
           onExecuteAction={onExecuteAction}
           minimized={detailMinimized}
           onMinimizedChange={setDetailMinimized}
-          onTrackEvent={trackLearningEvent}
+          onTrackEvent={(eventType, card, extra) => {
+            if (eventType === "dismissed") {
+              setDismissedIds((prev) => {
+                const next = new Set(prev);
+                next.add(card.id);
+                return next;
+              });
+            }
+            return trackLearningEvent(eventType, card, extra);
+          }}
         />
       )}
     </div>
