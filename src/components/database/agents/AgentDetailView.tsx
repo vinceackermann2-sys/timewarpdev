@@ -337,18 +337,19 @@ function RunRow({ run }: { run: AgentRun }) {
           {toolCalls.length > 0 && (
             <div>
               <p className="font-semibold text-muted-foreground mb-1">Actions performed</p>
-              <ol className="space-y-2">
-                {toolCalls.map((tc, i) => (
-                  <li key={i} className="rounded-md border border-border/60 bg-muted/30 p-2">
-                    <p className="font-medium">{i + 1}. {tc.tool || tc.name || "tool"}</p>
-                    {tc.args && (
-                      <pre className="mt-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-all">{JSON.stringify(tc.args, null, 2)}</pre>
-                    )}
-                    {tc.result && (
-                      <pre className="mt-1 text-[11px] text-muted-foreground whitespace-pre-wrap break-all">{typeof tc.result === "string" ? tc.result : JSON.stringify(tc.result, null, 2)}</pre>
-                    )}
-                  </li>
-                ))}
+              <ol className="space-y-1.5">
+                {toolCalls.map((tc, i) => {
+                  const { title, detail } = describeToolCall(tc);
+                  return (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-muted-foreground shrink-0">{i + 1}.</span>
+                      <div className="min-w-0">
+                        <p className="text-sm">{title}</p>
+                        {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
+                      </div>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           )}
@@ -362,6 +363,76 @@ function RunRow({ run }: { run: AgentRun }) {
       )}
     </li>
   );
+}
+
+function describeToolCall(tc: any): { title: string; detail?: string } {
+  const name: string = tc?.tool || tc?.name || "action";
+  const args = tc?.args || {};
+  const result = tc?.result;
+  const ok = result?.ok !== false && !result?.error;
+
+  const trim = (s: any, n = 80) => {
+    const str = typeof s === "string" ? s : s == null ? "" : String(s);
+    return str.length > n ? str.slice(0, n) + "…" : str;
+  };
+
+  const map: Record<string, () => { title: string; detail?: string }> = {
+    gmail_send: () => ({
+      title: `Sent email via Gmail to ${args.to || "recipient"}`,
+      detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined,
+    }),
+    gmail_draft: () => ({
+      title: `Created Gmail draft to ${args.to || "recipient"}`,
+      detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined,
+    }),
+    gmail_list: () => ({
+      title: `Listed Gmail messages${args.query ? ` matching "${trim(args.query, 40)}"` : ""}`,
+      detail: Array.isArray(result?.messages) ? `${result.messages.length} message(s)` : undefined,
+    }),
+    outlook_send: () => ({
+      title: `Sent email via Outlook to ${args.to || "recipient"}`,
+      detail: args.subject ? `Subject: ${trim(args.subject)}` : undefined,
+    }),
+    outlook_list: () => ({
+      title: `Listed Outlook messages`,
+      detail: Array.isArray(result?.messages) ? `${result.messages.length} message(s)` : undefined,
+    }),
+    gcal_list: () => ({
+      title: `Listed calendar events`,
+      detail: Array.isArray(result?.events) ? `${result.events.length} event(s)` : undefined,
+    }),
+    gcal_create: () => ({
+      title: `Created calendar event: ${trim(args.summary || "Untitled")}`,
+      detail: args.start ? `Starts ${args.start}` : undefined,
+    }),
+    hubspot_search_contacts: () => ({
+      title: `Searched HubSpot contacts${args.query ? ` for "${trim(args.query, 40)}"` : ""}`,
+      detail: Array.isArray(result?.contacts) ? `${result.contacts.length} contact(s)` : undefined,
+    }),
+    hubspot_create_contact: () => ({
+      title: `Created HubSpot contact: ${args.email || args.firstname || "new contact"}`,
+    }),
+    hubspot_create_note: () => ({
+      title: `Added HubSpot note`,
+      detail: args.body ? trim(args.body) : undefined,
+    }),
+    slack_post: () => ({
+      title: `Posted Slack message to ${args.channel || "channel"}`,
+      detail: args.text ? trim(args.text) : undefined,
+    }),
+  };
+
+  const friendly = map[name]?.() ?? {
+    title: name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+  };
+
+  if (!ok) {
+    return {
+      title: `${friendly.title} — failed`,
+      detail: trim(result?.error || result?.message || friendly.detail || "Action did not complete"),
+    };
+  }
+  return friendly;
 }
 
 function KV({ label, value }: { label: string; value: string }) {
