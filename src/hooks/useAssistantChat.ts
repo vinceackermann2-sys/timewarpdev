@@ -137,6 +137,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     fetchWithTimeout,
     extension: { getPageContext, executeAction, signalStart, signalStop, updateOverlay },
     cancelledRef,
+    planMode,
   } = deps;
 
   const throwIfCancelled = useCallback(() => {
