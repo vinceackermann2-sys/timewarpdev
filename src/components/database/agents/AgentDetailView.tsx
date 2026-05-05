@@ -248,105 +248,9 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
           </div>
         </div>
 
-        {/* Spec cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <SpecCard icon={Zap} title="Trigger">
-            <KV label="Type" value={TRIGGER_TYPE_LABEL[agent.trigger_type]} />
-            {agent.trigger_source && <KV label="Source" value={agent.trigger_source} />}
-            {agent.trigger_condition && <KV label="Condition" value={agent.trigger_condition} />}
-            {agent.trigger_schedule && <KV label="Schedule" value={agent.trigger_schedule} />}
-          </SpecCard>
-
-          <SpecCard icon={Plug} title="Required integrations">
-            {(agent.required_integrations ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground">None.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {(agent.required_integrations ?? []).map((id) => (
-                  <Badge key={id} variant="secondary" className="text-[11px] capitalize">
-                    {id.replace(/_/g, " ")}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </SpecCard>
-
-          <SpecCard icon={UserCog} title="Supervising employee" className="md:col-span-2">
-            {supervisorName ? (
-              <p className="text-sm">{supervisorName}</p>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">No supervisor assigned. Activate an Employee to oversee this agent.</p>
-                <Button variant="outline" size="sm" onClick={() => navigate("/app/employees")}>
-                  Browse employees →
-                </Button>
-              </div>
-            )}
-          </SpecCard>
-
-          <SpecCard icon={Workflow} title="SOP" className="md:col-span-2">
-            {(agent.sop_steps ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground">No steps defined.</p>
-            ) : (
-              <ol className="space-y-2">
-                {(agent.sop_steps ?? []).map((step, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center text-[11px] font-semibold shrink-0 mt-0.5">{i + 1}</div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{step.label}</p>
-                      {step.detail && <p className="text-xs text-muted-foreground">{step.detail}</p>}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-            {agent.sop_output && (
-              <div className="mt-4 pt-4 border-t border-border/60">
-                <p className="text-xs font-semibold text-muted-foreground mb-1">Expected output</p>
-                <p className="text-sm">{agent.sop_output}</p>
-              </div>
-            )}
-          </SpecCard>
-
-          <SpecCard icon={ShieldCheck} title="Safety boundary" className="md:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 mb-1">Can do</p>
-                {(agent.safety_can_do ?? []).length === 0 ? (
-                  <p className="text-xs text-muted-foreground">(none specified)</p>
-                ) : (
-                  <ul className="space-y-1">
-                    {(agent.safety_can_do ?? []).map((c, i) => (
-                      <li key={i} className="text-xs">✅ {c}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-destructive mb-1">Cannot do</p>
-                {(agent.safety_cannot_do ?? []).length === 0 ? (
-                  <p className="text-xs text-muted-foreground">(none specified)</p>
-                ) : (
-                  <ul className="space-y-1">
-                    {(agent.safety_cannot_do ?? []).map((c, i) => (
-                      <li key={i} className="text-xs">❌ {c}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-            {agent.safety_escalation_path && (
-              <div className="mt-4 pt-4 border-t border-border/60">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-600 mb-1">🚨 Escalation</p>
-                <p className="text-sm">{agent.safety_escalation_path}</p>
-              </div>
-            )}
-          </SpecCard>
-        </div>
-
-        {/* Runs */}
+        {/* Run history */}
         <div className="rounded-xl border border-border/60 bg-card p-5">
-          <h2 className="font-semibold text-sm mb-3">Recent runs</h2>
+          <h2 className="font-semibold text-sm mb-3">Run history</h2>
           {loadingRuns ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-md" />)}
@@ -355,21 +259,9 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
             <p className="text-xs text-muted-foreground py-6 text-center">No runs yet. Click "Run now" to test.</p>
           ) : (
             <ul className="divide-y divide-border/60">
-              {runs.map((run) => {
-                const status = run.status as AgentRunStatus;
-                const Icon = RUN_STATUS_ICON[status];
-                return (
-                  <li key={run.id} className="py-3 flex items-start gap-3">
-                    <Icon className={cn("h-4 w-4 mt-0.5 shrink-0", RUN_STATUS_TONE[status], status === "running" && "animate-spin")} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium capitalize">{status} · <span className="font-normal text-muted-foreground">{run.trigger_kind}</span></p>
-                      {run.message && <p className="text-xs text-muted-foreground">{run.message}</p>}
-                      {run.error && <p className="text-xs text-destructive mt-0.5">{run.error}</p>}
-                    </div>
-                    <p className="text-xs text-muted-foreground shrink-0">{new Date(run.started_at).toLocaleString()}</p>
-                  </li>
-                );
-              })}
+              {runs.map((run) => (
+                <RunRow key={run.id} run={run} />
+              ))}
             </ul>
           )}
         </div>
