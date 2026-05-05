@@ -1,4 +1,4 @@
-export type DataSourceTier = "internal" | "external" | "feedback";
+export type DataSourceTier = "internal" | "external" | "feedback" | "connector";
 
 export interface DataSourceAttributionItem {
   tier: DataSourceTier;
