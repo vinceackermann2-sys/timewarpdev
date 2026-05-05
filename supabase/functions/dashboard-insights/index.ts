@@ -255,7 +255,7 @@ serve(async (req) => {
     if (hasMsOutlook) {
       searchPromises.push((async () => {
         try {
-          const msToken = await getMsToken();
+          const msToken = await getMsScopedToken("microsoft_outlook");
           if (!msToken) return;
           // ALL inbox last 7 days + all unread, cap 500. Fetch FULL body (not just preview).
           const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -285,7 +285,7 @@ serve(async (req) => {
     if (hasMsOnedrive) {
       searchPromises.push((async () => {
         try {
-          const msToken = await getMsToken();
+          const msToken = await getMsScopedToken("microsoft_onedrive");
           if (!msToken) return;
           // ALL files modified last 30 days, cap 500
           const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -304,7 +304,7 @@ serve(async (req) => {
     if (hasMsOnenote) {
       searchPromises.push((async () => {
         try {
-          const msToken = await getMsToken();
+          const msToken = await getMsScopedToken("microsoft_onenote");
           if (!msToken) return;
           // ALL notebooks → all recent pages, cap 300
           const url = `https://graph.microsoft.com/v1.0/me/onenote/pages?$top=100&$orderby=lastModifiedDateTime desc&$select=title,createdDateTime,lastModifiedDateTime,links,parentNotebook`;
@@ -669,7 +669,7 @@ serve(async (req) => {
     if (hasMsTeams) {
       searchPromises.push((async () => {
         try {
-          const msToken = await getMsToken();
+          const msToken = await getMsScopedToken("microsoft_teams");
           if (!msToken) return;
           // ALL chats (paginated, cap 100), ALL messages last 7 days from each, cap 1000 total
           const allChats: any[] = [];
@@ -731,7 +731,7 @@ serve(async (req) => {
     if (hasMsCalendar) {
       searchPromises.push((async () => {
         try {
-          const msToken = await getMsToken();
+          const msToken = await getMsScopedToken("microsoft_calendar");
           if (!msToken) return;
           // Upcoming Outlook calendar events next 30 days
           const now = new Date().toISOString();
