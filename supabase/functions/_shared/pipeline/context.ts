@@ -218,8 +218,8 @@ export async function buildAssistantPipelinePrompt(
 
   const dataBackedBlock = buildDataBackedRoutingBlock({
     replyContract,
-    liveLookupRan: initialConnectionDecision.shouldSearch,
-    webSnapshotRan: webScheduled,
+    liveLookupRan: needsConnectors,
+    webSnapshotRan: !!publicWebBlock,
   });
 
   const skillMatchSource =
@@ -289,8 +289,9 @@ export async function buildAssistantPipelinePrompt(
     searchedProviders: searchedList,
     contributingProviders: contributingList,
     queryTopic: String(queryTopic || answerTopic || topic || ""),
-    webSnapshotRan: webScheduled,
+    webSnapshotRan: !!publicWebBlock,
     dnaRouterRan: !!dnaRouterBlock?.trim(),
+    includeDnaConclusion: goal.type === "analysis" || goal.type === "planning" || goal.dataTier === "user_ai" || replyContract === "strategic_plan",
     performanceRan: !!String(performanceEvidence || "").trim(),
     dashboardRan,
     skillsApplied: matchedSkills.map((s) => s.name).filter(Boolean),
@@ -298,8 +299,8 @@ export async function buildAssistantPipelinePrompt(
   console.log("[pipeline] sources payload:", JSON.stringify({
     searched: searchedList,
     contributing: contributingList,
-    web: webScheduled,
-    dna: !!dnaRouterBlock?.trim(),
+    web: !!publicWebBlock,
+    dnaLoaded: !!dnaRouterBlock?.trim(),
     perf: !!String(performanceEvidence || "").trim(),
     dashboard: dashboardRan,
     skills: matchedSkills.map((s) => s.name),
