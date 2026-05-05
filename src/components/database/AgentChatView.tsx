@@ -842,7 +842,7 @@ export function AgentChatView({
           );
           if (!lastAssistant || dismissedSuggestionIds.has(lastAssistant.id)) return null;
           return (
-            <div className="absolute inset-x-3 sm:inset-x-4 md:inset-x-6 bottom-3 sm:bottom-4 md:bottom-6 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="mb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
               <AssistantSuggestions
                 questions={lastAssistant.suggestionQuestions}
                 suggestions={lastAssistant.suggestions}
