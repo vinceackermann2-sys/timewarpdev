@@ -276,9 +276,20 @@ serve(async (req) => {
       "Execute the SOP and return the JSON response described in your system prompt.",
     ].join("\n");
 
+    const tools = agent.execution_mode === "api"
+      ? buildToolsFor(agent.required_integrations)
+      : [];
+
     let aiResult: any;
+    let toolLog: any[] = [];
     try {
-      aiResult = await callAi(systemPrompt, userPrompt);
+      const out = await runAiLoop(systemPrompt, userPrompt, tools, {
+        supabase,
+        userId: agent.user_id,
+        workspaceId: agent.workspace_id,
+      });
+      aiResult = out.result;
+      toolLog = out.toolLog;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       await supabase
@@ -292,19 +303,23 @@ serve(async (req) => {
       return jsonResponse({ run_id: runId, status: "failure", error: msg }, 500);
     }
 
-    const status: "success" | "escalated" | "failure" =
+    const hadToolError = toolLog.some((t) => t?.result?.error);
+    let status: "success" | "escalated" | "failure" =
       aiResult?.status === "escalated"
         ? "escalated"
         : aiResult?.status === "failure"
         ? "failure"
         : "success";
+    if (status === "success" && hadToolError && toolLog.every((t) => t?.result?.error)) {
+      status = "failure";
+    }
 
     const finishedAt = new Date().toISOString();
     await supabase
       .from("ai_agent_runs")
       .update({
         status,
-        output: aiResult ?? null,
+        output: { ...(aiResult ?? {}), tool_calls: toolLog },
         message: aiResult?.escalation_reason || `Agent run ${status}`,
         finished_at: finishedAt,
       })
