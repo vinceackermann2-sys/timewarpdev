@@ -13,8 +13,7 @@ import { cn } from "@/lib/utils";
 import { buildChatMarkdownComponents } from "@/components/database/chat/chatMarkdownForMessage";
 import type { ChatMessage } from "@/lib/agentChat/types";
 import { extractAssistantSources } from "@/lib/agentChat/parseAssistantSources";
-import { AssistantSourceBadges } from "./AssistantSourceBadges";
-import { SourcesPanel } from "./SourcesPanel";
+import { AssistantSources } from "./AssistantSources";
 import { TaskReportViewer } from "./TaskReportViewer";
 
 const STILL_IN_PROGRESS_RE = /\*\*still in progress\*\*|still in progress:/i;
