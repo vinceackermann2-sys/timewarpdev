@@ -508,10 +508,15 @@ serve(async (req) => {
       })());
     }
 
-    // Google sub-services
-    const googleProviders = ["google", "google_calendar", "google_drive", "google_docs", "google_sheets", "google_slides", "google_gmail"];
-    const getGoogleToken = async () => {
-      for (const p of googleProviders) {
+    // Google sub-services — IMPORTANT: each sub-provider has its OWN scope-limited token.
+    // Calling Gmail API with the Calendar token (or vice versa) returns 403. So we must
+    // resolve the token for the SPECIFIC sub-provider that owns the API being called,
+    // and only fall back to the umbrella "google" token if the specific one is missing.
+    const getGoogleScopedToken = async (specific: string): Promise<string | null> => {
+      const candidates = connectedProviders.includes(specific)
+        ? [specific, "google"]
+        : ["google"];
+      for (const p of candidates) {
         if (!connectedProviders.includes(p)) continue;
         const t = await getValidProviderToken(supabase, user.id, p);
         if (t) return t;
@@ -526,8 +531,8 @@ serve(async (req) => {
     if (hasGmail) {
       searchPromises.push((async () => {
         try {
-          const gToken = await getGoogleToken();
-          if (!gToken) return;
+          const gToken = await getGoogleScopedToken("google_gmail");
+          if (!gToken) { console.log("[dashboard-insights] Gmail: no token resolved"); return; }
           // ALL unread + last 100 read in past 7 days, cap 500 ids, fetch top 100 details
           const ids: string[] = [];
           let pageToken = "";
