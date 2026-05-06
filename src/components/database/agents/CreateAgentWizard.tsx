@@ -185,9 +185,10 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
       return true;
     }
     if (step === 1) return true; // integrations are optional
-    if (step === 2) return sopSteps.some((s) => s.label.trim().length > 0);
-    if (step === 3) return true;
-    if (step === 4) return true; // supervisor optional, can be assigned later
+    if (step === 2) return true; // slack persona optional
+    if (step === 3) return sopSteps.some((s) => s.label.trim().length > 0);
+    if (step === 4) return true;
+    if (step === 5) return true; // supervisor optional
     return true;
   }, [step, name, triggerType, triggerSource, triggerCondition, triggerSchedule, sopSteps]);
 
