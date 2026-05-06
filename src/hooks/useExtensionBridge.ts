@@ -31,6 +31,29 @@ export interface ActionResult {
   data?: any;
 }
 
+const TIMEWARP_EXTENSION_ID = "hcijmgkimmhiehjcnljaookjomhocjdd";
+
+function sendDirectExtensionMessage<T = any>(message: Record<string, any>): Promise<T | null> {
+  return new Promise((resolve) => {
+    const runtime = (globalThis as any).chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      resolve(null);
+      return;
+    }
+    try {
+      runtime.sendMessage(TIMEWARP_EXTENSION_ID, message, (response: T) => {
+        if (runtime.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(response ?? null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 export function useExtensionBridge() {
   const [extensionConnected, setExtensionConnected] = useState(false);
   const [detecting, setDetecting] = useState(true);
@@ -177,6 +200,14 @@ export function useExtensionBridge() {
       }
     };
 
+    void sendDirectExtensionMessage<{ type?: string; source?: string }>({ type: "TIMEWARP_PING" }).then((response) => {
+      if (response?.type === "TIMEWARP_PONG") {
+        console.log("[ExtBridge] ✅ Direct extension connection detected.");
+        setExtensionConnected(true);
+        setDetecting(false);
+      }
+    });
+
     // Ping repeatedly with backoff so we don't miss the extension's listener
     // if it loads slightly after this hook mounts.
     const pingDelays = [0, 150, 400, 900, 1600, 2500, 4000];
@@ -201,6 +232,12 @@ export function useExtensionBridge() {
 
   const retryDetection = useCallback(() => {
     setDetecting(true);
+    void sendDirectExtensionMessage<{ type?: string }>({ type: "TIMEWARP_PING" }).then((response) => {
+      if (response?.type === "TIMEWARP_PONG") {
+        setExtensionConnected(true);
+        setDetecting(false);
+      }
+    });
     const variants: Array<unknown> = [
       "TIMEWARP_PING",
       "TW_PING",
@@ -218,6 +255,13 @@ export function useExtensionBridge() {
 
   const getPageContext = useCallback((): Promise<PageContext | null> => {
     return new Promise((resolve) => {
+      void sendDirectExtensionMessage<any>({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }).then((response) => {
+        if (!response?.success) return;
+        setExtensionConnected(true);
+        setDetecting(false);
+        resolversRef.current.delete("page_context");
+        resolve((response.context || response) as PageContext);
+      });
       resolversRef.current.set("page_context", resolve as (v: any) => void);
       window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
       setTimeout(() => {
@@ -239,6 +283,13 @@ export function useExtensionBridge() {
     return new Promise((resolve) => {
       resolversRef.current.set("action_result", resolve);
       const msg = { type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab, targetGroupTab: true, focusGroup: false };
+      void sendDirectExtensionMessage<ActionResult>(msg).then((response) => {
+        if (!response) return;
+        setExtensionConnected(true);
+        setDetecting(false);
+        resolversRef.current.delete("action_result");
+        resolve(response);
+      });
       console.log("[ExtBridge] 📤 Sending action:", JSON.stringify(msg));
       window.postMessage(msg, "*");
       setTimeout(() => {
@@ -278,6 +329,19 @@ export function useExtensionBridge() {
         focusGroup,
         requestId,
       };
+      void sendDirectExtensionMessage<{ success?: boolean; requestId?: string; error?: string }>(payload).then((response) => {
+        if (!response) return;
+        console.log("[ExtBridge] ✅ Direct tab start response:", response);
+        setExtensionConnected(true);
+        setDetecting(false);
+        if (response.requestId && response.requestId !== requestId) return;
+        const resolver = resolversRef.current.get("group_ready");
+        if (resolver) {
+          resolver(response.success === true);
+          resolversRef.current.delete("group_ready");
+          pendingGroupRequestRef.current = null;
+        }
+      });
       window.postMessage(payload, "*");
       // Fallback: resolve after 5s even if extension doesn't confirm
       setTimeout(() => {
@@ -292,7 +356,9 @@ export function useExtensionBridge() {
   }, []);
 
   const signalStop = useCallback((employeeId: string) => {
-    window.postMessage({ type: "TIMEWARP_EMPLOYEE_STOP", employeeId, closeTabGroup: true }, "*");
+    const msg = { type: "TIMEWARP_EMPLOYEE_STOP", employeeId, closeTabGroup: true };
+    void sendDirectExtensionMessage(msg);
+    window.postMessage(msg, "*");
   }, []);
 
   /**
@@ -327,7 +393,9 @@ export function useExtensionBridge() {
     isManualMode?: boolean;
     safetyAlert?: string | null;
   }) => {
-    window.postMessage({ type: "TIMEWARP_OVERLAY_UPDATE", targetGroupTab: true, ...state }, "*");
+    const msg = { type: "TIMEWARP_OVERLAY_UPDATE", targetGroupTab: true, ...state };
+    void sendDirectExtensionMessage(msg);
+    window.postMessage(msg, "*");
   }, []);
 
   return {

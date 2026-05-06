@@ -13,6 +13,23 @@ import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { getSafeSession } from "@/lib/authSession";
 import { lovable } from "@/integrations/lovable";
 
+const TIMEWARP_EXTENSION_ID = "hcijmgkimmhiehjcnljaookjomhocjdd";
+
+function sendDirectExtensionMessage(message: Record<string, any>): Promise<any | null> {
+  return new Promise((resolve) => {
+    const runtime = (globalThis as any).chrome?.runtime;
+    if (!runtime?.sendMessage) return resolve(null);
+    try {
+      runtime.sendMessage(TIMEWARP_EXTENSION_ID, message, (response: any) => {
+        if (runtime.lastError) return resolve(null);
+        resolve(response ?? null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
@@ -77,7 +94,7 @@ const Auth = () => {
     const tryDeliver = async () => {
       const session = await getSafeSession();
       if (cancelled || !session?.access_token) return false;
-      window.postMessage({
+      const authPayload = {
         type: "TIMEWARP_AUTH_DELIVER",
         nonce,
         session: {
@@ -85,7 +102,9 @@ const Auth = () => {
           refresh_token: session.refresh_token,
           user: { id: session.user.id, email: session.user.email },
         },
-      }, window.location.origin);
+      };
+      void sendDirectExtensionMessage(authPayload);
+      window.postMessage(authPayload, window.location.origin);
       return true;
     };
     tryDeliver();

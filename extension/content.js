@@ -1,4 +1,4 @@
-// TimeWarp Content Script v1.0.5
+// TimeWarp Content Script v1.0.6
 // Bridges trusted TimeWarp web origins to the background service worker.
 
 const TRUSTED_ORIGINS = [
@@ -10,6 +10,7 @@ const TRUSTED_HOST_PATTERNS = [
   /\.lovable\.app$/i,
   /\.lovableproject\.com$/i,
 ];
+const VERSION = "1.0.6";
 
 function isTrustedOrigin(origin) {
   if (!origin || typeof origin !== "string") return false;
@@ -28,10 +29,22 @@ function post(payload) {
   window.postMessage({ source: "timewarp-extension", ...payload }, "*");
 }
 
+function replyWithGroupReady(data, response, runtimeError) {
+  const requestId = data.requestId || data.payload?.requestId || response?.requestId;
+  post({
+    type: "TIMEWARP_GROUP_READY",
+    requestId,
+    payload: {
+      ...(response || { success: false, error: runtimeError || "No response from background" }),
+      requestId,
+    },
+  });
+}
+
 // Announce ourselves to whoever is listening on this page (the TimeWarp app).
 try {
-  document.documentElement.setAttribute("data-timewarp-extension", "1.0.5");
-  post({ type: "TIMEWARP_EXTENSION_READY", version: "1.0.5" });
+  document.documentElement.setAttribute("data-timewarp-extension", VERSION);
+  post({ type: "TIMEWARP_EXTENSION_READY", version: VERSION });
 } catch { /* noop */ }
 
 window.addEventListener("message", (event) => {
@@ -41,7 +54,7 @@ window.addEventListener("message", (event) => {
 
   // ── Ping ──
   if (data === "TIMEWARP_PING" || data?.type === "TIMEWARP_PING") {
-    post({ type: "TIMEWARP_PONG", version: "1.0.5" });
+    post({ type: "TIMEWARP_PONG", version: VERSION });
     return;
   }
 
@@ -66,11 +79,7 @@ window.addEventListener("message", (event) => {
       { type: data.type, payload: data.payload || data },
       (response) => {
         const runtimeError = chrome.runtime.lastError?.message;
-        post({
-          type: "TIMEWARP_GROUP_READY",
-          requestId: data.requestId || data.payload?.requestId || response?.requestId,
-          payload: response || { success: false, error: runtimeError || "No response from background" },
-        });
+        replyWithGroupReady(data, response, runtimeError);
       },
     );
     return;
