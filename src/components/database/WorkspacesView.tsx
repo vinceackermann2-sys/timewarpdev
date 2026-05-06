@@ -16,6 +16,7 @@ import { WorkspaceDetailView } from "@/components/database/WorkspaceDetailView";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface WorkspacesViewProps {
   onBack?: () => void;
@@ -45,6 +46,10 @@ export function WorkspacesView({ onBack, hideFooter = false }: WorkspacesViewPro
       selectWorkspace(id);
       setNewName("");
       setShowNewInput(false);
+      toast.success("Workspace created");
+    } catch (err: any) {
+      console.error("[WorkspacesView] createWorkspace failed:", err);
+      toast.error(err?.message || "Could not create workspace");
     } finally {
       setCreating(false);
     }
