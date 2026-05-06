@@ -89,8 +89,8 @@ function isMicrosoftProvider(provider: string): boolean {
 }
 
 // Get token for any available Microsoft sub-service (delegates to shared helper)
-async function getAnyMicrosoftToken(supabaseAdmin: any, userId: string): Promise<string | null> {
-  return _getAnyMicrosoftToken(supabaseAdmin, userId);
+async function getAnyMicrosoftToken(supabaseAdmin: any, userId: string, workspaceId?: string | null): Promise<string | null> {
+  return _getAnyMicrosoftToken(supabaseAdmin, userId, workspaceId);
 }
 
 function buildNoMatchConnectionContext(
@@ -111,8 +111,8 @@ function buildNoMatchConnectionContext(
 
 // Delegates to the unified shared OAuth refresh helper.
 // All providers (Microsoft, Google, HubSpot, Zoom, Slack) are handled there.
-export async function getValidProviderToken(supabaseAdmin: any, userId: string, provider: string): Promise<string | null> {
-  return getValidAccessToken(supabaseAdmin, userId, provider);
+export async function getValidProviderToken(supabaseAdmin: any, userId: string, provider: string, workspaceId?: string | null): Promise<string | null> {
+  return getValidAccessToken(supabaseAdmin, userId, provider, workspaceId);
 }
 
 export async function searchMicrosoftData(token: string, query: string, topic?: string, options?: { searchEmails?: boolean; searchFiles?: boolean }): Promise<{ emails: LiveContextChunk[]; files: LiveContextChunk[] }> {
@@ -674,6 +674,7 @@ async function getGoogleTokenForProvider(
   supabaseAdmin: any,
   userId: string,
   provider: "google_gmail" | "google_drive" | "google_calendar",
+  workspaceId?: string | null,
 ): Promise<string | null> {
   const candidates = {
     google_gmail: ["google_gmail", "google"],
@@ -682,7 +683,7 @@ async function getGoogleTokenForProvider(
   }[provider];
 
   for (const candidate of candidates) {
-    const token = await getValidAccessToken(supabaseAdmin, userId, candidate);
+    const token = await getValidAccessToken(supabaseAdmin, userId, candidate, workspaceId);
     if (token) return token;
   }
 
@@ -954,6 +955,7 @@ export async function searchConnectedProviders(
   supabase: any,
   userId: string,
   userQuery: string,
+  workspaceId?: string | null,
   emitProgress?: (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => void,
   topic?: string,
   /** Goal-derived terms merged into live search query (avoid literal-only vague phrases). */
@@ -981,11 +983,13 @@ export async function searchConnectedProviders(
     // Even when we skip live search, surface the inventory so the AI never
     // claims to have access to disconnected tools in passing remarks.
     try {
-      const { data: invConns } = await supabase
+      const invQuery = supabase
         .from("user_connections")
         .select("provider")
         .eq("user_id", userId)
-        .eq("status", "connected");
+        .eq("status", "connected")
+        .eq("workspace_id", workspaceId ?? null);
+      const { data: invConns } = await invQuery;
       const invProviders = (invConns || []).map((c: any) => c.provider);
       connectionContext = buildConnectedToolsInventory(invProviders);
     } catch (_e) { /* non-fatal */ }
@@ -998,7 +1002,8 @@ export async function searchConnectedProviders(
     .from("user_connections")
     .select("provider, status")
     .eq("user_id", userId)
-    .eq("status", "connected");
+    .eq("status", "connected")
+    .eq("workspace_id", workspaceId ?? null);
 
   if (connErr) console.error("[connections] DB error:", connErr.message);
   console.log("[connections] Connected providers:", JSON.stringify(connections));
@@ -1092,7 +1097,7 @@ export async function searchConnectedProviders(
     if (runOutlookEmail || runOnedriveFiles) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyMicrosoftToken(supabase, userId);
+          const token = await getAnyMicrosoftToken(supabase, userId, workspaceId);
           if (!token) {
             if (runOutlookEmail) skippedProviderDetails.push({ provider: "microsoft_outlook", reason: "token expired or missing" });
             if (runOnedriveFiles) skippedProviderDetails.push({ provider: "microsoft_onedrive", reason: "token expired or missing" });
@@ -1131,7 +1136,7 @@ export async function searchConnectedProviders(
     if (hasOnenote && channelPlan.files) {
       searchPromises.push((async () => {
         try {
-          const token = await getAnyMicrosoftToken(supabase, userId);
+          const token = await getAnyMicrosoftToken(supabase, userId, workspaceId);
           if (!token) {
             skippedProviderDetails.push({ provider: "microsoft_onenote", reason: "token expired or missing" });
             return;
@@ -1162,7 +1167,7 @@ export async function searchConnectedProviders(
     if (hasGmail && channelPlan.email) {
       searchPromises.push((async () => {
         try {
-          const token = await getGoogleTokenForProvider(supabase, userId, "google_gmail");
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_gmail", workspaceId);
           if (!token) { skippedProviderDetails.push({ provider: "google_gmail", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Gmail for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_gmail");
@@ -1183,7 +1188,7 @@ export async function searchConnectedProviders(
     if (hasGDrive && channelPlan.files) {
       searchPromises.push((async () => {
         try {
-          const token = await getGoogleTokenForProvider(supabase, userId, "google_drive");
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_drive", workspaceId);
           if (!token) { skippedProviderDetails.push({ provider: "google_drive", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Drive for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_drive");
@@ -1207,7 +1212,7 @@ export async function searchConnectedProviders(
     if (hasGCal && channelPlan.calendar) {
       searchPromises.push((async () => {
         try {
-          const token = await getGoogleTokenForProvider(supabase, userId, "google_calendar");
+          const token = await getGoogleTokenForProvider(supabase, userId, "google_calendar", workspaceId);
           if (!token) { skippedProviderDetails.push({ provider: "google_calendar", reason: "token expired or missing" }); return; }
           emitProgress?.({ label: `Searching Google Calendar for ${t}`, status: "running", action: "connections" });
           searchedProviders.push("google_calendar");
@@ -1229,7 +1234,7 @@ export async function searchConnectedProviders(
   if (connectedProviders.includes("slack") && isAllowed("slack") && channelPlan.slack) {
     searchPromises.push((async () => {
       try {
-        const token = await getValidProviderToken(supabase, userId, "slack");
+        const token = await getValidProviderToken(supabase, userId, "slack", workspaceId);
         if (!token) {
           skippedProviders.push("slack");
           skippedProviderDetails.push({ provider: "slack", reason: "token expired or missing" });
@@ -1254,7 +1259,7 @@ export async function searchConnectedProviders(
   if (connectedProviders.includes("hubspot") && isAllowed("hubspot") && channelPlan.hubspot) {
     searchPromises.push((async () => {
       try {
-        const token = await getValidProviderToken(supabase, userId, "hubspot");
+        const token = await getValidProviderToken(supabase, userId, "hubspot", workspaceId);
         if (!token) {
           skippedProviderDetails.push({ provider: "hubspot", reason: "token expired or missing" });
           return;
@@ -1278,7 +1283,7 @@ export async function searchConnectedProviders(
   if (connectedProviders.includes("zoom") && isAllowed("zoom") && channelPlan.zoom && !intentProfile.omitZoom) {
     searchPromises.push((async () => {
       try {
-        const token = await getValidProviderToken(supabase, userId, "zoom");
+        const token = await getValidProviderToken(supabase, userId, "zoom", workspaceId);
         if (!token) {
           skippedProviderDetails.push({ provider: "zoom", reason: "token expired or missing" });
           return;
@@ -1302,7 +1307,7 @@ export async function searchConnectedProviders(
   if (connectedProviders.includes("stripe") && isAllowed("stripe") && channelPlan.stripe) {
     searchPromises.push((async () => {
       try {
-        const token = await getValidProviderToken(supabase, userId, "stripe");
+        const token = await getValidProviderToken(supabase, userId, "stripe", workspaceId);
         if (!token) {
           skippedProviderDetails.push({ provider: "stripe", reason: "token expired or missing" });
           return;

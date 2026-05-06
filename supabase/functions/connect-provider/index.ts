@@ -154,9 +154,11 @@ serve(async (req) => {
         .eq("user_id", user.id);
 
       if (workspaceId) {
-        // Include workspace-scoped rows and legacy global rows (workspace_id is null).
-        connectionsQuery.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`);
-        tokensQuery.or(`workspace_id.eq.${workspaceId},workspace_id.is.null`);
+        connectionsQuery.eq("workspace_id", workspaceId);
+        tokensQuery.eq("workspace_id", workspaceId);
+      } else {
+        connectionsQuery.is("workspace_id", null);
+        tokensQuery.is("workspace_id", null);
       }
 
       const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);

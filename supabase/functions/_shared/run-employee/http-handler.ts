@@ -441,7 +441,12 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
         workspace_id: effectiveWsId,
         linked_business_id: effectiveBrandId,
       }, lastUserMsg);
-      const { connectionContext, sourceRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(supabase, user.id, connectionLookupQuery);
+      const { connectionContext, sourceRegistry, searchedProviders, skippedProviders, skippedProviderDetails, connectionDecision, queryTopic } = await searchConnectedProviders(
+        supabase,
+        user.id,
+        connectionLookupQuery,
+        effectiveWsId || null,
+      );
       const result = await buildAiResponse(relevantContext, connectionContext);
       await logBusinessLearningEvent(supabase, {
         userId: user.id,
@@ -503,6 +508,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               supabase,
               user.id,
               connectionLookupQuery,
+              effectiveWsId || null,
               (step) => send({ type: "progress", step }),
               topic,
             );

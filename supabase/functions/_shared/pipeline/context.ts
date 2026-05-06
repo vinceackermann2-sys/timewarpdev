@@ -147,7 +147,6 @@ export async function buildAssistantPipelinePrompt(
     brandId || undefined,
     false,
   );
-
   if (needsConnectors) {
     const connPhase = buildConnectorProgressLabel("connectors", goal, initialConnectionDecision.reason);
     sendStep(connPhase.label, "running", connPhase.action);
@@ -155,6 +154,7 @@ export async function buildAssistantPipelinePrompt(
       supabase,
       userId,
       lastUserMsg,
+      workspaceId || null,
       (step) => send({ type: "progress", step }),
       topic,
       connectorBoost,

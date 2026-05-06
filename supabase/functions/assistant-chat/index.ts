@@ -199,6 +199,7 @@ serve(async (req) => {
           supabase,
           user.id,
           lastUserMsg,
+          workspaceId || null,
           undefined,
           topic,
           browserBoost,

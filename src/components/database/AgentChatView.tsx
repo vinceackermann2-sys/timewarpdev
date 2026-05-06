@@ -48,7 +48,7 @@ export function AgentChatView({
   onInitialMessageConsumed?: () => void;
   forceOnboarding?: boolean;
   onboardingInitialUrl?: string | null;
-  onOnboardingComplete?: (agentName: string, brandId: string, supercharge: boolean) => void;
+  onOnboardingComplete?: (agentName: string, brandId: string) => void;
   onOnboardingActiveChange?: (active: boolean) => void;
 }) {
   const { user } = useAuth();
@@ -911,7 +911,7 @@ export function AgentChatView({
           {!hasMessages && (forceOnboarding || onboardingLocked) ? (
             <ChatOnboardingFlow
               initialUrl={onboardingInitialUrl}
-              onComplete={(agentName, brandId, supercharge, transcript) => {
+              onComplete={(agentName, brandId, transcript) => {
                 const seeded: ChatMessage[] = transcript.map((m, i) => ({
                   id: `onb-${Date.now()}-${i}`,
                   role: m.role,
@@ -920,7 +920,7 @@ export function AgentChatView({
                 setMessages(seeded);
                 if (agentName) setSelectedAgent(agentName);
                 setOnboardingLocked(false);
-                onOnboardingComplete?.(agentName, brandId, supercharge);
+                onOnboardingComplete?.(agentName, brandId);
               }}
             />
           ) : !hasMessages ? (

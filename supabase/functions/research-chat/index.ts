@@ -155,7 +155,12 @@ serve(async (req) => {
         try {
           const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
           if (lastUserMsg) {
-            const { connectionContext, sourceRegistry } = await searchConnectedProviders(supabase, user.id, lastUserMsg);
+            const { connectionContext, sourceRegistry } = await searchConnectedProviders(
+              supabase,
+              user.id,
+              lastUserMsg,
+              workspaceId || null,
+            );
             liveConnectionsContext = connectionContext || "";
             liveSourceRegistryForResponse = sourceRegistry || {};
           }

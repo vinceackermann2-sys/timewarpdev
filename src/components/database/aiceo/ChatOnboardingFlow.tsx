@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Globe, ArrowRight, Sparkles, Check, AlertCircle, RotateCcw, Telescope,
+  Globe, ArrowRight, Check, AlertCircle, RotateCcw, Telescope,
   Loader2, WandSparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,6 +78,10 @@ async function waitForSession(maxAttempts = 6, delayMs = 1500): Promise<string |
   return null;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 interface DiscoveredProduct {
   url?: string;
   name?: string;
@@ -92,14 +96,13 @@ type Phase =
   | "enrichInputs"   // upload files / connect integrations BEFORE forging
   | "forging"        // scrape-product core + save-onboarding running
   | "naming"         // user choosing agent name
-  | "supercharge"    // ask user whether to supercharge DNA further (still useful for connecting more later)
   | "done";          // navigating away
 
 interface ChatOnboardingFlowProps {
   /** Optional URL to pre-fill (from landing-page funnel ?url= param). */
   initialUrl?: string | null;
   /**
-   * Called once the user has named their agent and chosen whether to supercharge.
+   * Called once the user has named their agent.
    * `transcript` is a flat list of chat-style messages summarising the onboarding
    * conversation so the host (AgentChatView) can persist it to the new business's
    * chat session.
@@ -107,7 +110,6 @@ interface ChatOnboardingFlowProps {
   onComplete: (
     agentName: string,
     brandId: string,
-    supercharge: boolean,
     transcript: { role: "user" | "assistant"; content: string }[],
   ) => void;
 }
@@ -346,8 +348,10 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       // intermediate stages — just advance through them as the work goes.
       if (enrichInputsSummary.fileCount > 0 || enrichInputsSummary.integrationCount > 0) {
         setForgingStage("ingesting");
+        await sleep(350);
       }
       setForgingStage("enriching");
+      await sleep(300);
       const extracted = extractData.extracted || {};
 
       const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -473,6 +477,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
 
       if (cancelled) return;
       setForgingStage("synthesizing");
+      await sleep(250);
       const { data: saveData, error: saveError } = await supabase.functions.invoke("save-onboarding", {
         body: {
           brandData: newBrand,
@@ -488,6 +493,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
         return;
       }
       setForgingStage("saving");
+      await sleep(220);
 
       if (saveData.workspaceId) {
         localStorage.setItem("preferred_workspace_id", saveData.workspaceId);
@@ -610,10 +616,6 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       );
     } catch { /* best effort */ }
     setIsCompleting(false);
-    setPhase("supercharge");
-  }, [agentName, createdBrandId, createdBrandRowId, setBrands]);
-
-  const handleSuperchargeChoice = useCallback((wantsSupercharge: boolean) => {
     if (!createdBrandId) return;
     setPhase("done");
     const trimmedAgent = agentName.trim();
@@ -647,22 +649,11 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
       ...(trimmedAgent ? [{ role: "user" as const, content: trimmedAgent }] : []),
       {
         role: "assistant",
-        content:
-          "Want to supercharge your DNA by connecting your tools or uploading files? You can also do this later from Business DNA.",
-      },
-      {
-        role: "user",
-        content: wantsSupercharge ? "Yes, supercharge" : "Skip for now",
-      },
-      {
-        role: "assistant",
-        content: wantsSupercharge
-          ? `Great — let's supercharge ${trimmedAgent || "your agent"}. Taking you to the supercharge flow.`
-          : `All set. ${trimmedAgent || "Your agent"} is ready to help. What do you want to work on first?`,
+        content: `All set. ${trimmedAgent || "Your agent"} is ready to help. What do you want to work on first?`,
       },
     ];
-    onComplete(trimmedAgent, createdBrandId, wantsSupercharge, transcript);
-  }, [agentName, createdBrandId, onComplete, activeUrl, discoveredProducts, businessTypePlural, selectedProductIdx]);
+    onComplete(trimmedAgent, createdBrandId, transcript);
+  }, [agentName, createdBrandId, createdBrandRowId, setBrands, selectedProductIdx, discoveredProducts, businessTypePlural, activeUrl, onComplete]);
 
   // ─────────── RENDER ───────────
 
@@ -965,45 +956,6 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
           </>
         )}
 
-        {/* Echo agent name once supercharge prompt is up */}
-        {phase === "supercharge" && agentName.trim() && (
-          <UserBubble>
-            <span className="font-medium">{agentName.trim()}</span>
-          </UserBubble>
-        )}
-
-        {/* Supercharge prompt */}
-        {phase === "supercharge" && (
-          <>
-            <AssistantBubble>
-              <div className="flex items-center gap-3 mb-2">
-                <Sparkles className="w-5 h-5 text-primary shrink-0" />
-                <p className="text-[15px] font-semibold text-foreground">
-                  Want to supercharge your DNA?
-                </p>
-              </div>
-              <p className="text-[14px] text-foreground leading-relaxed">
-                Connect your tools (Gmail, Drive, HubSpot, Slack…) or upload files and URLs so I can fill in the gaps with verified, real evidence — no made-up data. You can also do this later from Business DNA.
-              </p>
-            </AssistantBubble>
-            <UserActionCard>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => handleSuperchargeChoice(true)}
-                  className="bg-primary hover:bg-primary/90 transition-colors text-white px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
-                >
-                  <Sparkles className="w-4 h-4" /> Yes, supercharge
-                </button>
-                <button
-                  onClick={() => handleSuperchargeChoice(false)}
-                  className="bg-card border border-border hover:bg-muted transition-colors text-foreground px-5 py-2.5 rounded-xl font-medium flex items-center gap-2 text-[15px]"
-                >
-                  Skip for now <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </UserActionCard>
-          </>
-        )}
       </div>
     </div>
   );

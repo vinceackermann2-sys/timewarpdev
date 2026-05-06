@@ -59,13 +59,9 @@ export default function AssistantPage() {
       }}
       forceOnboarding={forceOnboarding}
       onboardingInitialUrl={onboardingUrl}
-      onOnboardingComplete={(_agentName, newBrandId, supercharge) => {
-        if (supercharge) {
-          localStorage.setItem("tw_active_brand_id", newBrandId);
-          sessionStorage.setItem(`tw_supercharge_popup_shown_${newBrandId}`, "1");
-          navigate("/supercharge-dna");
-        }
-        // Otherwise stay here — the seeded transcript is the live chat.
+      onOnboardingComplete={(_agentName, newBrandId) => {
+        localStorage.setItem("tw_active_brand_id", newBrandId);
+        // Stay in assistant chat — onboarding now ends directly after naming.
       }}
     />
   );
