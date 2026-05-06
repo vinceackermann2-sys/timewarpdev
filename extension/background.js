@@ -81,6 +81,42 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   }
 });
 
+chrome.runtime.onMessageExternal.addListener((msg, sender, reply) => {
+  const trusted = isTrustedExternalOrigin(sender?.origin || sender?.url || "");
+  if (!trusted) {
+    reply({ success: false, error: "Untrusted origin" });
+    return false;
+  }
+
+  if (msg?.type === "TIMEWARP_PING") { reply({ type: "TIMEWARP_PONG", source: "timewarp-extension", version: "1.0.6" }); return false; }
+  if (msg?.type === "TIMEWARP_OPEN_GROUP_TAB" || msg?.type === "TIMEWARP_EMPLOYEE_START") { handleEmployeeStart(msg.payload || msg).then(reply); return true; }
+  if (msg?.type === "TIMEWARP_GET_PAGE_CONTEXT") { handleGetGroupPageContext(msg).then(reply); return true; }
+  if (msg?.type === "TIMEWARP_EXECUTE_ACTION") { handleExecuteAction(msg, sender).then(reply); return true; }
+  if (msg?.type === "TIMEWARP_OVERLAY_UPDATE") { handleOverlayUpdate(msg).then(reply); return true; }
+  if (msg?.type === "TIMEWARP_EMPLOYEE_STOP") { handleEmployeeStop(msg.payload || msg).then(reply); return true; }
+  if (msg?.type === "TIMEWARP_AUTH_DELIVER") { handleAuthDeliver(msg.session, msg.nonce).then(reply); return true; }
+
+  reply({ success: false, error: "Unknown message type" });
+  return false;
+});
+
+function isTrustedExternalOrigin(origin) {
+  try {
+    const u = new URL(origin);
+    if (["timewarpdev.com", "www.timewarpdev.com", "timewarpdev.lovable.app"].includes(u.hostname)) return true;
+    return /\.lovable\.app$/i.test(u.hostname) || /\.lovableproject\.com$/i.test(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
+async function handleOverlayUpdate(msg) {
+  if (_groupTabId) {
+    await chrome.tabs.sendMessage(_groupTabId, { type: "TIMEWARP_OVERLAY_UPDATE", ...msg }).catch(() => {});
+  }
+  return { ok: true, success: true };
+}
+
 // ── Pending auth nonce (used for Google sign-in via app bridge) ──────────────
 let _pendingAuthNonce = null;
 
