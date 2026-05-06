@@ -255,6 +255,13 @@ export function useExtensionBridge() {
 
   const getPageContext = useCallback((): Promise<PageContext | null> => {
     return new Promise((resolve) => {
+      void sendDirectExtensionMessage<any>({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }).then((response) => {
+        if (!response?.success) return;
+        setExtensionConnected(true);
+        setDetecting(false);
+        resolversRef.current.delete("page_context");
+        resolve((response.context || response) as PageContext);
+      });
       resolversRef.current.set("page_context", resolve as (v: any) => void);
       window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
       setTimeout(() => {
@@ -276,6 +283,13 @@ export function useExtensionBridge() {
     return new Promise((resolve) => {
       resolversRef.current.set("action_result", resolve);
       const msg = { type: "TIMEWARP_EXECUTE_ACTION", action, executeInTab, targetGroupTab: true, focusGroup: false };
+      void sendDirectExtensionMessage<ActionResult>(msg).then((response) => {
+        if (!response) return;
+        setExtensionConnected(true);
+        setDetecting(false);
+        resolversRef.current.delete("action_result");
+        resolve(response);
+      });
       console.log("[ExtBridge] 📤 Sending action:", JSON.stringify(msg));
       window.postMessage(msg, "*");
       setTimeout(() => {
