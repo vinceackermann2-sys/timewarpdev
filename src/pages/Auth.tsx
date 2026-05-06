@@ -13,6 +13,23 @@ import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { getSafeSession } from "@/lib/authSession";
 import { lovable } from "@/integrations/lovable";
 
+const TIMEWARP_EXTENSION_ID = "hcijmgkimmhiehjcnljaookjomhocjdd";
+
+function sendDirectExtensionMessage(message: Record<string, any>): Promise<any | null> {
+  return new Promise((resolve) => {
+    const runtime = (globalThis as any).chrome?.runtime;
+    if (!runtime?.sendMessage) return resolve(null);
+    try {
+      runtime.sendMessage(TIMEWARP_EXTENSION_ID, message, (response: any) => {
+        if (runtime.lastError) return resolve(null);
+        resolve(response ?? null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
