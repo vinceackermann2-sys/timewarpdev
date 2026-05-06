@@ -279,6 +279,12 @@ async function handleEmployeeStop(payload) {
   try {
     const closeTabGroup = payload?.closeTabGroup !== false; // default true
 
+    // Detach debugger from any tabs we attached to during this run
+    for (const tid of Array.from(_attachedDebuggerTabs)) {
+      try { await chrome.debugger.detach({ tabId: tid }); } catch(_){}
+    }
+    _attachedDebuggerTabs.clear();
+
     if (closeTabGroup) {
       // Close the group tab specifically
       if (_groupTabId) {
