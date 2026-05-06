@@ -119,7 +119,7 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
       <div className="px-5 py-4 space-y-4 max-h-[400px] overflow-y-auto">
-        {config.sections.map((sec, i) => (
+        {sections.map((sec, i) => (
           <div key={i}>
             {sec.heading && <h4 className="text-sm font-semibold text-foreground mb-1.5">{sec.heading}</h4>}
             <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{sec.content}</p>
