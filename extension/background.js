@@ -418,7 +418,7 @@ async function handleLogin(email, password) {
     }
     const errMsg = d.error_description || d.message || d.error || ("HTTP " + r.status);
     if (r.status === 503 || r.status === 502 || raw.includes("Project paused") || raw.includes("upstream")) {
-      return { success:false, error:"Supabase project is paused. Go to supabase.com, open your project and click Resume." };
+      return { success:false, error:"TimeWarp Cloud is temporarily unavailable. Try again in a moment." };
     }
     return { success:false, error:errMsg };
   } catch(e) {
