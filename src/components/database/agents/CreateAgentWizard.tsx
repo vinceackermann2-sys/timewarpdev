@@ -13,6 +13,7 @@ import {
   Zap,
   AlertTriangle,
   UserCog,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ interface Props {
 const STEPS = [
   { key: "trigger", label: "Trigger", icon: Zap },
   { key: "integrations", label: "Integrations", icon: Plug },
+  { key: "slack", label: "Slack Bot", icon: Hash },
   { key: "sop", label: "SOP", icon: Workflow },
   { key: "safety", label: "Safety", icon: ShieldCheck },
   { key: "supervisor", label: "Supervisor", icon: UserCog },
@@ -120,6 +122,12 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
 
+  // Step 3 (Slack persona)
+  const [slackUsername, setSlackUsername] = useState("");
+  const [slackIconUrl, setSlackIconUrl] = useState("");
+  const [slackIconEmoji, setSlackIconEmoji] = useState("");
+  const [slackDefaultChannel, setSlackDefaultChannel] = useState("");
+
   // Load connected providers when entering the integrations step.
   useEffect(() => {
     if (step !== 1) return;
@@ -157,7 +165,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
 
   // Load employees when entering the supervisor step.
   useEffect(() => {
-    if (step !== 4 || !user) return;
+    if (step !== 5 || !user) return;
     let cancelled = false;
     (async () => {
       setLoadingEmployees(true);
@@ -183,9 +191,10 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
       return true;
     }
     if (step === 1) return true; // integrations are optional
-    if (step === 2) return sopSteps.some((s) => s.label.trim().length > 0);
-    if (step === 3) return true;
-    if (step === 4) return true; // supervisor optional, can be assigned later
+    if (step === 2) return true; // slack persona optional
+    if (step === 3) return sopSteps.some((s) => s.label.trim().length > 0);
+    if (step === 4) return true;
+    if (step === 5) return true; // supervisor optional
     return true;
   }, [step, name, triggerType, triggerSource, triggerCondition, triggerSchedule, sopSteps]);
 
@@ -230,6 +239,10 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
           safety_can_do: cleanedCanDo,
           safety_cannot_do: cleanedCantDo,
           safety_escalation_path: escalationPath.trim() || null,
+          slack_bot_username: slackUsername.trim() || null,
+          slack_bot_icon_url: slackIconUrl.trim() || null,
+          slack_bot_icon_emoji: slackIconEmoji.trim() || null,
+          slack_default_channel: slackDefaultChannel.trim() || null,
         })
         .select("id")
         .single();
@@ -447,9 +460,71 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
           </SectionCard>
         )}
 
-        {/* STEP 3 — SOP */}
+        {/* STEP 3 — Slack Bot Persona */}
         {step === 2 && (
+          <SectionCard
+            title="Slack bot persona"
+            subtitle="Skip this if the agent doesn't post to Slack. Otherwise, give it a display name + icon — it'll post through your connected Slack app as this identity."
+          >
+            {!connectedProviders.includes("slack") && (
+              <div className="mb-4 flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <div className="text-xs text-amber-700">
+                  <p className="font-medium mb-0.5">Slack isn't connected yet.</p>
+                  <p>
+                    You can still configure the persona, but the agent won't be able to post until you{" "}
+                    <button type="button" onClick={() => navigate("/app/connections")} className="underline font-medium">
+                      connect Slack
+                    </button>.
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Display name in Slack</Label>
+                <Input
+                  value={slackUsername}
+                  onChange={(e) => setSlackUsername(e.target.value)}
+                  placeholder={name || "e.g. Feedback Bot"}
+                  maxLength={80}
+                />
+                <p className="text-[11px] text-muted-foreground">Defaults to the agent's name if left blank.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Avatar image URL (optional)</Label>
+                <Input
+                  value={slackIconUrl}
+                  onChange={(e) => setSlackIconUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.png"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Or emoji (used if no image URL)</Label>
+                <Input
+                  value={slackIconEmoji}
+                  onChange={(e) => setSlackIconEmoji(e.target.value)}
+                  placeholder=":robot_face:"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Default channel (optional)</Label>
+                <Input
+                  value={slackDefaultChannel}
+                  onChange={(e) => setSlackDefaultChannel(e.target.value)}
+                  placeholder="#product-feedback or C0123456789"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Where this agent posts by default. The bot must be invited to private channels.
+                </p>
+              </div>
+            </div>
+          </SectionCard>
+        )}
+        {/* STEP 3 — SOP */}
+        {step === 3 && (
           <SectionCard title="Standard Operating Procedure" subtitle="Atomic, testable steps. No ambiguity — the agent will follow these exactly, in order.">
+
             <div className="space-y-3">
               {sopSteps.map((s, i) => (
                 <div key={i} className="flex items-start gap-2">
@@ -510,7 +585,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
         )}
 
         {/* STEP 4 — Safety */}
-        {step === 3 && (
+        {step === 4 && (
           <div className="space-y-5">
             <SectionCard title="Can-do" subtitle="Explicit allow-list. The agent may only do things on this list.">
               <ListEditor
@@ -538,7 +613,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
         )}
 
         {/* STEP 5 — Supervisor */}
-        {step === 4 && (
+        {step === 5 && (
           <SectionCard
             title="Supervising employee"
             subtitle="Every agent reports to one Employee that owns the broader strategic domain. Pick one, or leave unassigned and assign later."

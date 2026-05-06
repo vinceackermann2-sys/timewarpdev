@@ -125,6 +125,10 @@ export type Database = {
           safety_can_do: Json
           safety_cannot_do: Json
           safety_escalation_path: string | null
+          slack_bot_icon_emoji: string | null
+          slack_bot_icon_url: string | null
+          slack_bot_username: string | null
+          slack_default_channel: string | null
           sop_output: string | null
           sop_steps: Json
           status: string
@@ -150,6 +154,10 @@ export type Database = {
           safety_can_do?: Json
           safety_cannot_do?: Json
           safety_escalation_path?: string | null
+          slack_bot_icon_emoji?: string | null
+          slack_bot_icon_url?: string | null
+          slack_bot_username?: string | null
+          slack_default_channel?: string | null
           sop_output?: string | null
           sop_steps?: Json
           status?: string
@@ -175,6 +183,10 @@ export type Database = {
           safety_can_do?: Json
           safety_cannot_do?: Json
           safety_escalation_path?: string | null
+          slack_bot_icon_emoji?: string | null
+          slack_bot_icon_url?: string | null
+          slack_bot_username?: string | null
+          slack_default_channel?: string | null
           sop_output?: string | null
           sop_steps?: Json
           status?: string
