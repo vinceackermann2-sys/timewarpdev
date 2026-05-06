@@ -77,16 +77,17 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
     try { return JSON.parse(draftJson); } catch { return null; }
   }, [draftJson]);
   if (!config) return null;
+  const sections = Array.isArray(config.sections) ? config.sections : [];
 
   const handleSave = () => saveToDatabase(config.title, "document", draftJson);
   const handleDownload = async () => {
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text(config.title, 20, 20);
+    doc.text(config.title || "Document", 20, 20);
     let y = 35;
     doc.setFontSize(11);
-    config.sections.forEach(sec => {
+    sections.forEach(sec => {
       if (sec.heading) {
         if (y > 270) { doc.addPage(); y = 20; }
         doc.setFontSize(13);
