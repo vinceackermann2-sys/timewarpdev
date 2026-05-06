@@ -768,6 +768,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
 
     supabase.from("ai_employee_logs").insert({ employee_id: emp.id, user_id: user!.id, status: "completed", step_label: "Task completed", message: `Completed in ${durationSec}s` }).then(() => {});
 
+    accumulatedContent = stripEmptyStatusLines(accumulatedContent);
     const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(accumulatedContent || "Task completed.");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     const { content: contentNoSources, attribution: parsedAttribution } = extractAssistantSources(cleanContent);
@@ -841,7 +842,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         planConfidence: artifact.confidence,
       } : {}),
     } : m));
-  }, [messages, setMessages, user, supabase, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId, timeoutForTask]);
+  }, [messages, setMessages, user, supabase, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId, timeoutForTask, planMode]);
 
   const runComputerMode = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const emp = userMsg.employees?.[0];
