@@ -321,11 +321,19 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     const { content: contentNoSources, attribution: parsedAttribution } = extractAssistantSources(cleanContent);
+    const effectivePlanArtifact = artifact || (planMode && replyContractMeta === "strategic_plan" && contentNoSources.trim().length > 300
+      ? {
+          title: "Strategic Plan",
+          markdown: contentNoSources.trim(),
+          evidenceSources: [],
+          confidence: "unknown" as const,
+        }
+      : null);
     const dataSourceAttribution = ensureAssistantSourceAttribution(contentNoSources, parsedAttribution, {
       replyContract: replyContractMeta,
       userSnippet: userMsg.content || "",
     });
-    const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
+    const derivedPlanActions = effectivePlanArtifact ? extractPlanActions(effectivePlanArtifact.markdown) : [];
     // Fold derived plan actions into the first question group so they
     // surface alongside the AI-authored options on the legacy single-card
     // path. When the AI asks multiple questions, the parser already
@@ -393,11 +401,11 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       isStreaming: false,
       ...(extensionLiveReg ? { liveSourceRegistry: extensionLiveReg } : {}),
       ...(pipelineSourcesForTurn.length ? { sources: pipelineSourcesForTurn } : {}),
-      ...(artifact ? {
-        planContent: artifact.markdown,
+      ...(effectivePlanArtifact ? {
+        planContent: effectivePlanArtifact.markdown,
         planSavedToDb: false,
-        planEvidenceSources: artifact.evidenceSources,
-        planConfidence: artifact.confidence,
+        planEvidenceSources: effectivePlanArtifact.evidenceSources,
+        planConfidence: effectivePlanArtifact.confidence,
       } : {}),
     } : m));
   }, [messages, setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId, timeoutForTask, planMode]);
