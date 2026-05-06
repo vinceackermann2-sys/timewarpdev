@@ -356,7 +356,9 @@ export function useExtensionBridge() {
   }, []);
 
   const signalStop = useCallback((employeeId: string) => {
-    window.postMessage({ type: "TIMEWARP_EMPLOYEE_STOP", employeeId, closeTabGroup: true }, "*");
+    const msg = { type: "TIMEWARP_EMPLOYEE_STOP", employeeId, closeTabGroup: true };
+    void sendDirectExtensionMessage(msg);
+    window.postMessage(msg, "*");
   }, []);
 
   /**
@@ -391,7 +393,9 @@ export function useExtensionBridge() {
     isManualMode?: boolean;
     safetyAlert?: string | null;
   }) => {
-    window.postMessage({ type: "TIMEWARP_OVERLAY_UPDATE", targetGroupTab: true, ...state }, "*");
+    const msg = { type: "TIMEWARP_OVERLAY_UPDATE", targetGroupTab: true, ...state };
+    void sendDirectExtensionMessage(msg);
+    window.postMessage(msg, "*");
   }, []);
 
   return {
