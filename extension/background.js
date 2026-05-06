@@ -167,6 +167,12 @@ async function handleExecuteAction(msg, sender) {
       console.warn("[TW executeAction] snapshot failed:", e.message);
     }
 
+    // Attach the debugger before issuing CDP-driven click/type/press actions.
+    const cdpTypes = new Set(["click","type","input","press","key_press","keypress","hover"]);
+    if (cdpTypes.has((action.type||"").toLowerCase())) {
+      await _ensureDebuggerAttached(targetTabId);
+    }
+
     const raw = await _execAction(targetTabId, action, elements);
 
     return {
