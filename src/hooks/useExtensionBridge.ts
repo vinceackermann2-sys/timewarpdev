@@ -211,9 +211,9 @@ export function useExtensionBridge() {
     setTimeout(() => setDetecting(false), 2500);
   }, []);
 
-  const getPageContext = useCallback((): Promise<PageContext> => {
+  const getPageContext = useCallback((): Promise<PageContext | null> => {
     return new Promise((resolve) => {
-      resolversRef.current.set("page_context", resolve);
+      resolversRef.current.set("page_context", resolve as (v: any) => void);
       window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
       setTimeout(() => {
         if (resolversRef.current.has("page_context")) {
@@ -222,7 +222,7 @@ export function useExtensionBridge() {
           setTimeout(() => {
             if (resolversRef.current.has("page_context")) {
               resolversRef.current.delete("page_context");
-              resolve({});
+              resolve(null);
             }
           }, 2500);
         }
