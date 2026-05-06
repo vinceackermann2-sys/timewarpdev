@@ -90,6 +90,7 @@ async function handleStartGoogleSignIn() {
     // is for this specific extension request.
     const nonce = (crypto.randomUUID?.() || Math.random().toString(36).slice(2)) + Date.now();
     _pendingAuthNonce = nonce;
+    await chrome.storage.session.set({ timewarp_pending_auth_nonce: nonce }).catch(() => chrome.storage.local.set({ timewarp_pending_auth_nonce: nonce }));
     const url = `https://timewarpdev.lovable.app/auth?ext_nonce=${encodeURIComponent(nonce)}&mode=login`;
     await chrome.tabs.create({ url, active: true });
     return { success: true };
@@ -100,10 +101,13 @@ async function handleStartGoogleSignIn() {
 
 async function handleAuthDeliver(session, nonce) {
   try {
-    if (!session?.access_token || !nonce || nonce !== _pendingAuthNonce) {
+    const stored = await chrome.storage.session.get("timewarp_pending_auth_nonce").catch(() => chrome.storage.local.get("timewarp_pending_auth_nonce"));
+    const expectedNonce = _pendingAuthNonce || stored?.timewarp_pending_auth_nonce;
+    if (!session?.access_token || !nonce || nonce !== expectedNonce) {
       return { success: false, error: "Invalid auth delivery" };
     }
     _pendingAuthNonce = null;
+    await chrome.storage.session.remove("timewarp_pending_auth_nonce").catch(() => chrome.storage.local.remove("timewarp_pending_auth_nonce"));
     await chrome.storage.local.set({ timewarp_session: session });
     return { success: true };
   } catch (e) {
