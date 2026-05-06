@@ -319,11 +319,43 @@ async function handleEmployeeStart(payload) {
     }
 
     console.log("[TW] Employee session ready", { tabId, groupId: _sessionGroupId, requestId });
+    await waitForTabReady(tabId);
+    await ensureBridgeContentScript(tabId);
+    await handleOverlayUpdate({ visible: true, employeeName, currentStep: "Starting…" });
     return { success: true, tabId, groupId: _sessionGroupId, requestId };
   } catch (e) {
     console.error("[TW] handleEmployeeStart error:", e.message);
     return { success: false, error: e.message, requestId: payload?.requestId || null };
   }
+}
+
+async function waitForTabReady(tabId) {
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (!tab?.url?.startsWith("http") || tab.status === "complete") return;
+  await new Promise((resolve) => {
+    const listener = (id, info) => {
+      if (id === tabId && info.status === "complete") {
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    };
+    chrome.tabs.onUpdated.addListener(listener);
+    setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    }, 8000);
+  });
+}
+
+async function ensureBridgeContentScript(tabId) {
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (!tab?.url?.startsWith("http")) return false;
+  const ping = await chrome.tabs.sendMessage(tabId, { type: "TIMEWARP_PING" }).catch(() => null);
+  if (ping?.type === "TIMEWARP_PONG") return true;
+  await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] }).catch(() => null);
+  await _sleep(250);
+  const retry = await chrome.tabs.sendMessage(tabId, { type: "TIMEWARP_PING" }).catch(() => null);
+  return retry?.type === "TIMEWARP_PONG";
 }
 
 // ── TIMEWARP_EMPLOYEE_STOP ────────────────────────────────────────────────────
