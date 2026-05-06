@@ -122,6 +122,12 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
 
+  // Step 3 (Slack persona)
+  const [slackUsername, setSlackUsername] = useState("");
+  const [slackIconUrl, setSlackIconUrl] = useState("");
+  const [slackIconEmoji, setSlackIconEmoji] = useState("");
+  const [slackDefaultChannel, setSlackDefaultChannel] = useState("");
+
   // Load connected providers when entering the integrations step.
   useEffect(() => {
     if (step !== 1) return;
