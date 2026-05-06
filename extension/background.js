@@ -57,12 +57,12 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg.type==="LOGOUT")          { handleLogout().then(reply); return true; }
   if (msg.type==="GET_SESSION")     { getSession().then(reply); return true; }
   if (msg.type==="REFRESH_SESSION") { refreshSession().then(reply); return true; }
+  if (msg.type==="START_GOOGLE_SIGN_IN") { handleStartGoogleSignIn().then(reply); return true; }
+  if (msg.type==="TIMEWARP_AUTH_DELIVER") { handleAuthDeliver(msg.session, msg.nonce).then(reply); return true; }
   if (msg.type==="GET_PAGE_CONTEXT")         { getPageContext(msg.tabId).then(reply); return true; }
   if (msg.type==="TIMEWARP_GET_PAGE_CONTEXT") { handleGetGroupPageContext(msg).then(reply); return true; }
   if (msg.type==="CHAT")            { handleChat(msg).then(reply); return true; }
   if (msg.type==="RUN_AGENT_TASK")  { runAgentTask(msg).then(reply); return true; }
-  // Synchronous handlers — reply immediately, still return true so Chrome
-  // doesn't complain about the channel being used after it closes.
   if (msg.type==="STOP_AGENT")      { _stop=true; if(_pauseResolve){_pauseResolve(false);_pauseResolve=null;} if(_verifyResolve){_verifyResolve(false);_verifyResolve=null;} reply({ok:true}); return true; }
   if (msg.type==="CONTINUE_AGENT")  { if(_pauseResolve){_pauseResolve(true);_pauseResolve=null;} reply({ok:true}); return true; }
   if (msg.type==="APPROVE_ACTION")  { if(_verifyResolve){_verifyResolve(msg.approved);_verifyResolve=null;} reply({ok:true}); return true; }
@@ -72,13 +72,42 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg.type==="TIMEWARP_EMPLOYEE_START") { handleEmployeeStart(msg.payload || msg).then(reply); return true; }
   if (msg.type==="TIMEWARP_EMPLOYEE_STOP")  { handleEmployeeStop(msg.payload  || msg).then(reply); return true; }
   if (msg.type==="TIMEWARP_OVERLAY_UPDATE") {
-    // Forward overlay state to the group tab's content script so it can render the overlay
     if (_groupTabId) {
       chrome.tabs.sendMessage(_groupTabId, { type: "TIMEWARP_OVERLAY_UPDATE", ...msg }).catch(() => {});
     }
     reply({ ok: true }); return true;
   }
 });
+
+// ── Pending auth nonce (used for Google sign-in via app bridge) ──────────────
+let _pendingAuthNonce = null;
+
+async function handleStartGoogleSignIn() {
+  try {
+    // Generate a one-time nonce so the app can prove the session it sends back
+    // is for this specific extension request.
+    const nonce = (crypto.randomUUID?.() || Math.random().toString(36).slice(2)) + Date.now();
+    _pendingAuthNonce = nonce;
+    const url = `https://timewarpdev.lovable.app/auth?ext_nonce=${encodeURIComponent(nonce)}`;
+    await chrome.tabs.create({ url, active: true });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+async function handleAuthDeliver(session, nonce) {
+  try {
+    if (!session?.access_token || !nonce || nonce !== _pendingAuthNonce) {
+      return { success: false, error: "Invalid auth delivery" };
+    }
+    _pendingAuthNonce = null;
+    await chrome.storage.local.set({ timewarp_session: session });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
 
 // ── TIMEWARP_EXECUTE_ACTION ───────────────────────────────────────────────────
 // Called when a content script or page forwards an action with executeInTab:true.
