@@ -71,6 +71,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg.type==="CONTINUE_OVERLAY"){ _overlayPaused=false; if(_overlayResolve){_overlayResolve();_overlayResolve=null;} reply({ok:true}); return true; }
   if (msg.type==="STOP_CHAT")           { if(_chatAbortController){_chatAbortController.abort();_chatAbortController=null;} reply({ok:true}); return true; }
   if (msg.type==="TIMEWARP_EMPLOYEE_START") { handleEmployeeStart(msg.payload || msg).then(reply); return true; }
+  if (msg.type==="TIMEWARP_OPEN_GROUP_TAB") { handleEmployeeStart(msg.payload || msg).then(reply); return true; }
   if (msg.type==="TIMEWARP_EMPLOYEE_STOP")  { handleEmployeeStop(msg.payload  || msg).then(reply); return true; }
   if (msg.type==="TIMEWARP_OVERLAY_UPDATE") {
     if (_groupTabId) {
@@ -89,7 +90,8 @@ async function handleStartGoogleSignIn() {
     // is for this specific extension request.
     const nonce = (crypto.randomUUID?.() || Math.random().toString(36).slice(2)) + Date.now();
     _pendingAuthNonce = nonce;
-    const url = `https://timewarpdev.lovable.app/auth?ext_nonce=${encodeURIComponent(nonce)}`;
+    await chrome.storage.session.set({ timewarp_pending_auth_nonce: nonce }).catch(() => chrome.storage.local.set({ timewarp_pending_auth_nonce: nonce }));
+    const url = `https://timewarpdev.lovable.app/auth?ext_nonce=${encodeURIComponent(nonce)}&mode=login`;
     await chrome.tabs.create({ url, active: true });
     return { success: true };
   } catch (e) {
@@ -99,10 +101,13 @@ async function handleStartGoogleSignIn() {
 
 async function handleAuthDeliver(session, nonce) {
   try {
-    if (!session?.access_token || !nonce || nonce !== _pendingAuthNonce) {
+    const stored = await chrome.storage.session.get("timewarp_pending_auth_nonce").catch(() => chrome.storage.local.get("timewarp_pending_auth_nonce"));
+    const expectedNonce = _pendingAuthNonce || stored?.timewarp_pending_auth_nonce;
+    if (!session?.access_token || !nonce || nonce !== expectedNonce) {
       return { success: false, error: "Invalid auth delivery" };
     }
     _pendingAuthNonce = null;
+    await chrome.storage.session.remove("timewarp_pending_auth_nonce").catch(() => chrome.storage.local.remove("timewarp_pending_auth_nonce"));
     await chrome.storage.local.set({ timewarp_session: session });
     return { success: true };
   } catch (e) {
@@ -222,7 +227,10 @@ async function handleEmployeeStart(payload) {
     const focusGroup   = payload?.focusGroup === true;
     const useTabGroup  = payload?.useTabGroup !== false;
     const employeeName = payload?.employeeName || payload?.taskName || payload?.task || "TimeWarp";
-    const startUrl     = payload?.url || payload?.startUrl || "https://www.google.com";
+    const requestId    = payload?.requestId || null;
+    let startUrl       = payload?.url || payload?.startUrl || "https://www.google.com";
+    if (typeof startUrl !== "string" || !startUrl.trim()) startUrl = "https://www.google.com";
+    if (!/^https?:\/\//i.test(startUrl)) startUrl = "https://www.google.com/search?q=" + encodeURIComponent(startUrl);
 
     // Idempotent: if a session tab already exists and is alive, reuse it.
     if (_groupTabId) {
@@ -267,10 +275,18 @@ async function handleEmployeeStart(payload) {
       _sessionGroupId = null;
     }
 
-    return { success: true, tabId, groupId: _sessionGroupId };
+    if (focusGroup) {
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (tab?.windowId) await chrome.windows.update(tab.windowId, { focused: true });
+      } catch (_) {}
+    }
+
+    console.log("[TW] Employee session ready", { tabId, groupId: _sessionGroupId, requestId });
+    return { success: true, tabId, groupId: _sessionGroupId, requestId };
   } catch (e) {
     console.error("[TW] handleEmployeeStart error:", e.message);
-    return { success: false, error: e.message };
+    return { success: false, error: e.message, requestId: payload?.requestId || null };
   }
 }
 

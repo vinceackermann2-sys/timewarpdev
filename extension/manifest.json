@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TimeWarp \u2013 AI CEO",
-  "version": "1.0.4",
-  "description": "TimeWarp \u2013 your private AI CEO. Securely connects the TimeWarp web app to your browser for safe, supervised Computer mode.",
+  "name": "TimeWarp – AI CEO",
+  "version": "1.0.5",
+  "description": "TimeWarp – your private AI CEO. Securely connects the TimeWarp web app to your browser for safe, supervised Computer mode.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -11,7 +11,8 @@
     "tabGroups",
     "sidePanel",
     "debugger",
-    "windows"
+    "windows",
+    "identity"
   ],
   "host_permissions": [
     "<all_urls>"

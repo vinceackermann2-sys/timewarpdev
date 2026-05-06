@@ -1,4 +1,4 @@
-// TimeWarp Content Script v1.0.4
+// TimeWarp Content Script v1.0.5
 // Bridges trusted TimeWarp web origins to the background service worker.
 
 const TRUSTED_ORIGINS = [
@@ -30,8 +30,8 @@ function post(payload) {
 
 // Announce ourselves to whoever is listening on this page (the TimeWarp app).
 try {
-  document.documentElement.setAttribute("data-timewarp-extension", "1.0.4");
-  post({ type: "TIMEWARP_EXTENSION_READY", version: "1.0.4" });
+  document.documentElement.setAttribute("data-timewarp-extension", "1.0.5");
+  post({ type: "TIMEWARP_EXTENSION_READY", version: "1.0.5" });
 } catch { /* noop */ }
 
 window.addEventListener("message", (event) => {
@@ -41,7 +41,7 @@ window.addEventListener("message", (event) => {
 
   // ── Ping ──
   if (data === "TIMEWARP_PING" || data?.type === "TIMEWARP_PING") {
-    post({ type: "TIMEWARP_PONG", version: "1.0.4" });
+    post({ type: "TIMEWARP_PONG", version: "1.0.5" });
     return;
   }
 
@@ -63,11 +63,13 @@ window.addEventListener("message", (event) => {
   // ── Session start ──
   if (data?.type === "TIMEWARP_EMPLOYEE_START" || data?.type === "TIMEWARP_OPEN_GROUP_TAB") {
     chrome.runtime.sendMessage(
-      { type: "TIMEWARP_EMPLOYEE_START", payload: data.payload || data },
+      { type: data.type, payload: data.payload || data },
       (response) => {
+        const runtimeError = chrome.runtime.lastError?.message;
         post({
           type: "TIMEWARP_GROUP_READY",
-          payload: response || { success: false, error: "No response from background" },
+          requestId: data.requestId || data.payload?.requestId || response?.requestId,
+          payload: response || { success: false, error: runtimeError || "No response from background" },
         });
       },
     );

@@ -184,12 +184,16 @@ const Auth = () => {
     setIsGoogleLoading(true);
     try {
       const session = await getSafeSession();
-      const oauthRedirect = `${window.location.origin}${searchParams.get("redirect") || "/app"}`;
+      const extNonce = searchParams.get("ext_nonce");
+      const oauthRedirect = extNonce
+        ? `${window.location.origin}/auth?ext_nonce=${encodeURIComponent(extNonce)}&mode=login`
+        : `${window.location.origin}${searchParams.get("redirect") || "/app"}`;
 
       // Not signed in yet — use managed OAuth (no extra scopes needed)
       if (!session?.user) {
         const result = await lovable.auth.signInWithOAuth("google", {
           redirect_uri: oauthRedirect,
+          extraParams: { prompt: "select_account" },
         });
 
         if (result.error) throw result.error;
