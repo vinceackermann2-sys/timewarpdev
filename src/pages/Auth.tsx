@@ -317,6 +317,18 @@ const Auth = () => {
     }
   };
 
+  if (extNonce && extDelivered) {
+    return (
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3">
+          <img src="/favicon.png" alt="TimeWarp" className="h-12 w-12 rounded-lg object-cover mx-auto" />
+          <h1 className="text-2xl font-bold text-foreground">Extension signed in</h1>
+          <p className="text-sm text-muted-foreground">You can close this tab and return to the TimeWarp extension.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center p-4 bg-background">
