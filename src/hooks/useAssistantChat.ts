@@ -417,7 +417,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     // a fresh grouped tab even on builds that ignore createNewTab without a url.
     const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
     const startUrl = urlMatch ? urlMatch[0] : undefined;
-    const signaled = await signalStart("agent", selectedAgent || "AI Agent", { startUrl, focusGroup: true });
+    const signaled = await signalStart("agent", selectedAgent || "AI Agent", { startUrl, focusGroup: false });
     if (!signaled) {
       const msg = "Browser extension did not open a tab. Make sure the TimeWarp extension is installed, signed in, and that Computer mode has permission, then try again.";
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));
@@ -882,7 +882,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
 
     const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
     const startUrl = urlMatch ? urlMatch[0] : undefined;
-    const signaled = await signalStart(emp.id, emp.name, { startUrl, focusGroup: true });
+    const signaled = await signalStart(emp.id, emp.name, { startUrl, focusGroup: false });
     if (!signaled) {
       const msg = "Could not start extension browser session. Please reconnect the extension and try again.";
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));

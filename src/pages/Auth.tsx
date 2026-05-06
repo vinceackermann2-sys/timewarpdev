@@ -85,32 +85,39 @@ const Auth = () => {
 
   // ── Extension auth bridge ──
   // If the extension launched sign-in via /auth?ext_nonce=..., once a session
-  // exists, post it back over window.postMessage. The extension's content
-  // script (only loaded on trusted timewarp origins) relays it to background.
+  // exists, post it back to the background. If the user is ALREADY signed in,
+  // we deliver immediately and show a "you can close this tab" confirmation
+  // instead of redirecting to /app.
+  const extNonce = searchParams.get("ext_nonce");
+  const [extDelivered, setExtDelivered] = useState(false);
   useEffect(() => {
-    const nonce = searchParams.get("ext_nonce");
-    if (!nonce) return;
+    if (!extNonce) return;
     let cancelled = false;
     const tryDeliver = async () => {
       const session = await getSafeSession();
       if (cancelled || !session?.access_token) return false;
       const authPayload = {
         type: "TIMEWARP_AUTH_DELIVER",
-        nonce,
+        nonce: extNonce,
         session: {
           access_token: session.access_token,
           refresh_token: session.refresh_token,
           user: { id: session.user.id, email: session.user.email },
         },
       };
-      void sendDirectExtensionMessage(authPayload);
+      const direct = await sendDirectExtensionMessage(authPayload);
       window.postMessage(authPayload, window.location.origin);
+      if (direct?.success || direct?.success === undefined) {
+        setExtDelivered(true);
+        // Try to close the tab automatically (works if the tab was opened by the extension via chrome.tabs.create — window.close may be blocked).
+        setTimeout(() => { try { window.close(); } catch {} }, 600);
+      }
       return true;
     };
     tryDeliver();
     const { data: sub } = supabase.auth.onAuthStateChange(() => { tryDeliver(); });
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
-  }, [searchParams]);
+  }, [extNonce]);
 
   useEffect(() => {
     if (quizData) {
@@ -146,6 +153,9 @@ const Auth = () => {
     };
 
     const handleAuthenticatedUser = async (userId: string, session: any) => {
+      // If we're handling an extension sign-in, do NOT redirect — let the
+      // ext_nonce effect deliver the session and show the close-tab message.
+      if (extNonce) return;
       const celebrated = await processReferral(userId);
       if (celebrated) return;
       const redirect = searchParams.get("redirect");
@@ -180,7 +190,7 @@ const Auth = () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate, quizData, searchParams]);
+  }, [navigate, quizData, searchParams, extNonce]);
 
   const validateForm = () => {
     if (!email || !password) {
@@ -306,6 +316,18 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  if (extNonce && extDelivered) {
+    return (
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3">
+          <img src="/favicon.png" alt="TimeWarp" className="h-12 w-12 rounded-lg object-cover mx-auto" />
+          <h1 className="text-2xl font-bold text-foreground">Extension signed in</h1>
+          <p className="text-sm text-muted-foreground">You can close this tab and return to the TimeWarp extension.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col">

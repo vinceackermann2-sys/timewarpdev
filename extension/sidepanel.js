@@ -823,6 +823,18 @@ document.getElementById("clear-btn").addEventListener("click", () => {
   resetMessages();
 });
 
+document.getElementById("signout-btn")?.addEventListener("click", async () => {
+  if (agentRunning) return;
+  if (!confirm("Sign out of TimeWarp?")) return;
+  try { await sendMsg({ type: "LOGOUT" }); } catch {}
+  session = null;
+  chatHistory = [];
+  agentCard = null;
+  _currentSessionId = null;
+  try { resetMessages(); } catch {}
+  showScreen("auth");
+});
+
 // ── Input ─────────────────────────────────────────────────────────────────────
 document.getElementById("send-btn").addEventListener("click", handleSendOrStop);
 document.getElementById("chat-input").addEventListener("keydown", e => {

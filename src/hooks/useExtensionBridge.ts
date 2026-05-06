@@ -316,7 +316,7 @@ export function useExtensionBridge() {
       // grouped tab. Pass an explicit startUrl (about:blank by default) so the
       // extension actually opens a new tab inside the group.
       const startUrl = opts?.startUrl || "https://www.google.com";
-      const focusGroup = opts?.focusGroup ?? true;
+      const focusGroup = opts?.focusGroup ?? false;
       const payload = {
         type: "TIMEWARP_EMPLOYEE_START",
         employeeId,
