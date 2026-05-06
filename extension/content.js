@@ -29,6 +29,18 @@ function post(payload) {
   window.postMessage({ source: "timewarp-extension", ...payload }, "*");
 }
 
+function replyWithGroupReady(data, response, runtimeError) {
+  const requestId = data.requestId || data.payload?.requestId || response?.requestId;
+  post({
+    type: "TIMEWARP_GROUP_READY",
+    requestId,
+    payload: {
+      ...(response || { success: false, error: runtimeError || "No response from background" }),
+      requestId,
+    },
+  });
+}
+
 // Announce ourselves to whoever is listening on this page (the TimeWarp app).
 try {
   document.documentElement.setAttribute("data-timewarp-extension", VERSION);
@@ -67,11 +79,7 @@ window.addEventListener("message", (event) => {
       { type: data.type, payload: data.payload || data },
       (response) => {
         const runtimeError = chrome.runtime.lastError?.message;
-        post({
-          type: "TIMEWARP_GROUP_READY",
-          requestId: data.requestId || data.payload?.requestId || response?.requestId,
-          payload: response || { success: false, error: runtimeError || "No response from background" },
-        });
+        replyWithGroupReady(data, response, runtimeError);
       },
     );
     return;
