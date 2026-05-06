@@ -912,6 +912,11 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       while (stepCount < maxSteps) {
         throwIfCancelled();
         const pageContext = stepCount === 0 ? initialPageContext : await getPageContext();
+        if (!pageContext) {
+          const msg = "Lost connection to the browser extension (no page context). Stop and reconnect the extension before retrying Computer mode.";
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, taskSteps: [...(taskSteps || [])], isStreaming: false } : m));
+          return;
+        }
         throwIfCancelled();
         const stepTime = new Date();
 
