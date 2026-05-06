@@ -417,7 +417,13 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     // a fresh grouped tab even on builds that ignore createNewTab without a url.
     const urlMatch = userMsg.content.match(/https?:\/\/[^\s)]+/i);
     const startUrl = urlMatch ? urlMatch[0] : undefined;
-    await signalStart("agent", selectedAgent || "AI Agent", { startUrl, focusGroup: true });
+    const signaled = await signalStart("agent", selectedAgent || "AI Agent", { startUrl, focusGroup: true });
+    if (!signaled) {
+      const msg = "Browser extension did not open a tab. Make sure the TimeWarp extension is installed, signed in, and that Computer mode has permission, then try again.";
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));
+      toast.error(msg);
+      return;
+    }
     updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: "Starting..." });
 
     let stepCount = 0;
@@ -438,6 +444,11 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       while (stepCount < maxSteps) {
         throwIfCancelled();
         const pageContext = await getPageContext();
+        if (!pageContext) {
+          const msg = "Lost connection to the browser extension (no page context). Stop and reconnect the extension before retrying Computer mode.";
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, taskSteps: [...(taskSteps || [])], isStreaming: false } : m));
+          return;
+        }
         throwIfCancelled();
         const stepTime = new Date();
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
