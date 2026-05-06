@@ -48,6 +48,7 @@ interface Props {
 const STEPS = [
   { key: "trigger", label: "Trigger", icon: Zap },
   { key: "integrations", label: "Integrations", icon: Plug },
+  { key: "slack", label: "Slack Bot", icon: Hash },
   { key: "sop", label: "SOP", icon: Workflow },
   { key: "safety", label: "Safety", icon: ShieldCheck },
   { key: "supervisor", label: "Supervisor", icon: UserCog },
