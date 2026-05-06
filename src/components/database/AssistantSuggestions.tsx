@@ -85,10 +85,13 @@ export function AssistantSuggestions({
 
   return (
     <div className={cn("flex flex-col gap-2", variant === "overlay" ? "w-full" : "max-w-md")}>
-      <div className="flex items-center justify-between px-0.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-baseline gap-2 px-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shrink-0">
           {totalSteps > 1 ? `Question ${stepIdx + 1} of ${totalSteps}` : "Question"}
         </p>
+        {currentGroup.title && (
+          <p className="text-[11px] text-muted-foreground/80 truncate">— {currentGroup.title}</p>
+        )}
       </div>
       <SuggestionCard
         group={currentGroup}
