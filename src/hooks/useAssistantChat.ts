@@ -100,6 +100,13 @@ function toChatApiPayload(messages: ChatMessage[]): { role: string; content: str
     }));
 }
 
+function stripEmptyStatusLines(content: string): string {
+  return String(content || "")
+    .replace(/^\s*(?:[-*]\s*)?\*{0,2}status\*{0,2}\s*:\s*$/gim, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export interface ExtensionBridgeActions {
   getPageContext: () => Promise<any>;
   executeAction: (action: any) => Promise<any>;
@@ -310,6 +317,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       handleProgressStep({ label: "Finished", status: "done", action: "complete" });
     }
 
+    fullContent = stripEmptyStatusLines(fullContent);
     const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     const { content: contentNoSources, attribution: parsedAttribution } = extractAssistantSources(cleanContent);
@@ -392,7 +400,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         planConfidence: artifact.confidence,
       } : {}),
     } : m));
-  }, [messages, setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId, timeoutForTask]);
+  }, [messages, setMessages, fetchWithTimeout, activeWorkspaceId, sessionMemory, resolveBrandRowId, timeoutForTask, planMode]);
 
   const runAgentChatWithBrowser = useCallback(async (session: { access_token: string }, userMsg: ChatMessage, assistantId: string) => {
     const brandRowId = resolveBrandRowId();
