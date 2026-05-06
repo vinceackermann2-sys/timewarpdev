@@ -97,6 +97,7 @@ export function AgentChatMessageList({
           .replace(/```assistant_sources[\s\S]*?(?:```|$)/gi, "")
           .replace(/\bassistant_sources\s*\{[\s\S]*?\}\s*$/i, "")
           .replace(/\bassistant_sources\s*\{[\s\S]*?"sources"\s*:\s*\[[\s\S]*?\]\s*\}/gi, "")
+          .replace(/^\s*(?:[-*]\s*)?\*{0,2}status\*{0,2}\s*:\s*$/gim, "")
           .replace(/```[a-zA-Z0-9_-]*\s*\n?\s*```/g, "")
           .replace(/\n*```[a-zA-Z0-9_-]*\s*$/g, "")
           .trimEnd();
