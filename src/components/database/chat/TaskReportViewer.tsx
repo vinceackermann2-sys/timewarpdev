@@ -1,10 +1,26 @@
-import { useState } from "react";
-import { ChevronRight, Download, FileText, Loader2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronRight, Download, FileText, Loader2, X, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import TurndownService from "turndown";
 import { cn } from "@/lib/utils";
 import { getSharedChatMarkdownComponents } from "@/components/database/chat/sharedChatMarkdown";
 import { toast } from "sonner";
+
+/** Pull a sensible default title from the markdown body (first heading or first sentence). */
+function deriveTitleFromContent(md: string): string {
+  if (!md) return "";
+  const headingMatch = md.match(/^\s*#{1,3}\s+(.+?)\s*$/m);
+  if (headingMatch) return headingMatch[1].replace(/[*_`]/g, "").slice(0, 80).trim();
+  const firstLine = md.split(/\n+/).find((l) => l.trim().length > 0) || "";
+  return firstLine.replace(/[#*_`>]+/g, "").slice(0, 80).trim();
+}
+
+const turndown = new TurndownService({
+  headingStyle: "atx",
+  bulletListMarker: "-",
+  codeBlockStyle: "fenced",
+});
 
 export function TaskReportViewer({
   content,
@@ -23,25 +39,43 @@ export function TaskReportViewer({
 }) {
   const [open, setOpen] = useState(false);
   const [editContent, setEditContent] = useState(content);
-  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!savedToDb);
+  const derivedTitle = deriveTitleFromContent(content) || dialogTitle || "Untitled document";
+  const [docName, setDocName] = useState(derivedTitle);
+  const [editingName, setEditingName] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setEditContent(content);
+    setDocName(deriveTitleFromContent(content) || dialogTitle || "Untitled document");
+  }, [content, dialogTitle]);
 
   const handleDownload = () => {
     const blob = new Blob([editContent], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "task-results.md";
+    const safeName = (docName || "document").replace(/[^a-z0-9-_]+/gi, "-").toLowerCase();
+    a.download = `${safeName}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const syncFromEditor = () => {
+    if (!editorRef.current) return editContent;
+    const html = editorRef.current.innerHTML;
+    const md = turndown.turndown(html);
+    setEditContent(md);
+    return md;
   };
 
   const handleSave = async () => {
     if (!onSaveToDb) return;
     setSaving(true);
     try {
-      await onSaveToDb(editContent);
+      const latest = syncFromEditor();
+      await onSaveToDb(latest);
       setSaved(true);
       toast.success("Document saved");
     } catch {
@@ -58,76 +92,98 @@ export function TaskReportViewer({
           setOpen(true);
           onOpened?.();
         }}
-        className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all text-sm font-medium text-foreground group"
+        className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-border bg-card hover:bg-muted/50 transition-all text-sm font-medium text-foreground group"
       >
         <FileText className="w-4 h-4 text-primary" />
-        {triggerLabel || "View Task Results"}
+        <span className="truncate max-w-[260px]">{docName || triggerLabel || "Open document"}</span>
         {saved && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
         <ChevronRight className="w-3.5 h-3.5 text-muted-foreground ml-auto group-hover:translate-x-0.5 transition-transform" />
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4"
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+            className="bg-card border border-border/60 rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border">
-              <FileText className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground flex-1">{dialogTitle || "Task Results"}</span>
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-border/60">
+              <FileText className="w-4 h-4 text-primary shrink-0" />
+              {editingName ? (
+                <input
+                  autoFocus
+                  value={docName}
+                  onChange={(e) => setDocName(e.target.value)}
+                  onBlur={() => setEditingName(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      setEditingName(false);
+                    }
+                  }}
+                  className="flex-1 text-sm font-semibold text-foreground bg-transparent border-b border-border focus:outline-none focus:border-primary"
+                />
+              ) : (
+                <button
+                  onClick={() => setEditingName(true)}
+                  className="text-sm font-semibold text-foreground flex-1 text-left truncate hover:text-primary transition-colors"
+                  title="Click to rename"
+                >
+                  {docName || "Untitled document"}
+                </button>
+              )}
               {saved && <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">Saved</span>}
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className={cn(
-                  "text-xs px-2.5 py-1 rounded-lg transition-colors",
-                  isEditing ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground",
-                )}
-              >
-                {isEditing ? "Preview" : "Edit"}
-              </button>
               {onSaveToDb && (
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="text-xs px-3 py-1.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 flex items-center gap-1.5 transition-opacity disabled:opacity-50"
                 >
-                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                   Save
                 </button>
               )}
               <button
                 onClick={handleDownload}
-                className="text-xs px-2.5 py-1 rounded-lg hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-xl hover:bg-muted text-muted-foreground flex items-center gap-1.5 transition-colors"
               >
                 <Download className="w-3 h-3" />
                 Download
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
-              {isEditing ? (
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full min-h-[400px] p-5 bg-transparent text-sm text-foreground font-mono resize-none focus:outline-none border-none"
-                  spellCheck={false}
-                />
-              ) : (
-                <div className="p-6 max-w-none text-foreground text-[14.5px] leading-[1.75]">
+            <div className="flex-1 overflow-y-auto bg-background/40">
+              <div className="px-10 py-8 max-w-3xl mx-auto">
+                {/* Render once, then keep editing in the live DOM via contentEditable */}
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={syncFromEditor}
+                  className={cn(
+                    "doc-editor outline-none text-foreground text-[15px] leading-[1.8]",
+                    "[&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:mt-6 [&_h1]:mb-3",
+                    "[&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2.5",
+                    "[&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2",
+                    "[&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1",
+                    "[&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6",
+                    "[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-4 [&_blockquote]:text-muted-foreground",
+                    "[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-muted [&_code]:text-[13px]",
+                  )}
+                >
                   <ReactMarkdown remarkPlugins={[remarkGfm]} components={getSharedChatMarkdownComponents() as any}>
                     {editContent}
                   </ReactMarkdown>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
