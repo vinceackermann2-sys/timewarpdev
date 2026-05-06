@@ -279,15 +279,6 @@ export function useExtensionBridge() {
         requestId,
       };
       window.postMessage(payload, "*");
-      // Some extension builds expect a separate "open tab" command:
-      window.postMessage({
-        type: "TIMEWARP_OPEN_GROUP_TAB",
-        employeeId,
-        employeeName,
-        url: startUrl,
-        focusGroup,
-        requestId,
-      }, "*");
       // Fallback: resolve after 5s even if extension doesn't confirm
       setTimeout(() => {
         if (resolversRef.current.has("group_ready")) {
