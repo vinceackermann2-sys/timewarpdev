@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TimeWarp \u2013 AI CEO",
-  "version": "1.0.3",
-  "description": "TimeWarp \u2013 AI CEO. Your personal AI employee.",
+  "version": "1.0.4",
+  "description": "TimeWarp \u2013 your private AI CEO. Securely connects the TimeWarp web app to your browser for safe, supervised Computer mode.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -17,7 +17,7 @@
     "<all_urls>"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://ohvxqlxugqlzzbmfypiy.supabase.co; img-src 'self' data: https://www.google.com; object-src 'self'"
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://ohvxqlxugqlzzbmfypiy.supabase.co https://timewarpdev.lovable.app https://timewarpdev.com; img-src 'self' data: https://www.google.com; object-src 'self'"
   },
   "background": {
     "service_worker": "background.js",
