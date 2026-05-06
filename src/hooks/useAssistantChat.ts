@@ -871,13 +871,10 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     try {
       initialPageContext = await getPageContext();
     } catch {
-      const msg = "Browser extension not connected. Open/enable the extension, then retry Computer mode.";
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));
-      toast.error(msg);
-      return;
+      initialPageContext = null;
     }
     if (!initialPageContext) {
-      const msg = "Could not read browser page context. Check extension permissions and active tab.";
+      const msg = "Browser extension not responding. Open/enable the TimeWarp extension in your browser, sign in, and try again.";
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: `⚠️ ${msg}`, isStreaming: false } : m));
       toast.error(msg);
       return;
