@@ -193,6 +193,8 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
                 model: "google/gemini-3-flash-preview",
                 messages: msgs,
                 stream: true,
+                temperature: 0.2,
+                top_p: 0.9,
                 ...(includeTools ? { tools, tool_choice: "auto" } : {}),
               }),
             });
