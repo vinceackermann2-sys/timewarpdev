@@ -200,6 +200,14 @@ export function useExtensionBridge() {
       }
     };
 
+    void sendDirectExtensionMessage<{ type?: string; source?: string }>({ type: "TIMEWARP_PING" }).then((response) => {
+      if (response?.type === "TIMEWARP_PONG") {
+        console.log("[ExtBridge] ✅ Direct extension connection detected.");
+        setExtensionConnected(true);
+        setDetecting(false);
+      }
+    });
+
     // Ping repeatedly with backoff so we don't miss the extension's listener
     // if it loads slightly after this hook mounts.
     const pingDelays = [0, 150, 400, 900, 1600, 2500, 4000];
