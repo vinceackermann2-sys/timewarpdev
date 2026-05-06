@@ -40,6 +40,7 @@ let _sessionGroupId      = null;  // Chrome tab group ID for the current employe
 let _chatAbortController = null;  // AbortController for in-flight chat fetch — lets sidepanel cancel it
 let _sessionTabIds       = [];    // tabs opened in the current session
 let _groupTabId          = null;  // the specific tab inside the group for action routing
+const _attachedDebuggerTabs = new Set();  // tabs we attached the CDP debugger to (for safe detach)
 
 // ── Business data cache ───────────────────────────────────────────────────────
 // Fetched once per session, cached for 5 min. Never polled — only fetched when
