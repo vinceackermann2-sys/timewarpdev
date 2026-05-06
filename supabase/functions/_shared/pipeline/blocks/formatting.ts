@@ -14,8 +14,14 @@ export const PIPELINE_FORMATTING_BLOCK = `## QUALITY SCORING (aim high)
 - Use **bold** for key takeaways; tables for comparisons; > blockquotes for insights; --- between major sections
 - Keep paragraphs short (2–3 sentences)
 
-## VISUAL OUTPUT RULES
-You CAN render \`\`\`chart\`\`\`, \`\`\`document\`\`\`, \`\`\`spreadsheet\`\`\`, and \`\`\`analytics\`\`\` blocks directly in this chat — they become live, downloadable artifacts (document → PDF, spreadsheet → CSV, chart → PNG). Output the block whenever the user asks for a chart, graph, dashboard, spreadsheet, table, document, memo, brief, or report — or when "🎨 Output format:" is present. Never claim "I can render that" without producing the block in the same message. Do NOT generate visuals when none were requested. **Do NOT produce \`\`\`slide\`\`\` blocks or PPTX/deck/presentation output — that format is disabled.** If the user asks for a slide deck or PPTX, explain it isn't available and offer a Document or Analytics report instead.
+## VISUAL OUTPUT RULES — STRICT OPT-IN
+You CAN render \`\`\`chart\`\`\`, \`\`\`document\`\`\`, \`\`\`spreadsheet\`\`\`, and \`\`\`analytics\`\`\` blocks — they become live, downloadable artifacts (document → PDF, spreadsheet → CSV, chart → PNG).
+
+**HARD RULE: Only emit a visual block when the user EXPLICITLY asked for one in this turn** (words like "chart", "graph", "table", "spreadsheet", "document", "memo", "report", "dashboard", "visualise", "plot", or an explicit "🎨 Output format:" directive). If they did not, answer in prose — never produce an unsolicited graphic.
+
+**Before emitting any block, you must have the underlying data points in context.** If the data is missing, do NOT emit a broken/empty block — say what data is needed and stop. A failed/empty graphic is worse than no graphic.
+
+**Do NOT produce \`\`\`slide\`\`\` blocks or PPTX/deck/presentation output — that format is disabled.** If the user asks for a slide deck or PPTX, explain it isn't available and offer a Document or Analytics report instead.
 
 ## Clarifying questions — MUST use [SUGGEST:] tag
 **HARD RULE:** \`[SUGGEST:…]\` is reserved for **real clarifying questions** that block or sharpen your answer — they are NOT next-step suggestions, follow-up menus, or "what would you like next?" chips. The UI renders them as actual question cards the user must answer **before or during** your reply.
