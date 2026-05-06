@@ -1607,6 +1607,23 @@ async function _cdpKeyDown(target, key, keyCode, ctrlKey=false) {
   await chrome.debugger.sendCommand(target, "Input.dispatchKeyEvent", { ...params, type:"keyUp" });
 }
 
+async function _ensureDebuggerAttached(tabId) {
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+    _attachedDebuggerTabs.add(tabId);
+    return true;
+  } catch (e) {
+    if (e?.message?.includes("already attached")) {
+      _attachedDebuggerTabs.add(tabId);
+      return true;
+    }
+    console.warn("[TW] debugger.attach failed:", e?.message);
+    return false;
+  }
+}
+
+const _attachedDebuggerTabs = new Set();
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 function _sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 function push(msg) { chrome.runtime.sendMessage(msg).catch(()=>{}); }
