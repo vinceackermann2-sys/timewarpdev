@@ -522,8 +522,9 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
           </SectionCard>
         )}
         {/* STEP 3 — SOP */}
-        {step === 2 && (
+        {step === 3 && (
           <SectionCard title="Standard Operating Procedure" subtitle="Atomic, testable steps. No ambiguity — the agent will follow these exactly, in order.">
+
             <div className="space-y-3">
               {sopSteps.map((s, i) => (
                 <div key={i} className="flex items-start gap-2">
