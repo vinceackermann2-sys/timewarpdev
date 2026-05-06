@@ -94,7 +94,7 @@ const Auth = () => {
     const tryDeliver = async () => {
       const session = await getSafeSession();
       if (cancelled || !session?.access_token) return false;
-      window.postMessage({
+      const authPayload = {
         type: "TIMEWARP_AUTH_DELIVER",
         nonce,
         session: {
@@ -102,7 +102,9 @@ const Auth = () => {
           refresh_token: session.refresh_token,
           user: { id: session.user.id, email: session.user.email },
         },
-      }, window.location.origin);
+      };
+      void sendDirectExtensionMessage(authPayload);
+      window.postMessage(authPayload, window.location.origin);
       return true;
     };
     tryDeliver();
