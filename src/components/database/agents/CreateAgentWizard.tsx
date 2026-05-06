@@ -159,7 +159,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
 
   // Load employees when entering the supervisor step.
   useEffect(() => {
-    if (step !== 4 || !user) return;
+    if (step !== 5 || !user) return;
     let cancelled = false;
     (async () => {
       setLoadingEmployees(true);
