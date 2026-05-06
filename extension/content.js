@@ -1,4 +1,4 @@
-// TimeWarp Content Script v1.0.6
+// TimeWarp Content Script v1.0.7
 // Bridges trusted TimeWarp web origins to the background service worker.
 
 const TRUSTED_ORIGINS = [

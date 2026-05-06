@@ -88,7 +88,7 @@ chrome.runtime.onMessageExternal.addListener((msg, sender, reply) => {
     return false;
   }
 
-  if (msg?.type === "TIMEWARP_PING") { reply({ type: "TIMEWARP_PONG", source: "timewarp-extension", version: "1.0.6" }); return false; }
+  if (msg?.type === "TIMEWARP_PING") { reply({ type: "TIMEWARP_PONG", source: "timewarp-extension", version: "1.0.7" }); return false; }
   if (msg?.type === "TIMEWARP_OPEN_GROUP_TAB" || msg?.type === "TIMEWARP_EMPLOYEE_START") { handleEmployeeStart(msg.payload || msg).then(reply); return true; }
   if (msg?.type === "TIMEWARP_GET_PAGE_CONTEXT") { handleGetGroupPageContext(msg).then(reply); return true; }
   if (msg?.type === "TIMEWARP_EXECUTE_ACTION") { handleExecuteAction(msg, sender).then(reply); return true; }
