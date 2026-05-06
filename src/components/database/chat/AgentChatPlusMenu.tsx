@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ExternalLink, FileUp, Monitor, Plus, Target } from "lucide-react";
+import { ExternalLink, FileText, Monitor, Paperclip, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EDGE_EXT_URL =
@@ -52,7 +52,7 @@ export function AgentChatPlusMenu({
           }}
           className={row()}
         >
-          <FileUp className="w-4 h-4 text-muted-foreground" />
+          <Paperclip className="w-4 h-4 text-muted-foreground" />
           Upload Files
         </button>
 
@@ -101,7 +101,7 @@ export function AgentChatPlusMenu({
           className={row("justify-between")}
         >
           <div className="flex items-center gap-3">
-            <Target className={cn("w-4 h-4", isPlanMode ? "text-primary" : "text-muted-foreground")} />
+            <FileText className={cn("w-4 h-4", isPlanMode ? "text-primary" : "text-muted-foreground")} />
             Planning
           </div>
           <span className={cn("text-xs font-semibold", isPlanMode ? "text-primary" : "text-muted-foreground")}>
@@ -122,7 +122,7 @@ export function AgentChatPlusMenu({
         }}
         className={row()}
       >
-        <FileUp className="w-4 h-4 text-muted-foreground" />
+        <Paperclip className="w-4 h-4 text-muted-foreground" />
         Upload Files
       </button>
 
@@ -173,7 +173,7 @@ export function AgentChatPlusMenu({
         className={row("justify-between")}
       >
         <div className="flex items-center gap-3">
-          <Target className={cn("w-4 h-4", isPlanMode ? "text-primary" : "text-muted-foreground")} />
+          <FileText className={cn("w-4 h-4", isPlanMode ? "text-primary" : "text-muted-foreground")} />
           Planning
         </div>
         <span className={cn("text-xs font-semibold", isPlanMode ? "text-primary" : "text-muted-foreground")}>
