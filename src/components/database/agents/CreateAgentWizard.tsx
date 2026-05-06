@@ -460,6 +460,67 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
           </SectionCard>
         )}
 
+        {/* STEP 3 — Slack Bot Persona */}
+        {step === 2 && (
+          <SectionCard
+            title="Slack bot persona"
+            subtitle="Skip this if the agent doesn't post to Slack. Otherwise, give it a display name + icon — it'll post through your connected Slack app as this identity."
+          >
+            {!connectedProviders.includes("slack") && (
+              <div className="mb-4 flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <div className="text-xs text-amber-700">
+                  <p className="font-medium mb-0.5">Slack isn't connected yet.</p>
+                  <p>
+                    You can still configure the persona, but the agent won't be able to post until you{" "}
+                    <button type="button" onClick={() => navigate("/app/connections")} className="underline font-medium">
+                      connect Slack
+                    </button>.
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Display name in Slack</Label>
+                <Input
+                  value={slackUsername}
+                  onChange={(e) => setSlackUsername(e.target.value)}
+                  placeholder={name || "e.g. Feedback Bot"}
+                  maxLength={80}
+                />
+                <p className="text-[11px] text-muted-foreground">Defaults to the agent's name if left blank.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Avatar image URL (optional)</Label>
+                <Input
+                  value={slackIconUrl}
+                  onChange={(e) => setSlackIconUrl(e.target.value)}
+                  placeholder="https://example.com/avatar.png"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Or emoji (used if no image URL)</Label>
+                <Input
+                  value={slackIconEmoji}
+                  onChange={(e) => setSlackIconEmoji(e.target.value)}
+                  placeholder=":robot_face:"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Default channel (optional)</Label>
+                <Input
+                  value={slackDefaultChannel}
+                  onChange={(e) => setSlackDefaultChannel(e.target.value)}
+                  placeholder="#product-feedback or C0123456789"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Where this agent posts by default. The bot must be invited to private channels.
+                </p>
+              </div>
+            </div>
+          </SectionCard>
+        )}
         {/* STEP 3 — SOP */}
         {step === 2 && (
           <SectionCard title="Standard Operating Procedure" subtitle="Atomic, testable steps. No ambiguity — the agent will follow these exactly, in order.">
