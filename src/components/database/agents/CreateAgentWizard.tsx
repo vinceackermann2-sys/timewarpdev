@@ -239,6 +239,10 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
           safety_can_do: cleanedCanDo,
           safety_cannot_do: cleanedCantDo,
           safety_escalation_path: escalationPath.trim() || null,
+          slack_bot_username: slackUsername.trim() || null,
+          slack_bot_icon_url: slackIconUrl.trim() || null,
+          slack_bot_icon_emoji: slackIconEmoji.trim() || null,
+          slack_default_channel: slackDefaultChannel.trim() || null,
         })
         .select("id")
         .single();
