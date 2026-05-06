@@ -232,6 +232,12 @@ export function useExtensionBridge() {
 
   const retryDetection = useCallback(() => {
     setDetecting(true);
+    void sendDirectExtensionMessage<{ type?: string }>({ type: "TIMEWARP_PING" }).then((response) => {
+      if (response?.type === "TIMEWARP_PONG") {
+        setExtensionConnected(true);
+        setDetecting(false);
+      }
+    });
     const variants: Array<unknown> = [
       "TIMEWARP_PING",
       "TW_PING",
