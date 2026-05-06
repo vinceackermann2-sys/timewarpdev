@@ -46,6 +46,10 @@ export function WorkspacesView({ onBack, hideFooter = false }: WorkspacesViewPro
       selectWorkspace(id);
       setNewName("");
       setShowNewInput(false);
+      toast.success("Workspace created");
+    } catch (err: any) {
+      console.error("[WorkspacesView] createWorkspace failed:", err);
+      toast.error(err?.message || "Could not create workspace");
     } finally {
       setCreating(false);
     }
