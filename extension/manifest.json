@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "TimeWarp – AI CEO",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "TimeWarp – your private AI CEO. Securely connects the TimeWarp web app to your browser for safe, supervised Computer mode.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtxdzkscD8qwpJsRIUUE3Tplg/GOw40jJFNdCc1gLgBweQK0K4JaFUm4GFBiHtjit/qmtXblD0pghAF+OLPDOsYwT6ky7bvFl99RJ70apWTsH1qLKW/1kQSGqI7WEaitnfJzzc52ykmkVqmcmExo6/yKLY4/scSlfBZHlgs6ZSNxFe2wTpUih8WNF9crEXTaXkcpcAros61XDpDcnCX7YBkBR1WWzhVXVQrQrrX22K5BpYCSf8SfhyhIGXeK+T+90k7o4YcDhAT64ZdNMOtGnCsOvh8nDFCNLot+HLoBBkRhxCJ6M/JdPE6X5oVS8MAbb9T0wDhBOi7DvKRpJZJiL4QIDAQAB",
   "permissions": [
     "activeTab",
     "scripting",
@@ -17,6 +18,15 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "externally_connectable": {
+    "matches": [
+      "https://timewarpdev.com/*",
+      "https://www.timewarpdev.com/*",
+      "https://timewarpdev.lovable.app/*",
+      "https://*.lovable.app/*",
+      "https://*.lovableproject.com/*"
+    ]
+  },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://ohvxqlxugqlzzbmfypiy.supabase.co https://timewarpdev.lovable.app https://timewarpdev.com; img-src 'self' data: https://www.google.com; object-src 'self'"
   },
