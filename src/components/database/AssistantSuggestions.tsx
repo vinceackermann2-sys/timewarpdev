@@ -22,6 +22,29 @@ function splitEmoji(raw: string): { emoji: string | null; label: string } {
   return { emoji: null, label: raw };
 }
 
+function fallbackOptionsForQuestion(question?: string): string[] {
+  const q = (question || "").toLowerCase();
+  if (/outcome|goal|objective|success/.test(q)) {
+    return ["💰 Revenue growth", "👥 More qualified leads", "📣 Brand reach", "🔁 Retention"];
+  }
+  if (/timeline|timeframe|when|run on|cover/.test(q)) {
+    return ["⚡ Next 30 days", "📅 This quarter", "🗓️ Next 6 months", "🚀 12-month roadmap"];
+  }
+  if (/constraint|non-negotiable|limit|budget/.test(q)) {
+    return ["💸 Limited budget", "⏱️ Limited time", "👤 Small team", "✅ No hard constraints"];
+  }
+  if (/kpi|metric|measure/.test(q)) {
+    return ["💰 Revenue", "👥 Leads", "📈 Conversion rate", "🔁 Retention"];
+  }
+  if (/audience|target|who/.test(q)) {
+    return ["👥 Existing customers", "🎯 New prospects", "🏢 B2B buyers", "🛒 Consumers"];
+  }
+  if (/channel|prioritize/.test(q)) {
+    return ["📣 Paid social", "🔎 Search", "✉️ Email", "🤝 Partnerships"];
+  }
+  return ["🎯 Best option", "⚡ Fastest path", "💰 Highest revenue", "🛡️ Lowest risk"];
+}
+
 /**
  * AssistantSuggestions — renders clarifying-question cards with:
  *  - Always an inline "Something else" custom-answer option
@@ -117,14 +140,14 @@ function SuggestionCard({
   isLast: boolean;
   totalSteps: number;
 }) {
-  const CUSTOM_LIKE_REGEX = /^(?:custom|something\s+else|other|write\s+my\s+own|type\s+(?:my|your)\s+own|own\s+(?:answer|workflow|idea))\b/i;
+  const CUSTOM_LIKE_REGEX = /^(?:custom|something\s+else|other|write\s+my\s+own|type\s+(?:my|your)\s+own|type\s+your\s+answer|own\s+(?:answer|workflow|idea))\b/i;
   const filteredSuggestions = group.suggestions.filter((s) => {
     const { label } = splitEmoji(s);
     return !CUSTOM_LIKE_REGEX.test(label.trim());
   });
-  // Fallback: if filter wiped everything, keep the originals so options still render.
-  const visibleSuggestions = (filteredSuggestions.length > 0 ? filteredSuggestions : group.suggestions).slice(0, 4);
   const headerTitle = group.title?.trim();
+  const baseSuggestions = group.suggestions.length > 0 ? group.suggestions : fallbackOptionsForQuestion(headerTitle);
+  const visibleSuggestions = (filteredSuggestions.length > 0 ? filteredSuggestions : baseSuggestions).slice(0, 4);
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
