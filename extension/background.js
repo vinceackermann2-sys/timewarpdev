@@ -211,41 +211,55 @@ async function handleGetGroupPageContext(msg) {
 // Replies with { success, groupId } so the webapp can await TIMEWARP_GROUP_READY.
 async function handleEmployeeStart(payload) {
   try {
-    const openTab      = payload?.openTab !== false; // default true for back-compat; false = no new tab
-    const focusGroup   = payload?.focusGroup === true; // default false — don't steal focus
-    const useTabGroup  = payload?.useTabGroup !== false; // default true
+    const openTab      = payload?.openTab !== false;
+    const focusGroup   = payload?.focusGroup === true;
+    const useTabGroup  = payload?.useTabGroup !== false;
     const employeeName = payload?.employeeName || payload?.taskName || payload?.task || "TimeWarp";
-    const startUrl     = payload?.url || "https://www.google.com";
+    const startUrl     = payload?.url || payload?.startUrl || "https://www.google.com";
+
+    // Idempotent: if a session tab already exists and is alive, reuse it.
+    if (_groupTabId) {
+      const existing = await chrome.tabs.get(_groupTabId).catch(() => null);
+      if (existing) {
+        return { success: true, tabId: _groupTabId, groupId: _sessionGroupId, reused: true };
+      }
+      _groupTabId = null;
+      _sessionGroupId = null;
+      _sessionTabIds = [];
+    }
 
     let tabId;
-
     if (openTab) {
-      // Open a new tab. If focusGroup:false, create it in the background (active:false).
       const tab = await chrome.tabs.create({ url: startUrl, active: focusGroup });
       tabId = tab.id;
     } else {
-      // openTab:false — group the webapp's own tab without opening anything new
       const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
       tabId = activeTab?.id || null;
     }
 
-    // Store as the canonical group tab for action routing and context reads
-    _groupTabId    = tabId;
-    _sessionTabIds = tabId ? [tabId] : [];
+    if (!tabId) {
+      return { success: false, error: "Could not create or find a tab for the session" };
+    }
 
-    if (useTabGroup && tabId) {
-      _sessionGroupId = await chrome.tabs.group({ tabIds: [tabId] });
-      await chrome.tabGroups.update(_sessionGroupId, {
-        title:     employeeName.slice(0, 30),
-        color:     "blue",
-        collapsed: false,
-      });
-      console.log("[TW] Employee session started. Group:", _sessionGroupId, "Tab:", tabId, "Name:", employeeName, "focus:", focusGroup);
+    _groupTabId    = tabId;
+    _sessionTabIds = [tabId];
+
+    if (useTabGroup) {
+      try {
+        _sessionGroupId = await chrome.tabs.group({ tabIds: [tabId] });
+        await chrome.tabGroups.update(_sessionGroupId, {
+          title:     employeeName.slice(0, 30),
+          color:     "blue",
+          collapsed: false,
+        });
+      } catch (e) {
+        console.warn("[TW] Could not create tab group:", e.message);
+        _sessionGroupId = null;
+      }
     } else {
       _sessionGroupId = null;
     }
 
-    // Return success — content script posts this as TIMEWARP_GROUP_READY
     return { success: true, tabId, groupId: _sessionGroupId };
   } catch (e) {
     console.error("[TW] handleEmployeeStart error:", e.message);
