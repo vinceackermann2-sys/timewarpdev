@@ -117,12 +117,13 @@ function SuggestionCard({
   isLast: boolean;
   totalSteps: number;
 }) {
-  const CUSTOM_LIKE_REGEX = /\b(custom|something\s+else|other|else\b|own\s+(?:answer|workflow|idea)|write\s+my\s+own|type\s+(?:my|your)\s+own)\b/i;
+  const CUSTOM_LIKE_REGEX = /^(?:custom|something\s+else|other|write\s+my\s+own|type\s+(?:my|your)\s+own|own\s+(?:answer|workflow|idea))\b/i;
   const filteredSuggestions = group.suggestions.filter((s) => {
     const { label } = splitEmoji(s);
     return !CUSTOM_LIKE_REGEX.test(label.trim());
   });
-  const visibleSuggestions = filteredSuggestions.slice(0, 4);
+  // Fallback: if filter wiped everything, keep the originals so options still render.
+  const visibleSuggestions = (filteredSuggestions.length > 0 ? filteredSuggestions : group.suggestions).slice(0, 4);
   const headerTitle = group.title?.trim();
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
