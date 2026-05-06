@@ -82,13 +82,14 @@ export function useExtensionBridge() {
       if (typeof data === "object" && data !== null) {
         const { type, source } = data as { type?: string; source?: string };
 
-        // Some extensions tag every message with source: "timewarp-extension"
-        if (typeof source === "string" && /timewarp/i.test(source)) {
-          if (!stringPongs.has(type ?? "")) {
-            console.log("[ExtBridge] ✅ Extension source detected:", source);
-            setExtensionConnected(true);
-            setDetecting(false);
-          }
+        // Only trust messages from the extension itself. The app uses
+        // source: "timewarp-app" for outbound pings — do NOT treat those
+        // as proof that the extension is present.
+        const isExtensionSource = typeof source === "string" && /timewarp-(extension|ext|background|content)/i.test(source);
+        if (isExtensionSource && !stringPongs.has(type ?? "")) {
+          console.log("[ExtBridge] ✅ Extension source detected:", source);
+          setExtensionConnected(true);
+          setDetecting(false);
         }
 
         if (type && objectPongTypes.has(type)) {
@@ -210,9 +211,9 @@ export function useExtensionBridge() {
     setTimeout(() => setDetecting(false), 2500);
   }, []);
 
-  const getPageContext = useCallback((): Promise<PageContext> => {
+  const getPageContext = useCallback((): Promise<PageContext | null> => {
     return new Promise((resolve) => {
-      resolversRef.current.set("page_context", resolve);
+      resolversRef.current.set("page_context", resolve as (v: any) => void);
       window.postMessage({ type: "TIMEWARP_GET_PAGE_CONTEXT", targetGroupTab: true }, "*");
       setTimeout(() => {
         if (resolversRef.current.has("page_context")) {
@@ -221,7 +222,7 @@ export function useExtensionBridge() {
           setTimeout(() => {
             if (resolversRef.current.has("page_context")) {
               resolversRef.current.delete("page_context");
-              resolve({});
+              resolve(null);
             }
           }, 2500);
         }

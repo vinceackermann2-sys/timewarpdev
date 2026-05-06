@@ -66,6 +66,33 @@ const Auth = () => {
     }
   }, [refCode]);
 
+  // ── Extension auth bridge ──
+  // If the extension launched sign-in via /auth?ext_nonce=..., once a session
+  // exists, post it back over window.postMessage. The extension's content
+  // script (only loaded on trusted timewarp origins) relays it to background.
+  useEffect(() => {
+    const nonce = searchParams.get("ext_nonce");
+    if (!nonce) return;
+    let cancelled = false;
+    const tryDeliver = async () => {
+      const session = await getSafeSession();
+      if (cancelled || !session?.access_token) return false;
+      window.postMessage({
+        type: "TIMEWARP_AUTH_DELIVER",
+        nonce,
+        session: {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          user: { id: session.user.id, email: session.user.email },
+        },
+      }, window.location.origin);
+      return true;
+    };
+    tryDeliver();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => { tryDeliver(); });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, [searchParams]);
+
   useEffect(() => {
     if (quizData) {
       localStorage.setItem("quizData", JSON.stringify(quizData));
