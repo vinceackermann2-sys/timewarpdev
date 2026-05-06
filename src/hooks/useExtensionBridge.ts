@@ -329,6 +329,19 @@ export function useExtensionBridge() {
         focusGroup,
         requestId,
       };
+      void sendDirectExtensionMessage<{ success?: boolean; requestId?: string; error?: string }>(payload).then((response) => {
+        if (!response) return;
+        console.log("[ExtBridge] ✅ Direct tab start response:", response);
+        setExtensionConnected(true);
+        setDetecting(false);
+        if (response.requestId && response.requestId !== requestId) return;
+        const resolver = resolversRef.current.get("group_ready");
+        if (resolver) {
+          resolver(response.success === true);
+          resolversRef.current.delete("group_ready");
+          pendingGroupRequestRef.current = null;
+        }
+      });
       window.postMessage(payload, "*");
       // Fallback: resolve after 5s even if extension doesn't confirm
       setTimeout(() => {
