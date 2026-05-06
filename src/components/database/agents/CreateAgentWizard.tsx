@@ -613,7 +613,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
         )}
 
         {/* STEP 5 — Supervisor */}
-        {step === 4 && (
+        {step === 5 && (
           <SectionCard
             title="Supervising employee"
             subtitle="Every agent reports to one Employee that owns the broader strategic domain. Pick one, or leave unassigned and assign later."
