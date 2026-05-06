@@ -31,6 +31,29 @@ export interface ActionResult {
   data?: any;
 }
 
+const TIMEWARP_EXTENSION_ID = "hcijmgkimmhiehjcnljaookjomhocjdd";
+
+function sendDirectExtensionMessage<T = any>(message: Record<string, any>): Promise<T | null> {
+  return new Promise((resolve) => {
+    const runtime = (globalThis as any).chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      resolve(null);
+      return;
+    }
+    try {
+      runtime.sendMessage(TIMEWARP_EXTENSION_ID, message, (response: T) => {
+        if (runtime.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(response ?? null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 export function useExtensionBridge() {
   const [extensionConnected, setExtensionConnected] = useState(false);
   const [detecting, setDetecting] = useState(true);
