@@ -1629,7 +1629,7 @@ async function _ensureDebuggerAttached(tabId) {
   }
 }
 
-const _attachedDebuggerTabs = new Set();
+// (debugger tracking set declared at top of file)
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 function _sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
