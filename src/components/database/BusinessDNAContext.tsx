@@ -189,29 +189,12 @@ async function loadBrandsLight(workspaceId?: string | null, session?: { user: { 
   let { data, error } = await query;
   if (error) return [];
 
-  // Self-healing: if a workspace is selected but it has zero brands, the user
-  // may have a stale preferred_workspace_id (e.g. pointing at an empty new
-  // workspace). Fall back to any brand they own so onboarding isn't replayed.
-  if (workspaceId && (!data || data.length === 0)) {
-    const fallback = await supabase
-      .from("user_business_data")
-      .select(baseSelect)
-      .eq("data_type", "brand")
-      .eq("source", "business-dna")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false });
-    if (fallback.data && fallback.data.length > 0) {
-      data = fallback.data;
-      // Realign preferred_workspace_id to wherever the user's brand actually lives.
-      const recoveredWs = (fallback.data[0] as any)?.workspace_id;
-      if (recoveredWs && typeof recoveredWs === "string") {
-        try {
-          localStorage.setItem("preferred_workspace_id", recoveredWs);
-          window.dispatchEvent(new CustomEvent("workspace_changed"));
-        } catch {}
-      }
-    }
-  }
+  // NOTE: Previously had a "self-healing" fallback that, when the active
+  // workspace had zero brands, loaded brands from any other workspace the
+  // user owned and silently switched preferred_workspace_id to that one.
+  // That broke isolation: creating a new (empty) workspace would visually
+  // load the old workspace's data. Removed — an empty workspace must stay
+  // empty so onboarding runs cleanly inside it.
   if (!data) return [];
 
   // Dedupe by logical brandId (metadata.brandId), keep most recent
