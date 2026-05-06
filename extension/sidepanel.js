@@ -620,6 +620,20 @@ function updateControlModeBadge() {
 document.getElementById("login-btn").addEventListener("click", doLogin);
 document.getElementById("auth-email").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("auth-password").focus(); });
 document.getElementById("auth-password").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+document.getElementById("google-login-btn")?.addEventListener("click", async () => {
+  const err = document.getElementById("auth-error");
+  err.textContent = "";
+  const r = await sendMsg({ type: "START_GOOGLE_SIGN_IN" });
+  if (!r?.success) { err.textContent = r?.error || "Could not start Google sign-in."; return; }
+  err.textContent = "Complete sign-in in the new tab. We'll detect it automatically…";
+  // Poll for the session being delivered back from the app bridge.
+  const start = Date.now();
+  const poll = setInterval(async () => {
+    const s = await sendMsg({ type: "GET_SESSION" });
+    if (s?.access_token) { clearInterval(poll); session = s; onLoggedIn(); }
+    else if (Date.now() - start > 180000) { clearInterval(poll); err.textContent = "Sign-in timed out. Try again."; }
+  }, 2000);
+});
 
 async function doLogin() {
   const email = document.getElementById("auth-email").value.trim();
