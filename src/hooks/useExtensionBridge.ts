@@ -35,6 +35,7 @@ export function useExtensionBridge() {
   const [extensionConnected, setExtensionConnected] = useState(false);
   const [detecting, setDetecting] = useState(true);
   const resolversRef = useRef<Map<string, (value: any) => void>>(new Map());
+  const pendingGroupRequestRef = useRef<string | null>(null);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -120,13 +121,17 @@ export function useExtensionBridge() {
         }
 
         if (type === "TIMEWARP_GROUP_READY") {
-          console.log("[ExtBridge] ✅ Tab group ready.");
+          const payload = (data as { payload?: { success?: boolean; error?: string; requestId?: string }; requestId?: string }).payload;
+          const requestId = (data as { requestId?: string }).requestId || payload?.requestId;
+          if (pendingGroupRequestRef.current && requestId && requestId !== pendingGroupRequestRef.current) return;
+          console.log("[ExtBridge] ✅ Tab group ready:", payload);
           setExtensionConnected(true);
           setDetecting(false);
           const resolver = resolversRef.current.get("group_ready");
           if (resolver) {
-            resolver(true);
+            resolver(payload?.success === true);
             resolversRef.current.delete("group_ready");
+            pendingGroupRequestRef.current = null;
           }
         }
       }
@@ -254,6 +259,8 @@ export function useExtensionBridge() {
   const signalStart = useCallback((employeeId: string, employeeName: string, opts?: { startUrl?: string; focusGroup?: boolean }): Promise<boolean> => {
     return new Promise((resolve) => {
       resolversRef.current.set("group_ready", resolve);
+      const requestId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      pendingGroupRequestRef.current = requestId;
       // Send multiple shapes so older/newer extension builds all create the
       // grouped tab. Pass an explicit startUrl (about:blank by default) so the
       // extension actually opens a new tab inside the group.
@@ -269,6 +276,7 @@ export function useExtensionBridge() {
         startUrl,
         url: startUrl,
         focusGroup,
+        requestId,
       };
       window.postMessage(payload, "*");
       // Some extension builds expect a separate "open tab" command:
@@ -278,12 +286,14 @@ export function useExtensionBridge() {
         employeeName,
         url: startUrl,
         focusGroup,
+        requestId,
       }, "*");
       // Fallback: resolve after 5s even if extension doesn't confirm
       setTimeout(() => {
         if (resolversRef.current.has("group_ready")) {
           console.log("[ExtBridge] ⏰ Group ready timeout - proceeding anyway");
           resolversRef.current.delete("group_ready");
+          pendingGroupRequestRef.current = null;
           resolve(false);
         }
       }, 5000);
@@ -313,6 +323,7 @@ export function useExtensionBridge() {
     const groupResolver = resolversRef.current.get("group_ready");
     if (groupResolver) {
       resolversRef.current.delete("group_ready");
+      pendingGroupRequestRef.current = null;
       groupResolver(false);
     }
   }, []);
