@@ -585,7 +585,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
         )}
 
         {/* STEP 4 — Safety */}
-        {step === 3 && (
+        {step === 4 && (
           <div className="space-y-5">
             <SectionCard title="Can-do" subtitle="Explicit allow-list. The agent may only do things on this list.">
               <ListEditor
