@@ -63,11 +63,13 @@ window.addEventListener("message", (event) => {
   // ── Session start ──
   if (data?.type === "TIMEWARP_EMPLOYEE_START" || data?.type === "TIMEWARP_OPEN_GROUP_TAB") {
     chrome.runtime.sendMessage(
-      { type: "TIMEWARP_EMPLOYEE_START", payload: data.payload || data },
+      { type: data.type, payload: data.payload || data },
       (response) => {
+        const runtimeError = chrome.runtime.lastError?.message;
         post({
           type: "TIMEWARP_GROUP_READY",
-          payload: response || { success: false, error: "No response from background" },
+          requestId: data.requestId || data.payload?.requestId || response?.requestId,
+          payload: response || { success: false, error: runtimeError || "No response from background" },
         });
       },
     );
