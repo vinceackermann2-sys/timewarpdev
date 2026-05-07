@@ -283,6 +283,8 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { plan: currentPlan, hasActivePlan } = useSubscription();
+  const { activeWorkspace } = useWorkspace();
+  const isWorkspaceOwner = activeWorkspace?.role === "owner";
   const navigate = useNavigate();
   const { toast } = useToast();
   const prices = PRICES[billing];
@@ -311,6 +313,14 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
     }
     if (currentPlan === plan) {
       handleManageSubscription();
+      return;
+    }
+    if (!isWorkspaceOwner) {
+      toast({
+        title: "Only the workspace owner can change the plan",
+        description: "Ask the owner of this workspace to upgrade. You can still purchase action packs below.",
+        variant: "destructive",
+      });
       return;
     }
     const wsId = localStorage.getItem("preferred_workspace_id");
