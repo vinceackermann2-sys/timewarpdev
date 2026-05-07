@@ -38,7 +38,22 @@ export default function AssistantPage() {
   // Workspace members who aren't owners must NEVER see onboarding —
   // they collaborate on the owner's business.
   const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
-  const forceOnboarding = hasSettled && brands.length === 0 && !isWorkspaceMemberOnly;
+
+  // Grace period: even after data has "settled", give it ~2.5s before
+  // flipping into onboarding. This avoids flashing onboarding when brands
+  // arrive a tick later (e.g. just after a workspace switch / page refresh).
+  const wouldOnboard = hasSettled && brands.length === 0 && !isWorkspaceMemberOnly;
+  const [graceElapsed, setGraceElapsed] = useState(false);
+  useEffect(() => {
+    if (!wouldOnboard) {
+      setGraceElapsed(false);
+      return;
+    }
+    const t = setTimeout(() => setGraceElapsed(true), 2500);
+    return () => clearTimeout(t);
+  }, [wouldOnboard, activeWorkspace?.workspaceId]);
+
+  const forceOnboarding = wouldOnboard && graceElapsed;
 
   // Pick an active brand (URL would be the source of truth in the future, but
   // for now AgentChatView reads localStorage / context as fallback).
