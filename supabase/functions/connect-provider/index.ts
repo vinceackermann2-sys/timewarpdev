@@ -143,11 +143,12 @@ serve(async (req) => {
       : null;
 
     if (action === "check-status") {
-      // Connectors are workspace-scoped. Always require a workspaceId so
-      // connections never bleed across workspaces.
-      if (!workspaceId) {
-        return jsonResponse({ connected: [] });
-      }
+      // Connectors are workspace-scoped when a workspaceId is provided.
+      // During onboarding the workspace may still be loading on the client —
+      // in that case fall back to returning all of the user's own connections
+      // (scoped by user_id only) so the UI can reflect the just-completed
+      // OAuth flow instead of a stale empty list.
+      const scopeToWorkspace = !!workspaceId;
 
       // Self-heal: re-attach orphan connections (rows whose workspace_id is
       // NULL or points to a workspace that no longer exists) to the user's
@@ -176,7 +177,7 @@ serve(async (req) => {
         .filter((c: any) => !c.workspace_id || !validWsIds.has(c.workspace_id))
         .map((c: any) => c.id);
 
-      if (orphanIds.length > 0) {
+      if (scopeToWorkspace && orphanIds.length > 0) {
         await supabaseAdmin
           .from("user_connections")
           .update({ workspace_id: workspaceId })
@@ -188,7 +189,6 @@ serve(async (req) => {
           .map((c: any) => c.provider)
           .filter(Boolean);
         if (orphanProviders.length > 0) {
-          // Move tokens whose workspace_id is NULL or points to an invalid ws.
           const { data: allTokens } = await supabaseAdmin
             .from("user_oauth_tokens")
             .select("id, workspace_id, provider")
@@ -206,17 +206,19 @@ serve(async (req) => {
         }
       }
 
-      const connectionsQuery = supabaseAdmin
+      let connectionsQuery = supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id, workspace_id")
         .eq("user_id", user.id)
-        .eq("status", "connected")
-        .eq("workspace_id", workspaceId);
-      const tokensQuery = supabaseAdmin
+        .eq("status", "connected");
+      let tokensQuery = supabaseAdmin
         .from("user_oauth_tokens")
         .select("provider, provider_email, workspace_id")
-        .eq("user_id", user.id)
-        .eq("workspace_id", workspaceId);
+        .eq("user_id", user.id);
+      if (scopeToWorkspace) {
+        connectionsQuery = connectionsQuery.eq("workspace_id", workspaceId);
+        tokensQuery = tokensQuery.eq("workspace_id", workspaceId);
+      }
 
       const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);
 
