@@ -50,6 +50,7 @@ interface ConnectorGridProps {
 }
 
 export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGridProps) {
+  const { activeWorkspaceId } = useWorkspace();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
 
