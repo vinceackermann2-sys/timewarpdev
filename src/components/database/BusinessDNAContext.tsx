@@ -264,13 +264,46 @@ async function saveEntity(dataType: string, entity: any, existingRowId?: string,
     if (error) console.error(`Failed to update ${dataType}:`, error.message);
   } else {
     // Hard guard: never insert a brand-DNA row without a workspace_id.
-    // Orphan rows become invisible to the workspace-scoped loader and force
-    // the user back through onboarding. The caller must resolve a workspace
-    // first (save-onboarding does this server-side).
     if (!resolvedWorkspaceId) {
       console.warn(`[DNA] Skipping insert of ${dataType} "${entity.name}" — no workspace_id resolved (would be invisible).`);
       return;
     }
+
+    // For brand rows, the DB enforces ONE brand per workspace via a unique
+    // index. When switching workspaces the in-memory _rowId can be stale (it
+    // points to another workspace's row), so a blind insert hits a 409.
+    // Resolve the existing brand row in this workspace by metadata.brandId
+    // (or fall back to the unique-per-workspace brand row) and update it
+    // instead of inserting a duplicate.
+    if (dataType === "brand") {
+      let existing: { id: string } | null = null;
+      if (brandId) {
+        const { data } = await supabase
+          .from("user_business_data")
+          .select("id")
+          .eq("workspace_id", resolvedWorkspaceId)
+          .eq("data_type", "brand")
+          .eq("metadata->>brandId", brandId)
+          .maybeSingle();
+        existing = data ?? null;
+      }
+      if (!existing) {
+        const { data } = await supabase
+          .from("user_business_data")
+          .select("id")
+          .eq("workspace_id", resolvedWorkspaceId)
+          .eq("data_type", "brand")
+          .limit(1)
+          .maybeSingle();
+        existing = data ?? null;
+      }
+      if (existing) {
+        const { error } = await supabase.from("user_business_data").update(payload).eq("id", existing.id);
+        if (error) console.error(`Failed to update brand:`, error.message);
+        return;
+      }
+    }
+
     const { error } = await supabase.from("user_business_data").insert(payload);
     if (error) console.error(`Failed to insert ${dataType}:`, error.message);
   }
