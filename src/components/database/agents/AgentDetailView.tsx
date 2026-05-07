@@ -435,8 +435,8 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         </Badge>
       </div>
 
-      {/* Big tall canvas with column groups + embedded legend */}
-      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-x-auto">
+      {/* Tall canvas constrained to viewport so the page itself doesn't scroll */}
+      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto h-[calc(100vh-220px)] min-h-[560px]">
         <FlowCanvas columns={columns} />
       </div>
     </div>
