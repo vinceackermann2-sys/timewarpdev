@@ -16,6 +16,9 @@ import {
   Plug,
   Clock,
   PlayCircle,
+  Plus,
+  X,
+  Pencil,
 } from "lucide-react";
 import logoGmail from "@/assets/logo-gmail.svg";
 import logoGcal from "@/assets/logo-google-calendar.svg";
@@ -26,6 +29,15 @@ import logoZoom from "@/assets/logo-zoom.svg";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from "@/components/ui/sheet";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -38,7 +50,9 @@ import {
   AIAgent,
   AgentRun,
   AgentRunStatus,
+  AgentSopStep,
   AgentStatus,
+  AgentTriggerType,
   STATUS_LABEL,
   TRIGGER_TYPE_LABEL,
   normalizeAgentRow,
