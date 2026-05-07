@@ -317,7 +317,7 @@ function AgentTabs({
         </div>
       </div>
 
-      {tab === "workflow" && <WorkflowTab agent={agent} />}
+      {tab === "workflow" && <WorkflowTab agent={agent} onUpdated={onUpdated} />}
       {tab === "dashboard" && (
         <DashboardTab
           agent={agent}
@@ -329,7 +329,7 @@ function AgentTabs({
           escalatedRuns={escalatedRuns}
         />
       )}
-      {tab === "settings" && <SettingsTab agent={agent} supervisorName={supervisorName} />}
+      {tab === "settings" && <SettingsTab agent={agent} supervisorName={supervisorName} onUpdated={onUpdated} />}
     </div>
   );
 }
