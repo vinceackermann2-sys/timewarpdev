@@ -574,8 +574,6 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
         );
       })}
 
-      {/* Legend pinned to canvas bottom-left */}
-      <CanvasLegend />
     </div>
   );
 }
