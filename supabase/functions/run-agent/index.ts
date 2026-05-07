@@ -304,6 +304,9 @@ serve(async (req) => {
     }
 
     const hadToolError = toolLog.some((t) => t?.result?.error);
+    const expectedTools = (agent.required_integrations || []).filter(
+      (i) => i && !["manual", "none", "internal"].includes(String(i).toLowerCase()),
+    ).length > 0;
     let status: "success" | "escalated" | "failure" =
       aiResult?.status === "escalated"
         ? "escalated"
@@ -312,6 +315,18 @@ serve(async (req) => {
         : "success";
     if (status === "success" && hadToolError && toolLog.every((t) => t?.result?.error)) {
       status = "failure";
+    }
+    // Guard against the model fabricating "success" without ever invoking a
+    // tool when the agent's whole purpose depends on a connected integration.
+    if (status === "success" && expectedTools && toolLog.length === 0 && agent.execution_mode === "api") {
+      status = "failure";
+      aiResult = {
+        ...(aiResult ?? {}),
+        status: "failure",
+        escalation_reason:
+          (aiResult?.escalation_reason as string | undefined) ||
+          `Agent did not call any integration tools (required: ${(agent.required_integrations || []).join(", ")}). The connected integration may be missing or the SOP did not trigger any tool calls.`,
+      };
     }
 
     const finishedAt = new Date().toISOString();
