@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
