@@ -140,16 +140,28 @@ export function useWorkspace() {
   useEffect(() => {
     if (workspaces.length === 0) return;
     const preferredId = localStorage.getItem("preferred_workspace_id");
-    const current = preferredId && workspaces.some(w => w.workspaceId === preferredId)
-      ? preferredId
-      : (workspaces.find(w => w.role === "owner")?.workspaceId || workspaces[0]?.workspaceId || null);
 
-    if (current && current !== activeWorkspaceId) {
-      setActiveWorkspaceId(current);
-      localStorage.setItem("preferred_workspace_id", current);
-      // Notify same-tab listeners (BusinessDNAContext) so they reload data
-      // for the newly auto-selected workspace. Without this, the DNA context
-      // keeps a stale workspace id and shows an empty workspace → onboarding.
+    // If we have a preferred workspace id and it's in the list, keep it.
+    // If it's NOT in the list yet (e.g. just accepted an invite and the
+    // workspaces query is still warming), DO NOT overwrite it — that would
+    // bounce a newly invited member back to their personal workspace.
+    if (preferredId && workspaces.some(w => w.workspaceId === preferredId)) {
+      if (preferredId !== activeWorkspaceId) {
+        setActiveWorkspaceId(preferredId);
+        window.dispatchEvent(new Event("workspace_changed"));
+      }
+      return;
+    }
+    if (preferredId && !workspaces.some(w => w.workspaceId === preferredId)) {
+      // Preferred id not (yet) visible — leave activeWorkspaceId alone and
+      // let the next refetch resolve it.
+      return;
+    }
+
+    const fallback = workspaces.find(w => w.role === "owner")?.workspaceId || workspaces[0]?.workspaceId || null;
+    if (fallback && fallback !== activeWorkspaceId) {
+      setActiveWorkspaceId(fallback);
+      localStorage.setItem("preferred_workspace_id", fallback);
       window.dispatchEvent(new Event("workspace_changed"));
     }
   }, [workspaces]); // eslint-disable-line react-hooks/exhaustive-deps
