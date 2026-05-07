@@ -49,7 +49,14 @@ const InviteAccept = () => {
           setMessage(result.error);
         } else {
           if (result?.workspace_id) {
+            // Persist preference and invalidate cached workspace list so
+            // useWorkspace re-fetches and includes the new workspace
+            // immediately (otherwise a stale 30-min cache hides it and the
+            // auto-selector falls back to the user's owned workspace).
             localStorage.setItem("preferred_workspace_id", result.workspace_id);
+            await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+            await queryClient.refetchQueries({ queryKey: ["workspaces"] });
+            window.dispatchEvent(new Event("workspace_changed"));
           }
           setStatus("success");
           setMessage("You've been added to the workspace!");
