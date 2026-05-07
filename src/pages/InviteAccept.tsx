@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 const InviteAccept = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<"loading" | "success" | "error" | "auth">("loading");
   const [message, setMessage] = useState("");
   const [showCelebration, setShowCelebration] = useState(false);
