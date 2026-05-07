@@ -6,6 +6,7 @@ import { Check, ArrowLeft, Loader2, ShoppingCart, ChevronDown, WandSparkles, Spa
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
