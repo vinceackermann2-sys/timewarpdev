@@ -425,7 +425,7 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
       {/* Header */}
       <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/60">
         <div>
-          <h2 className="font-semibold text-base">SOP Workflow</h2>
+          <h2 className="font-semibold text-base">Agent Workflow</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Hover any node to see what that step does. Edit fields and integrations from Settings.
           </p>
