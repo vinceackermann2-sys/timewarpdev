@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BgGradient } from "@/components/ui/bg-gradient";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoSlack from "@/assets/logo-slack.png";
