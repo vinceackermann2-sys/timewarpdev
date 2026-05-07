@@ -263,6 +263,77 @@ export async function executeWorkforceToolCall(
         return { ok: false, kind: "agent", error: "sop_steps must have at least 1 step (3-8 recommended)." };
       }
 
+      // ── Integration availability check ───────────────────────────────
+      // Don't create an agent that depends on integrations the user
+      // hasn't connected — it would just fail at run-time and pretend to
+      // succeed. Surface the gap *before* inserting so the assistant can
+      // tell the user what to connect first.
+      const PROVIDER_ALIASES: Record<string, string> = {
+        gmail: "google",
+        gcal: "google",
+        gcalendar: "google",
+        "google calendar": "google",
+        "google-calendar": "google",
+        gdrive: "google",
+        "google drive": "google",
+        "google-drive": "google",
+        gsheets: "google",
+        "google sheets": "google",
+        "google-sheets": "google",
+        outlook: "microsoft",
+        "ms-outlook": "microsoft",
+        "microsoft outlook": "microsoft",
+        teams: "microsoft",
+        "ms-teams": "microsoft",
+        onedrive: "microsoft",
+        slackbot: "slack",
+        "slack-bot": "slack",
+      };
+      const normalizeProvider = (raw: string): string => {
+        const v = String(raw || "").toLowerCase().trim();
+        if (!v) return "";
+        if (PROVIDER_ALIASES[v]) return PROVIDER_ALIASES[v];
+        return v;
+      };
+      const requiredRaw: string[] = Array.isArray(args.required_integrations)
+        ? args.required_integrations.map((s: any) => String(s))
+        : [];
+      const triggerSrc = normalizeProvider(args.trigger_source || "");
+      const required = new Set<string>(
+        requiredRaw
+          .map(normalizeProvider)
+          .filter((p) => p && p !== "manual" && p !== "none" && p !== "internal"),
+      );
+      if (triggerSrc && triggerSrc !== "manual" && triggerSrc !== "none" && triggerSrc !== "internal") {
+        required.add(triggerSrc);
+      }
+      if (required.size > 0) {
+        const { data: connRows } = await ctx.supabase
+          .from("user_connections")
+          .select("provider, status, workspace_id")
+          .eq("user_id", ctx.userId);
+        const connected = new Set<string>(
+          (connRows || [])
+            .filter((r: any) => {
+              if ((r.status || "connected") !== "connected") return false;
+              if (ctx.workspaceId) return r.workspace_id === ctx.workspaceId || r.workspace_id == null;
+              return true;
+            })
+            .map((r: any) => normalizeProvider(r.provider)),
+        );
+        const missing = [...required].filter((p) => !connected.has(p));
+        if (missing.length > 0) {
+          return {
+            ok: false,
+            kind: "agent",
+            error:
+              `Cannot create this agent — required integration${missing.length > 1 ? "s are" : " is"} not connected: ${missing.join(", ")}. ` +
+              `Tell the user to connect ${missing.join(" and ")} from the Connectors page first, then I'll build the agent. ` +
+              `Do NOT call create_agent again until those are connected.`,
+          };
+        }
+      }
+
       const { data, error } = await ctx.supabase
         .from("ai_agents")
         .insert({

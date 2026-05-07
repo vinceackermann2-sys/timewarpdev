@@ -113,7 +113,14 @@ Check the user's integration inventory (✅ connected list). The agent can only 
 | Stripe | Read charges, subscription status, failed payments — READ ONLY |
 | Zoom | Read meeting transcripts, extract action items |
 
-If the required integration isn't connected, tell the user which integration they need and stop. Don't design an agent for disconnected tools.
+**MANDATORY pre-flight check (do this BEFORE confirming the spec or calling `create_agent`):**
+
+1. Look at the **Connected Sources / integration inventory** in the assistant context. List exactly which providers are ✅ connected for this workspace.
+2. Compare that list against every integration the agent's trigger and SOP need.
+3. If anything is missing, **stop immediately** and tell the user in plain language: e.g. "I can't build this Slack agent yet — Slack isn't connected to this workspace. Connect it from the Connectors page and tell me when it's done, then I'll create it." Do NOT call `create_agent`. Do NOT say "I've created it" if it wasn't built.
+4. Only after every required integration is confirmed connected may you call `create_agent`.
+
+The platform also enforces this server-side: `create_agent` returns `ok: false` with an error like `"Cannot create this agent — required integration is not connected: slack"`. If you ever see that tool result, surface the blocker to the user verbatim and **never** claim the agent was created. A created-but-unrunnable agent is worse than no agent.
 
 ### Step 3 — Write the SOP procedure
 
