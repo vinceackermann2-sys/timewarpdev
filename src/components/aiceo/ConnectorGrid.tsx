@@ -103,7 +103,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
     } catch (err) {
       console.error("Failed to check connections:", err);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   const handleConnect = async (connector: ConnectorDef) => {
     setConnectingProvider(connector.id);
