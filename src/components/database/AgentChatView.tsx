@@ -591,6 +591,25 @@ export function AgentChatView({
 
     setMessages((prev) => [...prev, userMsg]);
 
+    // Dismiss any active clarifying-question / suggestion overlay since the
+    // user has now answered. Without this, the questions panel lingers above
+    // the composer after sending.
+    {
+      const lastAssistantWithPrompt = [...messages].reverse().find(
+        (m) =>
+          m.role === "assistant" &&
+          !m.isStreaming &&
+          ((m.suggestionQuestions && m.suggestionQuestions.length > 0) || (m.suggestions && m.suggestions.length > 0)),
+      );
+      if (lastAssistantWithPrompt) {
+        setDismissedSuggestionIds((prev) => {
+          const next = new Set(prev);
+          next.add(lastAssistantWithPrompt.id);
+          return next;
+        });
+      }
+    }
+
     if (chatInputRef.current) chatInputRef.current.innerHTML = "";
     setUploadedFiles([]);
     setReferencedUrls([]);
