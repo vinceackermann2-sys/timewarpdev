@@ -65,6 +65,7 @@ export function SuperchargeDNAWizard({
   embedded?: boolean;
   triggerLabel?: string;
 }) {
+  const { activeWorkspaceId } = useWorkspace();
   const [open, setOpen] = useState(embedded);
   const [step, setStep] = useState<SuperchargeStep>(1);
   const [connected, setConnected] = useState<ConnectedProvider[]>([]);
