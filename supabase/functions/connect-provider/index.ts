@@ -143,21 +143,24 @@ serve(async (req) => {
       : null;
 
     if (action === "check-status") {
+      // Connectors are workspace-scoped: a user can connect the same provider
+      // in different workspaces independently. Always require a workspaceId
+      // so connections never bleed across workspaces.
+      if (!workspaceId) {
+        return jsonResponse({ connected: [] });
+      }
+
       const connectionsQuery = supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id, workspace_id")
         .eq("user_id", user.id)
-        .eq("status", "connected");
+        .eq("status", "connected")
+        .eq("workspace_id", workspaceId);
       const tokensQuery = supabaseAdmin
         .from("user_oauth_tokens")
         .select("provider, provider_email, workspace_id")
-        .eq("user_id", user.id);
-
-      // Connections are user-scoped (RLS already enforces user_id = auth.uid()).
-      // We intentionally do NOT filter by workspace here: a user's OAuth grant
-      // applies across workspaces, and filtering caused providers to appear
-      // disconnected whenever activeWorkspaceId differed from the workspace
-      // they were connected under (or was still loading at check time).
+        .eq("user_id", user.id)
+        .eq("workspace_id", workspaceId);
 
       const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);
 
