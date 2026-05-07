@@ -341,10 +341,6 @@ const INTEGRATION_OPTIONS = [
   "hubspot", "slack", "zoom", "stripe", "microsoft_teams", "onedrive", "onenote",
 ];
 
-type EditTarget =
-  | { kind: "trigger" }
-  | { kind: "step"; index: number }
-  | { kind: "output" };
 
 function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => void }) {
   const steps = agent.sop_steps || [];
