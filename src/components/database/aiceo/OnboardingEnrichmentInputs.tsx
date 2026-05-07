@@ -104,11 +104,20 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
-  // Refresh whenever the tab regains focus (user came back from OAuth tab).
+  // Refresh whenever the tab regains focus (user came back from OAuth tab)
+  // OR the OAuth popup posts back its success message.
   useEffect(() => {
-    const handler = () => { if (!document.hidden) checkConnections(); };
-    document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
+    const onVisibility = () => { if (!document.hidden) checkConnections(); };
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === "oauth_connection_completed") checkConnections();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("message", onMessage);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("message", onMessage);
+    };
   }, [checkConnections]);
 
   const handleConnect = useCallback(async (providerId: string) => {

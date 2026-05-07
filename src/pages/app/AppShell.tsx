@@ -270,6 +270,22 @@ export default function AppShell() {
     const oauthBrandId = searchParams.get("brandId");
     if (!oauthSuccess && !oauthError) return;
 
+    // If this tab was opened from another (e.g. onboarding "Connect tools"
+    // opens the OAuth flow with window.open), notify the original tab and
+    // close ourselves — otherwise the user lands on /app/assistant which
+    // restarts the onboarding flow from scratch.
+    const openedAsPopup = !!window.opener && window.opener !== window;
+    if (openedAsPopup) {
+      try {
+        window.opener.postMessage(
+          { type: "oauth_connection_completed", provider: oauthSuccess, error: oauthError },
+          window.location.origin,
+        );
+      } catch { /* cross-origin — ignore */ }
+      window.close();
+      return;
+    }
+
     if (oauthError) {
       toast.error(`Connection failed: ${oauthError}`);
       window.history.replaceState({}, "", location.pathname);
