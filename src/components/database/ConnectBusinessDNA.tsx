@@ -136,7 +136,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
               Authorization: `Bearer ${session.access_token}`,
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-            body: JSON.stringify({ provider: providerId, action: "disconnect", brandId }),
+            body: JSON.stringify({ provider: providerId, action: "disconnect", brandId, workspaceId: activeWorkspaceId ?? null }),
           }
         );
         if (response.ok) {
