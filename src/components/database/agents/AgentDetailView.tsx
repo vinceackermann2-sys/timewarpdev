@@ -254,24 +254,324 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
           </div>
         </div>
 
-        {/* Run history */}
-        <div className="rounded-xl border border-border/60 bg-card p-5">
-          <h2 className="font-semibold text-sm mb-3">Run history</h2>
-          {loadingRuns ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-md" />)}
-            </div>
-          ) : runs.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-6 text-center">No runs yet. Click "Run now" to test.</p>
-          ) : (
-            <ul className="divide-y divide-border/60">
-              {runs.map((run) => (
-                <RunRow key={run.id} run={run} />
-              ))}
-            </ul>
-          )}
+        <AgentTabs agent={agent} runs={runs} loadingRuns={loadingRuns} supervisorName={supervisorName} />
+      </div>
+    </div>
+  );
+}
+
+function AgentTabs({
+  agent,
+  runs,
+  loadingRuns,
+  supervisorName,
+}: {
+  agent: AIAgent;
+  runs: AgentRun[];
+  loadingRuns: boolean;
+  supervisorName: string | null;
+}) {
+  const [tab, setTab] = useState<"workflow" | "dashboard" | "settings">("workflow");
+
+  const successRuns = runs.filter((r) => r.status === "success").length;
+  const failedRuns = runs.filter((r) => r.status === "failure").length;
+  const escalatedRuns = runs.filter((r) => r.status === "escalated").length;
+  const successRate = runs.length > 0 ? Math.round((successRuns / runs.length) * 100) : 0;
+
+  return (
+    <div>
+      {/* Tab switcher — pill style matching reference */}
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-sm">
+          {(["workflow", "dashboard", "settings"] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-sm capitalize transition-colors",
+                tab === key
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {key === "workflow" ? "Workflow" : key === "dashboard" ? "Dashboard" : "Settings"}
+            </button>
+          ))}
         </div>
       </div>
+
+      {tab === "workflow" && <WorkflowTab agent={agent} />}
+      {tab === "dashboard" && (
+        <DashboardTab
+          agent={agent}
+          runs={runs}
+          loadingRuns={loadingRuns}
+          successRate={successRate}
+          successRuns={successRuns}
+          failedRuns={failedRuns}
+          escalatedRuns={escalatedRuns}
+        />
+      )}
+      {tab === "settings" && <SettingsTab agent={agent} supervisorName={supervisorName} />}
+    </div>
+  );
+}
+
+/* ---------- Workflow tab — SOP rendered as a horizontal flow ---------- */
+
+function WorkflowTab({ agent }: { agent: AIAgent }) {
+  const steps = agent.sop_steps || [];
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="font-semibold text-sm">SOP Workflow</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            The exact procedure this agent follows when triggered.
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[10px] capitalize">
+          Trigger: {agent.trigger_type}
+        </Badge>
+      </div>
+
+      {steps.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-10 text-center">
+          No SOP steps defined for this agent.
+        </p>
+      ) : (
+        <div
+          className="relative rounded-lg border border-dashed border-border/60 bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:14px_14px] p-6 overflow-x-auto"
+        >
+          <div className="flex items-stretch gap-3 min-w-max">
+            {/* Trigger node */}
+            <FlowNode
+              kind="trigger"
+              title={agent.trigger_type === "schedule" ? "Schedule" : agent.trigger_type === "manual" ? "Manual run" : "Trigger"}
+              subtitle={agent.trigger_schedule || agent.trigger_condition || agent.trigger_source || undefined}
+            />
+            <FlowArrow />
+            {steps.map((s, i) => (
+              <span key={i} className="flex items-stretch gap-3">
+                <FlowNode kind="step" title={s.label} subtitle={s.detail} index={i + 1} />
+                {i < steps.length - 1 && <FlowArrow />}
+              </span>
+            ))}
+            {agent.sop_output && (
+              <>
+                <FlowArrow />
+                <FlowNode kind="output" title="Output" subtitle={agent.sop_output} />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div className="mt-5 flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded border-2 border-foreground/40 bg-muted" /> Trigger
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded border-2 border-primary/60 bg-primary/10" /> Step
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded border-2 border-emerald-500/60 bg-emerald-500/10" /> Output
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FlowNode({
+  kind,
+  title,
+  subtitle,
+  index,
+}: {
+  kind: "trigger" | "step" | "output";
+  title: string;
+  subtitle?: string | null;
+  index?: number;
+}) {
+  const tone =
+    kind === "trigger"
+      ? "border-foreground/30 bg-card"
+      : kind === "output"
+        ? "border-emerald-500/40 bg-emerald-500/5"
+        : "border-primary/40 bg-primary/5";
+  return (
+    <div className={cn("w-48 rounded-lg border-2 p-3 shadow-sm", tone)}>
+      {index != null && (
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+          Step {index}
+        </p>
+      )}
+      {kind === "trigger" && (
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Trigger</p>
+      )}
+      {kind === "output" && (
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 mb-1">Output</p>
+      )}
+      <p className="text-sm font-semibold leading-snug">{title}</p>
+      {subtitle && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-3">{subtitle}</p>}
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return (
+    <div className="flex items-center text-muted-foreground/60 shrink-0">
+      <svg width="32" height="14" viewBox="0 0 32 14" fill="none">
+        <path d="M0 7 L26 7" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M22 2 L30 7 L22 12" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      </svg>
+    </div>
+  );
+}
+
+/* ---------- Dashboard tab ---------- */
+
+function DashboardTab({
+  agent,
+  runs,
+  loadingRuns,
+  successRate,
+  successRuns,
+  failedRuns,
+  escalatedRuns,
+}: {
+  agent: AIAgent;
+  runs: AgentRun[];
+  loadingRuns: boolean;
+  successRate: number;
+  successRuns: number;
+  failedRuns: number;
+  escalatedRuns: number;
+}) {
+  return (
+    <div className="space-y-5">
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="Total runs" value={String(agent.run_count)} hint={agent.last_run_at ? `Last: ${new Date(agent.last_run_at).toLocaleDateString()}` : "Never run"} />
+        <StatCard label="Success rate" value={`${successRate}%`} tone="success" hint={`${successRuns} of ${runs.length} recent`} />
+        <StatCard label="Failures" value={String(failedRuns)} tone={failedRuns > 0 ? "danger" : "muted"} hint="In last 20 runs" />
+        <StatCard label="Escalated" value={String(escalatedRuns)} tone={escalatedRuns > 0 ? "warning" : "muted"} hint="Needs human review" />
+      </div>
+
+      {/* Run history */}
+      <div className="rounded-xl border border-border/60 bg-card p-5">
+        <h2 className="font-semibold text-sm mb-3">Run history</h2>
+        {loadingRuns ? (
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full rounded-md" />
+            ))}
+          </div>
+        ) : runs.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-6 text-center">No runs yet. Click "Run now" to test.</p>
+        ) : (
+          <ul className="divide-y divide-border/60">
+            {runs.map((run) => (
+              <RunRow key={run.id} run={run} />
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "default" | "success" | "danger" | "warning" | "muted";
+}) {
+  const valueTone =
+    tone === "success" ? "text-emerald-600"
+      : tone === "danger" ? "text-destructive"
+      : tone === "warning" ? "text-amber-600"
+      : tone === "muted" ? "text-muted-foreground"
+      : "text-foreground";
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn("text-2xl font-semibold mt-1", valueTone)}>{value}</p>
+      {hint && <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>}
+    </div>
+  );
+}
+
+/* ---------- Settings tab — safety, trigger, integrations ---------- */
+
+function SettingsTab({ agent, supervisorName }: { agent: AIAgent; supervisorName: string | null }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <SpecCard icon={Workflow} title="Trigger">
+        <KV label="Type" value={TRIGGER_TYPE_LABEL[agent.trigger_type]} />
+        {agent.trigger_schedule && <KV label="Schedule" value={agent.trigger_schedule} />}
+        {agent.trigger_source && <KV label="Source" value={agent.trigger_source} />}
+        {agent.trigger_condition && <KV label="Condition" value={agent.trigger_condition} />}
+      </SpecCard>
+
+      <SpecCard icon={Plug} title="Required integrations">
+        {agent.required_integrations.length === 0 ? (
+          <p className="text-xs text-muted-foreground">None.</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {agent.required_integrations.map((i) => (
+              <Badge key={i} variant="secondary" className="capitalize">{i}</Badge>
+            ))}
+          </div>
+        )}
+      </SpecCard>
+
+      <SpecCard icon={ShieldCheck} title="Safety boundary" className="md:col-span-2">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-2">Can do</p>
+            {agent.safety_can_do.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No allow rules defined.</p>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {agent.safety_can_do.map((r, i) => (
+                  <li key={i} className="flex gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 mt-1 shrink-0" /><span>{r}</span></li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-destructive mb-2">Cannot do</p>
+            {agent.safety_cannot_do.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No block rules defined.</p>
+            ) : (
+              <ul className="space-y-1.5 text-sm">
+                {agent.safety_cannot_do.map((r, i) => (
+                  <li key={i} className="flex gap-2"><XCircle className="h-3.5 w-3.5 text-destructive mt-1 shrink-0" /><span>{r}</span></li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+        {agent.safety_escalation_path && (
+          <div className="mt-4 pt-4 border-t border-border/60">
+            <KV label="Escalates to" value={agent.safety_escalation_path} />
+          </div>
+        )}
+      </SpecCard>
+
+      {supervisorName && (
+        <SpecCard icon={UserCog} title="Supervisor" className="md:col-span-2">
+          <p className="text-sm">{supervisorName}</p>
+        </SpecCard>
+      )}
     </div>
   );
 }
