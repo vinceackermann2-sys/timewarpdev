@@ -57,6 +57,32 @@ export default function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [selected, setSelected] = useState<AIAgent | null>(null);
+  const [renaming, setRenaming] = useState<AIAgent | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [deleting, setDeleting] = useState<AIAgent | null>(null);
+
+  const handleRename = async () => {
+    if (!renaming) return;
+    const name = renameValue.trim();
+    if (!name) return;
+    setRenameSaving(true);
+    const { error } = await supabase.from("ai_agents").update({ name }).eq("id", renaming.id);
+    setRenameSaving(false);
+    if (error) { toast.error("Could not rename", { description: error.message }); return; }
+    toast.success("Renamed");
+    setRenaming(null);
+    loadAgents();
+  };
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    const { error } = await supabase.from("ai_agents").delete().eq("id", deleting.id);
+    if (error) { toast.error("Could not delete", { description: error.message }); return; }
+    toast.success("Agent deleted");
+    setDeleting(null);
+    loadAgents();
+  };
 
   const loadAgents = async () => {
     if (!user) { setLoading(false); return; }
