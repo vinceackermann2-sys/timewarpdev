@@ -834,7 +834,7 @@ export function AgentChatView({
   const isOnboardingActive = !hasMessages && (forceOnboarding || onboardingLocked);
 
   const activeComposerPrompt =
-    !isOnboardingActive && hasMessages
+    !isOnboardingActive && hasMessages && !userStartedTyping
       ? [...messages].reverse().find(
           (m) =>
             m.role === "assistant" &&
@@ -856,11 +856,13 @@ export function AgentChatView({
                 title={lastAssistant.suggestionTitle}
                 variant="overlay"
                 onSelect={(suggestion) => {
-                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
+                  // Don't dismiss — let the next assistant reply replace these chips.
+                  // Chips persist until the user starts typing or explicitly dismisses.
                   const mapped = lastAssistant.planActionPayloads?.[suggestion];
                   const textToSend = (mapped || suggestion || "").trim();
                   if (!textToSend) return;
                   if (chatInputRef.current) chatInputRef.current.innerHTML = "";
+                  setUserStartedTyping(false);
                   setTimeout(() => void handleSendMessage(textToSend), 0);
                 }}
                 onDismiss={() => {
