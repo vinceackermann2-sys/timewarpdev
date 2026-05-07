@@ -38,6 +38,7 @@ interface ConnectBusinessDNAProps {
 }
 
 export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAProps) {
+  const { activeWorkspaceId } = useWorkspace();
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
