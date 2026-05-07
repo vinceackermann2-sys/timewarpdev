@@ -1380,7 +1380,7 @@ const FAQSection = () => {
     },
     {
       question: "Is this just a wrapper for ChatGPT?",
-      answer: "No, we dont use ChatGPT. TimeWarp's intelligience layer is powered by Gemini-3.1-pro."
+      answer: "We dont use ChatGPT. TimeWarp uses Gemini and learns and grows with your business compared to AI models."
     },
     {
       question: "It sounds like I’ll spend more time managing the AI than it saves me.",
