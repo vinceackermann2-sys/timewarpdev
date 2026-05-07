@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BgGradient } from "@/components/ui/bg-gradient";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { toast } from "sonner";
 import logoMicrosoft from "@/assets/logo-microsoft.png";
 import logoSlack from "@/assets/logo-slack.png";
@@ -37,6 +38,7 @@ interface ConnectBusinessDNAProps {
 }
 
 export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAProps) {
+  const { activeWorkspaceId } = useWorkspace();
   const [connectedProviders, setConnectedProviders] = useState<ConnectedProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", workspaceId: activeWorkspaceId ?? null }),
         }
       );
 
@@ -67,7 +69,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
       console.error("Failed to check connections:", err);
     }
     setIsLoading(false);
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
@@ -100,7 +102,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId }),
+          body: JSON.stringify({ provider: providerId, action: "get-auth-url", returnPath: window.location.pathname, origin: window.location.origin, brandId, workspaceId: activeWorkspaceId ?? null }),
         }
       );
 
@@ -134,7 +136,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
               Authorization: `Bearer ${session.access_token}`,
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-            body: JSON.stringify({ provider: providerId, action: "disconnect", brandId }),
+            body: JSON.stringify({ provider: providerId, action: "disconnect", brandId, workspaceId: activeWorkspaceId ?? null }),
           }
         );
         if (response.ok) {

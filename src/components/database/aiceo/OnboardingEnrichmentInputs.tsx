@@ -20,6 +20,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { cn } from "@/lib/utils";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
 
@@ -66,6 +67,7 @@ interface OnboardingEnrichmentInputsProps {
 }
 
 export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnrichmentInputsProps) {
+  const { activeWorkspaceId } = useWorkspace();
   const [tab, setTab] = useState<"files" | "integrations">("files");
   const [uploaded, setUploaded] = useState<UploadedFileMeta[]>([]);
   const [connected, setConnected] = useState<string[]>([]);
@@ -86,7 +88,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", workspaceId: activeWorkspaceId ?? null }),
         },
       );
       if (res.ok) {
@@ -98,7 +100,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
@@ -131,6 +133,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
             // intact because we open the OAuth flow in a new tab.
             returnPath: "/app/assistant",
             origin: window.location.origin,
+            workspaceId: activeWorkspaceId ?? null,
           }),
         },
       );
@@ -144,7 +147,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
     } finally {
       setConnectingId(null);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   const summary = useMemo(
     () => ({ fileCount: uploaded.length, integrationCount: connected.length }),

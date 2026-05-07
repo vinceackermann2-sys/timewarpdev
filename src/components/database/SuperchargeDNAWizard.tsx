@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, FileUp, Filter, Loader2, Link2, Plus, X, Upload, Sparkles, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -64,6 +65,7 @@ export function SuperchargeDNAWizard({
   embedded?: boolean;
   triggerLabel?: string;
 }) {
+  const { activeWorkspaceId } = useWorkspace();
   const [open, setOpen] = useState(embedded);
   const [step, setStep] = useState<SuperchargeStep>(1);
   const [connected, setConnected] = useState<ConnectedProvider[]>([]);
@@ -103,7 +105,7 @@ export function SuperchargeDNAWizard({
           Authorization: `Bearer ${session.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ action: "check-status" }),
+        body: JSON.stringify({ action: "check-status", workspaceId: activeWorkspaceId ?? null }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -147,6 +149,7 @@ export function SuperchargeDNAWizard({
           returnPath: window.location.pathname,
           origin: window.location.origin,
           brandId,
+          workspaceId: activeWorkspaceId ?? null,
         }),
       });
       const data = await response.json();
@@ -207,7 +210,7 @@ export function SuperchargeDNAWizard({
       setTimeout(() => markTodo(2), 2200);
 
       const { data, error } = await supabase.functions.invoke("supercharge-dna", {
-        body: { brandId, workspaceId: null, urls, artifacts },
+        body: { brandId, workspaceId: activeWorkspaceId ?? null, urls, artifacts },
       });
       if (error) throw error;
       const remoteLogs = Array.isArray(data?.logs) ? data.logs.map((x: unknown) => String(x)) : [];

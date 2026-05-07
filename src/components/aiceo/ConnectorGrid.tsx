@@ -3,6 +3,7 @@ import { Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { triggerDnaReEnrich } from "@/lib/triggerDnaReEnrich";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
 import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
 import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
@@ -49,6 +50,7 @@ interface ConnectorGridProps {
 }
 
 export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGridProps) {
+  const { activeWorkspaceId } = useWorkspace();
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
 
@@ -89,7 +91,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
             Authorization: `Bearer ${session.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ action: "check-status" }),
+          body: JSON.stringify({ action: "check-status", workspaceId: activeWorkspaceId ?? null }),
         }
       );
 
@@ -101,7 +103,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
     } catch (err) {
       console.error("Failed to check connections:", err);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   const handleConnect = async (connector: ConnectorDef) => {
     setConnectingProvider(connector.id);
@@ -128,6 +130,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
             returnPath: window.location.pathname,
             origin: window.location.origin,
             brandId,
+            workspaceId: activeWorkspaceId ?? null,
           }),
         }
       );
