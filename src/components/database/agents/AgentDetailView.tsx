@@ -268,7 +268,7 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
           </div>
         </div>
 
-        <AgentTabs agent={agent} runs={runs} loadingRuns={loadingRuns} supervisorName={supervisorName} />
+        <AgentTabs agent={agent} runs={runs} loadingRuns={loadingRuns} supervisorName={supervisorName} onUpdated={onUpdated} />
       </div>
     </div>
   );
