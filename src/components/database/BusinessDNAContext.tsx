@@ -507,13 +507,9 @@ export function BusinessDNAProvider({ children }: { children: ReactNode }) {
       setPrevProducts(p);
       setPrevAudiences(a);
 
-      // Orphan validation — log warnings for dangling references
-      const brandIds = new Set(brandsLight.map(br => br.id));
-      const productIds = new Set(p.map(pr => pr.id));
-      const orphanProducts = p.filter(pr => pr.brandId && !brandIds.has(pr.brandId));
-      const orphanAudiences = a.filter(au => au.productIds?.some(pid => !productIds.has(pid)));
-      if (orphanProducts.length) console.warn(`[DNA Integrity] ${orphanProducts.length} product(s) reference missing brand:`, orphanProducts.map(x => x.id));
-      if (orphanAudiences.length) console.warn(`[DNA Integrity] ${orphanAudiences.length} audience(s) reference missing product:`, orphanAudiences.map(x => x.id));
+      // Integrity warnings removed — they fired spuriously during workspace
+      // switches (brands/products loaded in separate phases) and confused users.
+      // Real orphans are handled at delete-time via cascade logic.
     }
     load();
   }, [activeWorkspaceId, authLoading, user]);
