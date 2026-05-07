@@ -149,6 +149,7 @@ export function SuperchargeDNAWizard({
           returnPath: window.location.pathname,
           origin: window.location.origin,
           brandId,
+          workspaceId: activeWorkspaceId ?? null,
         }),
       });
       const data = await response.json();
