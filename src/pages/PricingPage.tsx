@@ -418,6 +418,12 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
           </div>
         </div>
 
+        {isLoggedIn && !isWorkspaceOwner && (
+          <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground text-center">
+            Only the workspace owner can change the plan. You can still purchase action packs below.
+          </div>
+        )}
+
         {/* Plan cards — Free / Co Founder / Aristotle */}
         <div className="grid md:grid-cols-3 gap-6 items-stretch">
           <PlanCard
