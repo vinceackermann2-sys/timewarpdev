@@ -461,15 +461,15 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
   const COL_W = 220;
   const COL_GAP = 88;
   const PAD_X = 56;
-  const PAD_TOP = 72;
+  const PAD_TOP = 88; // legend now sits at canvas top
   const HEADER_H = 36;
   const HEADER_GAP = 40;
   const NODE_W = 168;
   const NODE_H = 64;
   const NODE_GAP = 44;
-  const CANVAS_MIN_H = 1100;
-  const COL_BOTTOM_PAD = 96;
-  const LEGEND_RESERVE = 220;
+  const CANVAS_MIN_H = 900;
+  const COL_BOTTOM_PAD = 64;
+  const LEGEND_RESERVE = 24;
 
   const maxNodes = Math.max(2, ...columns.map((c) => c.nodes.length));
   const stackH = maxNodes * NODE_H + (maxNodes - 1) * NODE_GAP;
