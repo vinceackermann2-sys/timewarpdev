@@ -69,7 +69,7 @@ export function ConnectBusinessDNA({ onComplete, brandId }: ConnectBusinessDNAPr
       console.error("Failed to check connections:", err);
     }
     setIsLoading(false);
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
