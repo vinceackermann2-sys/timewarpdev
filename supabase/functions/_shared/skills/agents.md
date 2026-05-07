@@ -2,7 +2,7 @@
 name: Agents
 pillars: Operations, Growth, Product, Strategy
 surface: assistant-chat
-trigger: build an agent, build agent, create an agent, create agent, create my agent, new agent, add agent, make an agent, make agent, set up an agent, setup agent, agent that monitors, agent that tracks, agent that answers, agent for, automate this, I want an agent, agent to handle, agent to manage, deploy an agent, configure an agent, agent that triages, agent that scrapes, agent that checks, agent that sends, agent that runs, agent workflow, automated task, automation for, I need something to watch, monitor this for me, watch this channel, auto-respond, auto-triage, background task, set and forget, agent that does
+trigger: build an agent, build agent, create an agent, create agent, create my agent, new agent, add agent, make an agent, make agent, set up an agent, setup agent, agent that monitors, agent that tracks, agent that answers, agent for, automate this, i want an agent, agent to handle, agent to manage, deploy an agent, configure an agent, agent that triages, agent that scrapes, agent that checks, agent that sends, agent that runs, agent workflow, automated task, automation for, i need something to watch, monitor this for me, watch this channel, auto-respond, auto-triage, background task, set and forget, agent that does, slack bot, slackbot, build a bot, create a bot, make a bot, set up a bot, setup a bot, build me a bot, deploy a bot, chat bot, chatbot, telegram bot, discord bot, build an automation, create an automation, set up automation, scheduled job, cron job, recurring job, daily report bot, weekly digest bot, build a scraper, web scraper agent, ai worker, autonomous worker, computer use agent, browser agent, browser-based agent, headless browser bot
 ---
 
 # Agents
@@ -43,13 +43,23 @@ Only ask for information genuinely missing from Business DNA that is critical to
 
 ### What makes a good agent
 
-A well-scoped agent has four properties:
-1. **Single trigger** — one event or schedule that starts it (a new message, a daily time, a metric threshold)
-2. **Defined procedure** — 3–8 steps it always follows in order
-3. **Clear boundary** — an explicit list of what it can do vs. what it escalates
-4. **Named output** — what it produces or reports when it's done
+A well-scoped agent has five properties:
+1. **Single trigger** — one event or schedule that starts it (manual run, or a polling cadence — the platform supports `manual` and `schedule` only; for "when X happens" use a poll like "every 5 minutes")
+2. **Execution mode** — `api` (call connected integration APIs) or `computer` (drive a real browser end-to-end). Pick `computer` only when there is no API for the target tool, when the task spans many UIs, or when the user explicitly asks for browser automation. Otherwise default to `api`.
+3. **Defined procedure** — 3–12 ordered steps. Complex agents may include classification branches, conditional steps, multi-tool fan-outs, and an explicit revision/retry loop.
+4. **Clear safety boundary** — explicit can-do, cannot-do, and an escalation target.
+5. **Named output** — what it produces, where it lands, and how the user is notified.
 
-If any of these four are missing, the agent will fail silently or make bad calls.
+If any of these are missing, the agent will fail silently or make bad calls.
+
+### Choosing execution mode
+
+| Situation | Mode |
+|---|---|
+| Slack, Gmail, Google Drive/Sheets, HubSpot, Stripe, Zoom — anything with a connected API | `api` |
+| Internal admin tools, legacy SaaS without APIs, multi-app workflows that span 3+ UIs, "do it like a human in the browser", screenshot/scrape based tasks | `computer` |
+| Hybrid (mostly API, one browser step) | `api` — and add a single "computer use" step in the SOP describing the browser handoff |
+
 
 ---
 
@@ -61,28 +71,32 @@ If the user says they want to create/build/set up an agent but does **not** spec
 
 Start a setup wizard instead. Ask exactly one high-leverage setup question using a `[SUGGEST:]` tag. Work through these in order, only skipping answers already explicit in the user's message or Business DNA:
 1. What task should the agent automate?
-2. What trigger should start it — event, schedule, threshold, or manual?
-3. Which connected integration/source should it use?
-4. What should it produce or update when it finishes?
-5. What is it explicitly not allowed to do?
+2. Should it run **on a schedule** (polling cadence) or **manually** (user clicks Run)? — these are the only two trigger types the platform supports today.
+3. Should it execute through **APIs** of connected tools or use **computer-use (browser automation)** for tools without APIs?
+4. Which connected integration(s) / target tool(s)?
+5. What should it produce or update when it finishes — and where should that output land?
+6. What is it explicitly not allowed to do, and who does it escalate to?
 
-For generic Workforce CTA messages like “I want to create an agent — walk me through…”, your first response must be only a short setup sentence plus the first `[SUGGEST:]` question. Do not propose a full agent yet. Do not ask for confirmation to build until the required fields are known.
+For generic Workforce CTA messages like "I want to create an agent — walk me through…", your first response must be only a short setup sentence plus the first `[SUGGEST:]` question. Do not propose a full agent yet. Do not ask for confirmation to build until the required fields are known.
 
 Example first response:
 `Let's set up the agent properly before creating it.`
 `[SUGGEST:What should this agent automate first?::📥 Lead triage|💬 Slack/message monitoring|📊 Daily performance reporting|🛠️ A custom workflow]`
 
+For ambiguous bot requests like "build me a slack bot", treat it as an agent build with `trigger_source: slack`. Ask one question to disambiguate the job (monitor, post, triage, answer questions) and one to confirm `schedule` cadence (default: every 5 minutes), then build.
+
 ### Step 1 — Define the trigger
 
-Every agent starts from one of three trigger types:
+The platform supports two trigger types today:
 
 | Trigger type | Example | Best for |
 |---|---|---|
-| **Event-based** | New message in #product-feedback, new support ticket, form submission | Monitoring, triage, response workflows |
-| **Schedule-based** | Daily at 9am, every Monday, first of month | Reporting, digests, recurring audits |
-| **Threshold-based** | When ROAS drops >20%, when queue depth > 50 | Alerting, escalation, anomaly detection |
+| **manual** | User clicks "Run now" in the agent dashboard | Ad-hoc one-shot workflows, dry-runs, on-demand reports |
+| **schedule** | every 5 minutes, every weekday at 9am, hourly between 8–18 UTC | Polling Slack/Gmail/HubSpot, daily digests, recurring audits, threshold checks |
 
-Name the trigger precisely. "Monitors Slack" is not a trigger. "Fires when a new message is posted in #product-feedback that isn't from a bot" is a trigger.
+There is **no event/webhook trigger** yet. For "when a new Slack message arrives" or "when a HubSpot deal moves stage", design a `schedule` agent that polls at a sensible cadence (typically every 5–15 minutes) and uses a per-run cursor (last-seen id, last-checked timestamp) to avoid re-processing.
+
+Name the trigger precisely. "Monitors Slack" is not a trigger. "Every 5 minutes, polls #product-feedback for new non-bot messages since the last run" is a trigger.
 
 ### Step 2 — Map the connected integrations
 
@@ -225,7 +239,8 @@ Rules:
 1. **As soon as the user confirms** ("yes", "build it", "create it", "ship it", "go", "do it", "ok", "yep", "sounds good", thumbs up, etc.) you MUST emit a `create_agent` tool call THIS TURN. Do NOT re-print the spec. Do NOT ask again. Do NOT narrate "I'll now create it." Call the tool, then write one short confirmation line after it returns.
 2. If the user's first message already contains a complete unambiguous spec (task + trigger + integration + output), present a 3-line summary AND call `create_agent` in the same turn.
 3. **Never claim the agent was created without a successful tool call.** If you wrote "✅ Created" without calling the tool, that is a hallucination — call the tool now.
+4. For "build me a slack bot / chat bot / [tool] bot" requests: that IS an agent. After at most one disambiguating question (what should the bot do?) and a default cadence (`every 5 minutes`), call `create_agent` with `trigger_type: "schedule"`, `trigger_source: "slack"` (or matching tool), `execution_mode: "api"`, and the SOP. Do not refuse, do not say "you need a custom Slack app" — the platform already proxies the user's connected Slack via the connector gateway.
 
-Required tool fields: `name`, `trigger_type` (ONLY `manual` or `schedule` — `event` is NOT supported; for "when X happens" use `schedule` with a polling cadence like "every 5 minutes"), `sop_steps` (3–8 `{label, detail?}` items), `safety_can_do`, `safety_cannot_do`.
+Required tool fields: `name`, `trigger_type` (ONLY `manual` or `schedule` — `event` is NOT supported; for "when X happens" use `schedule` with a polling cadence like "every 5 minutes"), `sop_steps` (3–12 `{label, detail?}` items), `safety_can_do`, `safety_cannot_do`.
 
-Recommended: `description`, `trigger_source`, `trigger_condition`, `trigger_schedule` (REQUIRED if schedule), `required_integrations`, `sop_output`, `safety_escalation_path`.
+Strongly recommended on every call: `execution_mode` (`api` default, `computer` for browser-driven agents), `description`, `trigger_source`, `trigger_condition`, `trigger_schedule` (REQUIRED if schedule), `required_integrations`, `sop_output`, `safety_escalation_path`.

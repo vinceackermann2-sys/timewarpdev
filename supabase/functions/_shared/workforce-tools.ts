@@ -24,6 +24,11 @@ export const workforceTools = [
           trigger_source: { type: "string", description: "Integration the agent reads from (e.g. 'gmail', 'slack', 'manual')." },
           trigger_condition: { type: "string", description: "Plain-English filter applied each run (e.g. 'new unread message from VIP sender')." },
           trigger_schedule: { type: "string", description: "REQUIRED when trigger_type='schedule'. Concrete cadence (e.g. 'every 5 minutes', 'every weekday at 9am')." },
+          execution_mode: {
+            type: "string",
+            enum: ["api", "computer"],
+            description: "How the agent acts on the world. 'api' = call connected integration APIs directly (preferred when an integration exists for every step). 'computer' = drive a real browser end-to-end (use when the target tool has no API, when the workflow spans many UIs, or when the user says 'use the browser' / 'do it like a human'). Default to 'api'.",
+          },
           required_integrations: {
             type: "array",
             items: { type: "string" },
@@ -271,6 +276,7 @@ export async function executeWorkforceToolCall(
           trigger_source: args.trigger_source || null,
           trigger_condition: args.trigger_condition || null,
           trigger_schedule: args.trigger_schedule || null,
+          execution_mode: args.execution_mode === "computer" ? "computer" : "api",
           required_integrations: Array.isArray(args.required_integrations) ? args.required_integrations : [],
           sop_steps: steps,
           sop_output: args.sop_output || null,
