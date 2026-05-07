@@ -133,6 +133,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
             // intact because we open the OAuth flow in a new tab.
             returnPath: "/app/assistant",
             origin: window.location.origin,
+            workspaceId: activeWorkspaceId ?? null,
           }),
         },
       );
