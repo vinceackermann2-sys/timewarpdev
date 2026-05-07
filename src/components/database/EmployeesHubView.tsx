@@ -247,11 +247,11 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
               {filtered.map((it) => {
                 const isSel = it.id === selectedId;
                 return (
-                  <li key={it.id}>
+                  <li key={it.id} className="group relative">
                     <button
                       onClick={() => setSelectedId(it.id)}
                       className={cn(
-                        "w-full text-left flex items-center gap-2.5 px-2 py-1.5 rounded-md transition-colors",
+                        "w-full text-left flex items-center gap-2.5 px-2 py-1.5 pr-8 rounded-md transition-colors",
                         isSel ? "bg-[#f3f5f7] text-[#101828]" : "hover:bg-muted/50",
                       )}
                     >
@@ -261,6 +261,28 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
                         <p className="text-[11px] text-muted-foreground truncate">{rowSubtitle(it)}</p>
                       </div>
                     </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+                          aria-label="Item actions"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onSelect={() => { setRenameValue(it.name); setRenaming(it); }}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleting(it)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </li>
                 );
               })}
