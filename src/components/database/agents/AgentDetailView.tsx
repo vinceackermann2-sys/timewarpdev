@@ -398,9 +398,9 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
   ];
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+    <div className="rounded-xl border border-border/60 bg-card overflow-hidden flex flex-col min-h-0 flex-1">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/60">
+      <div className="flex items-center justify-between gap-3 px-6 py-3 border-b border-border/60 shrink-0">
         <div>
           <h2 className="font-semibold text-base">Agent Workflow</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -412,9 +412,13 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         </Badge>
       </div>
 
-      {/* Canvas sized to fill remaining viewport — no page scroll */}
-      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto h-[calc(100vh-260px)] min-h-[420px]">
+      {/* Canvas fills remaining space — no page scroll */}
+      <div className="relative flex-1 min-h-0 bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto">
         <FlowCanvas columns={columns} />
+        {/* Legend pinned to the visible viewport's bottom-left */}
+        <div className="sticky bottom-3 left-3 z-20 inline-block ml-3 mb-3 pointer-events-auto">
+          <CanvasLegend />
+        </div>
       </div>
     </div>
   );
