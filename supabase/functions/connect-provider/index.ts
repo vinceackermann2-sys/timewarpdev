@@ -366,25 +366,28 @@ serve(async (req) => {
       if (!provider) {
         return jsonResponse({ error: "Provider is required" }, 400);
       }
+      if (!workspaceId) {
+        return jsonResponse({ error: "Workspace is required" }, 400);
+      }
 
-      const connectionUpdate = supabaseAdmin
+      const connRes = await supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
-        .eq("provider", provider);
-      const connRes = await connectionUpdate;
+        .eq("provider", provider)
+        .eq("workspace_id", workspaceId);
 
       if (connRes.error) {
         console.error("connect-provider disconnect connection error", connRes.error);
         return jsonResponse({ error: "Failed to disconnect provider" }, 500);
       }
 
-      const tokenDelete = supabaseAdmin
+      const tokRes = await supabaseAdmin
         .from("user_oauth_tokens")
         .delete()
         .eq("user_id", user.id)
-        .eq("provider", provider);
-      const tokRes = await tokenDelete;
+        .eq("provider", provider)
+        .eq("workspace_id", workspaceId);
 
       if (tokRes.error) {
         console.error("connect-provider disconnect token error", tokRes.error);
