@@ -198,7 +198,7 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
 
   return (
     <div className="flex-1 flex flex-col min-h-0 p-6">
-      <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col min-h-0">
+      <div className="w-full flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-4 shrink-0">
           <div className="min-w-0">
