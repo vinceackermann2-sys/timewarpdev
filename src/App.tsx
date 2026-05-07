@@ -28,6 +28,7 @@ import DnaPage from "./pages/app/DnaPage";
 import DnaDetailPage from "./pages/app/DnaDetailPage";
 import WorkforcePage from "./pages/app/WorkforcePage";
 import ConnectionsPage from "./pages/app/ConnectionsPage";
+import { RouteErrorBoundary } from "./components/error/RouteErrorBoundary";
 import WorkspacesPage from "./pages/app/WorkspacesPage";
 import SettingsPage from "./pages/app/SettingsPage";
 
