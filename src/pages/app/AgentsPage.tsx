@@ -7,10 +7,25 @@ import {
   ShieldCheck,
   Clock,
   PlayCircle,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -42,6 +57,32 @@ export default function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
   const [selected, setSelected] = useState<AIAgent | null>(null);
+  const [renaming, setRenaming] = useState<AIAgent | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [deleting, setDeleting] = useState<AIAgent | null>(null);
+
+  const handleRename = async () => {
+    if (!renaming) return;
+    const name = renameValue.trim();
+    if (!name) return;
+    setRenameSaving(true);
+    const { error } = await supabase.from("ai_agents").update({ name }).eq("id", renaming.id);
+    setRenameSaving(false);
+    if (error) { toast.error("Could not rename", { description: error.message }); return; }
+    toast.success("Renamed");
+    setRenaming(null);
+    loadAgents();
+  };
+
+  const handleDelete = async () => {
+    if (!deleting) return;
+    const { error } = await supabase.from("ai_agents").delete().eq("id", deleting.id);
+    if (error) { toast.error("Could not delete", { description: error.message }); return; }
+    toast.success("Agent deleted");
+    setDeleting(null);
+    loadAgents();
+  };
 
   const loadAgents = async () => {
     if (!user) { setLoading(false); return; }
@@ -165,31 +206,61 @@ export default function AgentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agents.map((agent) => (
-              <button
+              <div
                 key={agent.id}
-                onClick={() => setSelected(agent)}
-                className="group p-5 rounded-xl border border-border/60 bg-card hover:border-border hover:shadow-sm transition-all text-left flex flex-col gap-2"
+                className="group relative p-5 rounded-xl border border-border/60 bg-card hover:border-border hover:shadow-sm transition-all flex flex-col gap-2"
               >
-                <div className="flex items-start justify-between gap-2">
+                <button
+                  onClick={() => setSelected(agent)}
+                  className="absolute inset-0 rounded-xl"
+                  aria-label={`Open ${agent.name}`}
+                />
+                <div className="flex items-start justify-between gap-2 relative">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Zap className="h-4 w-4 text-primary shrink-0" />
                     <p className="font-semibold text-sm truncate">{agent.name}</p>
                   </div>
-                  <Badge
-                    className={cn(
-                      "shrink-0 capitalize text-[10px]",
-                      agent.status === "active" && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-                      agent.status === "paused" && "bg-amber-500/10 text-amber-600 border-amber-500/20",
-                      agent.status === "draft" && "bg-muted text-muted-foreground",
+                  <div className="flex items-center gap-1 shrink-0">
+                    {agent.status !== "draft" && (
+                      <Badge
+                        className={cn(
+                          "capitalize text-[10px]",
+                          agent.status === "active" && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+                          agent.status === "paused" && "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                        )}
+                      >
+                        {STATUS_LABEL[agent.status]}
+                      </Badge>
                     )}
-                  >
-                    {STATUS_LABEL[agent.status]}
-                  </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 relative"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onSelect={() => { setRenameValue(agent.name); setRenaming(agent); }}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleting(agent)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
                 {agent.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{agent.description}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2 relative pointer-events-none">{agent.description}</p>
                 )}
-                <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground relative pointer-events-none">
                   <span className="flex items-center gap-1">
                     <PlayCircle className="h-3 w-3" />
                     {agent.run_count} run{agent.run_count !== 1 ? "s" : ""}
@@ -204,11 +275,44 @@ export default function AgentsPage() {
                     {TRIGGER_TYPE_LABEL[agent.trigger_type].split(" — ")[0]}
                   </span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename agent</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder="Agent name"
+            onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenaming(null)}>Cancel</Button>
+            <Button onClick={handleRename} disabled={renameSaving || !renameValue.trim()}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this agent?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove "{deleting?.name}" and its run history. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
