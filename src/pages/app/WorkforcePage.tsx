@@ -20,13 +20,12 @@ export default function WorkforcePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const initialTab: EmployeesTab =
-    searchParams.get("tab") === "agents" ? "agents" : "employees";
+  // Employees are coming soon — always default to agents
+  const initialTab: EmployeesTab = "agents";
   const [activeTab, setActiveTab] = useState<EmployeesTab>(initialTab);
 
   useEffect(() => {
-    const fromUrl = searchParams.get("tab") === "agents" ? "agents" : "employees";
-    if (fromUrl !== activeTab) setActiveTab(fromUrl);
+    if (activeTab !== "agents") setActiveTab("agents");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
