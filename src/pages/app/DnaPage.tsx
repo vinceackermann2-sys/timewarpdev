@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
@@ -15,13 +14,16 @@ import { BusinessDNAOnboarding } from "@/components/database/BusinessDNAOnboardi
  *   • No brands, non-owner workspace member → empty state
  */
 export default function DnaPage() {
-  const { brands, isLoading } = useBusinessDNA();
-  const { activeWorkspace } = useWorkspace();
-  const [hasSettled, setHasSettled] = useState(false);
+  const { brands, isLoading, loadedWorkspaceId } = useBusinessDNA();
+  const { activeWorkspace, isLoading: wsLoading } = useWorkspace();
 
-  useEffect(() => {
-    if (!isLoading) setHasSettled(true);
-  }, [isLoading]);
+  // Derived (not latched): re-evaluates on every workspace switch so we don't
+  // flash onboarding while the new workspace's brands are still loading.
+  const hasSettled =
+    !isLoading &&
+    !wsLoading &&
+    !!activeWorkspace &&
+    loadedWorkspaceId === activeWorkspace.workspaceId;
 
   const isWorkspaceMemberOnly = !!activeWorkspace && activeWorkspace.role !== "owner";
 
