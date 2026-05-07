@@ -228,7 +228,7 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
       </aside>
 
       {/* Right detail panel */}
-      <main className="flex-1 min-h-0 overflow-y-auto bg-background">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-background">
         {selected ? activeTab === "agents" ? (
           <AgentDetailView
             agent={selected as AIAgent}
