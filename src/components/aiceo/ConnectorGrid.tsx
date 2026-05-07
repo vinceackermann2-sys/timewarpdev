@@ -54,29 +54,6 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const oauthSuccess = params.get("oauth_success");
-    const oauthError = params.get("oauth_error");
-
-    if (oauthSuccess) {
-      const label = connectors.find(c => c.id === oauthSuccess)?.name || oauthSuccess;
-      toast.success(`${label} connected!`);
-      window.history.replaceState({}, "", window.location.pathname);
-      setConnectedProviders(prev => prev.includes(oauthSuccess) ? prev : [...prev, oauthSuccess]);
-      // Re-enrich Business DNA pillars that benefit from live integration data.
-      // Runs in background; AI will only fill fields where it has real evidence.
-      void triggerDnaReEnrich(brandId);
-      return;
-    }
-    if (oauthError) {
-      toast.error(`Connection failed: ${oauthError}`);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, [brandId]);
-
-  useEffect(() => { checkConnections(); }, []);
-
   const checkConnections = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -104,6 +81,28 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
       console.error("Failed to check connections:", err);
     }
   }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthSuccess = params.get("oauth_success");
+    const oauthError = params.get("oauth_error");
+
+    if (oauthSuccess) {
+      const label = connectors.find(c => c.id === oauthSuccess)?.name || oauthSuccess;
+      toast.success(`${label} connected!`);
+      window.history.replaceState({}, "", window.location.pathname);
+      setConnectedProviders(prev => prev.includes(oauthSuccess) ? prev : [...prev, oauthSuccess]);
+      void triggerDnaReEnrich(brandId);
+      void checkConnections();
+      return;
+    }
+    if (oauthError) {
+      toast.error(`Connection failed: ${oauthError}`);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [brandId, checkConnections]);
+
+  useEffect(() => { void checkConnections(); }, [checkConnections]);
 
   const handleConnect = async (connector: ConnectorDef) => {
     setConnectingProvider(connector.id);
