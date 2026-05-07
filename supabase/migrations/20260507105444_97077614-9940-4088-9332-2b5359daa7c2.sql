@@ -1,0 +1,1 @@
+ALTER TABLE public.user_connections DROP CONSTRAINT IF EXISTS user_connections_user_provider_unique;
