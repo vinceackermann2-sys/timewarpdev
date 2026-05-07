@@ -435,8 +435,8 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         </Badge>
       </div>
 
-      {/* Big tall canvas with column groups + embedded legend */}
-      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-x-auto">
+      {/* Tall canvas constrained to viewport so the page itself doesn't scroll */}
+      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto h-[calc(100vh-220px)] min-h-[560px]">
         <FlowCanvas columns={columns} />
       </div>
     </div>
@@ -493,18 +493,18 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
   const HEADER_H = 36;
   const HEADER_GAP = 40;
   const NODE_W = 168;
-  const NODE_H = 52;
-  const NODE_GAP = 36;
-  const CANVAS_MIN_H = 1000;
-  const COL_BOTTOM_PAD = 80;
-  const LEGEND_RESERVE = 200;
+  const NODE_H = 64;
+  const NODE_GAP = 44;
+  const CANVAS_MIN_H = 1100;
+  const COL_BOTTOM_PAD = 96;
+  const LEGEND_RESERVE = 220;
 
-  const maxNodes = Math.max(1, ...columns.map((c) => c.nodes.length));
+  const maxNodes = Math.max(2, ...columns.map((c) => c.nodes.length));
   const stackH = maxNodes * NODE_H + (maxNodes - 1) * NODE_GAP;
   const contentH = PAD_TOP + HEADER_H + HEADER_GAP + stackH + COL_BOTTOM_PAD + LEGEND_RESERVE;
   const canvasH = Math.max(CANVAS_MIN_H, contentH);
   const totalW = PAD_X * 2 + columns.length * COL_W + (columns.length - 1) * COL_GAP;
-  const colPanelH = HEADER_GAP + stackH + 64;
+  const colPanelH = HEADER_GAP + stackH + 96;
 
   // For each column, compute node center y positions (vertically centered in stack).
   const colNodeYs = columns.map((c) => {
