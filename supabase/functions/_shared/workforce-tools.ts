@@ -276,6 +276,7 @@ export async function executeWorkforceToolCall(
           trigger_source: args.trigger_source || null,
           trigger_condition: args.trigger_condition || null,
           trigger_schedule: args.trigger_schedule || null,
+          execution_mode: args.execution_mode === "computer" ? "computer" : "api",
           required_integrations: Array.isArray(args.required_integrations) ? args.required_integrations : [],
           sop_steps: steps,
           sop_output: args.sop_output || null,
