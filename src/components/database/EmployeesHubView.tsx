@@ -159,13 +159,17 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
             Agents
           </button>
           <button
-            onClick={() => onTabChange("employees")}
+            onClick={() => toast.info("AI Employees are coming soon", { description: "Strategic supervisors that orchestrate your agents." })}
+            disabled
             className={cn(
-              "w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors",
-              activeTab === "employees" ? "font-medium bg-[#f3f5f7] text-[#101828]" : "hover:bg-muted/50",
+              "w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors flex items-center justify-between gap-2 cursor-not-allowed opacity-60",
+              "hover:bg-muted/30",
             )}
           >
-            Employees
+            <span>Employees</span>
+            <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+              Soon
+            </span>
           </button>
         </nav>
       </aside>
