@@ -59,14 +59,32 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
     }
 
-    // Confirm user is a member of the workspace
+    // Confirm user is a member OR creator of the workspace (owner membership row may be missing)
     const { data: membership } = await supabase
       .from("workspace_members")
       .select("role")
       .eq("workspace_id", workspaceId)
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!membership) {
+
+    let isAuthorized = !!membership;
+    if (!isAuthorized) {
+      const { data: ws } = await supabase
+        .from("workspaces")
+        .select("created_by")
+        .eq("id", workspaceId)
+        .maybeSingle();
+      if (ws?.created_by === user.id) {
+        isAuthorized = true;
+        // Self-heal: ensure owner membership exists
+        await supabase.from("workspace_members").upsert(
+          { workspace_id: workspaceId, user_id: user.id, role: "owner" },
+          { onConflict: "workspace_id,user_id" }
+        );
+      }
+    }
+
+    if (!isAuthorized) {
       return new Response(JSON.stringify({ error: "Not a workspace member" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 });
     }
