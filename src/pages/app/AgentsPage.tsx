@@ -280,6 +280,39 @@ export default function AgentsPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename agent</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder="Agent name"
+            onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenaming(null)}>Cancel</Button>
+            <Button onClick={handleRename} disabled={renameSaving || !renameValue.trim()}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this agent?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove "{deleting?.name}" and its run history. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
