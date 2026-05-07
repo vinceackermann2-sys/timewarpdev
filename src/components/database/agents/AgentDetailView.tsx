@@ -337,39 +337,64 @@ const INTEGRATION_OPTIONS = [
   "hubspot", "slack", "zoom", "stripe", "microsoft_teams", "onedrive", "onenote",
 ];
 
+type FlowNodeKind = "trigger" | "auto" | "approval" | "manual" | "conditional" | "output";
+interface FlowNodeSpec {
+  id: string;
+  kind: FlowNodeKind;
+  title: string;
+}
+interface FlowColumnSpec {
+  id: string;
+  header: string;
+  nodes: FlowNodeSpec[];
+}
 
 function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => void }) {
   const steps = agent.sop_steps || [];
 
-  // Build node list: trigger → steps → output
-  type Node = {
-    id: string;
-    kind: "trigger" | "step" | "output";
-    title: string;
-    subtitle?: string | null;
-    index?: number;
-    integrations?: string[];
-  };
-  const nodes: Node[] = [
+  // Build columns: trigger | each SOP step (with sub-nodes per integration) | output.
+  const columns: FlowColumnSpec[] = [
     {
       id: "trigger",
-      kind: "trigger",
-      title: agent.trigger_type === "schedule" ? "Schedule" : agent.trigger_type === "manual" ? "Manual run" : agent.trigger_type === "event" ? "Event" : "Threshold",
-      subtitle: agent.trigger_schedule || agent.trigger_condition || agent.trigger_source || undefined,
+      header: "Trigger",
+      nodes: [
+        {
+          id: "trigger-node",
+          kind: "trigger",
+          title:
+            agent.trigger_schedule ||
+            agent.trigger_condition ||
+            agent.trigger_source ||
+            (agent.trigger_type === "schedule" ? "Schedule" : agent.trigger_type === "manual" ? "Manual run" : agent.trigger_type === "event" ? "Event" : "Threshold"),
+        },
+      ],
     },
-    ...steps.map((s, i) => ({
-      id: `step-${i}`,
-      kind: "step" as const,
-      title: s.label,
-      subtitle: s.detail,
-      index: i + 1,
-      integrations: s.integrations as string[] | undefined,
-    })),
+    ...steps.map((s, i): FlowColumnSpec => {
+      const ints = (s.integrations as string[] | undefined) || [];
+      const subNodes: FlowNodeSpec[] =
+        ints.length > 0
+          ? ints.map((label, j) => ({
+              id: `step-${i}-int-${j}`,
+              kind: "auto" as const,
+              title: label.replace(/_/g, " "),
+            }))
+          : [{ id: `step-${i}-main`, kind: "auto", title: s.label }];
+      return {
+        id: `step-${i}`,
+        header: s.label || `Step ${i + 1}`,
+        nodes: subNodes,
+      };
+    }),
     {
       id: "output",
-      kind: "output" as const,
-      title: "Output",
-      subtitle: agent.sop_output || "No output configured",
+      header: "Output",
+      nodes: [
+        {
+          id: "output-node",
+          kind: "output",
+          title: agent.sop_output ? agent.sop_output.slice(0, 60) : "Result",
+        },
+      ],
     },
   ];
 
@@ -388,28 +413,12 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         </Badge>
       </div>
 
-      {/* Big canvas — bezier-connected horizontal flow */}
+      {/* Big tall canvas with column groups */}
       <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-x-auto">
-        <div className="relative min-w-max p-12">
-          {/* SVG layer for bezier connectors */}
-          <FlowConnectors count={nodes.length} />
-          {/* Nodes row (above the SVG) */}
-          <div className="relative flex items-stretch gap-24">
-            {nodes.map((n) => (
-              <FlowNode
-                key={n.id}
-                kind={n.kind}
-                title={n.title}
-                subtitle={n.subtitle}
-                index={n.index}
-                integrations={n.integrations}
-              />
-            ))}
-          </div>
-        </div>
+        <FlowCanvas columns={columns} />
       </div>
 
-      {/* Legend — matches reference */}
+      {/* Legend */}
       <div className="border-t border-border/60 px-6 py-4">
         <div className="inline-flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4 text-xs">
           <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">Legend</p>
@@ -449,83 +458,143 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
   );
 }
 
-/** SVG layer that draws smooth bezier connectors between adjacent nodes.
- *  Nodes are 240px (w-60) and the gap between them is 96px (gap-24).
- *  We position the SVG absolutely behind the node row and route a curve
- *  from the right edge of node N to the left edge of node N+1. */
-function FlowConnectors({ count }: { count: number }) {
-  if (count < 2) return null;
-  const NODE_W = 240;
-  const GAP = 96;
-  const NODE_H = 140;
-  const PAD = 48; // matches p-12
-  const totalW = count * NODE_W + (count - 1) * GAP + PAD * 2;
-  const cy = PAD + NODE_H / 2;
-  const segments = Array.from({ length: count - 1 }, (_, i) => {
-    const x1 = PAD + (i + 1) * NODE_W + i * GAP;
-    const x2 = x1 + GAP;
-    const mid = (x1 + x2) / 2;
-    return `M ${x1} ${cy} C ${mid} ${cy}, ${mid} ${cy}, ${x2} ${cy}`;
+/** Tall canvas: each column is a vertical group with a header chip and stacked
+ *  small nodes. Bezier connectors fan out from each node in column N to the
+ *  node in column N+1 that's closest in y. */
+function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
+  // Layout constants
+  const COL_W = 200;
+  const COL_GAP = 80;
+  const PAD_X = 48;
+  const PAD_TOP = 64;
+  const HEADER_H = 36;
+  const HEADER_GAP = 32;
+  const NODE_W = 156;
+  const NODE_H = 44;
+  const NODE_GAP = 24;
+  const CANVAS_MIN_H = 720;
+
+  const maxNodes = Math.max(1, ...columns.map((c) => c.nodes.length));
+  const stackH = maxNodes * NODE_H + (maxNodes - 1) * NODE_GAP;
+  const contentH = PAD_TOP + HEADER_H + HEADER_GAP + stackH + 64;
+  const canvasH = Math.max(CANVAS_MIN_H, contentH);
+  const totalW = PAD_X * 2 + columns.length * COL_W + (columns.length - 1) * COL_GAP;
+
+  // For each column, compute node center y positions (vertically centered in stack).
+  const colNodeYs = columns.map((c) => {
+    const n = c.nodes.length;
+    const groupH = n * NODE_H + (n - 1) * NODE_GAP;
+    const startY = PAD_TOP + HEADER_H + HEADER_GAP + (stackH - groupH) / 2;
+    return c.nodes.map((_, i) => startY + i * NODE_H + i * NODE_GAP + NODE_H / 2);
   });
+
+  // Build connectors: from every node in col i to every node in col i+1.
+  const connectors: { d: string; key: string }[] = [];
+  for (let i = 0; i < columns.length - 1; i++) {
+    const xRight = PAD_X + i * COL_W + i * COL_GAP + COL_W / 2 + NODE_W / 2;
+    const xLeft = PAD_X + (i + 1) * COL_W + (i + 1) * COL_GAP + COL_W / 2 - NODE_W / 2;
+    const fromYs = colNodeYs[i];
+    const toYs = colNodeYs[i + 1];
+    fromYs.forEach((y1, a) => {
+      toYs.forEach((y2, b) => {
+        // Only fan out fully if either side has multiple; otherwise 1:1.
+        if (fromYs.length > 1 && toYs.length > 1 && a !== b) return;
+        const midX = (xRight + xLeft) / 2;
+        connectors.push({
+          key: `${i}-${a}-${b}`,
+          d: `M ${xRight} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${xLeft} ${y2}`,
+        });
+      });
+    });
+  }
+
   return (
-    <svg
-      className="absolute inset-0 pointer-events-none text-muted-foreground/50"
-      width={totalW}
-      height={PAD * 2 + NODE_H}
-      viewBox={`0 0 ${totalW} ${PAD * 2 + NODE_H}`}
-      fill="none"
-    >
-      <defs>
-        <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
-        </marker>
-      </defs>
-      {segments.map((d, i) => (
-        <path key={i} d={d} stroke="currentColor" strokeWidth="1.5" markerEnd="url(#flow-arrow)" />
-      ))}
-    </svg>
+    <div className="relative" style={{ width: totalW, minHeight: canvasH }}>
+      {/* Connector SVG behind everything */}
+      <svg
+        className="absolute inset-0 pointer-events-none text-muted-foreground/50"
+        width={totalW}
+        height={canvasH}
+        viewBox={`0 0 ${totalW} ${canvasH}`}
+        fill="none"
+      >
+        <defs>
+          <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+        {connectors.map((c) => (
+          <path key={c.key} d={c.d} stroke="currentColor" strokeWidth="1.5" markerEnd="url(#flow-arrow)" />
+        ))}
+      </svg>
+
+      {/* Columns */}
+      {columns.map((col, i) => {
+        const x = PAD_X + i * COL_W + i * COL_GAP;
+        const groupH = col.nodes.length * NODE_H + (col.nodes.length - 1) * NODE_GAP;
+        const stackTop = PAD_TOP + HEADER_H + HEADER_GAP + (stackH - groupH) / 2;
+        return (
+          <div
+            key={col.id}
+            className="absolute"
+            style={{ left: x, top: PAD_TOP - 16, width: COL_W, height: canvasH - PAD_TOP + 16 }}
+          >
+            {/* Column panel background */}
+            <div
+              className="absolute inset-x-2 top-8 rounded-xl border border-border/50 bg-background/40"
+              style={{ height: HEADER_GAP + stackH + 56 }}
+            />
+            {/* Header chip */}
+            <div className="relative flex justify-center">
+              <div className="px-3 py-1 rounded-full border border-border/60 bg-card text-[11px] font-medium text-muted-foreground shadow-sm">
+                {col.header}
+              </div>
+            </div>
+            {/* Nodes */}
+            <div
+              className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center"
+              style={{ top: stackTop - PAD_TOP + 16, gap: NODE_GAP }}
+            >
+              {col.nodes.map((n) => (
+                <FlowNode key={n.id} kind={n.kind} title={n.title} width={NODE_W} height={NODE_H} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
 function FlowNode({
   kind,
   title,
-  subtitle,
-  index,
-  integrations,
+  width,
+  height,
 }: {
-  kind: "trigger" | "step" | "output";
+  kind: FlowNodeKind;
   title: string;
-  subtitle?: string | null;
-  index?: number;
-  integrations?: string[];
+  width: number;
+  height: number;
 }) {
   const tone =
     kind === "trigger"
-      ? "border-foreground/30 bg-card"
+      ? "border-foreground/30 bg-card text-foreground"
       : kind === "output"
-        ? "border-emerald-500/40 bg-emerald-500/5"
-        : "border-primary/40 bg-primary/5";
+        ? "border-primary/50 bg-primary/5 text-primary"
+        : kind === "approval"
+          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700"
+          : kind === "manual"
+            ? "border-foreground/30 bg-card text-foreground"
+            : kind === "conditional"
+              ? "border-dashed border-amber-500/60 bg-amber-500/5 text-amber-700"
+              : "border-primary/40 bg-primary/5 text-primary";
   return (
-    <div className={cn("relative w-60 min-h-[140px] rounded-xl border-2 p-4 shadow-sm shrink-0", tone)}>
-      {kind === "step" && index != null && (
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Step {index}</p>
-      )}
-      {kind === "trigger" && (
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Trigger</p>
-      )}
-      {kind === "output" && (
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 mb-1">Output</p>
-      )}
-      <p className="text-sm font-semibold leading-snug">{title}</p>
-      {subtitle && <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-4">{subtitle}</p>}
-      {integrations && integrations.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1">
-          {integrations.slice(0, 4).map((i) => (
-            <Badge key={i} variant="secondary" className="text-[9px] px-1.5 py-0 capitalize">{i.replace(/_/g, " ")}</Badge>
-          ))}
-        </div>
-      )}
+    <div
+      className={cn("flex items-center justify-center rounded-xl border-2 px-3 text-center text-[11px] font-semibold leading-tight shadow-sm capitalize", tone)}
+      style={{ width, height }}
+    >
+      <span className="line-clamp-2">{title}</span>
     </div>
   );
 }
