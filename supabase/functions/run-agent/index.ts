@@ -147,7 +147,7 @@ async function runAiLoop(
   for (let iter = 0; iter < MAX_ITER; iter++) {
     const isLast = iter === MAX_ITER - 1;
     const body: any = {
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3.1-flash-preview",
       messages,
     };
     if (tools.length && !isLast) body.tools = tools;

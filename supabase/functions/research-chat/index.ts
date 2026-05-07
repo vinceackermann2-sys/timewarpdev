@@ -293,7 +293,7 @@ ${responseShape}
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-3.1-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -328,7 +328,7 @@ ${responseShape}
         const promptText = systemPrompt + "\n" +
           (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "");
         const costUsd = estimateAiCostUsd({
-          model: "google/gemini-3-flash-preview",
+          model: "google/gemini-3.1-flash-preview",
           promptText,
           estimatedCompletionTokens: 1200,
         });

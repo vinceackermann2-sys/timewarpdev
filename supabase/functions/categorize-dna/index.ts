@@ -89,7 +89,7 @@ Only categorize items where you have genuine signal alignment. Skip items that d
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-3.1-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Here is the business data to categorize:\n\n${dataContext}` },
