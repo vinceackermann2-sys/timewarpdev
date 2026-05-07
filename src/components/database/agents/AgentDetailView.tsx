@@ -412,8 +412,8 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         </Badge>
       </div>
 
-      {/* Tall canvas constrained to viewport so the page itself doesn't scroll */}
-      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto h-[calc(100vh-220px)] min-h-[560px]">
+      {/* Canvas sized to fill remaining viewport — no page scroll */}
+      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto h-[calc(100vh-260px)] min-h-[420px]">
         <FlowCanvas columns={columns} />
       </div>
     </div>
@@ -422,7 +422,7 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
 
 function CanvasLegend() {
   return (
-    <div className="absolute left-4 top-4 z-10 inline-flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-card/95 backdrop-blur px-3 py-2 text-[11px] shadow-md">
+    <div className="absolute left-4 bottom-4 z-10 inline-flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border/60 bg-card/95 backdrop-blur px-3 py-2 text-[11px] shadow-md">
       <span className="font-semibold uppercase tracking-wide text-muted-foreground">Legend</span>
       <span className="flex items-center gap-1.5">
         <span className="h-3 w-3 rounded border-2 border-primary/60 bg-primary/10" /> Automated
