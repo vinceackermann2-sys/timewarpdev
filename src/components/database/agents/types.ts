@@ -18,6 +18,8 @@ export interface AgentSopStep {
   label: string;
   /** Optional longer detail / acceptance criteria. */
   detail?: string;
+  /** Optional integrations this step touches (e.g. ["slack","gmail"]). */
+  integrations?: string[];
 }
 
 /** Full agent record as stored in the database. */
