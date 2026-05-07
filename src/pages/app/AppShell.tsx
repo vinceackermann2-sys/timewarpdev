@@ -285,6 +285,9 @@ export default function AppShell() {
     } else {
       window.history.replaceState({}, "", location.pathname);
     }
+    // Notify any open connection-status views to re-fetch — otherwise their
+    // own ?oauth_success effect never fires (we just stripped the param).
+    window.dispatchEvent(new CustomEvent("oauth_connection_completed", { detail: { provider: oauthSuccess } }));
   }, [searchParams, navigate, location.pathname]);
 
   if (isLoading) return <AuthGuardLoading />;
