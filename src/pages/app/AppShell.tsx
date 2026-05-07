@@ -96,7 +96,13 @@ function OnboardingGate() {
     const path = location.pathname;
     if (path.startsWith("/app/assistant")) return;
 
-    navigate("/app/assistant", { replace: true });
+    // Grace period: brands/products may still be hydrating from a separate
+    // phase — wait ~2.5s before redirecting so we don't bounce a real user
+    // who actually has a business.
+    const t = setTimeout(() => {
+      navigate("/app/assistant", { replace: true });
+    }, 2500);
+    return () => clearTimeout(t);
   }, [brands, products, audiences, isLoading, wsLoading, activeWorkspace, loadedWorkspaceId, location.pathname, navigate]);
 
   return null;
