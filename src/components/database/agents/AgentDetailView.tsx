@@ -269,9 +269,9 @@ function AgentTabs({
   const successRate = runs.length > 0 ? Math.round((successRuns / runs.length) * 100) : 0;
 
   return (
-    <div>
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Tab switcher — pill style matching reference */}
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-4 shrink-0">
         <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-sm">
           {(["workflow", "dashboard", "settings"] as const).map((key) => (
             <button
