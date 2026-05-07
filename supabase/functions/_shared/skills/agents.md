@@ -43,13 +43,23 @@ Only ask for information genuinely missing from Business DNA that is critical to
 
 ### What makes a good agent
 
-A well-scoped agent has four properties:
-1. **Single trigger** — one event or schedule that starts it (a new message, a daily time, a metric threshold)
-2. **Defined procedure** — 3–8 steps it always follows in order
-3. **Clear boundary** — an explicit list of what it can do vs. what it escalates
-4. **Named output** — what it produces or reports when it's done
+A well-scoped agent has five properties:
+1. **Single trigger** — one event or schedule that starts it (manual run, or a polling cadence — the platform supports `manual` and `schedule` only; for "when X happens" use a poll like "every 5 minutes")
+2. **Execution mode** — `api` (call connected integration APIs) or `computer` (drive a real browser end-to-end). Pick `computer` only when there is no API for the target tool, when the task spans many UIs, or when the user explicitly asks for browser automation. Otherwise default to `api`.
+3. **Defined procedure** — 3–12 ordered steps. Complex agents may include classification branches, conditional steps, multi-tool fan-outs, and an explicit revision/retry loop.
+4. **Clear safety boundary** — explicit can-do, cannot-do, and an escalation target.
+5. **Named output** — what it produces, where it lands, and how the user is notified.
 
-If any of these four are missing, the agent will fail silently or make bad calls.
+If any of these are missing, the agent will fail silently or make bad calls.
+
+### Choosing execution mode
+
+| Situation | Mode |
+|---|---|
+| Slack, Gmail, Google Drive/Sheets, HubSpot, Stripe, Zoom — anything with a connected API | `api` |
+| Internal admin tools, legacy SaaS without APIs, multi-app workflows that span 3+ UIs, "do it like a human in the browser", screenshot/scrape based tasks | `computer` |
+| Hybrid (mostly API, one browser step) | `api` — and add a single "computer use" step in the SOP describing the browser handoff |
+
 
 ---
 
