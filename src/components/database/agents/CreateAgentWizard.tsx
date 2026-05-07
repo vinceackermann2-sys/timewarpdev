@@ -161,7 +161,7 @@ export function CreateAgentWizard({ onCancel, onCreated }: Props) {
       if (!cancelled) setCheckingConnections(false);
     })();
     return () => { cancelled = true; };
-  }, [step]);
+  }, [step, activeWorkspaceId]);
 
   // Load employees when entering the supervisor step.
   useEffect(() => {
