@@ -78,6 +78,7 @@ export function AgentChatView({
   const [isDropupOpen, setIsDropupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(new Set());
+  const [userStartedTyping, setUserStartedTyping] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [isActionMode, setIsActionMode] = useState(false);
   const [isPlanMode, setIsPlanMode] = useState(false);
