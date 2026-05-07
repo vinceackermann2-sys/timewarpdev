@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 const InviteAccept = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<"loading" | "success" | "error" | "auth">("loading");
   const [message, setMessage] = useState("");
   const [showCelebration, setShowCelebration] = useState(false);
@@ -47,7 +49,14 @@ const InviteAccept = () => {
           setMessage(result.error);
         } else {
           if (result?.workspace_id) {
+            // Persist preference and invalidate cached workspace list so
+            // useWorkspace re-fetches and includes the new workspace
+            // immediately (otherwise a stale 30-min cache hides it and the
+            // auto-selector falls back to the user's owned workspace).
             localStorage.setItem("preferred_workspace_id", result.workspace_id);
+            await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+            await queryClient.refetchQueries({ queryKey: ["workspaces"] });
+            window.dispatchEvent(new Event("workspace_changed"));
           }
           setStatus("success");
           setMessage("You've been added to the workspace!");
