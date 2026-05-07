@@ -65,17 +65,18 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
       window.history.replaceState({}, "", window.location.pathname);
       setConnectedProviders(prev => prev.includes(oauthSuccess) ? prev : [...prev, oauthSuccess]);
       // Re-enrich Business DNA pillars that benefit from live integration data.
-      // Runs in background; AI will only fill fields where it has real evidence.
       void triggerDnaReEnrich(brandId);
+      // Re-check from server to confirm persisted state (workspace may have just loaded)
+      void checkConnections();
       return;
     }
     if (oauthError) {
       toast.error(`Connection failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [brandId]);
+  }, [brandId, checkConnections]);
 
-  useEffect(() => { checkConnections(); }, []);
+  useEffect(() => { void checkConnections(); }, [checkConnections]);
 
   const checkConnections = useCallback(async () => {
     try {
