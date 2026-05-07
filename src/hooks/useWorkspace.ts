@@ -126,6 +126,10 @@ export function useWorkspace() {
     if (current && current !== activeWorkspaceId) {
       setActiveWorkspaceId(current);
       localStorage.setItem("preferred_workspace_id", current);
+      // Notify same-tab listeners (BusinessDNAContext) so they reload data
+      // for the newly auto-selected workspace. Without this, the DNA context
+      // keeps a stale workspace id and shows an empty workspace → onboarding.
+      window.dispatchEvent(new Event("workspace_changed"));
     }
   }, [workspaces]); // eslint-disable-line react-hooks/exhaustive-deps
 
