@@ -986,7 +986,11 @@ export function AgentChatView({
           onInsertReference={onInsertReferenceFromInput}
           onSend={() => void handleSendMessage()}
           onCancel={handleCancelMessage}
-          onInputForMention={handleMentionInput}
+          onInputForMention={() => {
+            handleMentionInput();
+            const text = chatInputRef.current?.innerText?.trim() || "";
+            setUserStartedTyping(text.length > 0);
+          }}
           referenceSubContent={referenceSubContent}
           referenceUrlInput={referenceUrlInput}
           setReferenceUrlInput={setReferenceUrlInput}
