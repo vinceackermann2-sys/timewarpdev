@@ -114,23 +114,25 @@ const PLAN_BENEFITS: Record<DisplayPlan, { tagline: string; bullets: string[] }>
 
 function CurrentPlanCard({ userId }: { userId?: string }) {
   const { plan } = useSubscription();
+  const { activeWorkspaceId } = useWorkspace();
 
   const { data } = useQuery<{ actions_used: number; bonus_actions: number }>({
-    queryKey: ["pricing-actions", userId],
+    queryKey: ["workspace-actions-used", activeWorkspaceId],
     queryFn: async () => {
-      if (!userId) return { actions_used: 0, bonus_actions: 0 };
-      const { data } = await supabase
-        .from("user_subscriptions")
+      if (!activeWorkspaceId) return { actions_used: 0, bonus_actions: 0 };
+      const { data } = await (supabase as any)
+        .from("workspace_subscriptions")
         .select("actions_used, bonus_actions")
-        .eq("user_id", userId)
+        .eq("workspace_id", activeWorkspaceId)
         .maybeSingle();
       return {
-        actions_used: (data as any)?.actions_used ?? 0,
-        bonus_actions: (data as any)?.bonus_actions ?? 0,
+        actions_used: Number((data as any)?.actions_used ?? 0),
+        bonus_actions: Number((data as any)?.bonus_actions ?? 0),
       };
     },
-    enabled: !!userId,
+    enabled: !!activeWorkspaceId,
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const planName = plan === "co_founder" ? "Co Founder"
@@ -141,7 +143,7 @@ function CurrentPlanCard({ userId }: { userId?: string }) {
   const bonus = data?.bonus_actions ?? 0;
   const used = data?.actions_used ?? 0;
   const total = limit === Infinity ? Infinity : limit + bonus;
-  const remaining = total === Infinity ? "∞" : String(Math.max(0, total - used));
+  const remaining = total === Infinity ? "∞" : String(Math.max(0, Number((total - used).toFixed(2))));
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6">
