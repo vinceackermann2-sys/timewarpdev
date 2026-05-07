@@ -143,21 +143,24 @@ serve(async (req) => {
       : null;
 
     if (action === "check-status") {
+      // Connectors are workspace-scoped: a user can connect the same provider
+      // in different workspaces independently. Always require a workspaceId
+      // so connections never bleed across workspaces.
+      if (!workspaceId) {
+        return jsonResponse({ connected: [] });
+      }
+
       const connectionsQuery = supabaseAdmin
         .from("user_connections")
         .select("provider, status, brand_id, workspace_id")
         .eq("user_id", user.id)
-        .eq("status", "connected");
+        .eq("status", "connected")
+        .eq("workspace_id", workspaceId);
       const tokensQuery = supabaseAdmin
         .from("user_oauth_tokens")
         .select("provider, provider_email, workspace_id")
-        .eq("user_id", user.id);
-
-      // Connections are user-scoped (RLS already enforces user_id = auth.uid()).
-      // We intentionally do NOT filter by workspace here: a user's OAuth grant
-      // applies across workspaces, and filtering caused providers to appear
-      // disconnected whenever activeWorkspaceId differed from the workspace
-      // they were connected under (or was still loading at check time).
+        .eq("user_id", user.id)
+        .eq("workspace_id", workspaceId);
 
       const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);
 
@@ -363,25 +366,28 @@ serve(async (req) => {
       if (!provider) {
         return jsonResponse({ error: "Provider is required" }, 400);
       }
+      if (!workspaceId) {
+        return jsonResponse({ error: "Workspace is required" }, 400);
+      }
 
-      const connectionUpdate = supabaseAdmin
+      const connRes = await supabaseAdmin
         .from("user_connections")
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
-        .eq("provider", provider);
-      const connRes = await connectionUpdate;
+        .eq("provider", provider)
+        .eq("workspace_id", workspaceId);
 
       if (connRes.error) {
         console.error("connect-provider disconnect connection error", connRes.error);
         return jsonResponse({ error: "Failed to disconnect provider" }, 500);
       }
 
-      const tokenDelete = supabaseAdmin
+      const tokRes = await supabaseAdmin
         .from("user_oauth_tokens")
         .delete()
         .eq("user_id", user.id)
-        .eq("provider", provider);
-      const tokRes = await tokenDelete;
+        .eq("provider", provider)
+        .eq("workspace_id", workspaceId);
 
       if (tokRes.error) {
         console.error("connect-provider disconnect token error", tokRes.error);
