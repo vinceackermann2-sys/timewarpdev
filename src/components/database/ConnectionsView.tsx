@@ -210,6 +210,14 @@ export function ConnectionsView() {
     }
   }, [checkConnections]);
 
+  // AppShell strips ?oauth_success from the URL before this view's own effect
+  // can read it. Listen for the broadcast it emits so we still re-fetch status.
+  useEffect(() => {
+    const handler = () => { void checkConnections(); };
+    window.addEventListener("oauth_connection_completed", handler);
+    return () => window.removeEventListener("oauth_connection_completed", handler);
+  }, [checkConnections]);
+
   const handleConnect = async (providerId: string) => {
     setConnectingProvider(providerId);
     try {
