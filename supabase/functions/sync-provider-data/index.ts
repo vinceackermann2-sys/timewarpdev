@@ -32,7 +32,8 @@ async function extractPdfText(pdfBytes: Uint8Array, fileName: string): Promise<s
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-3.1-flash-preview",
+        reasoning: { effort: "high" },
         messages: [
           { role: "system", content: "You are a document text extractor. Extract ALL text content from the document. Return ONLY the extracted text, no commentary." },
           {
@@ -73,7 +74,8 @@ async function extractVideoContent(videoBytes: Uint8Array, fileName: string, mim
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-3.1-flash-preview",
+        reasoning: { effort: "high" },
         messages: [
           { role: "system", content: "You are a video content analyst. Transcribe all spoken audio and describe key visual content. Return structured results." },
           {

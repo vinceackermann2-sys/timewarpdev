@@ -231,7 +231,8 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "google/gemini-3.1-flash-preview",
+          reasoning: { effort: "high" },
           messages: [
             { role: "system", content: systemPrompt },
             ...messages,
@@ -265,7 +266,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
 
       const aiResult = await response.json();
       if (aiResult?.usage) {
-        measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: aiResult.usage });
+        measuredAiCalls.push({ model: "google/gemini-3.1-flash-preview", usage: aiResult.usage });
       }
       let content = aiResult.choices?.[0]?.message?.content || "";
       const actionValidation = validateActionPayload(content);
@@ -277,7 +278,8 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
+            model: "google/gemini-3.1-flash-preview",
+            reasoning: { effort: "high" },
             messages: [
               { role: "system", content: "You repair malformed browser action JSON. Output only a JSON code block." },
               { role: "user", content: `Invalid response:\n${content}\n\nReturn a corrected JSON action payload only.` },
@@ -288,7 +290,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
         if (repairResponse.ok) {
           const repairJson = await repairResponse.json();
           if (repairJson?.usage) {
-            measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson.usage });
+            measuredAiCalls.push({ model: "google/gemini-3.1-flash-preview", usage: repairJson.usage });
           }
           const repaired = repairJson?.choices?.[0]?.message?.content || "";
           if (validateActionPayload(repaired).valid) content = repaired;
@@ -364,7 +366,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                 }
               }
               if (parsed.usage) {
-                measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+                measuredAiCalls.push({ model: "google/gemini-3.1-flash-preview", usage: parsed.usage });
               }
             } catch {
               // Ignore malformed partial events
@@ -499,7 +501,8 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  model: "google/gemini-3-flash-preview",
+                  model: "google/gemini-3.1-flash-preview",
+                  reasoning: { effort: "high" },
                   messages: msgs,
                   stream: true,
                   stream_options: { include_usage: true },

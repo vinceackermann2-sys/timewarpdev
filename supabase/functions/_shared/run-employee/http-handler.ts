@@ -310,7 +310,8 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "google/gemini-3.1-flash-preview",
+          reasoning: { effort: "high" },
           messages: [
             { role: "system", content: systemPrompt },
             ...effectiveMessages,
@@ -356,7 +357,7 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
                 const delta = parsed.choices?.[0]?.delta?.content || "";
                 if (delta) { fullContent += delta; emitContent?.(delta); }
                 if (parsed.usage) {
-                  measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+                  measuredAiCalls.push({ model: "google/gemini-3.1-flash-preview", usage: parsed.usage });
                 }
               } catch {}
             }
@@ -374,7 +375,7 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
               const delta = parsed.choices?.[0]?.delta?.content || "";
               if (delta) { fullContent += delta; emitContent?.(delta); }
               if (parsed.usage) {
-                measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: parsed.usage });
+                measuredAiCalls.push({ model: "google/gemini-3.1-flash-preview", usage: parsed.usage });
               }
             } catch {}
           }
@@ -400,7 +401,8 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-3-flash-preview",
+              model: "google/gemini-3.1-flash-preview",
+              reasoning: { effort: "high" },
               messages: [
                 { role: "system", content: "You repair malformed browser action JSON. Output only a JSON code block." },
                 { role: "user", content: `Invalid response:\n${content}\n\n${repairPrompt}` },
@@ -412,7 +414,7 @@ Return ONLY a valid JSON code block matching the action schema. Do not add prose
             const repairJson = await repairResponse.json();
             const repaired = repairJson?.choices?.[0]?.message?.content || "";
             if (repairJson?.usage) {
-              measuredAiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson.usage });
+              measuredAiCalls.push({ model: "google/gemini-3.1-flash-preview", usage: repairJson.usage });
             }
             if (validateActionPayload(repaired).valid) {
               content = repaired;

@@ -359,7 +359,7 @@ function robustJsonParse(raw: string): any {
 async function callAI(
   LOVABLE_API_KEY: string,
   prompt: string,
-  model = "google/gemini-3-flash-preview",
+  model = "google/gemini-3.1-flash-preview",
   maxTokens = 8000,
 ): Promise<any> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -861,7 +861,8 @@ serve(async (req) => {
               method: "POST",
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
-                model: "google/gemini-3-flash-preview",
+                model: "google/gemini-3.1-flash-preview",
+                reasoning: { effort: "high" },
                 messages: [{ role: "user", content: `You are a business page identifier. From these URLs, select ONLY URLs that lead to a SPECIFIC, INDIVIDUAL product, service, plan, or offering page.
 
 INCLUDE:
@@ -969,7 +970,8 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         method: "POST",
                         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
                         body: JSON.stringify({
-                          model: "google/gemini-3-flash-preview",
+                          model: "google/gemini-3.1-flash-preview",
+                          reasoning: { effort: "high" },
                           max_tokens: 1000,
                           messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description. If this page is NOT a product page (e.g. it's a category listing, blog, or informational page), return {"name": "", "description": "", "bestImages": [], "isProduct": false}.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo.\n\nRULES for image selection:\n- Pick actual high-resolution product photography only.\n- PREFER URLs with large dimensions (e.g. w_800, 1200x, _large, _1024) or no dimension suffix (usually full-size).\n- REJECT URLs containing thumbnail indicators: _thumb, _small, _xs, _mini, /thumbs/, _150x, _200x, _300x, w_100-300, h_100-300.\n- REJECT logos, icons, banners, tracking pixels, badges, or decorative images.\n- When multiple sizes of the same image exist, pick the LARGEST version.\n\nReturn JSON: {"name": "", "description": "", "bestImages": [], "isProduct": true}\n\nContent (first 5000 chars):\n${md.slice(0, 5000)}` }],
                         }),
@@ -1159,7 +1161,7 @@ Page title: ${metadata?.title || ""}
 
         Homepage content (first 4000 chars):
         ${homepageMarkdown.slice(0, 4000)}`,
-          "google/gemini-3.0-flash",
+          "google/gemini-3.1-flash-preview",
           100,
         );
         const classified = (typeof classifyRes === 'string' ? classifyRes : classifyRes?.type || "").trim().toLowerCase().replace(/[^a-z_]/g, '');
@@ -1421,7 +1423,7 @@ Page title: ${metadata?.title || ""}
           const brandResult = await callAI(
             LOVABLE_API_KEY,
             BRAND_PROMPT(brandingJson, enrichedBrandMarkdown, formattedUrl, metadata.title || ""),
-            "google/gemini-3-flash-preview",
+            "google/gemini-3.1-flash-preview",
             4000,
           );
           return brandResult.brand || brandResult || {};
@@ -1457,7 +1459,7 @@ Page title: ${metadata?.title || ""}
           const result = await callAI(
             LOVABLE_API_KEY,
             PRODUCT_AUDIENCE_PROMPT(page.markdown, prelimBrandName, page.url, audienceEnrichment),
-            "google/gemini-3-flash-preview",
+            "google/gemini-3.1-flash-preview",
             10000,
           );
 
@@ -1678,7 +1680,7 @@ RULES:
 Return ONLY valid JSON, no markdown fences.`;
 
             try {
-              const fillResult = await callAI(LOVABLE_API_KEY, REDDIT_FILL_PROMPT, "google/gemini-3-flash-preview", 6000);
+              const fillResult = await callAI(LOVABLE_API_KEY, REDDIT_FILL_PROMPT, "google/gemini-3.1-flash-preview", 6000);
 
               // Merge Reddit data into products/audiences
               for (const key of Object.keys(fillResult || {})) {
@@ -1823,7 +1825,8 @@ Return ONLY valid JSON, no markdown fences.`;
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
+            model: "google/gemini-3.1-flash-preview",
+            reasoning: { effort: "high" },
             messages: [{ role: "user", content: `Generate 6 aesthetic Pinterest search terms for a brand moodboard.\nBrand: "${brandName}" (${brandCategory})\nAudience: ${audienceDesc.slice(0, 200)}\n\nReturn ONLY a JSON array of 6 phrases.` }],
           }),
         });
@@ -1871,8 +1874,8 @@ Return ONLY valid JSON, no markdown fences.`;
         const productBenefits = (extracted.product?.benefits || []).slice(0, 6).join('; ');
 
         const [iconRes, patternRes] = await Promise.allSettled([
-          callAI(LOVABLE_API_KEY, `Generate a complete, valid SVG string (viewBox="0 0 600 800") containing a 3×4 grid of 12 icons for "${brandName}" (${brandCategory}). Product benefits: ${productBenefits || 'quality, convenience'}. Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Requirements: simple SVG paths, NO text tags, brand colors only. Return ONLY raw SVG starting with <svg.`, "google/gemini-3-flash-preview", 4000),
-          callAI(LOVABLE_API_KEY, `Generate a complete SVG (viewBox="0 0 600 900") with 3 stacked decorative patterns for "${brandName}". Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Background: ${brandColors.background || '#fff'}. Use paths, circles, gradients. NO text tags. Return ONLY raw SVG.`, "google/gemini-3-flash-preview", 4000),
+          callAI(LOVABLE_API_KEY, `Generate a complete, valid SVG string (viewBox="0 0 600 800") containing a 3×4 grid of 12 icons for "${brandName}" (${brandCategory}). Product benefits: ${productBenefits || 'quality, convenience'}. Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Requirements: simple SVG paths, NO text tags, brand colors only. Return ONLY raw SVG starting with <svg.`, "google/gemini-3.1-flash-preview", 4000),
+          callAI(LOVABLE_API_KEY, `Generate a complete SVG (viewBox="0 0 600 900") with 3 stacked decorative patterns for "${brandName}". Primary: ${brandColors.primary || '#333'}. Secondary: ${brandColors.secondary || '#666'}. Background: ${brandColors.background || '#fff'}. Use paths, circles, gradients. NO text tags. Return ONLY raw SVG.`, "google/gemini-3.1-flash-preview", 4000),
         ]);
 
         const svgs: string[] = [];
@@ -1899,7 +1902,7 @@ Return ONLY valid JSON, no markdown fences.`;
           const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "google/gemini-3-flash-preview", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
+            body: JSON.stringify({ model: "google/gemini-3.1-flash-preview", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
           });
           if (!res.ok) return null;
           const d = await res.json();
