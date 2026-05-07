@@ -232,6 +232,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: "google/gemini-3.1-flash-preview",
+          reasoning: { effort: "high" },
           messages: [{ role: "system", content: systemPrompt }, ...messages],
           stream: false,
         }),
@@ -277,6 +278,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: "google/gemini-3.1-flash-preview",
+            reasoning: { effort: "high" },
             messages: [
               { role: "system", content: "You repair malformed browser action JSON. Output only a JSON code block." },
               { role: "user", content: `Invalid response:\n${content}\n\nReturn a corrected JSON action payload only.` },
@@ -345,6 +347,7 @@ serve(async (req) => {
         + "\n" + (profileContext || "") + "\n" + (lastUserMsg || "");
       const costUsd = estimateAiCostUsd({
         model: "google/gemini-3.1-flash-preview",
+        reasoning: { effort: "high" },
         promptText,
         estimatedCompletionTokens: 1500,
       });

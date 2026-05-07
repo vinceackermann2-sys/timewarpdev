@@ -191,6 +191,7 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
               },
               body: JSON.stringify({
                 model: "google/gemini-3.1-flash-preview",
+                reasoning: { effort: "high" },
                 messages: msgs,
                 stream: true,
                 temperature: 0.2,

@@ -862,6 +862,7 @@ serve(async (req) => {
               headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-3.1-flash-preview",
+                reasoning: { effort: "high" },
                 messages: [{ role: "user", content: `You are a business page identifier. From these URLs, select ONLY URLs that lead to a SPECIFIC, INDIVIDUAL product, service, plan, or offering page.
 
 INCLUDE:
@@ -970,6 +971,7 @@ ${allUrls.slice(0, 400).join('\n')}` }],
                         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
                         body: JSON.stringify({
                           model: "google/gemini-3.1-flash-preview",
+                          reasoning: { effort: "high" },
                           max_tokens: 1000,
                           messages: [{ role: "user", content: `From this product page content, extract the product name and a 1-sentence description. If this page is NOT a product page (e.g. it's a category listing, blog, or informational page), return {"name": "", "description": "", "bestImages": [], "isProduct": false}.\n\nHere are image URLs found on this page:\n${JSON.stringify(candidateImages)}\n\nSelect the 1-3 URLs from the list above that are most likely the MAIN product photo.\n\nRULES for image selection:\n- Pick actual high-resolution product photography only.\n- PREFER URLs with large dimensions (e.g. w_800, 1200x, _large, _1024) or no dimension suffix (usually full-size).\n- REJECT URLs containing thumbnail indicators: _thumb, _small, _xs, _mini, /thumbs/, _150x, _200x, _300x, w_100-300, h_100-300.\n- REJECT logos, icons, banners, tracking pixels, badges, or decorative images.\n- When multiple sizes of the same image exist, pick the LARGEST version.\n\nReturn JSON: {"name": "", "description": "", "bestImages": [], "isProduct": true}\n\nContent (first 5000 chars):\n${md.slice(0, 5000)}` }],
                         }),
@@ -1824,6 +1826,7 @@ Return ONLY valid JSON, no markdown fences.`;
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-3.1-flash-preview",
+            reasoning: { effort: "high" },
             messages: [{ role: "user", content: `Generate 6 aesthetic Pinterest search terms for a brand moodboard.\nBrand: "${brandName}" (${brandCategory})\nAudience: ${audienceDesc.slice(0, 200)}\n\nReturn ONLY a JSON array of 6 phrases.` }],
           }),
         });

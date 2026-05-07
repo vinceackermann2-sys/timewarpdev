@@ -40,6 +40,7 @@ Use the provided tool to return structured output.`;
       },
       body: JSON.stringify({
         model: "google/gemini-3.1-flash-preview",
+        reasoning: { effort: "high" },
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Create an AI employee for this task:\n\n${prompt.trim()}` },

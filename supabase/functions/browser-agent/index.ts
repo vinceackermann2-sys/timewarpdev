@@ -122,6 +122,7 @@ For multi-step tasks, return an array of actions:
       },
       body: JSON.stringify({
         model: "google/gemini-3.1-flash-preview",
+        reasoning: { effort: "high" },
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -153,6 +154,7 @@ For multi-step tasks, return an array of actions:
         (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "");
       const costUsd = estimateAiCostUsd({
         model: "google/gemini-3.1-flash-preview",
+        reasoning: { effort: "high" },
         promptText,
         estimatedCompletionTokens: 1000,
       });

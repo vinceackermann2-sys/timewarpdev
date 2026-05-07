@@ -232,6 +232,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
         },
         body: JSON.stringify({
           model: "google/gemini-3.1-flash-preview",
+          reasoning: { effort: "high" },
           messages: [
             { role: "system", content: systemPrompt },
             ...messages,
@@ -278,6 +279,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
           },
           body: JSON.stringify({
             model: "google/gemini-3.1-flash-preview",
+            reasoning: { effort: "high" },
             messages: [
               { role: "system", content: "You repair malformed browser action JSON. Output only a JSON code block." },
               { role: "user", content: `Invalid response:\n${content}\n\nReturn a corrected JSON action payload only.` },
@@ -500,6 +502,7 @@ ${pageContext.metadata ? `\n### Page Metadata\n${JSON.stringify(pageContext.meta
                 },
                 body: JSON.stringify({
                   model: "google/gemini-3.1-flash-preview",
+                  reasoning: { effort: "high" },
                   messages: msgs,
                   stream: true,
                   stream_options: { include_usage: true },
