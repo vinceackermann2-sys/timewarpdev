@@ -147,7 +147,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
     } finally {
       setConnectingId(null);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   const summary = useMemo(
     () => ({ fileCount: uploaded.length, integrationCount: connected.length }),
