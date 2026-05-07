@@ -67,6 +67,7 @@ interface OnboardingEnrichmentInputsProps {
 }
 
 export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnrichmentInputsProps) {
+  const { activeWorkspaceId } = useWorkspace();
   const [tab, setTab] = useState<"files" | "integrations">("files");
   const [uploaded, setUploaded] = useState<UploadedFileMeta[]>([]);
   const [connected, setConnected] = useState<string[]>([]);
