@@ -46,20 +46,19 @@ export function ChatHistorySidebar({ activeChatId, onSelectChat, onNewChat, refr
     }
     setIsLoading(true);
     try {
-      // Per-workspace scoping: show chats belonging to the active workspace.
-      // Also include the user's personal (workspace_id = null) chats so nothing
-      // disappears for users who haven't picked a workspace yet.
+      // Per-workspace scoping: when inside a workspace, show ALL chats in
+      // that workspace (so members see each other's shared assistant chats).
+      // Outside a workspace, fall back to the user's personal chats.
       let query = supabase
         .from("agent_chat_sessions")
         .select("id, title, agent_name, assistant_memory, messages, goal_state, created_at, updated_at, workspace_id, user_id")
-        .eq("user_id", user.id)
         .order("updated_at", { ascending: false })
         .limit(50);
 
       if (activeWorkspaceId) {
-        query = query.or(`workspace_id.eq.${activeWorkspaceId},workspace_id.is.null`);
+        query = query.eq("workspace_id", activeWorkspaceId);
       } else {
-        query = query.is("workspace_id", null);
+        query = query.eq("user_id", user.id).is("workspace_id", null);
       }
 
       const { data, error } = await query;
