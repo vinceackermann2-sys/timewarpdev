@@ -115,6 +115,27 @@ export function useWorkspace() {
     setInvitations([]);
   }, [authLoading, user]);
 
+  // CRITICAL: Every component that calls useWorkspace() owns its own
+  // activeWorkspaceId state. Without this, switching workspaces in one
+  // component (e.g. the breadcrumb) does NOT propagate to others (e.g.
+  // ConnectionsView), so they keep querying the previous workspace and
+  // think nothing is connected. Mirror localStorage on every change.
+  useEffect(() => {
+    const sync = () => {
+      const stored = localStorage.getItem("preferred_workspace_id");
+      setActiveWorkspaceId((current) => (current === stored ? current : stored));
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "preferred_workspace_id") sync();
+    };
+    window.addEventListener("workspace_changed", sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("workspace_changed", sync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
   // Auto-select workspace when list loads
   useEffect(() => {
     if (workspaces.length === 0) return;
