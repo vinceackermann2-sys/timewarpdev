@@ -143,11 +143,12 @@ serve(async (req) => {
       : null;
 
     if (action === "check-status") {
-      // Connectors are workspace-scoped. Always require a workspaceId so
-      // connections never bleed across workspaces.
-      if (!workspaceId) {
-        return jsonResponse({ connected: [] });
-      }
+      // Connectors are workspace-scoped when a workspaceId is provided.
+      // During onboarding the workspace may still be loading on the client —
+      // in that case fall back to returning all of the user's own connections
+      // (scoped by user_id only) so the UI can reflect the just-completed
+      // OAuth flow instead of a stale empty list.
+      const scopeToWorkspace = !!workspaceId;
 
       // Self-heal: re-attach orphan connections (rows whose workspace_id is
       // NULL or points to a workspace that no longer exists) to the user's
