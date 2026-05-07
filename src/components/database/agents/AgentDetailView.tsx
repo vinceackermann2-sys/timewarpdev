@@ -201,7 +201,7 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <button onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to agents
