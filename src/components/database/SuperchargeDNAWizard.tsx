@@ -210,7 +210,7 @@ export function SuperchargeDNAWizard({
       setTimeout(() => markTodo(2), 2200);
 
       const { data, error } = await supabase.functions.invoke("supercharge-dna", {
-        body: { brandId, workspaceId: null, urls, artifacts },
+        body: { brandId, workspaceId: activeWorkspaceId ?? null, urls, artifacts },
       });
       if (error) throw error;
       const remoteLogs = Array.isArray(data?.logs) ? data.logs.map((x: unknown) => String(x)) : [];
