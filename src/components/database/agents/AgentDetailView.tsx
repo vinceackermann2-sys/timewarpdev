@@ -18,7 +18,6 @@ import {
   PlayCircle,
   Plus,
   X,
-  Pencil,
 } from "lucide-react";
 import logoGmail from "@/assets/logo-gmail.svg";
 import logoGcal from "@/assets/logo-google-calendar.svg";
@@ -32,9 +31,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
-} from "@/components/ui/sheet";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -341,51 +337,41 @@ const INTEGRATION_OPTIONS = [
   "hubspot", "slack", "zoom", "stripe", "microsoft_teams", "onedrive", "onenote",
 ];
 
-type EditTarget =
-  | { kind: "trigger" }
-  | { kind: "step"; index: number }
-  | { kind: "output" };
 
-function WorkflowTab({ agent, onUpdated }: { agent: AIAgent; onUpdated: (a: AIAgent) => void }) {
-  const [editing, setEditing] = useState<EditTarget | null>(null);
-  const [saving, setSaving] = useState(false);
+function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => void }) {
   const steps = agent.sop_steps || [];
 
-  const persist = async (patch: Partial<AIAgent>) => {
-    setSaving(true);
-    try {
-      const { data, error } = await supabase
-        .from("ai_agents")
-        .update(patch as any)
-        .eq("id", agent.id)
-        .select("*")
-        .maybeSingle();
-      if (error) throw error;
-      if (data) onUpdated(normalizeAgentRow(data));
-      toast.success("Workflow updated");
-    } catch (err: any) {
-      toast.error("Could not save", { description: err.message });
-    } finally {
-      setSaving(false);
-      setEditing(null);
-    }
+  // Build node list: trigger → steps → output
+  type Node = {
+    id: string;
+    kind: "trigger" | "step" | "output";
+    title: string;
+    subtitle?: string | null;
+    index?: number;
+    integrations?: string[];
   };
-
-  const addStepAt = (insertIndex: number) => {
-    const next = [...steps];
-    next.splice(insertIndex, 0, { label: "New step", detail: "" });
-    void persist({ sop_steps: next } as any);
-  };
-
-  const removeStep = (i: number) => {
-    const next = steps.filter((_, idx) => idx !== i);
-    void persist({ sop_steps: next } as any);
-  };
-
-  const updateStep = (i: number, patch: Partial<AgentSopStep>) => {
-    const next = steps.map((s, idx) => (idx === i ? { ...s, ...patch } : s));
-    void persist({ sop_steps: next } as any);
-  };
+  const nodes: Node[] = [
+    {
+      id: "trigger",
+      kind: "trigger",
+      title: agent.trigger_type === "schedule" ? "Schedule" : agent.trigger_type === "manual" ? "Manual run" : agent.trigger_type === "event" ? "Event" : "Threshold",
+      subtitle: agent.trigger_schedule || agent.trigger_condition || agent.trigger_source || undefined,
+    },
+    ...steps.map((s, i) => ({
+      id: `step-${i}`,
+      kind: "step" as const,
+      title: s.label,
+      subtitle: s.detail,
+      index: i + 1,
+      integrations: s.integrations as string[] | undefined,
+    })),
+    {
+      id: "output",
+      kind: "output" as const,
+      title: "Output",
+      subtitle: agent.sop_output || "No output configured",
+    },
+  ];
 
   return (
     <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
@@ -394,7 +380,7 @@ function WorkflowTab({ agent, onUpdated }: { agent: AIAgent; onUpdated: (a: AIAg
         <div>
           <h2 className="font-semibold text-base">SOP Workflow</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Click any node to edit its fields. Use the + buttons between steps to add new ones.
+            Read-only view of the configured agent flow. Edit fields and integrations from Settings.
           </p>
         </div>
         <Badge variant="outline" className="text-[10px] capitalize">
@@ -402,41 +388,24 @@ function WorkflowTab({ agent, onUpdated }: { agent: AIAgent; onUpdated: (a: AIAg
         </Badge>
       </div>
 
-      {/* Big canvas */}
+      {/* Big canvas — bezier-connected horizontal flow */}
       <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-x-auto">
-        <div className="min-w-max min-h-[520px] p-10 flex items-center gap-4">
-          {/* Trigger node */}
-          <FlowNode
-            kind="trigger"
-            title={agent.trigger_type === "schedule" ? "Schedule" : agent.trigger_type === "manual" ? "Manual run" : "Trigger"}
-            subtitle={agent.trigger_schedule || agent.trigger_condition || agent.trigger_source || undefined}
-            onEdit={() => setEditing({ kind: "trigger" })}
-          />
-
-          {/* Insert button before first step */}
-          <InsertSlot onAdd={() => addStepAt(0)} />
-
-          {steps.map((s, i) => (
-            <span key={i} className="flex items-center gap-4">
+        <div className="relative min-w-max p-12">
+          {/* SVG layer for bezier connectors */}
+          <FlowConnectors count={nodes.length} />
+          {/* Nodes row (above the SVG) */}
+          <div className="relative flex items-stretch gap-24">
+            {nodes.map((n) => (
               <FlowNode
-                kind="step"
-                title={s.label}
-                subtitle={s.detail}
-                index={i + 1}
-                integrations={s.integrations as string[] | undefined}
-                onEdit={() => setEditing({ kind: "step", index: i })}
-                onDelete={() => removeStep(i)}
+                key={n.id}
+                kind={n.kind}
+                title={n.title}
+                subtitle={n.subtitle}
+                index={n.index}
+                integrations={n.integrations}
               />
-              <InsertSlot onAdd={() => addStepAt(i + 1)} />
-            </span>
-          ))}
-
-          <FlowNode
-            kind="output"
-            title="Output"
-            subtitle={agent.sop_output || "No output configured"}
-            onEdit={() => setEditing({ kind: "output" })}
-          />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -444,58 +413,77 @@ function WorkflowTab({ agent, onUpdated }: { agent: AIAgent; onUpdated: (a: AIAg
       <div className="border-t border-border/60 px-6 py-4">
         <div className="inline-flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4 text-xs">
           <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">Legend</p>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground -mb-1">Steps</p>
           <div className="flex flex-wrap gap-4">
             <span className="flex items-center gap-1.5">
               <span className="h-3.5 w-3.5 rounded border-2 border-primary/60 bg-primary/10" /> Automated
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-3.5 w-3.5 rounded border-2 border-emerald-500/60 bg-emerald-500/10" /> Approval / Output
+              <span className="h-3.5 w-3.5 rounded border-2 border-emerald-500/60 bg-emerald-500/10" /> Approval
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-3.5 w-3.5 rounded border-2 border-foreground/30 bg-card" /> Trigger / Manual
+              <span className="h-3.5 w-3.5 rounded border-2 border-foreground/30 bg-card" /> Manual action
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-3.5 w-3.5 rounded border-2 border-dashed border-amber-500/60 bg-amber-500/5" /> Conditional
             </span>
           </div>
-          <div className="flex flex-wrap gap-4 pt-1 border-t border-border/40">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground -mb-1 pt-1 border-t border-border/40">Connections</p>
+          <div className="flex flex-wrap gap-4">
             <span className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="h-px w-6 bg-muted-foreground/60" /> Next step
+              <svg width="28" height="8" viewBox="0 0 28 8"><path d="M0 4 H22" stroke="currentColor" strokeWidth="1.5" fill="none"/><path d="M20 1 L26 4 L20 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+              Next step
             </span>
             <span className="flex items-center gap-1.5 text-amber-600">
-              <span className="h-px w-6 border-t border-dashed border-amber-500" /> Triggered when applicable
+              <svg width="28" height="8" viewBox="0 0 28 8"><path d="M0 4 H22" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 3"/><path d="M20 1 L26 4 L20 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+              Triggered when applicable
+            </span>
+            <span className="flex items-center gap-1.5 text-destructive">
+              <svg width="28" height="8" viewBox="0 0 28 8"><path d="M26 4 H4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 3"/><path d="M8 1 L2 4 L8 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+              Sent back for revision
             </span>
           </div>
         </div>
       </div>
-
-      <NodeEditorSheet
-        agent={agent}
-        editing={editing}
-        saving={saving}
-        onClose={() => setEditing(null)}
-        onSaveTrigger={(patch) => persist(patch)}
-        onSaveStep={(i, patch) => updateStep(i, patch)}
-        onSaveOutput={(out) => persist({ sop_output: out } as any)}
-      />
     </div>
   );
 }
 
-function InsertSlot({ onAdd }: { onAdd: () => void }) {
+/** SVG layer that draws smooth bezier connectors between adjacent nodes.
+ *  Nodes are 240px (w-60) and the gap between them is 96px (gap-24).
+ *  We position the SVG absolutely behind the node row and route a curve
+ *  from the right edge of node N to the left edge of node N+1. */
+function FlowConnectors({ count }: { count: number }) {
+  if (count < 2) return null;
+  const NODE_W = 240;
+  const GAP = 96;
+  const NODE_H = 140;
+  const PAD = 48; // matches p-12
+  const totalW = count * NODE_W + (count - 1) * GAP + PAD * 2;
+  const cy = PAD + NODE_H / 2;
+  const segments = Array.from({ length: count - 1 }, (_, i) => {
+    const x1 = PAD + (i + 1) * NODE_W + i * GAP;
+    const x2 = x1 + GAP;
+    const mid = (x1 + x2) / 2;
+    return `M ${x1} ${cy} C ${mid} ${cy}, ${mid} ${cy}, ${x2} ${cy}`;
+  });
   return (
-    <div className="group flex items-center shrink-0">
-      <FlowArrow />
-      <button
-        type="button"
-        onClick={onAdd}
-        className="opacity-0 group-hover:opacity-100 -ml-2 -mr-2 h-6 w-6 rounded-full border border-dashed border-primary/60 bg-background hover:bg-primary/10 text-primary flex items-center justify-center transition-opacity"
-        title="Insert step"
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </button>
-      <FlowArrow />
-    </div>
+    <svg
+      className="absolute inset-0 pointer-events-none text-muted-foreground/50"
+      width={totalW}
+      height={PAD * 2 + NODE_H}
+      viewBox={`0 0 ${totalW} ${PAD * 2 + NODE_H}`}
+      fill="none"
+    >
+      <defs>
+        <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+        </marker>
+      </defs>
+      {segments.map((d, i) => (
+        <path key={i} d={d} stroke="currentColor" strokeWidth="1.5" markerEnd="url(#flow-arrow)" />
+      ))}
+    </svg>
   );
 }
 
@@ -505,25 +493,21 @@ function FlowNode({
   subtitle,
   index,
   integrations,
-  onEdit,
-  onDelete,
 }: {
   kind: "trigger" | "step" | "output";
   title: string;
   subtitle?: string | null;
   index?: number;
   integrations?: string[];
-  onEdit?: () => void;
-  onDelete?: () => void;
 }) {
   const tone =
     kind === "trigger"
-      ? "border-foreground/30 bg-card hover:border-foreground/60"
+      ? "border-foreground/30 bg-card"
       : kind === "output"
-        ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/70"
-        : "border-primary/40 bg-primary/5 hover:border-primary/70";
+        ? "border-emerald-500/40 bg-emerald-500/5"
+        : "border-primary/40 bg-primary/5";
   return (
-    <div className={cn("group/node relative w-60 rounded-xl border-2 p-4 shadow-sm transition-colors cursor-pointer", tone)} onClick={onEdit}>
+    <div className={cn("relative w-60 min-h-[140px] rounded-xl border-2 p-4 shadow-sm shrink-0", tone)}>
       {kind === "step" && index != null && (
         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Step {index}</p>
       )}
@@ -542,230 +526,10 @@ function FlowNode({
           ))}
         </div>
       )}
-      <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity">
-        <button
-          type="button"
-          className="h-6 w-6 rounded-md bg-background/80 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
-          onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
-          title="Edit"
-        >
-          <Pencil className="h-3 w-3" />
-        </button>
-        {onDelete && (
-          <button
-            type="button"
-            className="h-6 w-6 rounded-md bg-background/80 border border-border flex items-center justify-center text-muted-foreground hover:text-destructive"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            title="Delete"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        )}
-      </div>
     </div>
   );
 }
 
-function FlowArrow() {
-  return (
-    <div className="flex items-center text-muted-foreground/60 shrink-0">
-      <svg width="40" height="14" viewBox="0 0 40 14" fill="none">
-        <path d="M0 7 L34 7" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M30 2 L38 7 L30 12" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      </svg>
-    </div>
-  );
-}
-
-/* ---------- Node editor sheet (right panel) ---------- */
-
-function NodeEditorSheet({
-  agent,
-  editing,
-  saving,
-  onClose,
-  onSaveTrigger,
-  onSaveStep,
-  onSaveOutput,
-}: {
-  agent: AIAgent;
-  editing: EditTarget | null;
-  saving: boolean;
-  onClose: () => void;
-  onSaveTrigger: (patch: Partial<AIAgent>) => void;
-  onSaveStep: (i: number, patch: Partial<AgentSopStep>) => void;
-  onSaveOutput: (out: string) => void;
-}) {
-  const open = !!editing;
-
-  // Local form state — initialised from agent when sheet opens
-  const [triggerType, setTriggerType] = useState<AgentTriggerType>(agent.trigger_type);
-  const [triggerSchedule, setTriggerSchedule] = useState(agent.trigger_schedule || "");
-  const [triggerCondition, setTriggerCondition] = useState(agent.trigger_condition || "");
-  const [triggerSource, setTriggerSource] = useState(agent.trigger_source || "");
-
-  const [stepLabel, setStepLabel] = useState("");
-  const [stepDetail, setStepDetail] = useState("");
-  const [stepIntegrations, setStepIntegrations] = useState<string[]>([]);
-  const [outputText, setOutputText] = useState(agent.sop_output || "");
-
-  useEffect(() => {
-    if (!editing) return;
-    if (editing.kind === "trigger") {
-      setTriggerType(agent.trigger_type);
-      setTriggerSchedule(agent.trigger_schedule || "");
-      setTriggerCondition(agent.trigger_condition || "");
-      setTriggerSource(agent.trigger_source || "");
-    } else if (editing.kind === "step") {
-      const s = (agent.sop_steps || [])[editing.index] as any;
-      setStepLabel(s?.label || "");
-      setStepDetail(s?.detail || "");
-      setStepIntegrations(Array.isArray(s?.integrations) ? s.integrations : []);
-    } else {
-      setOutputText(agent.sop_output || "");
-    }
-  }, [editing, agent]);
-
-  const toggleIntegration = (key: string) => {
-    setStepIntegrations((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
-  };
-
-  return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>
-            {editing?.kind === "trigger" ? "Edit trigger"
-              : editing?.kind === "output" ? "Edit output"
-              : `Edit step ${editing?.kind === "step" ? editing.index + 1 : ""}`}
-          </SheetTitle>
-          <SheetDescription>
-            {editing?.kind === "trigger"
-              ? "What kicks off this agent run."
-              : editing?.kind === "output"
-                ? "What this agent produces or reports when done."
-                : "Atomic action this agent performs."}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="py-5 space-y-4">
-          {editing?.kind === "trigger" && (
-            <>
-              <div className="space-y-1.5">
-                <Label>Trigger type</Label>
-                <Select value={triggerType} onValueChange={(v) => setTriggerType(v as AgentTriggerType)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">Manual — user clicks Run now</SelectItem>
-                    <SelectItem value="schedule">Schedule — runs on a cadence</SelectItem>
-                    <SelectItem value="event">Event — integration emits something</SelectItem>
-                    <SelectItem value="threshold">Threshold — metric crosses value</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {triggerType === "schedule" && (
-                <div className="space-y-1.5">
-                  <Label>Schedule</Label>
-                  <Input value={triggerSchedule} onChange={(e) => setTriggerSchedule(e.target.value)} placeholder="e.g. Every weekday at 9am" />
-                </div>
-              )}
-              {(triggerType === "event" || triggerType === "threshold") && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label>Source</Label>
-                    <Input value={triggerSource} onChange={(e) => setTriggerSource(e.target.value)} placeholder="e.g. slack:#product-feedback" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Condition</Label>
-                    <Textarea value={triggerCondition} onChange={(e) => setTriggerCondition(e.target.value)} placeholder="e.g. New message not from a bot" />
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {editing?.kind === "step" && (
-            <>
-              <div className="space-y-1.5">
-                <Label>Step label</Label>
-                <Input value={stepLabel} onChange={(e) => setStepLabel(e.target.value)} placeholder="e.g. Read incoming message" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Detail / acceptance criteria</Label>
-                <Textarea rows={4} value={stepDetail} onChange={(e) => setStepDetail(e.target.value)} placeholder="What does this step do, exactly?" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Integrations used</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {INTEGRATION_OPTIONS.map((key) => {
-                    const active = stepIntegrations.includes(key);
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => toggleIntegration(key)}
-                        className={cn(
-                          "px-2.5 py-1 rounded-full border text-xs capitalize transition-colors",
-                          active
-                            ? "bg-primary/10 border-primary/60 text-primary"
-                            : "bg-card border-border text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {key.replace(/_/g, " ")}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-
-          {editing?.kind === "output" && (
-            <div className="space-y-1.5">
-              <Label>Output description</Label>
-              <Textarea
-                rows={5}
-                value={outputText}
-                onChange={(e) => setOutputText(e.target.value)}
-                placeholder="What does this agent produce or report when it's done?"
-              />
-            </div>
-          )}
-        </div>
-
-        <SheetFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button
-            disabled={saving}
-            onClick={() => {
-              if (editing?.kind === "trigger") {
-                onSaveTrigger({
-                  trigger_type: triggerType,
-                  trigger_schedule: triggerSchedule || null,
-                  trigger_condition: triggerCondition || null,
-                  trigger_source: triggerSource || null,
-                } as any);
-              } else if (editing?.kind === "step") {
-                onSaveStep(editing.index, {
-                  label: stepLabel,
-                  detail: stepDetail,
-                  integrations: stepIntegrations,
-                } as any);
-              } else if (editing?.kind === "output") {
-                onSaveOutput(outputText);
-              }
-            }}
-          >
-            {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-            Save
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 /* ---------- Dashboard tab ---------- */
 
