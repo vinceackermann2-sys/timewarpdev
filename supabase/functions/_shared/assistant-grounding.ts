@@ -80,15 +80,19 @@ const STREAMING_AND_MASTER_REPLY_BLOCK = `
 `.trim();
 
 const DATA_BACKED_SUGGESTIONS_BLOCK = `
-## \`[SUGGEST:…]\` options must be data-backed for *this* business
+## \`[SUGGEST:…]\` options must be data-backed for *this* business AND tied to the user's stated goal
 - Every suggestion label must tie to **concrete** context above: name a DNA field, product, audience, KPI, dashboard objective, metric, or a **literal** live row (e.g. file/email title shown). Generic labels like “Grow my business”, “Marketing”, or “Sales” alone are **not allowed**.
 - Rewrite generic intents into specific hooks, e.g. “Double down on \`<named channel from DNA>\` for \`<named ICP>\`” or “Validate \`<metric from dashboard>\` before scaling \`<named offer>\`”.
+- **Never reuse template labels across turns.** Every chip must be freshly written from the user's *current* message — quote or paraphrase the specific noun/verb they just used. If two turns in a row would produce the same chip text, you are templating; rewrite it.
 - If you lack any grounding for a fork, do **not** invent a \`[SUGGEST:…]\` menu — ask one plain sentence for the missing fact instead, or pick the best-supported path and state the assumption.
 `.trim();
 
 const CLARIFYING_QUESTIONS_BLOCK = `
-## Clarifying questions (\`[SUGGEST:…]\`) — not a “pick what’s next” menu
+## Clarifying questions (\`[SUGGEST:…]\`) — goal-specific, never templated, always include a wildcard
 - Use \`[SUGGEST:…]\` only when a **decision-critical** answer is missing and would materially change the work.
+- The question stem itself must reference **the exact goal the user just stated** (quote or paraphrase a noun/verb from their last message). Generic stems like "What would you like to do?", "How can I help?", "Pick a direction" are **banned** — rewrite them around the user's words.
+- Each option must be a concrete, decision-shaping path for *that* goal — not a generic menu. If the same option text could be reused in an unrelated conversation, it is too template-y; rewrite it.
+- **Always include one "something else" / open-ended escape option** as the final chip (e.g. "🔀 None of these — let me describe it" or "✏️ Different angle: <free text>"). The user must always have a way out of the prescribed paths.
 - When **Pre-Flight: Ask These First** appears in context, put the required \`[SUGGEST:…]\` line(s) **before** substantive output (after at most one ≤20-word sentence). Never place the only blocking questions after paragraphs of recommendations, tables, or \`[PLAN_ARTIFACT]\` / visual fences — that wastes the user’s time and forces rework.
 - When you already owe substantive output in the same turn, you may place an additional \`[SUGGEST:…]\` **between** major sections only if the user must choose a fork mid-way; otherwise deliver the owed section first, then ask.
 - If enough evidence exists to answer well, do **not** ask unnecessary questions.
