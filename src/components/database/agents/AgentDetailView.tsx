@@ -847,7 +847,78 @@ function StatCard({
 
 /* ---------- Settings tab — safety, trigger, integrations ---------- */
 
-function SettingsTab({ agent, supervisorName }: { agent: AIAgent; supervisorName: string | null }) {
+function SettingsTab({
+  agent,
+  supervisorName,
+  onUpdated,
+}: {
+  agent: AIAgent;
+  supervisorName: string | null;
+  onUpdated: (a: AIAgent) => void;
+}) {
+  const [canDo, setCanDo] = useState<string[]>(agent.safety_can_do);
+  const [cannotDo, setCannotDo] = useState<string[]>(agent.safety_cannot_do);
+  const [escalation, setEscalation] = useState(agent.safety_escalation_path || "");
+  const [requiredInts, setRequiredInts] = useState<string[]>(agent.required_integrations);
+  const [newCan, setNewCan] = useState("");
+  const [newCannot, setNewCannot] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setCanDo(agent.safety_can_do);
+    setCannotDo(agent.safety_cannot_do);
+    setEscalation(agent.safety_escalation_path || "");
+    setRequiredInts(agent.required_integrations);
+  }, [agent]);
+
+  const persist = async (patch: Partial<AIAgent>) => {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("ai_agents")
+        .update(patch as any)
+        .eq("id", agent.id)
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      if (data) onUpdated(normalizeAgentRow(data));
+      toast.success("Settings updated");
+    } catch (err: any) {
+      toast.error("Could not save", { description: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleIntegration = (key: string) => {
+    const next = requiredInts.includes(key) ? requiredInts.filter((k) => k !== key) : [...requiredInts, key];
+    setRequiredInts(next);
+    void persist({ required_integrations: next } as any);
+  };
+
+  const addCan = () => {
+    if (!newCan.trim()) return;
+    const next = [...canDo, newCan.trim()];
+    setCanDo(next); setNewCan("");
+    void persist({ safety_can_do: next } as any);
+  };
+  const removeCan = (i: number) => {
+    const next = canDo.filter((_, idx) => idx !== i);
+    setCanDo(next);
+    void persist({ safety_can_do: next } as any);
+  };
+  const addCannot = () => {
+    if (!newCannot.trim()) return;
+    const next = [...cannotDo, newCannot.trim()];
+    setCannotDo(next); setNewCannot("");
+    void persist({ safety_cannot_do: next } as any);
+  };
+  const removeCannot = (i: number) => {
+    const next = cannotDo.filter((_, idx) => idx !== i);
+    setCannotDo(next);
+    void persist({ safety_cannot_do: next } as any);
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <SpecCard icon={Workflow} title="Trigger">
@@ -855,52 +926,94 @@ function SettingsTab({ agent, supervisorName }: { agent: AIAgent; supervisorName
         {agent.trigger_schedule && <KV label="Schedule" value={agent.trigger_schedule} />}
         {agent.trigger_source && <KV label="Source" value={agent.trigger_source} />}
         {agent.trigger_condition && <KV label="Condition" value={agent.trigger_condition} />}
+        <p className="text-[11px] text-muted-foreground mt-3">Edit the trigger from the Workflow tab — click the trigger node.</p>
       </SpecCard>
 
       <SpecCard icon={Plug} title="Required integrations">
-        {agent.required_integrations.length === 0 ? (
-          <p className="text-xs text-muted-foreground">None.</p>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {agent.required_integrations.map((i) => (
-              <Badge key={i} variant="secondary" className="capitalize">{i}</Badge>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-1.5">
+          {INTEGRATION_OPTIONS.map((key) => {
+            const active = requiredInts.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleIntegration(key)}
+                disabled={saving}
+                className={cn(
+                  "px-2.5 py-1 rounded-full border text-xs capitalize transition-colors",
+                  active
+                    ? "bg-primary/10 border-primary/60 text-primary"
+                    : "bg-card border-border text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {key.replace(/_/g, " ")}
+              </button>
+            );
+          })}
+        </div>
       </SpecCard>
 
-      <SpecCard icon={ShieldCheck} title="Safety boundary" className="md:col-span-2">
-        <div className="grid gap-4 md:grid-cols-2">
+      <SpecCard icon={ShieldCheck} title="Safety guardrails" className="md:col-span-2">
+        <div className="grid gap-5 md:grid-cols-2">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-2">Can do</p>
-            {agent.safety_can_do.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No allow rules defined.</p>
-            ) : (
-              <ul className="space-y-1.5 text-sm">
-                {agent.safety_can_do.map((r, i) => (
-                  <li key={i} className="flex gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 mt-1 shrink-0" /><span>{r}</span></li>
-                ))}
-              </ul>
-            )}
+            <ul className="space-y-1.5 mb-3">
+              {canDo.map((r, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 mt-1 shrink-0" />
+                  <span className="flex-1">{r}</span>
+                  <button onClick={() => removeCan(i)} className="text-muted-foreground hover:text-destructive">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+              {canDo.length === 0 && <li className="text-xs text-muted-foreground">No allow rules yet.</li>}
+            </ul>
+            <div className="flex gap-2">
+              <Input value={newCan} onChange={(e) => setNewCan(e.target.value)} placeholder="e.g. Reply to messages in #support"
+                onKeyDown={(e) => e.key === "Enter" && addCan()} />
+              <Button size="sm" variant="outline" onClick={addCan} disabled={saving}><Plus className="h-3.5 w-3.5" /></Button>
+            </div>
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-destructive mb-2">Cannot do</p>
-            {agent.safety_cannot_do.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No block rules defined.</p>
-            ) : (
-              <ul className="space-y-1.5 text-sm">
-                {agent.safety_cannot_do.map((r, i) => (
-                  <li key={i} className="flex gap-2"><XCircle className="h-3.5 w-3.5 text-destructive mt-1 shrink-0" /><span>{r}</span></li>
-                ))}
-              </ul>
-            )}
+            <ul className="space-y-1.5 mb-3">
+              {cannotDo.map((r, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <XCircle className="h-3.5 w-3.5 text-destructive mt-1 shrink-0" />
+                  <span className="flex-1">{r}</span>
+                  <button onClick={() => removeCannot(i)} className="text-muted-foreground hover:text-destructive">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+              {cannotDo.length === 0 && <li className="text-xs text-muted-foreground">No block rules yet.</li>}
+            </ul>
+            <div className="flex gap-2">
+              <Input value={newCannot} onChange={(e) => setNewCannot(e.target.value)} placeholder="e.g. Never send external emails"
+                onKeyDown={(e) => e.key === "Enter" && addCannot()} />
+              <Button size="sm" variant="outline" onClick={addCannot} disabled={saving}><Plus className="h-3.5 w-3.5" /></Button>
+            </div>
           </div>
         </div>
-        {agent.safety_escalation_path && (
-          <div className="mt-4 pt-4 border-t border-border/60">
-            <KV label="Escalates to" value={agent.safety_escalation_path} />
+        <div className="mt-5 pt-4 border-t border-border/60 space-y-1.5">
+          <Label>Escalation path</Label>
+          <div className="flex gap-2">
+            <Input
+              value={escalation}
+              onChange={(e) => setEscalation(e.target.value)}
+              placeholder="Who or which channel does the agent escalate to?"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={saving || escalation === (agent.safety_escalation_path || "")}
+              onClick={() => persist({ safety_escalation_path: escalation || null } as any)}
+            >
+              Save
+            </Button>
           </div>
-        )}
+        </div>
       </SpecCard>
 
       {supervisorName && (
