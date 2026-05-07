@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useBusinessDNA } from "@/components/database/BusinessDNAContext";
@@ -25,17 +25,15 @@ export default function AssistantPage() {
   const [initialMessage, setInitialMessage] = useState<string | null>(
     (location.state as { initialMessage?: string } | null)?.initialMessage ?? null,
   );
-  const [hasSettled, setHasSettled] = useState(false);
 
-  useEffect(() => {
-    // Wait for both workspace AND business DNA to finish loading for the
-    // CURRENT active workspace before deciding to show onboarding. This
-    // prevents flashing onboarding on a stale/empty brands list.
-    if (isLoading || wsLoading) return;
-    if (!activeWorkspace) return;
-    if (loadedWorkspaceId !== activeWorkspace.workspaceId) return;
-    setHasSettled(true);
-  }, [isLoading, wsLoading, activeWorkspace, loadedWorkspaceId]);
+  // Derived (not latched): readiness must re-evaluate on every workspace switch.
+  // If we latched `hasSettled = true`, switching to a fresh workspace would
+  // momentarily show brands=[] (cleared during load) → flash onboarding.
+  const hasSettled =
+    !isLoading &&
+    !wsLoading &&
+    !!activeWorkspace &&
+    loadedWorkspaceId === activeWorkspace.workspaceId;
 
   // Workspace members who aren't owners must NEVER see onboarding —
   // they collaborate on the owner's business.
