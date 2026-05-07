@@ -197,10 +197,10 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
       : "bg-muted text-muted-foreground";
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="flex-1 flex flex-col min-h-0 p-6">
+      <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex items-start justify-between gap-4 mb-4 shrink-0">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold flex items-center gap-2">
@@ -269,9 +269,9 @@ function AgentTabs({
   const successRate = runs.length > 0 ? Math.round((successRuns / runs.length) * 100) : 0;
 
   return (
-    <div>
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Tab switcher — pill style matching reference */}
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-4 shrink-0">
         <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card p-1 shadow-sm">
           {(["workflow", "dashboard", "settings"] as const).map((key) => (
             <button
@@ -398,9 +398,9 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
   ];
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+    <div className="rounded-xl border border-border/60 bg-card overflow-hidden flex flex-col min-h-0 flex-1">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/60">
+      <div className="flex items-center justify-between gap-3 px-6 py-3 border-b border-border/60 shrink-0">
         <div>
           <h2 className="font-semibold text-base">Agent Workflow</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -412,9 +412,15 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         </Badge>
       </div>
 
-      {/* Canvas sized to fill remaining viewport — no page scroll */}
-      <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto h-[calc(100vh-260px)] min-h-[420px]">
-        <FlowCanvas columns={columns} />
+      {/* Canvas fills remaining space — no page scroll */}
+      <div className="relative flex-1 min-h-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto">
+          <FlowCanvas columns={columns} />
+        </div>
+        {/* Legend pinned to the visible viewport's bottom-left */}
+        <div className="absolute left-4 bottom-4 z-20">
+          <CanvasLegend />
+        </div>
       </div>
     </div>
   );
@@ -422,7 +428,7 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
 
 function CanvasLegend() {
   return (
-    <div className="absolute left-4 bottom-4 z-10 inline-flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border/60 bg-card/95 backdrop-blur px-3 py-2 text-[11px] shadow-md">
+    <div className="inline-flex max-w-[calc(100vw-12rem)] flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-border/60 bg-card/95 backdrop-blur px-3 py-2 text-[11px] shadow-md">
       <span className="font-semibold uppercase tracking-wide text-muted-foreground">Legend</span>
       <span className="flex items-center gap-1.5">
         <span className="h-3 w-3 rounded border-2 border-primary/60 bg-primary/10" /> Automated
@@ -568,8 +574,6 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
         );
       })}
 
-      {/* Legend pinned to canvas bottom-left */}
-      <CanvasLegend />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkspace } from "@/hooks/useWorkspace";
@@ -10,6 +10,19 @@ import type { AIEmployee } from "./EmployeesView";
 import type { EmployeesTab } from "./DatabaseSidebar";
 import { AgentDetailView } from "./agents/AgentDetailView";
 import { normalizeAgentRow, type AIAgent } from "./agents/types";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface EmployeesHubViewProps {
@@ -26,6 +39,35 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [renaming, setRenaming] = useState<AIEmployee | AIAgent | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [deleting, setDeleting] = useState<AIEmployee | AIAgent | null>(null);
+
+  const tableName = activeTab === "agents" ? "ai_agents" : "ai_employees";
+
+  const handleRename = async () => {
+    if (!renaming) return;
+    const name = renameValue.trim();
+    if (!name) return;
+    setRenameSaving(true);
+    const { error } = await supabase.from(tableName as any).update({ name }).eq("id", renaming.id);
+    setRenameSaving(false);
+    if (error) { toast.error("Could not rename", { description: error.message }); return; }
+    toast.success("Renamed");
+    setRenaming(null);
+    load();
+  };
+
+  const handleDeleteFromMenu = async () => {
+    if (!deleting) return;
+    const { error } = await supabase.from(tableName as any).delete().eq("id", deleting.id);
+    if (error) { toast.error("Could not delete", { description: error.message }); return; }
+    toast.success("Deleted");
+    if (selectedId === deleting.id) setSelectedId(null);
+    setDeleting(null);
+    load();
+  };
 
   const load = async () => {
     if (!user) { setIsLoading(false); return; }
@@ -205,11 +247,11 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
               {filtered.map((it) => {
                 const isSel = it.id === selectedId;
                 return (
-                  <li key={it.id}>
+                  <li key={it.id} className="group relative">
                     <button
                       onClick={() => setSelectedId(it.id)}
                       className={cn(
-                        "w-full text-left flex items-center gap-2.5 px-2 py-1.5 rounded-md transition-colors",
+                        "w-full text-left flex items-center gap-2.5 px-2 py-1.5 pr-8 rounded-md transition-colors",
                         isSel ? "bg-[#f3f5f7] text-[#101828]" : "hover:bg-muted/50",
                       )}
                     >
@@ -219,6 +261,28 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
                         <p className="text-[11px] text-muted-foreground truncate">{rowSubtitle(it)}</p>
                       </div>
                     </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+                          aria-label="Item actions"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onSelect={() => { setRenameValue(it.name); setRenaming(it); }}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleting(it)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </li>
                 );
               })}
@@ -228,7 +292,7 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
       </aside>
 
       {/* Right detail panel */}
-      <main className="flex-1 min-h-0 overflow-y-auto bg-background">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-background">
         {selected ? activeTab === "agents" ? (
           <AgentDetailView
             agent={selected as AIAgent}
@@ -268,6 +332,39 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
           </div>
         )}
       </main>
+
+      <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename {labelSingular}</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder="Name"
+            onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenaming(null)}>Cancel</Button>
+            <Button onClick={handleRename} disabled={renameSaving || !renameValue.trim()}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this {labelSingular}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove "{deleting?.name}". This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteFromMenu}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
