@@ -10,7 +10,7 @@ const ACTION_LIMITS: Record<string, number> = {
   aristotle: 500,
   timewarp_og: Infinity,
 };
-const FREE_LIMIT = 10;
+const FREE_LIMIT = 100;
 
 interface ActionGateContextType {
   remaining: number;
