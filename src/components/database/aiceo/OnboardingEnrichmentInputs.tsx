@@ -100,7 +100,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => { checkConnections(); }, [checkConnections]);
 
