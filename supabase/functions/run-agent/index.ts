@@ -318,14 +318,19 @@ serve(async (req) => {
     }
     // Guard against the model fabricating "success" without ever invoking a
     // tool when the agent's whole purpose depends on a connected integration.
-    if (status === "success" && expectedTools && toolLog.length === 0 && agent.execution_mode === "api") {
+    // Applies to BOTH api and computer modes — computer mode currently has no
+    // executor wired in, so any "success" there is fabricated by definition.
+    if (status === "success" && expectedTools && toolLog.length === 0) {
       status = "failure";
+      const modeNote = agent.execution_mode === "computer"
+        ? "Computer-use execution is not yet supported by the run loop, so this agent cannot actually act on the world. Recreate it as an API-mode agent."
+        : "The connected integration may be missing or the SOP did not trigger any tool calls.";
       aiResult = {
         ...(aiResult ?? {}),
         status: "failure",
         escalation_reason:
           (aiResult?.escalation_reason as string | undefined) ||
-          `Agent did not call any integration tools (required: ${(agent.required_integrations || []).join(", ")}). The connected integration may be missing or the SOP did not trigger any tool calls.`,
+          `Agent did not call any integration tools (required: ${(agent.required_integrations || []).join(", ")}). ${modeNote}`,
       };
     }
 

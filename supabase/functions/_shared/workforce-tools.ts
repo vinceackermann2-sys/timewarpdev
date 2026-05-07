@@ -263,6 +263,22 @@ export async function executeWorkforceToolCall(
         return { ok: false, kind: "agent", error: "sop_steps must have at least 1 step (3-8 recommended)." };
       }
 
+      // ── Execution-mode reality check ─────────────────────────────────
+      // The run-agent executor only wires real tool calls for `api` mode.
+      // `computer` mode (browser automation) is not yet plumbed into the
+      // run loop, so an agent created in that mode would just hallucinate
+      // a "success" without doing anything. Refuse up front.
+      const execMode = String(args.execution_mode || "api").toLowerCase();
+      if (execMode === "computer") {
+        return {
+          ok: false,
+          kind: "agent",
+          error:
+            "Computer-use (browser-driven) agents aren't executable yet — the run loop only supports API-mode agents. " +
+            "Re-spec this agent as execution_mode='api' using a connected integration (e.g. Slack, Gmail, HubSpot), or tell the user this workflow needs to wait until browser execution ships.",
+        };
+      }
+
       // ── Integration availability check ───────────────────────────────
       // Don't create an agent that depends on integrations the user
       // hasn't connected — it would just fail at run-time and pretend to
