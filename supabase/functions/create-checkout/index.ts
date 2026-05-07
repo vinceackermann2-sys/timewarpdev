@@ -46,11 +46,11 @@ serve(async (req) => {
     const ONE_TIME_PRICE_ID = "price_1TGKOzGKbzbe9CQL8pj9zYEf";
     const isOneTime = priceId === ONE_TIME_PRICE_ID;
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+    const buildSessionParams = (useExistingCustomer: boolean) => ({
+      customer: useExistingCustomer ? customerId : undefined,
+      customer_email: useExistingCustomer && customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: isOneTime ? "payment" : "subscription",
+      mode: (isOneTime ? "payment" : "subscription") as "payment" | "subscription",
       success_url: `${req.headers.get("origin")}/app?ws=${workspaceId}`,
       cancel_url: `${req.headers.get("origin")}/pricing`,
       metadata: { workspace_id: workspaceId, user_id: user.id, type: "plan_purchase" },
@@ -58,6 +58,19 @@ serve(async (req) => {
         metadata: { workspace_id: workspaceId, user_id: user.id },
       },
     });
+
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create(buildSessionParams(true));
+    } catch (err: any) {
+      // Stripe forbids combining currencies on one customer. If the existing
+      // customer is locked to a different currency, fall back to letting
+      // Stripe create a fresh customer for this purchase via customer_email.
+      const msg = String(err?.raw?.message || err?.message || "");
+      const isCurrencyConflict = msg.includes("cannot combine currencies");
+      if (!isCurrencyConflict) throw err;
+      session = await stripe.checkout.sessions.create(buildSessionParams(false));
+    }
 
     if (isOneTime) {
       await supabase.rpc("decrement_og_spots");
@@ -67,9 +80,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("create-checkout error:", error);
-    return new Response(JSON.stringify({ error: "An internal error occurred" }),
+    const message = error?.raw?.message || error?.message || "An internal error occurred";
+    return new Response(JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
   }
 });
