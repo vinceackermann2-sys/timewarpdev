@@ -153,13 +153,11 @@ serve(async (req) => {
         .select("provider, provider_email, workspace_id")
         .eq("user_id", user.id);
 
-      if (workspaceId) {
-        connectionsQuery.eq("workspace_id", workspaceId);
-        tokensQuery.eq("workspace_id", workspaceId);
-      } else {
-        connectionsQuery.is("workspace_id", null);
-        tokensQuery.is("workspace_id", null);
-      }
+      // Connections are user-scoped (RLS already enforces user_id = auth.uid()).
+      // We intentionally do NOT filter by workspace here: a user's OAuth grant
+      // applies across workspaces, and filtering caused providers to appear
+      // disconnected whenever activeWorkspaceId differed from the workspace
+      // they were connected under (or was still loading at check time).
 
       const [connectionsResult, tokensResult] = await Promise.all([connectionsQuery, tokensQuery]);
 
@@ -371,7 +369,6 @@ serve(async (req) => {
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
         .eq("provider", provider);
-      if (workspaceId) connectionUpdate.eq("workspace_id", workspaceId);
       const connRes = await connectionUpdate;
 
       if (connRes.error) {
@@ -384,7 +381,6 @@ serve(async (req) => {
         .delete()
         .eq("user_id", user.id)
         .eq("provider", provider);
-      if (workspaceId) tokenDelete.eq("workspace_id", workspaceId);
       const tokRes = await tokenDelete;
 
       if (tokRes.error) {
