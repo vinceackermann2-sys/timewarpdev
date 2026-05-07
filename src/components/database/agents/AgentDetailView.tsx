@@ -18,7 +18,6 @@ import {
   PlayCircle,
   Plus,
   X,
-  Pencil,
 } from "lucide-react";
 import logoGmail from "@/assets/logo-gmail.svg";
 import logoGcal from "@/assets/logo-google-calendar.svg";
