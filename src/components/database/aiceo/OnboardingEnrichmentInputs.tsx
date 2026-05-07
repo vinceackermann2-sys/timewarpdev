@@ -148,8 +148,9 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
       );
       const data = await res.json();
       if (data.authUrl) {
-        // New tab so onboarding state isn't lost.
-        window.open(data.authUrl, "_blank", "noopener,noreferrer");
+        // New tab so onboarding state isn't lost. Keep window.opener so the
+        // OAuth-return tab can postMessage back and self-close (see AppShell).
+        window.open(data.authUrl, "_blank");
       }
     } catch {
       /* best effort */
