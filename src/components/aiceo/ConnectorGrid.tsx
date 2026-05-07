@@ -130,6 +130,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
             returnPath: window.location.pathname,
             origin: window.location.origin,
             brandId,
+            workspaceId: activeWorkspaceId ?? null,
           }),
         }
       );
