@@ -413,10 +413,12 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
       </div>
 
       {/* Canvas fills remaining space — no page scroll */}
-      <div className="relative flex-1 min-h-0 bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto">
-        <FlowCanvas columns={columns} />
+      <div className="relative flex-1 min-h-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-auto">
+          <FlowCanvas columns={columns} />
+        </div>
         {/* Legend pinned to the visible viewport's bottom-left */}
-        <div className="sticky bottom-3 left-3 z-20 inline-block ml-3 mb-3 pointer-events-auto">
+        <div className="absolute left-4 bottom-4 z-20">
           <CanvasLegend />
         </div>
       </div>
