@@ -39,6 +39,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -342,6 +343,8 @@ interface FlowNodeSpec {
   id: string;
   kind: FlowNodeKind;
   title: string;
+  description?: string;
+  meta?: string;
 }
 interface FlowColumnSpec {
   id: string;
@@ -366,6 +369,15 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
             agent.trigger_condition ||
             agent.trigger_source ||
             (agent.trigger_type === "schedule" ? "Schedule" : agent.trigger_type === "manual" ? "Manual run" : agent.trigger_type === "event" ? "Event" : "Threshold"),
+          description:
+            agent.trigger_type === "schedule"
+              ? `Runs on a cadence: ${agent.trigger_schedule || "schedule not set"}.`
+              : agent.trigger_type === "manual"
+                ? "Starts when a user clicks Run now in the agent dashboard."
+                : agent.trigger_type === "event"
+                  ? `Fires when an event arrives from ${agent.trigger_source || "a connected source"}.`
+                  : `Fires when a metric crosses the threshold defined in settings.`,
+          meta: `Trigger type: ${agent.trigger_type}`,
         },
       ],
     },
@@ -377,8 +389,16 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
               id: `step-${i}-int-${j}`,
               kind: "auto" as const,
               title: label.replace(/_/g, " "),
+              description: s.detail || s.label,
+              meta: `Step ${i + 1} · uses ${label.replace(/_/g, " ")}`,
             }))
-          : [{ id: `step-${i}-main`, kind: "auto", title: s.label }];
+          : [{
+              id: `step-${i}-main`,
+              kind: "auto",
+              title: s.label,
+              description: s.detail || "No additional detail provided for this step.",
+              meta: `Step ${i + 1}`,
+            }];
       return {
         id: `step-${i}`,
         header: s.label || `Step ${i + 1}`,
@@ -393,6 +413,8 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
           id: "output-node",
           kind: "output",
           title: agent.sop_output ? agent.sop_output.slice(0, 60) : "Result",
+          description: agent.sop_output || "No output configured. Define what this agent produces in Settings.",
+          meta: "Final output",
         },
       ],
     },
@@ -405,7 +427,7 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         <div>
           <h2 className="font-semibold text-base">SOP Workflow</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Read-only view of the configured agent flow. Edit fields and integrations from Settings.
+            Hover any node to see what that step does. Edit fields and integrations from Settings.
           </p>
         </div>
         <Badge variant="outline" className="text-[10px] capitalize">
@@ -413,46 +435,47 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
         </Badge>
       </div>
 
-      {/* Big tall canvas with column groups */}
+      {/* Big tall canvas with column groups + embedded legend */}
       <div className="relative bg-[radial-gradient(circle,_hsl(var(--border))_1px,_transparent_1px)] [background-size:16px_16px] overflow-x-auto">
         <FlowCanvas columns={columns} />
       </div>
+    </div>
+  );
+}
 
-      {/* Legend */}
-      <div className="border-t border-border/60 px-6 py-4">
-        <div className="inline-flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4 text-xs">
-          <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">Legend</p>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground -mb-1">Steps</p>
-          <div className="flex flex-wrap gap-4">
-            <span className="flex items-center gap-1.5">
-              <span className="h-3.5 w-3.5 rounded border-2 border-primary/60 bg-primary/10" /> Automated
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-3.5 w-3.5 rounded border-2 border-emerald-500/60 bg-emerald-500/10" /> Approval
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-3.5 w-3.5 rounded border-2 border-foreground/30 bg-card" /> Manual action
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-3.5 w-3.5 rounded border-2 border-dashed border-amber-500/60 bg-amber-500/5" /> Conditional
-            </span>
-          </div>
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground -mb-1 pt-1 border-t border-border/40">Connections</p>
-          <div className="flex flex-wrap gap-4">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <svg width="28" height="8" viewBox="0 0 28 8"><path d="M0 4 H22" stroke="currentColor" strokeWidth="1.5" fill="none"/><path d="M20 1 L26 4 L20 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
-              Next step
-            </span>
-            <span className="flex items-center gap-1.5 text-amber-600">
-              <svg width="28" height="8" viewBox="0 0 28 8"><path d="M0 4 H22" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 3"/><path d="M20 1 L26 4 L20 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
-              Triggered when applicable
-            </span>
-            <span className="flex items-center gap-1.5 text-destructive">
-              <svg width="28" height="8" viewBox="0 0 28 8"><path d="M26 4 H4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 3"/><path d="M8 1 L2 4 L8 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
-              Sent back for revision
-            </span>
-          </div>
-        </div>
+function CanvasLegend() {
+  return (
+    <div className="absolute left-4 bottom-4 z-10 inline-flex flex-col gap-3 rounded-lg border border-border/60 bg-card/95 backdrop-blur p-4 text-xs shadow-md">
+      <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">Legend</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground -mb-1">Steps</p>
+      <div className="flex flex-col gap-1.5">
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded border-2 border-primary/60 bg-primary/10" /> Automated
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded border-2 border-emerald-500/60 bg-emerald-500/10" /> Approval
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded border-2 border-foreground/30 bg-card" /> Manual action
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3.5 w-3.5 rounded border-2 border-dashed border-amber-500/60 bg-amber-500/5" /> Conditional
+        </span>
+      </div>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground -mb-1 pt-1 border-t border-border/40">Connections</p>
+      <div className="flex flex-col gap-1.5">
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <svg width="28" height="8" viewBox="0 0 28 8"><path d="M0 4 H22" stroke="currentColor" strokeWidth="1.5" fill="none"/><path d="M20 1 L26 4 L20 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+          Next step
+        </span>
+        <span className="flex items-center gap-1.5 text-amber-600">
+          <svg width="28" height="8" viewBox="0 0 28 8"><path d="M0 4 H22" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 3"/><path d="M20 1 L26 4 L20 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+          Triggered when applicable
+        </span>
+        <span className="flex items-center gap-1.5 text-destructive">
+          <svg width="28" height="8" viewBox="0 0 28 8"><path d="M26 4 H4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="3 3"/><path d="M8 1 L2 4 L8 7" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>
+          Sent back for revision
+        </span>
       </div>
     </div>
   );
@@ -462,23 +485,26 @@ function WorkflowTab({ agent }: { agent: AIAgent; onUpdated: (a: AIAgent) => voi
  *  small nodes. Bezier connectors fan out from each node in column N to the
  *  node in column N+1 that's closest in y. */
 function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
-  // Layout constants
-  const COL_W = 200;
-  const COL_GAP = 80;
-  const PAD_X = 48;
-  const PAD_TOP = 64;
+  // Layout constants — tall + visible columns
+  const COL_W = 220;
+  const COL_GAP = 88;
+  const PAD_X = 56;
+  const PAD_TOP = 72;
   const HEADER_H = 36;
-  const HEADER_GAP = 32;
-  const NODE_W = 156;
-  const NODE_H = 44;
-  const NODE_GAP = 24;
-  const CANVAS_MIN_H = 720;
+  const HEADER_GAP = 40;
+  const NODE_W = 168;
+  const NODE_H = 52;
+  const NODE_GAP = 36;
+  const CANVAS_MIN_H = 1000;
+  const COL_BOTTOM_PAD = 80;
+  const LEGEND_RESERVE = 200;
 
   const maxNodes = Math.max(1, ...columns.map((c) => c.nodes.length));
   const stackH = maxNodes * NODE_H + (maxNodes - 1) * NODE_GAP;
-  const contentH = PAD_TOP + HEADER_H + HEADER_GAP + stackH + 64;
+  const contentH = PAD_TOP + HEADER_H + HEADER_GAP + stackH + COL_BOTTOM_PAD + LEGEND_RESERVE;
   const canvasH = Math.max(CANVAS_MIN_H, contentH);
   const totalW = PAD_X * 2 + columns.length * COL_W + (columns.length - 1) * COL_GAP;
+  const colPanelH = HEADER_GAP + stackH + 64;
 
   // For each column, compute node center y positions (vertically centered in stack).
   const colNodeYs = columns.map((c) => {
@@ -497,7 +523,6 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
     const toYs = colNodeYs[i + 1];
     fromYs.forEach((y1, a) => {
       toYs.forEach((y2, b) => {
-        // Only fan out fully if either side has multiple; otherwise 1:1.
         if (fromYs.length > 1 && toYs.length > 1 && a !== b) return;
         const midX = (xRight + xLeft) / 2;
         connectors.push({
@@ -537,12 +562,12 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
           <div
             key={col.id}
             className="absolute"
-            style={{ left: x, top: PAD_TOP - 16, width: COL_W, height: canvasH - PAD_TOP + 16 }}
+            style={{ left: x, top: PAD_TOP - 16, width: COL_W }}
           >
-            {/* Column panel background */}
+            {/* Column panel background — taller, more visible */}
             <div
-              className="absolute inset-x-2 top-8 rounded-xl border border-border/50 bg-background/40"
-              style={{ height: HEADER_GAP + stackH + 56 }}
+              className="absolute inset-x-2 top-8 rounded-2xl border border-border/60 bg-background/60 shadow-sm"
+              style={{ height: colPanelH }}
             />
             {/* Header chip */}
             <div className="relative flex justify-center">
@@ -556,12 +581,23 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
               style={{ top: stackTop - PAD_TOP + 16, gap: NODE_GAP }}
             >
               {col.nodes.map((n) => (
-                <FlowNode key={n.id} kind={n.kind} title={n.title} width={NODE_W} height={NODE_H} />
+                <FlowNode
+                  key={n.id}
+                  kind={n.kind}
+                  title={n.title}
+                  description={n.description}
+                  meta={n.meta}
+                  width={NODE_W}
+                  height={NODE_H}
+                />
               ))}
             </div>
           </div>
         );
       })}
+
+      {/* Legend pinned to canvas bottom-left */}
+      <CanvasLegend />
     </div>
   );
 }
@@ -569,11 +605,15 @@ function FlowCanvas({ columns }: { columns: FlowColumnSpec[] }) {
 function FlowNode({
   kind,
   title,
+  description,
+  meta,
   width,
   height,
 }: {
   kind: FlowNodeKind;
   title: string;
+  description?: string;
+  meta?: string;
   width: number;
   height: number;
 }) {
@@ -590,12 +630,30 @@ function FlowNode({
               ? "border-dashed border-amber-500/60 bg-amber-500/5 text-amber-700"
               : "border-primary/40 bg-primary/5 text-primary";
   return (
-    <div
-      className={cn("flex items-center justify-center rounded-xl border-2 px-3 text-center text-[11px] font-semibold leading-tight shadow-sm capitalize", tone)}
-      style={{ width, height }}
-    >
-      <span className="line-clamp-2">{title}</span>
-    </div>
+    <HoverCard openDelay={120} closeDelay={80}>
+      <HoverCardTrigger asChild>
+        <div
+          className={cn(
+            "flex items-center justify-center rounded-xl border-2 px-3 text-center text-[11px] font-semibold leading-tight shadow-sm capitalize cursor-default transition-transform hover:-translate-y-0.5 hover:shadow-md",
+            tone,
+          )}
+          style={{ width, height }}
+        >
+          <span className="line-clamp-2">{title}</span>
+        </div>
+      </HoverCardTrigger>
+      <HoverCardContent side="top" align="center" className="w-72">
+        {meta && (
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+            {meta}
+          </p>
+        )}
+        <p className="text-sm font-semibold leading-snug capitalize">{title}</p>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{description}</p>
+        )}
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
