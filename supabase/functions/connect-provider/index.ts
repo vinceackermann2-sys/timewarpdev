@@ -143,11 +143,67 @@ serve(async (req) => {
       : null;
 
     if (action === "check-status") {
-      // Connectors are workspace-scoped: a user can connect the same provider
-      // in different workspaces independently. Always require a workspaceId
-      // so connections never bleed across workspaces.
+      // Connectors are workspace-scoped. Always require a workspaceId so
+      // connections never bleed across workspaces.
       if (!workspaceId) {
         return jsonResponse({ connected: [] });
+      }
+
+      // Self-heal: re-attach orphan connections (rows whose workspace_id is
+      // NULL or points to a workspace that no longer exists) to the user's
+      // currently active workspace. Without this, deleting the workspace
+      // where a provider was connected makes the provider invisible forever
+      // even though the OAuth token is still valid.
+      const { data: existingWorkspaces } = await supabaseAdmin
+        .from("workspaces")
+        .select("id")
+        .eq("created_by", user.id);
+      const validWsIds = new Set((existingWorkspaces ?? []).map((w: any) => w.id));
+      // Include workspaces the user is a member of (not just owner).
+      const { data: memberRows } = await supabaseAdmin
+        .from("workspace_members")
+        .select("workspace_id")
+        .eq("user_id", user.id);
+      for (const r of memberRows ?? []) validWsIds.add(r.workspace_id);
+
+      const { data: allUserConnections } = await supabaseAdmin
+        .from("user_connections")
+        .select("id, workspace_id, status")
+        .eq("user_id", user.id)
+        .eq("status", "connected");
+
+      const orphanIds = (allUserConnections ?? [])
+        .filter((c: any) => !c.workspace_id || !validWsIds.has(c.workspace_id))
+        .map((c: any) => c.id);
+
+      if (orphanIds.length > 0) {
+        await supabaseAdmin
+          .from("user_connections")
+          .update({ workspace_id: workspaceId })
+          .in("id", orphanIds);
+
+        // Mirror the same migration on tokens (matched by provider).
+        const orphanProviders = (allUserConnections ?? [])
+          .filter((c: any) => orphanIds.includes(c.id))
+          .map((c: any) => c.provider)
+          .filter(Boolean);
+        if (orphanProviders.length > 0) {
+          // Move tokens whose workspace_id is NULL or points to an invalid ws.
+          const { data: allTokens } = await supabaseAdmin
+            .from("user_oauth_tokens")
+            .select("id, workspace_id, provider")
+            .eq("user_id", user.id)
+            .in("provider", orphanProviders);
+          const tokenIds = (allTokens ?? [])
+            .filter((t: any) => !t.workspace_id || !validWsIds.has(t.workspace_id))
+            .map((t: any) => t.id);
+          if (tokenIds.length > 0) {
+            await supabaseAdmin
+              .from("user_oauth_tokens")
+              .update({ workspace_id: workspaceId })
+              .in("id", tokenIds);
+          }
+        }
       }
 
       const connectionsQuery = supabaseAdmin
@@ -188,8 +244,6 @@ serve(async (req) => {
         for (const expanded of expandedProviders) {
           if (deduped.has(expanded)) continue;
           const email = tokenEmailByProvider.get(expanded) ?? fallbackEmail;
-          // Keep rows even without a matching token so old connections still show;
-          // runtime refresh/search paths will decide if reconnect is needed.
           deduped.set(expanded, {
             provider: expanded,
             email,
