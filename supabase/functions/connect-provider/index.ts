@@ -369,7 +369,6 @@ serve(async (req) => {
         .update({ status: "disconnected" })
         .eq("user_id", user.id)
         .eq("provider", provider);
-      if (workspaceId) connectionUpdate.eq("workspace_id", workspaceId);
       const connRes = await connectionUpdate;
 
       if (connRes.error) {
@@ -382,7 +381,6 @@ serve(async (req) => {
         .delete()
         .eq("user_id", user.id)
         .eq("provider", provider);
-      if (workspaceId) tokenDelete.eq("workspace_id", workspaceId);
       const tokRes = await tokenDelete;
 
       if (tokRes.error) {
