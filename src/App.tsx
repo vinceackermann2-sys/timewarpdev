@@ -28,6 +28,7 @@ import DnaPage from "./pages/app/DnaPage";
 import DnaDetailPage from "./pages/app/DnaDetailPage";
 import WorkforcePage from "./pages/app/WorkforcePage";
 import ConnectionsPage from "./pages/app/ConnectionsPage";
+import { RouteErrorBoundary } from "./components/error/RouteErrorBoundary";
 import WorkspacesPage from "./pages/app/WorkspacesPage";
 import SettingsPage from "./pages/app/SettingsPage";
 
@@ -52,15 +53,15 @@ const App = () => {
                        handlers all live in AppShell). */}
                   <Route path="/app" element={<AppShell />}>
                     <Route index element={<Navigate to="assistant" replace />} />
-                    <Route path="assistant" element={<AssistantPage />} />
-                    <Route path="dashboard" element={<DashboardPage />} />
-                    <Route path="dna" element={<DnaPage />} />
-                    <Route path="dna/:brandId" element={<DnaDetailPage />} />
-                    <Route path="dna/:brandId/:pillar" element={<DnaDetailPage />} />
+                    <Route path="assistant" element={<RouteErrorBoundary label="Assistant"><AssistantPage /></RouteErrorBoundary>} />
+                    <Route path="dashboard" element={<RouteErrorBoundary label="Dashboard"><DashboardPage /></RouteErrorBoundary>} />
+                    <Route path="dna" element={<RouteErrorBoundary label="Business DNA"><DnaPage /></RouteErrorBoundary>} />
+                    <Route path="dna/:brandId" element={<RouteErrorBoundary label="Business DNA"><DnaDetailPage /></RouteErrorBoundary>} />
+                    <Route path="dna/:brandId/:pillar" element={<RouteErrorBoundary label="Business DNA"><DnaDetailPage /></RouteErrorBoundary>} />
                     <Route path="employees" element={<Navigate to="/app/workforce?tab=employees" replace />} />
                     <Route path="agents" element={<Navigate to="/app/workforce?tab=agents" replace />} />
-                    <Route path="workforce" element={<WorkforcePage />} />
-                    <Route path="connections" element={<ConnectionsPage />} />
+                    <Route path="workforce" element={<RouteErrorBoundary label="Workforce"><WorkforcePage /></RouteErrorBoundary>} />
+                    <Route path="connections" element={<RouteErrorBoundary label="Connections"><ConnectionsPage /></RouteErrorBoundary>} />
                     <Route path="workspaces" element={<WorkspacesPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     {/* Anything else under /app falls back to assistant. */}

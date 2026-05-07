@@ -78,6 +78,7 @@ export function AgentChatView({
   const [isDropupOpen, setIsDropupOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<Set<string>>(new Set());
+  const [userStartedTyping, setUserStartedTyping] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [isActionMode, setIsActionMode] = useState(false);
   const [isPlanMode, setIsPlanMode] = useState(false);
@@ -833,7 +834,7 @@ export function AgentChatView({
   const isOnboardingActive = !hasMessages && (forceOnboarding || onboardingLocked);
 
   const activeComposerPrompt =
-    !isOnboardingActive && hasMessages
+    !isOnboardingActive && hasMessages && !userStartedTyping
       ? [...messages].reverse().find(
           (m) =>
             m.role === "assistant" &&
@@ -855,11 +856,13 @@ export function AgentChatView({
                 title={lastAssistant.suggestionTitle}
                 variant="overlay"
                 onSelect={(suggestion) => {
-                  setDismissedSuggestionIds((prev) => new Set(prev).add(lastAssistant.id));
+                  // Don't dismiss — let the next assistant reply replace these chips.
+                  // Chips persist until the user starts typing or explicitly dismisses.
                   const mapped = lastAssistant.planActionPayloads?.[suggestion];
                   const textToSend = (mapped || suggestion || "").trim();
                   if (!textToSend) return;
                   if (chatInputRef.current) chatInputRef.current.innerHTML = "";
+                  setUserStartedTyping(false);
                   setTimeout(() => void handleSendMessage(textToSend), 0);
                 }}
                 onDismiss={() => {
@@ -985,7 +988,11 @@ export function AgentChatView({
           onInsertReference={onInsertReferenceFromInput}
           onSend={() => void handleSendMessage()}
           onCancel={handleCancelMessage}
-          onInputForMention={handleMentionInput}
+          onInputForMention={() => {
+            handleMentionInput();
+            const text = chatInputRef.current?.innerText?.trim() || "";
+            setUserStartedTyping(text.length > 0);
+          }}
           referenceSubContent={referenceSubContent}
           referenceUrlInput={referenceUrlInput}
           setReferenceUrlInput={setReferenceUrlInput}

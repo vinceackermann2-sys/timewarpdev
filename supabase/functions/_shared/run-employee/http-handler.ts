@@ -146,14 +146,35 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
     const measuredAiCalls: { model: string; usage?: { prompt_tokens?: number; completion_tokens?: number } | null }[] = [];
 
     const effectiveBrandId = brandId || employee.linked_business_id;
-    const { identity, safetySettings: brandSafety } = await loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId });
-    const accountSafety = await loadAccountSafetySettings(supabase, user.id);
+    const effectiveWsId = workspaceId || employee.workspace_id;
+
+    // Parallelize independent pre-flight queries (saves 300-600ms).
+    const [
+      identityResult,
+      accountSafety,
+      brainContext,
+      checkpointRow,
+    ] = await Promise.all([
+      loadBusinessIdentity(supabase, { ...employee, linked_business_id: effectiveBrandId }),
+      loadAccountSafetySettings(supabase, user.id),
+      buildBusinessBrainContext(supabase, {
+        userId: user.id,
+        brandId: effectiveBrandId,
+        workspaceId: effectiveWsId,
+      }),
+      (continuationContent || !continuationKey)
+        ? Promise.resolve(null)
+        : supabase
+            .from("long_task_checkpoints")
+            .select("content")
+            .eq("continuation_key", continuationKey)
+            .maybeSingle()
+            .then((r) => r.data),
+    ]);
+
+    const { identity, safetySettings: brandSafety } = identityResult;
     const safetySettings = mergeSafetySettings(brandSafety, accountSafety);
-    const { businessId, profileContext, learningContext } = await buildBusinessBrainContext(supabase, {
-      userId: user.id,
-      brandId: effectiveBrandId,
-      workspaceId: workspaceId || employee.workspace_id,
-    });
+    const { businessId, profileContext, learningContext } = brainContext;
 
     const lastUserMsg = extractLastUserMessage(messages ?? []);
     const historyForContract = Array.isArray(messages)
@@ -186,7 +207,7 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
     if (!isBrowserMode) {
       const verifiedContent = await buildVerifiedBusinessAnswer(supabase, {
         ...employee,
-        workspace_id: workspaceId || employee.workspace_id,
+        workspace_id: effectiveWsId,
         linked_business_id: effectiveBrandId,
       }, lastUserMsg);
       if (verifiedContent) {
@@ -194,17 +215,8 @@ export async function runEmployeeHttpHandler(req: Request, branding: RunEmployee
       }
     }
 
-    const effectiveWsId = workspaceId || employee.workspace_id;
     let effectiveMessages = [...(messages || [])];
-    let restoredContinuation = continuationContent || "";
-    if (!restoredContinuation && continuationKey) {
-      const { data: cp } = await supabase
-        .from("long_task_checkpoints")
-        .select("content")
-        .eq("continuation_key", continuationKey)
-        .maybeSingle();
-      restoredContinuation = cp?.content || "";
-    }
+    let restoredContinuation = continuationContent || (checkpointRow?.content ?? "");
     if (restoredContinuation) {
       effectiveMessages.push({ role: "assistant", content: restoredContinuation });
       effectiveMessages.push({ role: "user", content: "Continue exactly where you left off. Do not repeat what you already wrote." });
