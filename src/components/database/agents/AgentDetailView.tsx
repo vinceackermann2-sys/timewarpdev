@@ -279,11 +279,13 @@ function AgentTabs({
   runs,
   loadingRuns,
   supervisorName,
+  onUpdated,
 }: {
   agent: AIAgent;
   runs: AgentRun[];
   loadingRuns: boolean;
   supervisorName: string | null;
+  onUpdated: (updated: AIAgent) => void;
 }) {
   const [tab, setTab] = useState<"workflow" | "dashboard" | "settings">("workflow");
 
