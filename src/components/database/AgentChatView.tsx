@@ -334,7 +334,7 @@ export function AgentChatView({
           data: { session },
         } = await supabase.auth.getSession();
         if (!session) return;
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-learning-event`, {
+        await fetch(`${edgeBaseUrl}/functions/v1/dashboard-learning-event`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -356,7 +356,7 @@ export function AgentChatView({
         /* best effort */
       }
     },
-    [resolvedBrandId, activeWorkspaceId],
+    [resolvedBrandId, activeWorkspaceId, edgeBaseUrl],
   );
 
   useEffect(() => {
@@ -369,6 +369,12 @@ export function AgentChatView({
   }, [activeBrandId, brands, agents]);
 
   const fetchWithTimeout = useMemo(() => createFetchWithTimeout(abortControllerRef), []);
+  const edgeBaseUrl = useMemo(() => {
+    const envBase = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
+    const clientBase = String((supabase as any)?.supabaseUrl || "").trim().replace(/\/+$/, "");
+    // Prefer runtime client config; env can be stale in deployed builds.
+    return clientBase || envBase;
+  }, [supabase]);
 
   useEffect(() => {
     if (referenceUrlInput.trim().length < 3) {
@@ -384,7 +390,7 @@ export function AgentChatView({
           } = await supabase.auth.getSession();
           if (!session) return;
           const res = await fetchWithTimeout(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reference-search`,
+            `${edgeBaseUrl}/functions/v1/reference-search`,
             {
               method: "POST",
               headers: {
@@ -410,7 +416,7 @@ export function AgentChatView({
       })();
     }, 450);
     return () => clearTimeout(handle);
-  }, [referenceUrlInput, fetchWithTimeout]);
+  }, [referenceUrlInput, fetchWithTimeout, edgeBaseUrl]);
 
   const transport = useAssistantChat({
     messages,
@@ -532,7 +538,7 @@ export function AgentChatView({
         referencedUrls.map(async (r) => {
           try {
             const res = await fetchWithTimeout(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+              `${edgeBaseUrl}/functions/v1/analyze-content`,
               {
                 method: "POST",
                 headers: {

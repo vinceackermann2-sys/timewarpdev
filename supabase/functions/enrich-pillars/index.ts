@@ -159,10 +159,10 @@ const FIELD_SOURCE_POLICY: Record<string, Record<string, SourceMode>> = {
     b9: "website_or_onboarding", b10: "internal_or_competitor_cited", b11: "website_or_onboarding",
   },
   product: {
-    p1: "website_or_onboarding", p2: "website_or_onboarding", p3: "website_or_onboarding", p4: "website_or_onboarding",
-    p5: "website_or_onboarding", p6: "website_or_onboarding", p7: "website_or_onboarding", p8: "website_or_onboarding",
+    p1: "integration_preferred", p2: "integration_preferred", p3: "integration_preferred", p4: "integration_preferred",
+    p5: "integration_preferred", p6: "integration_preferred", p7: "integration_preferred", p8: "integration_preferred",
     p9: "internal_or_competitor_cited", p10: "internal_or_competitor_cited", p11: "internal_or_competitor_cited",
-    p12: "internal_or_competitor_cited", p13: "website_or_onboarding", p14: "internal_or_competitor_cited", p15: "website_or_onboarding",
+    p12: "internal_or_competitor_cited", p13: "integration_preferred", p14: "internal_or_competitor_cited", p15: "integration_preferred",
   },
   audience: {
     a1: "website_or_onboarding", a2: "integration_preferred", a3: "website_or_onboarding", a4: "internal_or_competitor_cited",
@@ -171,34 +171,34 @@ const FIELD_SOURCE_POLICY: Record<string, Record<string, SourceMode>> = {
     a11: "integration_preferred", a12: "website_or_onboarding", a13: "website_or_onboarding",
   },
   market: {
-    m1: "web_evidence_required", m2: "internal_or_competitor_cited", m3: "internal_or_competitor_cited",
-    m4: "internal_or_competitor_cited", m5: "web_evidence_required", m6: "web_evidence_required",
-    m7: "internal_or_competitor_cited", m8: "internal_or_competitor_cited", m9: "website_or_onboarding",
+    m1: "integration_only", m2: "integration_only", m3: "integration_only",
+    m4: "integration_only", m5: "integration_only", m6: "integration_only",
+    m7: "integration_only", m8: "integration_only", m9: "integration_only",
   },
   financial: {
-    f1: "website_or_onboarding", f2: "integration_preferred", f3: "integration_preferred", f4: "integration_preferred",
-    f5: "integration_preferred", f6: "integration_preferred", f7: "web_evidence_required", f8: "integration_only", f9: "website_or_onboarding",
+    f1: "integration_only", f2: "integration_only", f3: "integration_only", f4: "integration_only",
+    f5: "integration_only", f6: "integration_only", f7: "integration_only", f8: "integration_only", f9: "integration_only",
   },
   operations: {
-    o1: "website_or_onboarding", o2: "integration_preferred", o3: "integration_preferred", o4: "integration_preferred",
-    o5: "website_or_onboarding", o6: "integration_preferred", o7: "internal_or_competitor_cited",
-    o8: "web_evidence_required", o9: "website_or_onboarding",
+    o1: "integration_only", o2: "integration_only", o3: "integration_only", o4: "integration_only",
+    o5: "integration_only", o6: "integration_only", o7: "integration_only",
+    o8: "integration_only", o9: "integration_only",
   },
   people: {
     pe1: "integration_only", pe2: "integration_only", pe3: "internal_or_competitor_cited", pe4: "internal_or_competitor_cited",
     pe5: "internal_or_competitor_cited", pe6: "integration_preferred", pe7: "integration_only", pe8: "integration_preferred",
-    pe9: "website_or_onboarding",
+    pe9: "integration_preferred",
   },
   growth: {
-    g1: "internal_or_competitor_cited", g2: "internal_or_competitor_cited", g3: "integration_preferred",
-    g4: "internal_or_competitor_cited", g5: "integration_preferred", g6: "internal_or_competitor_cited",
-    g7: "integration_preferred", g8: "website_or_onboarding", g9: "internal_or_competitor_cited", g10: "website_or_onboarding",
+    g1: "integration_only", g2: "integration_only", g3: "integration_only",
+    g4: "integration_only", g5: "integration_only", g6: "integration_only",
+    g7: "integration_only", g8: "integration_only", g9: "integration_only", g10: "integration_only",
   },
   strategy: {
-    s1: "website_or_onboarding", s2: "internal_or_competitor_cited", s3: "internal_or_competitor_cited",
-    s4: "website_or_onboarding", s5: "integration_preferred", s6: "website_or_onboarding",
-    s7: "internal_or_competitor_cited", s8: "internal_or_competitor_cited", s9: "website_or_onboarding",
-    s10: "internal_or_competitor_cited", s11: "website_or_onboarding",
+    s1: "integration_only", s2: "integration_only", s3: "integration_only",
+    s4: "integration_only", s5: "integration_only", s6: "integration_only",
+    s7: "integration_only", s8: "integration_only", s9: "integration_only",
+    s10: "integration_only", s11: "integration_only",
   },
 };
 
@@ -747,7 +747,8 @@ serve(async (req) => {
     const systemPrompt = `You are a senior business strategist generating Business DNA for one of the 9 strategic pillars, following the TimeWarp Business DNA Model document.
 
 CRITICAL EVIDENCE RULES — read carefully:
-- You are working from a brand description, product list, audience list captured during onboarding, AND a list of which integrations the user has connected. The presence of a connection is a SIGNAL (e.g. "HubSpot connected" → there IS a CRM/pipeline; "Slack connected with N members" → there IS a team) but NOT a license to invent specific names, dollar amounts, or counts you do not see in the context.
+- You are working from a brand description, product list, audience list captured during onboarding, connected integrations, internal comms/performance/learning blocks, and funnel file/url evidence. Read ALL context blocks before deciding any field.
+- The presence of a connection is a SIGNAL (e.g. "HubSpot connected" → there IS a CRM/pipeline; "Slack connected with N members" → there IS a team) but NOT a license to invent specific names, dollar amounts, or counts you do not see in the context.
 - DO NOT fabricate. Do not invent specific revenue numbers, headcount, employee names, real vendor names, real competitor names, real CAC/LTV/margin numbers, real funding amounts, or real internal processes.
 
 ## SOURCE HIERARCHY — STRICT, AUTHORITATIVE
@@ -761,10 +762,11 @@ Every field you produce MUST trace back to one of these sources, in this order o
     2. User-uploaded documents (pitch deck, financials, strategy doc,
        product specs, customer interviews, P&L, etc. — see "FILE/URL
        EVIDENCE FROM FUNNEL")
-    3. The user's own website crawl (see BRAND / PRODUCTS / AUDIENCES
-       captured at onboarding)
 
   TIER 2 — EXTERNAL PUBLIC DATA (only when Tier 1 is silent on a field):
+    3. Website crawl context (ONLY allowed for branding + audience
+       understanding; do NOT use website-only claims for financial,
+       people, operations, growth, strategy, or product execution fields)
     4. Verified public sources: LinkedIn (company + leadership profiles),
        allabolag.se / Companies House / SEC filings (for company registry,
        org structure, financials), Crunchbase (funding), public social
@@ -804,6 +806,8 @@ For EACH field, decide:
 - Financials (CAC, LTV, margins, revenue, funding, projections): prefer Stripe / accounting integration data > user-uploaded financials > allabolag.se / SEC filings (cited) > category benchmarks (labelled). Unless evidence is concrete in one of these tiers, return empty. NEVER invent dollar figures.
 - TAM/SAM/SOM: must be evidence-backed from MARKET EVIDENCE when present. If evidence is weak or missing, use cautious ranges and clearly mark estimated assumptions.
 - Brand voice / tone / personality: derive from copy patterns in the user's own crawled site + uploaded documents first; only then triangulate with public socials.
+- Website context may directly support BRAND, PRODUCT, and AUDIENCE fields only.
+- For MARKET, FINANCIAL, OPERATIONS, PEOPLE, GROWTH, and STRATEGY: website-only claims are not allowed. Use integrations + uploaded files first; if they are missing, leave fields empty and mark Gap.
 
 ## OUTPUT RULES
 
@@ -834,14 +838,15 @@ ${competitorBenchmarkMarkdown}
 ## AUDIENCE / COMMUNITY SNIPPETS — cite-only (Path 2b)
 ${audienceExternalMarkdown}
 
-BRAND:
+${["brand", "product", "audience"].includes(pillarId) ? `BRAND:
 ${brandContext}
 
 PRODUCTS (${productRows.length}):
 ${productContext || "(no products)"}
 
 AUDIENCES (${audienceRows.length}):
-${audienceContext || "(no audiences)"}
+${audienceContext || "(no audiences)"}` : `BRAND/PRODUCT/AUDIENCE WEBSITE CONTEXT:
+(redacted for this pillar: website-derived context is only allowed to directly populate brand/product/audience fields)`}
 
 CONNECTION SIGNALS:
 ${connectionContext}

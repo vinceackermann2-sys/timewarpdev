@@ -642,19 +642,9 @@ export function BusinessDNAOnboarding({
           brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
         }));
 
-      // Ensure at least one audience per product — fill gaps for products without a matched audience
-      const coveredProductIds = new Set(parsedAudiences.flatMap(a => a.productIds || []));
-      const missingProducts = newProducts.filter(p => !coveredProductIds.has(p.id));
-      const fallbackAudiences: AudienceEntry[] = missingProducts.map((p, i) => ({
-        ...DEFAULT_AUDIENCE,
-        id: `audience-${Date.now()}-fill-${i}`,
-        name: `${p.name} Audience`,
-        description: `Target audience for ${p.name}`,
-        lastUpdated: now,
-        productIds: [p.id],
-        brandId: isAddBusiness && activeBrandId ? activeBrandId : brandId,
-      }));
-      const newAudiences = [...parsedAudiences, ...fallbackAudiences];
+      // Never invent fallback audiences. Missing audience data should remain
+      // a real gap until sourced from integrations/files/user input.
+      const newAudiences = parsedAudiences;
 
       
 
@@ -868,7 +858,7 @@ export function BusinessDNAOnboarding({
 
             <h1 className="text-[24px] sm:text-[32px] font-bold text-foreground mb-3">Add a business</h1>
             <p className="text-muted-foreground text-[15px] mb-8 text-center">
-              Paste your company URL. We only access public data.
+              Paste your company URL. We use it for brand, product, and audience discovery.
             </p>
 
             <div className="w-full max-w-[720px]">
@@ -905,7 +895,7 @@ export function BusinessDNAOnboarding({
                 <div className={`transition-all duration-300 overflow-hidden ${isUrlFocused ? "max-h-0 opacity-0" : "max-h-20 opacity-100"}`}>
                   <div className="flex items-center gap-2 px-3 mt-3 mb-2">
                     <WandSparkles className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-                    <span className="text-[13px] text-muted-foreground">Company URL works best.</span>
+                    <span className="text-[13px] text-muted-foreground">For best DNA quality, add integrations and files in onboarding before forging.</span>
                   </div>
                 </div>
               </div>

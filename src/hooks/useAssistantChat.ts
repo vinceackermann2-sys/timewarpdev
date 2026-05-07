@@ -151,6 +151,24 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     if (cancelledRef?.current) throw new Error("Cancelled");
   }, [cancelledRef]);
 
+  const getEdgeFunctionUrl = useCallback(
+    (fnName: string): string => {
+      const envBase = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
+      const clientBase = String((supabase as any)?.supabaseUrl || "").trim().replace(/\/+$/, "");
+      // Prefer the runtime Supabase client URL first. This avoids "Failed to fetch"
+      // when a stale VITE_SUPABASE_URL is present in the web build.
+      const base = clientBase || envBase;
+      if (!base) throw new Error("Supabase URL is not configured");
+      return `${base}/functions/v1/${fnName}`;
+    },
+    [supabase],
+  );
+
+  const getPublishableKey = useCallback(
+    (): string => String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || (supabase as any)?.supabaseKey || "").trim(),
+    [supabase],
+  );
+
   const resolveBrandRowId = useCallback(() => {
     const ab = brands.find(b => (b.agentName || b.name || "AI") === selectedAgent);
     return ab ? (ab as BrandRow)._rowId : undefined;
@@ -210,14 +228,15 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       currentStepIndex: 0,
     } : m));
 
+    const apikey = getPublishableKey();
     const response = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
+      getEdgeFunctionUrl("assistant-chat"),
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...(apikey ? { apikey } : {}),
         },
         body: JSON.stringify({
           messages: chatHistory,
@@ -454,13 +473,13 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         updateOverlay({ visible: true, employeeName: selectedAgent || "AI Agent", currentStep: `Step ${stepCount + 1}...` });
 
         const response = await fetchWithTimeout(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
+          getEdgeFunctionUrl("assistant-chat"),
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${session.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              ...(getPublishableKey() ? { apikey: getPublishableKey() } : {}),
             },
             body: JSON.stringify({
               messages: conversationHistory.slice(-6),
@@ -682,13 +701,13 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       needsContinuation = false;
 
       const response = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
+        getEdgeFunctionUrl("assistant-chat"),
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...(getPublishableKey() ? { apikey: getPublishableKey() } : {}),
           },
           body: JSON.stringify({
             employee_id: emp.id,
@@ -923,13 +942,13 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
         updateOverlay({ visible: true, employeeName: emp.name, currentStep: `Step ${stepCount + 1}...` });
 
         const response = await fetchWithTimeout(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`,
+          getEdgeFunctionUrl("assistant-chat"),
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${session.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              ...(getPublishableKey() ? { apikey: getPublishableKey() } : {}),
             },
             body: JSON.stringify({
               messages: conversationHistory.slice(-6),

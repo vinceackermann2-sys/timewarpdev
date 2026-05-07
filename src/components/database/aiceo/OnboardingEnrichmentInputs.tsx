@@ -25,6 +25,9 @@ import { cn } from "@/lib/utils";
 import { FileUploadZone } from "@/components/database/FileUploadZone";
 
 import logoMsOutlook from "@/assets/logo-ms-outlook.svg";
+import logoMsOnedrive from "@/assets/logo-ms-onedrive.svg";
+import logoMsOnenote from "@/assets/logo-ms-onenote.svg";
+import logoMsTeams from "@/assets/logo-ms-teams.svg";
 import logoSlack from "@/assets/logo-slack.png";
 import logoHubspot from "@/assets/logo-hubspot.svg";
 import logoGoogleDrive from "@/assets/logo-google-drive.svg";
@@ -32,6 +35,9 @@ import logoGmail from "@/assets/logo-gmail.svg";
 import logoStripe from "@/assets/logo-stripe.svg";
 import logoZoom from "@/assets/logo-zoom.svg";
 import logoGoogleCalendar from "@/assets/logo-google-calendar.svg";
+import logoGoogleDocs from "@/assets/logo-google-docs.svg";
+import logoGoogleSheets from "@/assets/logo-google-sheets.svg";
+import logoGoogleSlides from "@/assets/logo-google-slides.svg";
 
 interface ProviderRow {
   id: string;
@@ -39,18 +45,25 @@ interface ProviderRow {
   description: string;
   logo: string;
   iconBg?: string;
+  group: "Microsoft" | "Google" | "Business";
 }
 
-/** Keep the picker tight — the rest live in /app/connections post-onboarding. */
+/** Keep the picker tight — this should mirror all providers in connect-provider. */
 const PROVIDERS: ProviderRow[] = [
-  { id: "google_gmail", name: "Gmail", description: "Email + contacts", logo: logoGmail },
-  { id: "google_drive", name: "Google Drive", description: "Files & docs", logo: logoGoogleDrive },
-  { id: "google_calendar", name: "Calendar", description: "Meetings & cadence", logo: logoGoogleCalendar },
-  { id: "microsoft_outlook", name: "Outlook", description: "Email & calendar", logo: logoMsOutlook },
-  { id: "hubspot", name: "HubSpot", description: "CRM & pipeline", logo: logoHubspot, iconBg: "bg-orange-100" },
-  { id: "stripe", name: "Stripe", description: "Revenue & customers", logo: logoStripe },
-  { id: "slack", name: "Slack", description: "Team messages", logo: logoSlack },
-  { id: "zoom", name: "Zoom", description: "Meetings & recordings", logo: logoZoom, iconBg: "bg-blue-500" },
+  { id: "microsoft_onedrive", name: "OneDrive", description: "Files & docs", logo: logoMsOnedrive, group: "Microsoft" },
+  { id: "microsoft_onenote", name: "OneNote", description: "Notes & SOPs", logo: logoMsOnenote, group: "Microsoft" },
+  { id: "microsoft_teams", name: "Teams", description: "Team channels", logo: logoMsTeams, group: "Microsoft" },
+  { id: "microsoft_outlook", name: "Outlook", description: "Email, calendar, contacts", logo: logoMsOutlook, group: "Microsoft" },
+  { id: "google_gmail", name: "Gmail", description: "Email + contacts", logo: logoGmail, group: "Google" },
+  { id: "google_drive", name: "Google Drive", description: "Files & docs", logo: logoGoogleDrive, group: "Google" },
+  { id: "google_docs", name: "Google Docs", description: "Documents", logo: logoGoogleDocs, group: "Google" },
+  { id: "google_sheets", name: "Google Sheets", description: "Spreadsheets", logo: logoGoogleSheets, group: "Google" },
+  { id: "google_slides", name: "Google Slides", description: "Presentations", logo: logoGoogleSlides, group: "Google" },
+  { id: "google_calendar", name: "Google Calendar", description: "Meetings & cadence", logo: logoGoogleCalendar, group: "Google" },
+  { id: "hubspot", name: "HubSpot", description: "CRM & pipeline", logo: logoHubspot, iconBg: "bg-orange-100", group: "Business" },
+  { id: "stripe", name: "Stripe", description: "Revenue & customers", logo: logoStripe, group: "Business" },
+  { id: "slack", name: "Slack", description: "Team messages", logo: logoSlack, group: "Business" },
+  { id: "zoom", name: "Zoom", description: "Meetings & recordings", logo: logoZoom, iconBg: "bg-blue-500", group: "Business" },
 ];
 
 interface UploadedFileMeta {
@@ -163,20 +176,25 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
     () => ({ fileCount: uploaded.length, integrationCount: connected.length }),
     [uploaded.length, connected.length],
   );
+  const providersByGroup = useMemo(() => ({
+    Microsoft: PROVIDERS.filter((p) => p.group === "Microsoft"),
+    Google: PROVIDERS.filter((p) => p.group === "Google"),
+    Business: PROVIDERS.filter((p) => p.group === "Business"),
+  }), []);
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm">
+    <div className="rounded-2xl border border-border/60 bg-card/95 overflow-hidden shadow-sm">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-border/60 flex items-start gap-3">
+      <div className="px-5 py-4 border-b border-border/60 bg-muted/20 flex items-start gap-3">
         <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
           <Sparkles className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[15px] font-semibold text-foreground">
-            Feed me your data so the DNA isn't guesswork
+            Feed me your real business data before forging
           </p>
           <p className="text-[13px] text-muted-foreground leading-relaxed">
-            Upload internal docs and/or connect integrations — anything you give me beats public data.  Skip if you'd rather start fast.
+            Upload files and connect integrations first. For non-brand/product/audience fields, this is the primary evidence source.
           </p>
         </div>
       </div>
@@ -242,7 +260,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
             >
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[12px] text-muted-foreground">
-                  Opens in a new tab — your place here is saved.
+                  Opens in a new tab and includes all supported onboarding integrations.
                 </p>
                 <button
                   onClick={checkConnections}
@@ -253,8 +271,14 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
                   Refresh
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PROVIDERS.map((p) => {
+              <div className="space-y-3">
+                {(Object.keys(providersByGroup) as Array<keyof typeof providersByGroup>).map((group) => (
+                  <div key={group}>
+                    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {group}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {providersByGroup[group].map((p) => {
                   const isConnected = connected.includes(p.id);
                   const isConnecting = connectingId === p.id;
                   return (
@@ -292,6 +316,9 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
                     </button>
                   );
                 })}
+                    </div>
+                  </div>
+                ))}
               </div>
               <p className="text-[12px] text-muted-foreground mt-3 leading-relaxed">
                 You can connect more later from <span className="font-medium text-foreground">Connectors</span> in the sidebar.
@@ -321,7 +348,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
       <div className="px-5 py-3 border-t border-border/60 bg-muted/30 flex items-center justify-between gap-3">
         <p className="text-[12px] text-muted-foreground">
           {summary.fileCount + summary.integrationCount === 0
-            ? "Nothing added yet — that's OK, I'll work from your website."
+            ? "Nothing added yet — I can still use website for brand/product/audience and mark the rest as gaps."
             : `${summary.fileCount > 0 ? `${summary.fileCount} file${summary.fileCount === 1 ? "" : "s"}` : ""}${summary.fileCount > 0 && summary.integrationCount > 0 ? " · " : ""}${summary.integrationCount > 0 ? `${summary.integrationCount} integration${summary.integrationCount === 1 ? "" : "s"} connected` : ""}`}
         </p>
         <div className="flex items-center gap-2">

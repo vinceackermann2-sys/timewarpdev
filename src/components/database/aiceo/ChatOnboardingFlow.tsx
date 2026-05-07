@@ -462,18 +462,9 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
           brandId,
         } as AudienceEntry));
 
-      const coveredProductIds = new Set(parsedAudiences.flatMap(a => a.productIds || []));
-      const missingProducts = newProducts.filter(p => !coveredProductIds.has(p.id));
-      const fallbackAudiences: AudienceEntry[] = missingProducts.map((p, i) => ({
-        ...DEFAULT_AUDIENCE,
-        id: `audience-${Date.now()}-fill-${i}`,
-        name: `${p.name} Audience`,
-        description: `Target audience for ${p.name}`,
-        lastUpdated: now,
-        productIds: [p.id],
-        brandId,
-      } as AudienceEntry));
-      const newAudiences = [...parsedAudiences, ...fallbackAudiences];
+      // Never fabricate audience rows. If no audience evidence is present yet,
+      // leave audiences empty and let enrichment mark the gap explicitly.
+      const newAudiences = parsedAudiences;
 
       if (cancelled) return;
       setForgingStage("synthesizing");
@@ -865,7 +856,7 @@ export function ChatOnboardingFlow({ initialUrl, onComplete }: ChatOnboardingFlo
           <>
             <AssistantBubble>
               <p className="text-[14px] text-foreground leading-relaxed">
-                Before I forge your Business DNA — give me anything you've got.  Your data is the strongest signal I can use.  Skip if you'd rather start fast.
+                Before I forge your Business DNA, upload files and connect tools. Website data is used for brand, product, and audience only; the rest is grounded in integrations and uploads.
               </p>
             </AssistantBubble>
             <UserActionCard wide>
