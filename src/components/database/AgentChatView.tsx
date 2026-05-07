@@ -326,6 +326,14 @@ export function AgentChatView({
     };
   }, [user, fetchResumableTask]);
 
+  const fetchWithTimeout = useMemo(() => createFetchWithTimeout(abortControllerRef), []);
+  const edgeBaseUrl = useMemo(() => {
+    const envBase = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
+    const clientBase = String((supabase as any)?.supabaseUrl || "").trim().replace(/\/+$/, "");
+    // Prefer runtime client config; env can be stale in deployed builds.
+    return clientBase || envBase;
+  }, []);
+
   const logPlanLearningEvent = useCallback(
     async (eventType: "opened" | "completed", metadata?: Record<string, unknown>) => {
       if (!resolvedBrandId) return;
@@ -368,13 +376,6 @@ export function AgentChatView({
     }
   }, [activeBrandId, brands, agents]);
 
-  const fetchWithTimeout = useMemo(() => createFetchWithTimeout(abortControllerRef), []);
-  const edgeBaseUrl = useMemo(() => {
-    const envBase = String(import.meta.env.VITE_SUPABASE_URL || "").trim().replace(/\/+$/, "");
-    const clientBase = String((supabase as any)?.supabaseUrl || "").trim().replace(/\/+$/, "");
-    // Prefer runtime client config; env can be stale in deployed builds.
-    return clientBase || envBase;
-  }, [supabase]);
 
   useEffect(() => {
     if (referenceUrlInput.trim().length < 3) {
