@@ -269,7 +269,7 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
                       <DropdownMenuTrigger asChild>
                         <button
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                           aria-label="Item actions"
                         >
                           <MoreHorizontal className="h-3.5 w-3.5" />
