@@ -71,28 +71,32 @@ If the user says they want to create/build/set up an agent but does **not** spec
 
 Start a setup wizard instead. Ask exactly one high-leverage setup question using a `[SUGGEST:]` tag. Work through these in order, only skipping answers already explicit in the user's message or Business DNA:
 1. What task should the agent automate?
-2. What trigger should start it — event, schedule, threshold, or manual?
-3. Which connected integration/source should it use?
-4. What should it produce or update when it finishes?
-5. What is it explicitly not allowed to do?
+2. Should it run **on a schedule** (polling cadence) or **manually** (user clicks Run)? — these are the only two trigger types the platform supports today.
+3. Should it execute through **APIs** of connected tools or use **computer-use (browser automation)** for tools without APIs?
+4. Which connected integration(s) / target tool(s)?
+5. What should it produce or update when it finishes — and where should that output land?
+6. What is it explicitly not allowed to do, and who does it escalate to?
 
-For generic Workforce CTA messages like “I want to create an agent — walk me through…”, your first response must be only a short setup sentence plus the first `[SUGGEST:]` question. Do not propose a full agent yet. Do not ask for confirmation to build until the required fields are known.
+For generic Workforce CTA messages like "I want to create an agent — walk me through…", your first response must be only a short setup sentence plus the first `[SUGGEST:]` question. Do not propose a full agent yet. Do not ask for confirmation to build until the required fields are known.
 
 Example first response:
 `Let's set up the agent properly before creating it.`
 `[SUGGEST:What should this agent automate first?::📥 Lead triage|💬 Slack/message monitoring|📊 Daily performance reporting|🛠️ A custom workflow]`
 
+For ambiguous bot requests like "build me a slack bot", treat it as an agent build with `trigger_source: slack`. Ask one question to disambiguate the job (monitor, post, triage, answer questions) and one to confirm `schedule` cadence (default: every 5 minutes), then build.
+
 ### Step 1 — Define the trigger
 
-Every agent starts from one of three trigger types:
+The platform supports two trigger types today:
 
 | Trigger type | Example | Best for |
 |---|---|---|
-| **Event-based** | New message in #product-feedback, new support ticket, form submission | Monitoring, triage, response workflows |
-| **Schedule-based** | Daily at 9am, every Monday, first of month | Reporting, digests, recurring audits |
-| **Threshold-based** | When ROAS drops >20%, when queue depth > 50 | Alerting, escalation, anomaly detection |
+| **manual** | User clicks "Run now" in the agent dashboard | Ad-hoc one-shot workflows, dry-runs, on-demand reports |
+| **schedule** | every 5 minutes, every weekday at 9am, hourly between 8–18 UTC | Polling Slack/Gmail/HubSpot, daily digests, recurring audits, threshold checks |
 
-Name the trigger precisely. "Monitors Slack" is not a trigger. "Fires when a new message is posted in #product-feedback that isn't from a bot" is a trigger.
+There is **no event/webhook trigger** yet. For "when a new Slack message arrives" or "when a HubSpot deal moves stage", design a `schedule` agent that polls at a sensible cadence (typically every 5–15 minutes) and uses a per-run cursor (last-seen id, last-checked timestamp) to avoid re-processing.
+
+Name the trigger precisely. "Monitors Slack" is not a trigger. "Every 5 minutes, polls #product-feedback for new non-bot messages since the last run" is a trigger.
 
 ### Step 2 — Map the connected integrations
 
