@@ -39,6 +39,35 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [renaming, setRenaming] = useState<AIEmployee | AIAgent | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [deleting, setDeleting] = useState<AIEmployee | AIAgent | null>(null);
+
+  const tableName = activeTab === "agents" ? "ai_agents" : "ai_employees";
+
+  const handleRename = async () => {
+    if (!renaming) return;
+    const name = renameValue.trim();
+    if (!name) return;
+    setRenameSaving(true);
+    const { error } = await supabase.from(tableName as any).update({ name }).eq("id", renaming.id);
+    setRenameSaving(false);
+    if (error) { toast.error("Could not rename", { description: error.message }); return; }
+    toast.success("Renamed");
+    setRenaming(null);
+    load();
+  };
+
+  const handleDeleteFromMenu = async () => {
+    if (!deleting) return;
+    const { error } = await supabase.from(tableName as any).delete().eq("id", deleting.id);
+    if (error) { toast.error("Could not delete", { description: error.message }); return; }
+    toast.success("Deleted");
+    if (selectedId === deleting.id) setSelectedId(null);
+    setDeleting(null);
+    load();
+  };
 
   const load = async () => {
     if (!user) { setIsLoading(false); return; }
