@@ -197,10 +197,10 @@ export function AgentDetailView({ agent, onBack, onDeleted, onUpdated }: Props) 
       : "bg-muted text-muted-foreground";
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="flex-1 flex flex-col min-h-0 p-6">
+      <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex items-start justify-between gap-4 mb-4 shrink-0">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold flex items-center gap-2">
