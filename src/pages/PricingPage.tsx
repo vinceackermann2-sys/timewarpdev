@@ -140,7 +140,8 @@ function CurrentPlanCard({ userId }: { userId?: string }) {
     : plan === "aristotle" ? "Aristotle"
     : plan === "timewarp_og" ? "TimeWarp OG"
     : "Free";
-  const limit = plan ? ACTION_LIMITS[plan] ?? 0 : 0;
+  const FREE_LIMIT_PRICING = 10;
+  const limit = plan ? ACTION_LIMITS[plan] ?? FREE_LIMIT_PRICING : FREE_LIMIT_PRICING;
   const bonus = data?.bonus_actions ?? 0;
   const used = data?.actions_used ?? 0;
   const total = limit === Infinity ? Infinity : limit + bonus;
