@@ -128,14 +128,13 @@ serve(async (req) => {
     const { supabaseUrl, serviceRoleKey, client: supabaseAdmin } = createAdminClient();
 
     const token = authHeader.slice("Bearer ".length);
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAdmin.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await supabaseAdmin.auth.getClaims(token);
 
-    if (userError || !user) {
+    if (claimsError || !claimsData?.claims?.sub) {
       return jsonResponse({ error: "Invalid token" }, 401);
     }
+
+    const user = { id: claimsData.claims.sub as string, email: (claimsData.claims.email as string) ?? null };
 
     const requestedBrandId = brandId && brandId.trim() ? brandId.trim() : null;
     const resolvedBrandId = requestedBrandId
