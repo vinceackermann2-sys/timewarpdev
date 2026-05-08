@@ -608,7 +608,18 @@ export async function runTool(ctx: Ctx, name: string, args: any): Promise<any> {
       const r = await fetch(`https://slack.com/api/conversations.history?channel=${encodeURIComponent(channelId)}&limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const j = await r.json().catch(() => ({}));
+      let j = await r.json().catch(() => ({}));
+      if (!j.ok && j.error === "not_in_channel") {
+        await fetch("https://slack.com/api/conversations.join", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ channel: channelId }),
+        }).then((res) => res.json().catch(() => ({}))).catch(() => ({}));
+        const retry = await fetch(`https://slack.com/api/conversations.history?channel=${encodeURIComponent(channelId)}&limit=${limit}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        j = await retry.json().catch(() => ({}));
+      }
       if (!j.ok) return { error: `Slack history: ${j.error || "failed"}` };
       return { channel: channelId, messages: j.messages || [] };
     }
@@ -622,7 +633,20 @@ export async function runTool(ctx: Ctx, name: string, args: any): Promise<any> {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ channel, text: args.text }),
       });
-      const j = await r.json().catch(() => ({}));
+      let j = await r.json().catch(() => ({}));
+      if (!j.ok && j.error === "not_in_channel") {
+        await fetch("https://slack.com/api/conversations.join", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ channel }),
+        }).then((res) => res.json().catch(() => ({}))).catch(() => ({}));
+        const retry = await fetch("https://slack.com/api/chat.postMessage", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ channel, text: args.text }),
+        });
+        j = await retry.json().catch(() => ({}));
+      }
       if (!j.ok) return { error: `Slack: ${j.error || "post failed"}` };
       return { posted: true, ts: j.ts, channel: j.channel };
     }
