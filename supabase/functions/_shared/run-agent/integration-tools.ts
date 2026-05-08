@@ -304,6 +304,35 @@ async function slackToken(ctx: Ctx) {
   return await getValidAccessToken(ctx.supabase, ctx.userId, "slack", ctx.workspaceId);
 }
 
+function tokenize(value: string): string[] {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9åäö]+/gi, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
+}
+
+function scoreText(text: string, query: string): number {
+  const haystack = String(text || "").toLowerCase();
+  const terms = Array.from(new Set(tokenize(query)));
+  if (!terms.length) return 1;
+  return terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+}
+
+async function resolveSlackChannelId(ctx: Ctx, token: string, channel: string): Promise<string | null> {
+  const raw = String(channel || "").trim();
+  if (!raw) return null;
+  if (/^[CGD][A-Z0-9]+$/i.test(raw)) return raw;
+  const target = raw.replace(/^#/, "").toLowerCase();
+  const r = await fetch("https://slack.com/api/conversations.list?types=public_channel,private_channel,im,mpim&limit=200", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!j.ok) return null;
+  const match = (j.channels || []).find((c: any) => String(c.name || "").toLowerCase() === target || String(c.id) === raw);
+  return match?.id || null;
+}
+
 function b64urlEncode(s: string): string {
   return btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
