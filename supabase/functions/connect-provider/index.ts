@@ -326,7 +326,30 @@ serve(async (req) => {
           case "slack": {
             const clientId = getRequiredEnv("SLACK_CLIENT_ID");
             const redirectUri = `${redirectBase}/slack-oauth-callback`;
-            const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read,chat:write,chat:write.customize,chat:write.public";
+            const scopes = [
+              // Read channels & history
+              "channels:read","channels:history","channels:join","channels:manage",
+              "groups:read","groups:history","groups:write",
+              "im:read","im:history","im:write",
+              "mpim:read","mpim:history","mpim:write",
+              // Write messages
+              "chat:write","chat:write.customize","chat:write.public",
+              // Files
+              "files:read","files:write",
+              // Users & team
+              "users:read","users:read.email","users.profile:read","team:read",
+              "usergroups:read","usergroups:write",
+              // Reactions, pins, bookmarks, links
+              "reactions:read","reactions:write",
+              "pins:read","pins:write",
+              "bookmarks:read","bookmarks:write",
+              "links:read","links:write",
+              // Mentions & presence
+              "app_mentions:read","dnd:read","emoji:read",
+              // Calls & remote files
+              "calls:read","calls:write",
+              "remote_files:read","remote_files:write","remote_files:share",
+            ].join(",");
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
             authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
             break;
