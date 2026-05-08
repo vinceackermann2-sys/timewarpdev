@@ -1396,7 +1396,41 @@ const FAQSection = () => {
     },
     {
       question: "What counts as an action?",
-      answer: "Credits are used when running agents, updating dashboard or sending messages in TimeWarp.\n\nPricing: Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute.\n\nHere are some examples and their costs:\n\nUser prompt \"Remind me our product cost\" Work done \"Finds the correct product cost and answers.\" Actions: 0.3\n\nUser prompt \"Check my gmail inbox and draft answers to any unanswered mails\" Work done \"Searches through gmail inbox and drafts answer\" Actions: 0.5\n\nUser prompt \"Open Pinterest and create a moodboard for our business\" Work done \"Enables computer mode with step by step execution and summarizes actions.\" Actions: 1.5"
+      answer: (
+        <div className="space-y-4">
+          <p>Credits are used when running agents, updating dashboard or sending messages in TimeWarp.</p>
+          <p><span className="font-semibold text-gray-900">Pricing:</span> Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute.</p>
+          <p>Here are some examples and their costs:</p>
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-900">
+                <tr>
+                  <th className="px-4 py-2.5 font-semibold border-b border-gray-200">User prompt</th>
+                  <th className="px-4 py-2.5 font-semibold border-b border-gray-200">Work done</th>
+                  <th className="px-4 py-2.5 font-semibold border-b border-gray-200 whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600">
+                <tr className="border-b border-gray-100">
+                  <td className="px-4 py-3 align-top">"Remind me our product cost"</td>
+                  <td className="px-4 py-3 align-top">Finds the correct product cost and answers.</td>
+                  <td className="px-4 py-3 align-top font-medium text-gray-900">0.3</td>
+                </tr>
+                <tr className="border-b border-gray-100">
+                  <td className="px-4 py-3 align-top">"Check my gmail inbox and draft answers to any unanswered mails"</td>
+                  <td className="px-4 py-3 align-top">Searches through gmail inbox and drafts answer.</td>
+                  <td className="px-4 py-3 align-top font-medium text-gray-900">0.5</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 align-top">"Open Pinterest and create a moodboard for our business"</td>
+                  <td className="px-4 py-3 align-top">Enables computer mode with step by step execution and summarizes actions.</td>
+                  <td className="px-4 py-3 align-top font-medium text-gray-900">1.5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )
     },
     {
       question: "Is TimeWarp a pay-per-employee?",
