@@ -84,7 +84,12 @@ serve(async (req) => {
       provider: "slack",
       status: "connected",
       brand_id: brandId,
-      metadata: { team: teamName, team_id: tokenData.team?.id },
+      metadata: {
+        team: teamName,
+        team_id: tokenData.team?.id,
+        bot_user_id: tokenData.bot_user_id || null,
+        scope: tokenData.scope || null,
+      },
     });
 
     const brandParam = brandId ? `&brandId=${brandId}` : "";

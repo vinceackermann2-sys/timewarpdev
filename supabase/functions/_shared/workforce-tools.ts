@@ -326,7 +326,7 @@ export async function executeWorkforceToolCall(
       if (required.size > 0) {
         const { data: connRows } = await ctx.supabase
           .from("user_connections")
-          .select("provider, status, workspace_id")
+          .select("provider, status, workspace_id, metadata")
           .eq("user_id", ctx.userId);
         const connected = new Set<string>(
           (connRows || [])
@@ -347,6 +347,27 @@ export async function executeWorkforceToolCall(
               `Tell the user to connect ${missing.join(" and ")} from the Connectors page first, then I'll build the agent. ` +
               `Do NOT call create_agent again until those are connected.`,
           };
+        }
+
+        if (required.has("slack")) {
+          const slackConn = (connRows || []).find((r: any) => {
+            if (normalizeProvider(r.provider) !== "slack") return false;
+            if ((r.status || "connected") !== "connected") return false;
+            if (ctx.workspaceId) return r.workspace_id === ctx.workspaceId || r.workspace_id == null;
+            return true;
+          });
+          const slackScopes = String(slackConn?.metadata?.scopes || slackConn?.metadata?.scope || "");
+          const slackBotUserId = String(slackConn?.metadata?.bot_user_id || "");
+          if (!slackScopes.includes("chat:write") && !slackBotUserId) {
+            return {
+              ok: false,
+              kind: "agent",
+              error:
+                "Slack is connected for reading, but not installed with message-posting bot permissions yet. " +
+                "Tell the user to reconnect Slack from the Connectors page so the TimeWarp Slack app joins the workspace with chat:write permissions. " +
+                "Do NOT claim a Slack bot was created or installed until Slack has posting permissions.",
+            };
+          }
         }
       }
 

@@ -326,7 +326,7 @@ serve(async (req) => {
           case "slack": {
             const clientId = getRequiredEnv("SLACK_CLIENT_ID");
             const redirectUri = `${redirectBase}/slack-oauth-callback`;
-            const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read";
+            const scopes = "channels:read,channels:history,groups:read,groups:history,files:read,users:read,team:read,chat:write,chat:write.customize,chat:write.public";
             const state = btoa(JSON.stringify({ ...stateBase, origin }));
             authUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
             break;
