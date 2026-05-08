@@ -159,7 +159,7 @@ Return ONLY a valid JSON array. No markdown, no explanation, no wrapping. Each o
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-flash-preview",
+        model: "google/gemini-3-flash-preview",
         reasoning: { effort: "high" },
         messages: [
           {
