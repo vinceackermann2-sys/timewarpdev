@@ -1364,7 +1364,7 @@ const FAQAccordion = ({ question, answer }: { question: string, answer: string }
         <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="pb-6 text-gray-600 text-sm leading-relaxed pr-8">
+        <div className="pb-6 text-gray-600 text-sm leading-relaxed pr-8 whitespace-pre-line">
            {answer}
         </div>
       )}
