@@ -576,13 +576,51 @@ export async function runTool(ctx: Ctx, name: string, args: any): Promise<any> {
     }
 
     // ----- Slack -----
+    case "slack_list_channels":
+    case "slack_list_conversations":
+    case "slack_conversations_list": {
+      const token = await slackToken(ctx);
+      if (!token) return { error: "Slack is not connected." };
+      const types = encodeURIComponent(String(args.types || "public_channel,private_channel,im,mpim"));
+      const limit = Math.min(args.limit ?? 100, 200);
+      const r = await fetch(`https://slack.com/api/conversations.list?types=${types}&limit=${limit}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok) return { error: `Slack list: ${j.error || "failed"}` };
+      return {
+        channels: (j.channels || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          is_channel: c.is_channel,
+          is_private: c.is_private,
+          is_member: c.is_member,
+        })),
+      };
+    }
+
+    case "slack_conversations_history": {
+      const token = await slackToken(ctx);
+      if (!token) return { error: "Slack is not connected." };
+      const channelId = await resolveSlackChannelId(ctx, token, args.channel);
+      if (!channelId) return { error: `Slack channel not found or bot cannot access it: ${args.channel}` };
+      const limit = Math.min(args.limit ?? 20, 100);
+      const r = await fetch(`https://slack.com/api/conversations.history?channel=${encodeURIComponent(channelId)}&limit=${limit}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok) return { error: `Slack history: ${j.error || "failed"}` };
+      return { channel: channelId, messages: j.messages || [] };
+    }
+
     case "slack_post_message": {
       const token = await slackToken(ctx);
       if (!token) return { error: "Slack is not connected." };
+      const channel = (await resolveSlackChannelId(ctx, token, args.channel)) || args.channel;
       const r = await fetch("https://slack.com/api/chat.postMessage", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: args.channel, text: args.text }),
+        body: JSON.stringify({ channel, text: args.text }),
       });
       const j = await r.json().catch(() => ({}));
       if (!j.ok) return { error: `Slack: ${j.error || "post failed"}` };
