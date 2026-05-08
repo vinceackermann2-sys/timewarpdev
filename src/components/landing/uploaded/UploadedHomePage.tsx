@@ -1395,8 +1395,8 @@ const FAQSection = () => {
       answer: "You don't, the point of AI Employees and Agents is to give you the option to stop doing the work you hate doing the most."
     },
     {
-      question: "Will my customers know if its AI generated?",
-      answer: "Try for yourself and if you can't tell it's AI generated, your customers most likely won't be able to tell as well. TimeWarp also supports manual editing."
+      question: "What counts as an action?",
+      answer: "An action is any AI task you run — sending a message in chat, having an employee execute a workflow, generating a graphic, or running a browser agent. Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute."
     },
     {
       question: "Is TimeWarp a pay-per-employee?",
