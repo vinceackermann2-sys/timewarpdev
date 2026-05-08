@@ -534,7 +534,7 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
                 <AccordionTrigger className="text-left text-base font-medium hover:no-underline py-4">
                   {item.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4 whitespace-pre-line">
                   {item.a}
                 </AccordionContent>
               </AccordionItem>
