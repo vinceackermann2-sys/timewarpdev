@@ -231,7 +231,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3.1-flash-preview",
+          model: "google/gemini-3-flash-preview",
           reasoning: { effort: "high" },
           messages: [{ role: "system", content: systemPrompt }, ...messages],
           stream: false,
@@ -266,7 +266,7 @@ serve(async (req) => {
       const aiResult = await response.json();
       let content = aiResult.choices?.[0]?.message?.content || "";
       const aiCalls: { model: string; usage?: any }[] = [
-        { model: "google/gemini-3.1-flash-preview", usage: aiResult?.usage },
+        { model: "google/gemini-3-flash-preview", usage: aiResult?.usage },
       ];
       const actionValidation = validateActionPayload(content);
       if (!actionValidation.valid) {
@@ -277,7 +277,7 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-3.1-flash-preview",
+            model: "google/gemini-3-flash-preview",
             reasoning: { effort: "high" },
             messages: [
               { role: "system", content: "You repair malformed browser action JSON. Output only a JSON code block." },
@@ -290,7 +290,7 @@ serve(async (req) => {
           const repairJson = await repairResponse.json();
           const repaired = repairJson?.choices?.[0]?.message?.content || "";
           if (validateActionPayload(repaired).valid) content = repaired;
-          aiCalls.push({ model: "google/gemini-3.1-flash-preview", usage: repairJson?.usage });
+          aiCalls.push({ model: "google/gemini-3-flash-preview", usage: repairJson?.usage });
         }
       }
       content = runPostflightGuardrails(content, safetySettings);
@@ -346,7 +346,7 @@ serve(async (req) => {
       const promptText = (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "")
         + "\n" + (profileContext || "") + "\n" + (lastUserMsg || "");
       const costUsd = estimateAiCostUsd({
-        model: "google/gemini-3.1-flash-preview",
+        model: "google/gemini-3-flash-preview",
         reasoning: { effort: "high" },
         promptText,
         estimatedCompletionTokens: 1500,

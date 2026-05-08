@@ -1047,7 +1047,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-flash-preview",
+        model: "google/gemini-3-flash-preview",
         reasoning: { effort: "high" },
         messages: [
           { role: "system", content: systemPrompt },
@@ -1092,7 +1092,7 @@ Return ONLY a valid JSON object, no markdown fences.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3.1-flash-preview",
+          model: "google/gemini-3-flash-preview",
           reasoning: { effort: "high" },
           messages: [
             { role: "system", content: "You repair malformed dashboard JSON outputs. Output only JSON." },

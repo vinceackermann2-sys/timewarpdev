@@ -12,7 +12,7 @@ export interface ModelRate {
 
 export const MODEL_RATES: Record<string, ModelRate> = {
   // Google Gemini family
-  "google/gemini-3.1-flash-preview":      { inputPer1M: 0.30,  outputPer1M: 2.50 },
+  "google/gemini-3-flash-preview":      { inputPer1M: 0.30,  outputPer1M: 2.50 },
   "google/gemini-3.1-flash-image-preview": { inputPer1M: 0.30, outputPer1M: 2.50 },
   "google/gemini-3-pro-image-preview":  { inputPer1M: 1.25,  outputPer1M: 10.0 },
   "google/gemini-3.1-pro-preview":      { inputPer1M: 1.25,  outputPer1M: 10.0 },

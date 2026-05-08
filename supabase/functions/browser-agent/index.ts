@@ -121,7 +121,7 @@ For multi-step tasks, return an array of actions:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-flash-preview",
+        model: "google/gemini-3-flash-preview",
         reasoning: { effort: "high" },
         messages: [
           { role: "system", content: systemPrompt },
@@ -153,7 +153,7 @@ For multi-step tasks, return an array of actions:
       const promptText = systemPrompt + "\n" +
         (Array.isArray(messages) ? messages.map((m: any) => String(m?.content ?? "")).join("\n") : "");
       const costUsd = estimateAiCostUsd({
-        model: "google/gemini-3.1-flash-preview",
+        model: "google/gemini-3-flash-preview",
         reasoning: { effort: "high" },
         promptText,
         estimatedCompletionTokens: 1000,
