@@ -1352,7 +1352,7 @@ const FeatureCards = () => {
   );
 };
 
-const FAQAccordion = ({ question, answer }: { question: string, answer: string }) => {
+const FAQAccordion = ({ question, answer }: { question: string, answer: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className="border-b border-gray-200">
