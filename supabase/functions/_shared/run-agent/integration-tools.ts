@@ -352,6 +352,36 @@ function buildRfc822(to: string, subject: string, body: string, html?: boolean):
 export async function runTool(ctx: Ctx, name: string, args: any): Promise<any> {
   args = args || {};
   switch (name) {
+    case "business_dna_search": {
+      const query = String(args.query || "");
+      const max = Math.min(args.max_results ?? 8, 15);
+      let db = ctx.supabase
+        .from("user_business_data")
+        .select("id, title, data_type, source, content, analyzed_content, metadata, workspace_id")
+        .limit(300);
+      if (ctx.workspaceId) db = db.eq("workspace_id", ctx.workspaceId);
+      else db = db.eq("user_id", ctx.userId);
+      const { data, error } = await db;
+      if (error) return { error: `Business DNA search: ${error.message}` };
+      const rows = (data || [])
+        .map((row: any) => {
+          const body = String(row.analyzed_content || row.content || "");
+          const score = scoreText(`${row.title || ""}\n${row.data_type || ""}\n${body}`, query);
+          return {
+            id: row.id,
+            title: row.title,
+            data_type: row.data_type,
+            source: row.source,
+            score: row.id === ctx.brandId ? score + 2 : score,
+            excerpt: body.slice(0, 1800),
+          };
+        })
+        .filter((row: any) => row.excerpt && (query ? row.score > 0 : true))
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, max);
+      return { results: rows, count: rows.length };
+    }
+
     // ----- Gmail -----
     case "gmail_list_messages": {
       const token = await gmailToken(ctx);
