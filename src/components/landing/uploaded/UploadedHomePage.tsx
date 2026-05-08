@@ -1396,7 +1396,7 @@ const FAQSection = () => {
     },
     {
       question: "What counts as an action?",
-      answer: "An action is any AI task you run — sending a message in chat, having an employee execute a workflow, generating a graphic, or running a browser agent. Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute."
+      answer: "Credits are used when running agents, updating dashboard or sending messages in TimeWarp.\n\nPricing: Bigger tasks (long replies, multi-step runs, browser automations) consume more actions because they cost more in real AI compute.\n\nHere are some examples and their costs:\n\nUser prompt \"Remind me our product cost\" Work done \"Finds the correct product cost and answers.\" Actions: 0.3\n\nUser prompt \"Check my gmail inbox and draft answers to any unanswered mails\" Work done \"Searches through gmail inbox and drafts answer\" Actions: 0.5\n\nUser prompt \"Open Pinterest and create a moodboard for our business\" Work done \"Enables computer mode with step by step execution and summarizes actions.\" Actions: 1.5"
     },
     {
       question: "Is TimeWarp a pay-per-employee?",
