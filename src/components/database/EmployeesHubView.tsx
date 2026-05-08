@@ -121,7 +121,7 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
   const labelPlural = activeTab === "agents" ? "Agents" : "Employees";
   const labelSingular = activeTab === "agents" ? "agent" : "employee";
   const tagline = activeTab === "agents"
-    ? "Pure executors. One trigger, a step-by-step SOP, and a hard safety boundary."
+    ? "The future of business - Agents for anything you can think of"
     : "Strategic thinkers that sit above agents — a domain lens, owned scope, and the agents they supervise.";
   const emptyHelp = activeTab === "agents"
     ? "​"
