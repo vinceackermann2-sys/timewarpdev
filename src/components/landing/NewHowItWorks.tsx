@@ -309,7 +309,7 @@ export const Screen4 = () => {
 const nodesData = [
   {s:8, end: 10, i: <Dna className="w-5 h-5 text-black"/>, t: "Business DNA", log: "Checking business dna..."},
   {s:10, end: 12, i: <Globe className="w-5 h-5 text-black"/>, t: "Web Search", log: "Matching with real time data..."},
-  {s:12, end: 14, i: <LayoutTemplate className="w-5 h-5 text-black"/>, t: "Strategy Plan", log: "Crafting plan..."}
+  {s:12, end: 14, i: <LayoutTemplate className="w-5 h-5 text-black"/>, t: "Planning", log: "Crafting plan..."}
 ];
 
 const NodeWithLog = ({ icon, title, stepNum, status, logText, xOffset = -20, size = "md" }: { icon: React.ReactNode, title: string, stepNum: number, status: 'waiting' | 'thinking' | 'completed', logText: string, xOffset?: number, size?: "sm" | "md" }) => {

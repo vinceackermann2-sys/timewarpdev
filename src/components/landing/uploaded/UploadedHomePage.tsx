@@ -200,7 +200,7 @@ const GrowBusiness = () => {
              <div className="w-8 h-8 rounded-xl bg-[#f2f4f6] flex items-center justify-center shrink-0 text-[#3B82F6]">
                  <Target className="w-4 h-4" />
              </div>
-             <p className="text-[13px] font-medium text-gray-700 pr-2">Strategy Plan</p>
+             <p className="text-[13px] font-medium text-gray-700 pr-2">Planning</p>
           </motion.div>
         </div>
 
@@ -300,7 +300,7 @@ const GrowBusiness = () => {
              <div className="w-6 h-6 rounded-xl bg-[#f2f4f6] flex items-center justify-center shrink-0 text-[#3B82F6]">
                  <Target className="w-3 h-3" />
              </div>
-             <p className="text-[8px] font-medium text-gray-700 text-center w-12 leading-tight">Strategy Plan</p>
+             <p className="text-[8px] font-medium text-gray-700 text-center w-12 leading-tight">Planning</p>
           </motion.div>
         </div>
 
