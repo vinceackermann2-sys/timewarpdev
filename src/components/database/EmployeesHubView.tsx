@@ -124,7 +124,7 @@ export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp 
     ? "Pure executors. One trigger, a step-by-step SOP, and a hard safety boundary."
     : "Strategic thinkers that sit above agents — a domain lens, owned scope, and the agents they supervise.";
   const emptyHelp = activeTab === "agents"
-    ? "Describe the trigger (event, schedule, or threshold) and the outcome. TimeWarp will draft the SOP, the integrations it needs, and the escalation path."
+    ? "​"
     : "Pick the domain (CMO, COO, Head of Sales…). TimeWarp will define what they own vs. advise on vs. don't touch, and the agents they should supervise.";
 
   const rowSubtitle = (item: AIEmployee | AIAgent) => {
