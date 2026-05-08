@@ -34,11 +34,9 @@ const PILLAR_PROMPTS: Record<string, string> = {
   "forces": [ { "force": "Supplier Power"|"Buyer Power"|"Threat of New Entry"|"Threat of Substitution"|"Competitive Rivalry", "intensity": "Low"|"Medium"|"High", "trend": "Increasing"|"Stable"|"Decreasing", "implication": string } ],
   "trends": [ { "trend": string, "horizon": "Short"|"Medium"|"Long", "type": "Opportunity"|"Threat", "response": string } ],   // 4-8 items
   "timing": string,
-  "positioning_map": { "x_label": string, "y_label": string, "points": [ { "name": string, "x": number, "y": number, "is_us": boolean } ] },
-  "white_space": string,
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
-For positioning_map, x_label & y_label are short axis labels (e.g. "Price: Low → High", "Quality: Basic → Premium"). x and y are 0-100. Include 4-7 named competitors plus exactly one with is_us=true. Always populate checklist with 5-8 items capturing whether each market field is well-defined.
+Always populate checklist with 5-8 items capturing whether each market field is well-defined.
 For tam/sam/som, "size" MUST be a SHORT money figure ONLY (e.g. "$120B", "$8.5B", "~$400M", "$50–80M"). Never put descriptions in "size". "scope" is a SHORT phrase (max 8 words) describing what's included (e.g. "Global digital ad software", "EN-speaking SMB Meta advertisers", "Action-based AI ad platforms"). Use the formula [CATEGORY] + [GEOGRAPHIC SCOPE] + [CUSTOMER BASE SIZE] + [MATURITY STAGE] when reasoning, but keep "scope" terse. Use ranges if uncertain — never fabricate exact dollars.`,
 
   financial: `Return JSON with the keys exactly:
@@ -49,7 +47,6 @@ For tam/sam/som, "size" MUST be a SHORT money figure ONLY (e.g. "$120B", "$8.5B"
   "unit_economics": [ { "metric": "CAC"|"LTV"|"LTV:CAC"|"Payback Period"|"Gross Margin"|"NRR"|"Churn Rate"|"AOV"|"Contribution Margin", "value": string, "benchmark": string, "trend": string, "lever": string } ],
   "profitability": [ { "margin_type": "Gross"|"Contribution"|"Operating"|"EBITDA"|"Net", "current_pct": string, "target_pct": string, "benchmark": string, "improvement_path": string } ],
   "cash_flow": string,
-  "projections": [ string ],
   "funding": string,
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
@@ -63,7 +60,6 @@ Never invent specific revenue numbers. If integration/accounting evidence is mis
   "vendors": [ { "vendor": string, "supplies": string, "criticality": "1"|"2"|"3"|"4"|"5", "risk": string, "alternative": string } ],
   "quality": [ string ],
   "kpis": [ { "name": string, "target": string, "rationale": string } ],
-  "risks": [ { "risk": string, "likelihood": "Low"|"Medium"|"High", "impact": "Low"|"Medium"|"High", "mitigation": string } ],
   "compliance": [ string ],
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
@@ -93,7 +89,6 @@ org_chart MUST be a recursive tree with {role, name, children}. Top node is the 
   "creative": [ string ],
   "retention": string,
   "referral": string,
-  "experiments": [ { "hypothesis": string, "channel": string, "status": "Planned"|"Running"|"Done", "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
 For funnel: volume is a count/range like "10,000 visits" or "~2k", rate is the conversion rate to next stage like "12%", and color is a HEX (e.g. "#4a86ff") with progressively deeper saturation per stage. Always include checklist of 5-8 items.
@@ -106,11 +101,7 @@ For growth_model, channels, and experiments: set evidence_path from context bloc
   "bets": [ { "bet": string, "thesis": string, "resources": string, "success_signal": string, "kill_signal": string, "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
   "stage_model": [ { "field": "Stage"|"Current Constraint"|"Next Stage Trigger"|"What to Optimize", "value": string } ],
   "resource_allocation": [ { "resource": string, "current_pct": string, "optimal_pct": string, "rebalancing_rationale": string } ],
-  "decision_framework": [ { "decision_type": "Strategic (Irreversible)"|"Operational (Reversible)"|"Investment (Financial)"|"People (Hiring/Firing)"|"Crisis (Time-Pressured)", "criteria": string, "authority": string, "process": string } ],
-  "risk_appetite": [ { "domain": string, "appetite": "Conservative"|"Moderate"|"Aggressive", "tolerance_threshold": string, "mitigation": string } ],
   "milestones": [ { "milestone": string, "horizon": "0-3m"|"3-6m"|"6-12m"|"12m+", "outcome": string, "owner": string, "evidence_path": "internal_history"|"verified_external"|"user_feedback", "evidence": string, "how_determined": string, "verification": { "what": string, "when_observed": string, "where_surface": string, "how_observable": string, "source_url": string, "confidence": "high"|"medium"|"low"|"unverified" } | null } ],
-  "narrative": string,
-  "scenarios": [ { "scenario": "Base"|"Bull"|"Bear"|"Black Swan", "probability": string, "key_assumption": string, "response": string, "early_warnings": string } ],
   "checklist": [ { "item": string, "status": "Done"|"In Progress"|"Gap" } ]
 }
 Use the doc formulas exactly. For decision_framework follow [DECISION TYPE] + [CRITERIA] + [AUTHORITY] + [PROCESS]. For risk_appetite follow [RISK DOMAIN] + [APPETITE LEVEL] + [TOLERANCE THRESHOLD] + [MITIGATION]. Always include checklist of 5-8 items.
@@ -146,7 +137,7 @@ journey is the customer journey map; supporting_signal briefly cites INTERNAL AU
 };
 
 type SourceMode =
-  | "website_or_onboarding"
+  | "manual_or_integration"
   | "web_evidence_required"
   | "integration_preferred"
   | "integration_only"
@@ -154,9 +145,9 @@ type SourceMode =
 
 const FIELD_SOURCE_POLICY: Record<string, Record<string, SourceMode>> = {
   brand: {
-    b1: "website_or_onboarding", b2: "website_or_onboarding", b3: "website_or_onboarding", b4: "website_or_onboarding",
-    b5: "website_or_onboarding", b6: "website_or_onboarding", b7: "website_or_onboarding", b8: "website_or_onboarding",
-    b9: "website_or_onboarding", b10: "internal_or_competitor_cited", b11: "website_or_onboarding",
+    b1: "manual_or_integration", b2: "manual_or_integration", b3: "manual_or_integration", b4: "manual_or_integration",
+    b5: "manual_or_integration", b6: "manual_or_integration", b7: "manual_or_integration", b8: "manual_or_integration",
+    b9: "manual_or_integration", b10: "internal_or_competitor_cited", b11: "manual_or_integration",
   },
   product: {
     p1: "integration_preferred", p2: "integration_preferred", p3: "integration_preferred", p4: "integration_preferred",
@@ -165,10 +156,10 @@ const FIELD_SOURCE_POLICY: Record<string, Record<string, SourceMode>> = {
     p12: "internal_or_competitor_cited", p13: "integration_preferred", p14: "internal_or_competitor_cited", p15: "integration_preferred",
   },
   audience: {
-    a1: "website_or_onboarding", a2: "integration_preferred", a3: "website_or_onboarding", a4: "internal_or_competitor_cited",
+    a1: "manual_or_integration", a2: "integration_preferred", a3: "manual_or_integration", a4: "internal_or_competitor_cited",
     a5: "internal_or_competitor_cited", a6: "internal_or_competitor_cited", a7: "internal_or_competitor_cited",
     a8: "integration_preferred", a9: "internal_or_competitor_cited", a10: "internal_or_competitor_cited",
-    a11: "integration_preferred", a12: "website_or_onboarding", a13: "website_or_onboarding",
+    a11: "integration_preferred", a12: "manual_or_integration", a13: "manual_or_integration",
   },
   market: {
     m1: "integration_only", m2: "integration_only", m3: "integration_only",
@@ -662,7 +653,7 @@ serve(async (req) => {
       productRows[0]?.title || "",
       audienceRows[0]?.title || "",
     ].filter(Boolean).join(" ");
-    const fetchedMarketEvidence = await fetchMarketEvidence(marketSizingQuery);
+    const fetchedMarketEvidence: any[] = [];
     const allMarketEvidence = [
       ...webEvidenceFromFunnel.map((x: any) => ({
         url: String(x?.url || ""),
@@ -688,10 +679,10 @@ serve(async (req) => {
     );
 
     const compLimit = evidenceMode === "internal" ? 4 : evidenceMode === "external" ? 10 : 7;
-    const competitorPack = await buildCompetitorBenchmarkEvidence(competitorNames, categoryLine, compLimit);
+    const competitorPack = { markdown: "(competitor research moved to Skills)", urls: [] as string[] };
     let competitorBenchmarkMarkdown = competitorPack.markdown;
     const audienceExtLimit = evidenceMode === "internal" ? 3 : 6;
-    const audiencePack = await buildAudienceExternalEvidence(audienceRows[0]?.title || "", audienceExtLimit);
+    const audiencePack = { markdown: "(audience external research moved to Skills)", urls: [] as string[] };
     let audienceExternalMarkdown = audiencePack.markdown;
 
     if (evidenceMode === "external") {
@@ -816,7 +807,7 @@ For EACH field, decide:
 - Keep filled strings concise and decision-grade. Follow doc value formulas exactly when data exists.
 - Return valid JSON matching the schema. No prose outside JSON.
 
-Honesty over completeness. An empty field with a "Gap" checklist entry is FAR better than a fabricated one.
+Honesty over completeness. An empty field with a "Gap" checklist entry is FAR better than a fabricated one. If no source data exists for a pillar, return empty fields and a gap checklist only.
 
 ${DATA_BACKED_DECISION_TRIAD}`;
 

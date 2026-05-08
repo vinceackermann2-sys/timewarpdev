@@ -47,13 +47,17 @@ function isEmpty(field: PillarField): boolean {
   }
 }
 
-function EmptyState({ label }: { label: string }) {
+function EmptyState({ label, fieldId }: { label: string; fieldId: string }) {
+  const cta =
+    fieldId.startsWith("f")
+      ? "Connect Stripe or enter manually -> Connect"
+      : fieldId.startsWith("pe")
+        ? "Connect Slack or Teams -> Connect"
+        : "Add manually or connect an integration to populate this field.";
   return (
     <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-6 text-center">
       <p className="text-sm text-muted-foreground">No {label} yet</p>
-      <p className="text-xs text-muted-foreground/70 mt-1">
-        Add insights via the Assistant or onboarding to populate this field.
-      </p>
+      <p className="text-xs text-muted-foreground/70 mt-1">{cta}</p>
     </div>
   );
 }
@@ -75,7 +79,7 @@ export function PillarFieldRenderer({ field }: { field: PillarField }) {
   }
 
   if (isEmpty(field)) {
-    return <EmptyState label={field.name.replace(/^\d+\.\s*/, "").toLowerCase()} />;
+    return <EmptyState fieldId={field.id} label={field.name.replace(/^\d+\.\s*/, "").toLowerCase()} />;
   }
 
   if (

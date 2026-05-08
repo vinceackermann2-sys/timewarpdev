@@ -521,6 +521,11 @@ export async function buildBusinessBrainContext(supabase: any, params: BrainLoad
 - Strategic Constraints: ${constraints.join(", ") || "None explicitly recorded"}
 - KPI Priorities: ${kpis.join(", ") || "Not explicitly recorded"}
 
+## Data Availability & Routing Hints
+- Data fields available: ${[coreOffer, icp, valuePromise, ...channels, ...kpis].filter(Boolean).length}
+- If user asks for facts, answer from Business DNA fields and mark missing values as gaps.
+- If user asks for recommendations, use Skills-style reasoning grounded in these DNA facts.
+
 Use this profile as the primary operating truth for decisions. **Important:** if any field above is populated with real content, this business is NOT a blank slate — reason from the profile as real intelligence. Only call out missing data for fields that literally read "Not clearly defined yet" or "Unknown", and never describe the business as undefined when fields are filled.`;
 
   const learning = await loadLearningSummary(supabase, userId, brandId);

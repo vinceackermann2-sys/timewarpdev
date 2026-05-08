@@ -75,7 +75,7 @@ interface UploadedFileMeta {
 interface OnboardingEnrichmentInputsProps {
   /** Continue to forging — receives counts so the next step can show them. */
   onContinue: (summary: { fileCount: number; integrationCount: number }) => void;
-  /** Skip both — go straight to forging with website-only data. */
+  /** Skip both — go straight to forging with current manual data. */
   onSkip: () => void;
 }
 
@@ -190,11 +190,9 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
           <Sparkles className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-semibold text-foreground">
-            Feed me your real business data before forging
-          </p>
+          <p className="text-[15px] font-semibold text-foreground">Connect Your Real Data</p>
           <p className="text-[13px] text-muted-foreground leading-relaxed">
-            Upload files and connect integrations first. For non-brand/product/audience fields, this is the primary evidence source.
+            The more you connect, the more fields get filled with real data.
           </p>
         </div>
       </div>
@@ -247,7 +245,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
                 }}
               />
               <p className="text-[12px] text-muted-foreground mt-3 leading-relaxed">
-                <strong className="text-foreground/80">Best inputs:</strong> pitch deck, financials, strategy doc, brand guidelines, customer interviews, product specs, P&amp;L, customer list.  Files become the highest-priority source — they override anything I find online.
+                <strong className="text-foreground/80">Best inputs:</strong> pitch deck, financials, strategy doc, brand guidelines, customer interviews, product specs, P&amp;L, customer list.
               </p>
             </motion.div>
           ) : (
@@ -321,7 +319,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
                 ))}
               </div>
               <p className="text-[12px] text-muted-foreground mt-3 leading-relaxed">
-                You can connect more later from <span className="font-medium text-foreground">Connectors</span> in the sidebar.
+                Stripe → Financial/Product, HubSpot → Audience/Growth, Slack → People, Google Drive/Docs → Operations/Strategy.
               </p>
             </motion.div>
           )}
@@ -348,7 +346,7 @@ export function OnboardingEnrichmentInputs({ onContinue, onSkip }: OnboardingEnr
       <div className="px-5 py-3 border-t border-border/60 bg-muted/30 flex items-center justify-between gap-3">
         <p className="text-[12px] text-muted-foreground">
           {summary.fileCount + summary.integrationCount === 0
-            ? "Nothing added yet — I can still use website for brand/product/audience and mark the rest as gaps."
+            ? "Nothing connected yet — we will save your manual inputs and leave unsupported fields as gaps."
             : `${summary.fileCount > 0 ? `${summary.fileCount} file${summary.fileCount === 1 ? "" : "s"}` : ""}${summary.fileCount > 0 && summary.integrationCount > 0 ? " · " : ""}${summary.integrationCount > 0 ? `${summary.integrationCount} integration${summary.integrationCount === 1 ? "" : "s"} connected` : ""}`}
         </p>
         <div className="flex items-center gap-2">

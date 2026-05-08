@@ -15,6 +15,14 @@ const AI_SELF_IDENTITY_BLOCK = `
 - Do **not** open with "As your AI CEO…", "As your assistant…", "As your agent…", or similar. Start with the answer.
 `.trim();
 
+const DNA_SKILLS_ROUTING_BLOCK = `
+## DNA vs Skills routing
+- Business DNA is data only: factual fields from manual input, uploads, and integrations.
+- Never treat URL crawl output as Business DNA truth.
+- Factual questions (e.g. "what is my margin?") -> read DNA and answer with data or explicit gap.
+- Recommendation questions (e.g. "how should I grow?") -> route to Skills and ground the recommendation in DNA fields.
+`.trim();
+
 const EPISTEMIC_BLOCK = `
 ## Epistemic honesty (first principles)
 - When the user proposes a plan, claim, or tactic, briefly classify support using one line each (only when relevant — skip if the message is purely factual lookup):
@@ -166,12 +174,13 @@ Authenticity requirements:
 /** Grounding and behavior rules appended to system prompts for assistant chat surfaces. */
 export function buildAssistantGroundingBlock(contract: AssistantReplyContract): string {
   if (contract === "live_lookup") {
-    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, FIRST_CUSTOMER_AND_REVENUE_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+    return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DNA_SKILLS_ROUTING_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, FIRST_CUSTOMER_AND_REVENUE_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
   }
   if (contract === "strategic_plan") {
     return [
       BUSINESS_AUTHORITY_BLOCK,
       AI_SELF_IDENTITY_BLOCK,
+      DNA_SKILLS_ROUTING_BLOCK,
       DATA_BACKED_DECISION_TRIAD,
       EPISTEMIC_BLOCK,
       LIVE_DATA_BLOCK,
@@ -187,5 +196,5 @@ export function buildAssistantGroundingBlock(contract: AssistantReplyContract): 
       EVIDENCE_MAP_HINT,
     ].join("\n\n");
   }
-  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, FIRST_CUSTOMER_AND_REVENUE_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
+  return [BUSINESS_AUTHORITY_BLOCK, AI_SELF_IDENTITY_BLOCK, DNA_SKILLS_ROUTING_BLOCK, DATA_BACKED_DECISION_TRIAD, EPISTEMIC_BLOCK, LIVE_DATA_BLOCK, EXECUTIVE_LIVE_INVENTORY, STREAMING_AND_MASTER_REPLY_BLOCK, BREVITY_BLOCK, OPEN_ENDED_GROWTH_BLOCK, FIRST_CUSTOMER_AND_REVENUE_BLOCK, DATA_BACKED_SUGGESTIONS_BLOCK, CLARIFYING_QUESTIONS_BLOCK, TASK_STATUS_BLOCK, RESULTS_LEARNING_BLOCK, MULTI_STEP_MEMORY_BLOCK, EVIDENCE_MAP_HINT].join("\n\n");
 }

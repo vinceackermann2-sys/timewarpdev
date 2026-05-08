@@ -154,12 +154,11 @@ export function buildPillarValues(
     if (extended) {
       if (extended.mechanism) map.p5 = extended.mechanism;
       if (extended.value_proposition) map.p8 = extended.value_proposition;
-      if (Array.isArray(extended.roadmap) && extended.roadmap.length) {
-        map.p14 = extended.roadmap.map((r: any) => ({
-          date: r.horizon || "—",
-          title: r.milestone || "—",
-          desc: [r.outcome, r.evidence_path, r.how_determined, r.evidence].filter(Boolean).join(" · ") || "",
-        }));
+      if (Array.isArray(extended.cogs) && extended.cogs.length) {
+        map.p14 = {
+          columns: ["Item", "Cost", "Source"],
+          rows: extended.cogs.map((r: any) => [r.item || "—", r.cost || "—", r.source || "Manual/Integration"]),
+        };
       }
       if (Array.isArray(extended.checklist) && extended.checklist.length) {
         map.p15 = {
@@ -294,44 +293,11 @@ export function buildPillarValues(
         ]),
       };
     }
-    if (Array.isArray(ext.advantages) && ext.advantages.length) {
-      map.m4 = {
-        columns: ["Advantage Type", "How Long to Copy", "What Protects It"],
-        rows: ext.advantages.map((a: any) => [
-          a.type || a.advantage || "—",
-          a.how_long_to_copy || "—",
-          a.what_protects_it || a.why_sustainable || "—",
-        ]),
-      };
-    }
-    if (Array.isArray(ext.forces) && ext.forces.length) {
-      map.m5 = {
-        columns: ["Force", "Intensity", "Trend", "Implication"],
-        rows: ext.forces.map((f: any) => [
-          f.force || "—", f.intensity || "—", f.trend || "Stable", f.implication || f.rationale || "—",
-        ]),
-      };
-    }
     if (Array.isArray(ext.trends) && ext.trends.length) {
       // List can contain strings or objects
       map.m6 = ext.trends.map((t: any) =>
         typeof t === "string" ? t : `${t.trend} (${t.horizon || "Med"}, ${t.type || "Opp"}) — ${t.response || ""}`
       );
-    }
-    if (ext.timing) map.m7 = ext.timing;
-    if (ext.white_space) map.m8 = ext.white_space;
-    if (ext.positioning_map && Array.isArray(ext.positioning_map.points) && ext.positioning_map.points.length) {
-      map.m3 = {
-        xLabel: ext.positioning_map.x_label || "",
-        yLabel: ext.positioning_map.y_label || "",
-        points: ext.positioning_map.points.map((p: any) => ({
-          name: p.name || "—",
-          x: typeof p.x === "number" ? p.x : 50,
-          y: typeof p.y === "number" ? p.y : 50,
-          isUs: !!p.is_us,
-          color: p.is_us ? "hsl(217 100% 65%)" : "#94a3b8",
-        })),
-      };
     }
     if (Array.isArray(ext.checklist) && ext.checklist.length) {
       map.m9 = {
@@ -384,7 +350,6 @@ export function buildPillarValues(
       };
     }
     if (ext.cash_flow) map.f6 = ext.cash_flow;
-    if (Array.isArray(ext.projections) && ext.projections.length) map.f7 = ext.projections;
     if (ext.funding) map.f8 = ext.funding;
     if (Array.isArray(ext.checklist) && ext.checklist.length) {
       map.f9 = {
@@ -430,14 +395,6 @@ export function buildPillarValues(
       map.o6 = ext.kpis.map((k: any) => ({
         name: k.name || "—", value: k.target || "—", context: k.rationale || "",
       }));
-    }
-    if (Array.isArray(ext.risks) && ext.risks.length) {
-      map.o7 = {
-        columns: ["Risk", "Likelihood", "Impact", "Mitigation"],
-        rows: ext.risks.map((r: any) => [
-          r.risk || "—", r.likelihood || "—", r.impact || "Medium", r.mitigation || "—",
-        ]),
-      };
     }
     if (Array.isArray(ext.compliance) && ext.compliance.length) map.o8 = ext.compliance;
     if (Array.isArray(ext.checklist) && ext.checklist.length) {
@@ -550,18 +507,6 @@ export function buildPillarValues(
     if (Array.isArray(ext.creative) && ext.creative.length) map.g6 = ext.creative;
     if (ext.retention) map.g7 = ext.retention;
     if (ext.referral) map.g8 = ext.referral;
-    if (Array.isArray(ext.experiments) && ext.experiments.length) {
-      map.g9 = {
-        columns: ["Hypothesis", "Channel", "Status", "Evidence path", "How determined"],
-        rows: ext.experiments.map((e: any) => [
-          e.hypothesis || "—",
-          e.channel || "—",
-          e.status || "—",
-          e.evidence_path || "—",
-          [e.how_determined, e.evidence].filter(Boolean).join(" ") || "—",
-        ]),
-      };
-    }
     if (Array.isArray(ext.checklist) && ext.checklist.length) {
       map.g10 = {
         columns: ["Item", "Status"],
@@ -604,24 +549,6 @@ export function buildPillarValues(
         ]),
       };
     }
-    // 6. Decision Framework (was Strategic Priorities)
-    if (Array.isArray(ext.decision_framework) && ext.decision_framework.length) {
-      map.s6 = {
-        columns: ["Decision Type", "Criteria", "Authority", "Process"],
-        rows: ext.decision_framework.map((d: any) => [
-          d.decision_type || "—", d.criteria || "—", d.authority || "—", d.process || "—",
-        ]),
-      };
-    }
-    // 7. Risk Appetite & Tolerance (was Strategic Decisions Log)
-    if (Array.isArray(ext.risk_appetite) && ext.risk_appetite.length) {
-      map.s7 = {
-        columns: ["Risk Domain", "Appetite", "Tolerance Threshold", "Mitigation"],
-        rows: ext.risk_appetite.map((r: any) => [
-          r.domain || "—", r.appetite || "Moderate", r.tolerance_threshold || "—", r.mitigation || "—",
-        ]),
-      };
-    }
     // 8. Strategic Milestones (timeline) — renderer expects { date, title, desc }
     if (Array.isArray(ext.milestones) && ext.milestones.length) {
       map.s8 = ext.milestones.map((r: any) => ({
@@ -635,17 +562,6 @@ export function buildPillarValues(
         title: r.milestone || "—",
         desc: r.outcome || "",
       }));
-    }
-    if (ext.narrative) map.s9 = ext.narrative;
-    if (Array.isArray(ext.scenarios) && ext.scenarios.length) {
-      map.s10 = {
-        columns: ["Scenario", "Probability", "Key Assumption", "Response", "Early Warnings"],
-        rows: ext.scenarios.map((s: any) => [
-          s.scenario || "—", s.probability || "—",
-          s.key_assumption || s.trigger || "—",
-          s.response || "—", s.early_warnings || "—",
-        ]),
-      };
     }
     if (Array.isArray(ext.checklist) && ext.checklist.length) {
       map.s11 = {

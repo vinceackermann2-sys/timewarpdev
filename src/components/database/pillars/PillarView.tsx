@@ -8,6 +8,7 @@ import { PillarFieldEditor } from "./PillarFieldEditor";
 import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
 import { Button } from "@/components/ui/button";
 import { Pencil, Check } from "lucide-react";
+import { isOverrideValue } from "./pillarOverrides";
 
 interface PillarViewProps {
   pillarId: string;
@@ -194,6 +195,20 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
 
   const springTrans = { type: "spring" as const, stiffness: 350, damping: 35 };
   const logoUrl = brand?.logoUrls?.[brand?.selectedLogo ?? 0];
+  const completion = useMemo(() => {
+    if (!populatedPillar) return { done: 0, total: 0 };
+    const fields = populatedPillar.sections.flatMap((s) => s.fields);
+    const hasValue = (v: any) => {
+      if (isOverrideValue(v)) return v.__override.trim().length > 0;
+      if (v == null) return false;
+      if (typeof v === "string") return v.trim().length > 0;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "object") return Object.keys(v).length > 0;
+      return true;
+    };
+    const done = fields.filter((f) => hasValue(f.value)).length;
+    return { done, total: fields.length };
+  }, [populatedPillar]);
 
   return (
     <div ref={containerRef} className="h-full w-full overflow-y-auto bg-background">
@@ -231,6 +246,9 @@ export function PillarView({ pillarId, agentName, brand, products = [], audience
                     </motion.span>
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {completion.done}/{completion.total} fields from real data
+                </p>
               </div>
             </div>
             {brand && (
