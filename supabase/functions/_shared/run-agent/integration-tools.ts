@@ -9,6 +9,7 @@ type Ctx = {
   supabase: any;
   userId: string;
   workspaceId: string | null;
+  brandId?: string | null;
 };
 
 export type ToolDef = {
@@ -191,6 +192,20 @@ const ALL_TOOLS: ToolDef[] = [
   {
     type: "function",
     function: {
+      name: "business_dna_search",
+      description: "Search the current workspace's Business DNA/context for grounded answers. Use this before answering business-specific questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search terms or question to match against Business DNA." },
+          max_results: { type: "number", description: "Default 8, max 15." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "slack_post_message",
       description: "Post a message to a Slack channel (use channel ID or name like #general).",
       parameters: {
@@ -199,6 +214,35 @@ const ALL_TOOLS: ToolDef[] = [
         properties: {
           channel: { type: "string" },
           text: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "slack_conversations_list",
+      description: "List Slack conversations/channels the bot can access. Use this to resolve a channel name to an ID before reading or posting.",
+      parameters: {
+        type: "object",
+        properties: {
+          types: { type: "string", description: "Comma-separated Slack types. Default public_channel,private_channel,im,mpim." },
+          limit: { type: "number", description: "Default 100, max 200." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "slack_conversations_history",
+      description: "Read recent messages from a Slack conversation by channel ID or #channel name.",
+      parameters: {
+        type: "object",
+        required: ["channel"],
+        properties: {
+          channel: { type: "string", description: "Slack channel ID or name like #general." },
+          limit: { type: "number", description: "Default 20, max 100." },
         },
       },
     },
@@ -214,7 +258,10 @@ const TOOLS_BY_INTEGRATION: Record<string, string[]> = {
   gcal: ["gcal_list_events", "gcal_create_event"],
   calendar: ["gcal_list_events", "gcal_create_event"],
   hubspot: ["hubspot_search_contacts", "hubspot_create_contact", "hubspot_create_note"],
-  slack: ["slack_post_message"],
+  slack: ["slack_post_message", "slack_conversations_list", "slack_conversations_history"],
+  business_dna: ["business_dna_search"],
+  dna: ["business_dna_search"],
+  dna_search: ["business_dna_search"],
 };
 
 export function buildToolsFor(requiredIntegrations: string[] | null): ToolDef[] {
@@ -225,6 +272,7 @@ export function buildToolsFor(requiredIntegrations: string[] | null): ToolDef[] 
     const names = TOOLS_BY_INTEGRATION[key];
     if (names) names.forEach((n) => wanted.add(n));
   }
+  wanted.add("business_dna_search");
   if (!wanted.size) return ALL_TOOLS;
   return ALL_TOOLS.filter((t) => wanted.has(t.function.name));
 }
