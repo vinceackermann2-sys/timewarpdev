@@ -9,6 +9,7 @@ type Ctx = {
   supabase: any;
   userId: string;
   workspaceId: string | null;
+  brandId?: string | null;
 };
 
 export type ToolDef = {
@@ -191,6 +192,20 @@ const ALL_TOOLS: ToolDef[] = [
   {
     type: "function",
     function: {
+      name: "business_dna_search",
+      description: "Search the current workspace's Business DNA/context for grounded answers. Use this before answering business-specific questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search terms or question to match against Business DNA." },
+          max_results: { type: "number", description: "Default 8, max 15." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "slack_post_message",
       description: "Post a message to a Slack channel (use channel ID or name like #general).",
       parameters: {
@@ -199,6 +214,35 @@ const ALL_TOOLS: ToolDef[] = [
         properties: {
           channel: { type: "string" },
           text: { type: "string" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "slack_conversations_list",
+      description: "List Slack conversations/channels the bot can access. Use this to resolve a channel name to an ID before reading or posting.",
+      parameters: {
+        type: "object",
+        properties: {
+          types: { type: "string", description: "Comma-separated Slack types. Default public_channel,private_channel,im,mpim." },
+          limit: { type: "number", description: "Default 100, max 200." },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "slack_conversations_history",
+      description: "Read recent messages from a Slack conversation by channel ID or #channel name.",
+      parameters: {
+        type: "object",
+        required: ["channel"],
+        properties: {
+          channel: { type: "string", description: "Slack channel ID or name like #general." },
+          limit: { type: "number", description: "Default 20, max 100." },
         },
       },
     },
@@ -214,7 +258,10 @@ const TOOLS_BY_INTEGRATION: Record<string, string[]> = {
   gcal: ["gcal_list_events", "gcal_create_event"],
   calendar: ["gcal_list_events", "gcal_create_event"],
   hubspot: ["hubspot_search_contacts", "hubspot_create_contact", "hubspot_create_note"],
-  slack: ["slack_post_message"],
+  slack: ["slack_post_message", "slack_conversations_list", "slack_conversations_history"],
+  business_dna: ["business_dna_search"],
+  dna: ["business_dna_search"],
+  dna_search: ["business_dna_search"],
 };
 
 export function buildToolsFor(requiredIntegrations: string[] | null): ToolDef[] {
@@ -225,6 +272,7 @@ export function buildToolsFor(requiredIntegrations: string[] | null): ToolDef[] 
     const names = TOOLS_BY_INTEGRATION[key];
     if (names) names.forEach((n) => wanted.add(n));
   }
+  wanted.add("business_dna_search");
   if (!wanted.size) return ALL_TOOLS;
   return ALL_TOOLS.filter((t) => wanted.has(t.function.name));
 }
@@ -256,6 +304,35 @@ async function slackToken(ctx: Ctx) {
   return await getValidAccessToken(ctx.supabase, ctx.userId, "slack", ctx.workspaceId);
 }
 
+function tokenize(value: string): string[] {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9åäö]+/gi, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
+}
+
+function scoreText(text: string, query: string): number {
+  const haystack = String(text || "").toLowerCase();
+  const terms = Array.from(new Set(tokenize(query)));
+  if (!terms.length) return 1;
+  return terms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+}
+
+async function resolveSlackChannelId(ctx: Ctx, token: string, channel: string): Promise<string | null> {
+  const raw = String(channel || "").trim();
+  if (!raw) return null;
+  if (/^[CGD][A-Z0-9]+$/i.test(raw)) return raw;
+  const target = raw.replace(/^#/, "").toLowerCase();
+  const r = await fetch("https://slack.com/api/conversations.list?types=public_channel,private_channel,im,mpim&limit=200", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!j.ok) return null;
+  const match = (j.channels || []).find((c: any) => String(c.name || "").toLowerCase() === target || String(c.id) === raw);
+  return match?.id || null;
+}
+
 function b64urlEncode(s: string): string {
   return btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
@@ -275,6 +352,36 @@ function buildRfc822(to: string, subject: string, body: string, html?: boolean):
 export async function runTool(ctx: Ctx, name: string, args: any): Promise<any> {
   args = args || {};
   switch (name) {
+    case "business_dna_search": {
+      const query = String(args.query || "");
+      const max = Math.min(args.max_results ?? 8, 15);
+      let db = ctx.supabase
+        .from("user_business_data")
+        .select("id, title, data_type, source, content, analyzed_content, metadata, workspace_id")
+        .limit(300);
+      if (ctx.workspaceId) db = db.eq("workspace_id", ctx.workspaceId);
+      else db = db.eq("user_id", ctx.userId);
+      const { data, error } = await db;
+      if (error) return { error: `Business DNA search: ${error.message}` };
+      const rows = (data || [])
+        .map((row: any) => {
+          const body = String(row.analyzed_content || row.content || "");
+          const score = scoreText(`${row.title || ""}\n${row.data_type || ""}\n${body}`, query);
+          return {
+            id: row.id,
+            title: row.title,
+            data_type: row.data_type,
+            source: row.source,
+            score: row.id === ctx.brandId ? score + 2 : score,
+            excerpt: body.slice(0, 1800),
+          };
+        })
+        .filter((row: any) => row.excerpt && (query ? row.score > 0 : true))
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, max);
+      return { results: rows, count: rows.length };
+    }
+
     // ----- Gmail -----
     case "gmail_list_messages": {
       const token = await gmailToken(ctx);
@@ -469,15 +576,77 @@ export async function runTool(ctx: Ctx, name: string, args: any): Promise<any> {
     }
 
     // ----- Slack -----
+    case "slack_list_channels":
+    case "slack_list_conversations":
+    case "slack_conversations_list": {
+      const token = await slackToken(ctx);
+      if (!token) return { error: "Slack is not connected." };
+      const types = encodeURIComponent(String(args.types || "public_channel,private_channel,im,mpim"));
+      const limit = Math.min(args.limit ?? 100, 200);
+      const r = await fetch(`https://slack.com/api/conversations.list?types=${types}&limit=${limit}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok) return { error: `Slack list: ${j.error || "failed"}` };
+      return {
+        channels: (j.channels || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          is_channel: c.is_channel,
+          is_private: c.is_private,
+          is_member: c.is_member,
+        })),
+      };
+    }
+
+    case "slack_conversations_history": {
+      const token = await slackToken(ctx);
+      if (!token) return { error: "Slack is not connected." };
+      const channelId = await resolveSlackChannelId(ctx, token, args.channel);
+      if (!channelId) return { error: `Slack channel not found or bot cannot access it: ${args.channel}` };
+      const limit = Math.min(args.limit ?? 20, 100);
+      const r = await fetch(`https://slack.com/api/conversations.history?channel=${encodeURIComponent(channelId)}&limit=${limit}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      let j = await r.json().catch(() => ({}));
+      if (!j.ok && j.error === "not_in_channel") {
+        await fetch("https://slack.com/api/conversations.join", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ channel: channelId }),
+        }).then((res) => res.json().catch(() => ({}))).catch(() => ({}));
+        const retry = await fetch(`https://slack.com/api/conversations.history?channel=${encodeURIComponent(channelId)}&limit=${limit}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        j = await retry.json().catch(() => ({}));
+      }
+      if (!j.ok) return { error: `Slack history: ${j.error || "failed"}` };
+      return { channel: channelId, messages: j.messages || [] };
+    }
+
     case "slack_post_message": {
       const token = await slackToken(ctx);
       if (!token) return { error: "Slack is not connected." };
+      const channel = (await resolveSlackChannelId(ctx, token, args.channel)) || args.channel;
       const r = await fetch("https://slack.com/api/chat.postMessage", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: args.channel, text: args.text }),
+        body: JSON.stringify({ channel, text: args.text }),
       });
-      const j = await r.json().catch(() => ({}));
+      let j = await r.json().catch(() => ({}));
+      if (!j.ok && j.error === "not_in_channel") {
+        await fetch("https://slack.com/api/conversations.join", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ channel }),
+        }).then((res) => res.json().catch(() => ({}))).catch(() => ({}));
+        const retry = await fetch("https://slack.com/api/chat.postMessage", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ channel, text: args.text }),
+        });
+        j = await retry.json().catch(() => ({}));
+      }
       if (!j.ok) return { error: `Slack: ${j.error || "post failed"}` };
       return { posted: true, ts: j.ts, channel: j.channel };
     }

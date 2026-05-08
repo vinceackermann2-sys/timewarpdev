@@ -132,7 +132,7 @@ async function runAiLoop(
   systemPrompt: string,
   userPrompt: string,
   tools: any[],
-  toolCtx: { supabase: any; userId: string; workspaceId: string | null },
+  toolCtx: { supabase: any; userId: string; workspaceId: string | null; brandId?: string | null },
 ): Promise<{ result: any; toolLog: Array<{ name: string; args: any; result: any }> }> {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
@@ -288,6 +288,7 @@ serve(async (req) => {
         supabase,
         userId: agent.user_id,
         workspaceId: agent.workspace_id,
+        brandId: agent.linked_business_id,
       });
       aiResult = out.result;
       toolLog = out.toolLog;
