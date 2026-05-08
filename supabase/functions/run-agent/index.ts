@@ -288,6 +288,7 @@ serve(async (req) => {
         supabase,
         userId: agent.user_id,
         workspaceId: agent.workspace_id,
+        brandId: agent.linked_business_id,
       });
       aiResult = out.result;
       toolLog = out.toolLog;
