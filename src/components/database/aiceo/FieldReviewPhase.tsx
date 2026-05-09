@@ -266,8 +266,6 @@ export function FieldReviewPhase({ targetUrl, onComplete }: FieldReviewPhaseProp
   if (isLoading || !extractedProduct) {
     return (
       <div className="space-y-4">
-        </div>
-
         <PillarSkeleton icon={Package} title="Product DNA" fieldCount={15} accent="from-blue-500/[0.06] to-transparent" />
         <PillarSkeleton icon={Users} title="Audience DNA" fieldCount={13} accent="from-violet-500/[0.06] to-transparent" />
         <PillarSkeleton icon={Palette} title="Brand DNA" fieldCount={11} accent="from-amber-500/[0.06] to-transparent" />
