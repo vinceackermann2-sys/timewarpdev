@@ -88,8 +88,20 @@ export function ChatOnboardingFlow({ onComplete }: ChatOnboardingFlowProps) {
   const [createdBrandName, setCreatedBrandName] = useState<string | null>(null);
 
   // Naming state
-  const [agentName, setAgentName] = useState("");
+  const [agentName, setAgentName] = useState(persisted?.agentName ?? "");
   const [isCompleting, setIsCompleting] = useState(false);
+
+  // Persist onboarding progress so navigating away & back keeps the flow.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (phase === "done") { window.localStorage.removeItem(ONBOARDING_STORAGE_KEY); return; }
+    try {
+      const snapshot: PersistedOnboarding = {
+        phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName,
+      };
+      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch {}
+  }, [phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName]);
 
   // DNA context
   let contextAvailable = false;
