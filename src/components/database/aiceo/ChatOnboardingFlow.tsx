@@ -299,8 +299,7 @@ export function ChatOnboardingFlow({ onComplete }: ChatOnboardingFlowProps) {
           <>
             <AssistantBubble>
               <p className="text-[14px] text-foreground">
-                We're analyzing <strong>{targetUrl}</strong> to extract your DNA.
-                Review and edit the fields as they populate.
+                We're analyzing <strong>{targetUrl}</strong> to give you your unfair advantage.
               </p>
             </AssistantBubble>
             <UserActionCard wide>
