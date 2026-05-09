@@ -43,8 +43,8 @@ const integrations: Integration[] = [
   { id: "google_sheets", name: "Google Sheets", description: "Spreadsheets", logo: logoGoogleSheets, section: "google", iconBg: "bg-card" },
   { id: "google_slides", name: "Google Slides", description: "Presentations", logo: logoGoogleSlides, section: "google", iconBg: "bg-card" },
   { id: "google_gmail", name: "Gmail", description: "Emails & contacts", logo: logoGmail, section: "google", iconBg: "bg-card" },
-  { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other" },
-  { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other", iconBg: "bg-blue-500" },
+  { id: "slack", name: "Slack", description: "Messages and channels", logo: logoSlack, section: "other", comingSoon: true },
+  { id: "zoom", name: "Zoom", description: "Meetings and recordings", logo: logoZoom, section: "other", iconBg: "bg-blue-500", comingSoon: true },
   { id: "hubspot", name: "HubSpot", description: "CRM, sales, and marketing", logo: logoHubspot, section: "other", iconBg: "bg-orange-100" },
   { id: "stripe", name: "Stripe", description: "Payments, customers & revenue", logo: logoStripe, section: "other", iconBg: "bg-card" },
 ];
