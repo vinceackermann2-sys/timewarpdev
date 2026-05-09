@@ -308,7 +308,7 @@ export function AgentChatInput({
                   <button
                     type="button"
                     title="Context window — how much of the AI's memory this chat is using"
-                    className="flex items-center gap-1.5 px-2.5 h-8 mr-1 rounded-full bg-muted/60 hover:bg-muted text-xs text-muted-foreground transition-colors"
+                    className="flex items-center gap-1.5 px-1.5 h-8 mr-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <span className="font-medium tabular-nums">{pct.toFixed(1)}%</span>
                     <span className="relative inline-flex w-3.5 h-3.5">
