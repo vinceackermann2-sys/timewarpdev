@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode, type RefObject } from "react";
-import { ArrowUp, FileUp, ListTodo, Monitor, ScrollText, Square, X } from "lucide-react";
+import { ArrowUp, Brain, FileUp, ListTodo, Monitor, ScrollText, Square, X } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
 import { AgentChatPlusMenu, AgentChatPlusTrigger } from "./AgentChatPlusMenu";
@@ -287,6 +288,39 @@ export function AgentChatInput({
               }}
             />
           </div>
+
+          <Popover open={sessionMemoryOpen} onOpenChange={setSessionMemoryOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title="Session memory — context the assistant will remember for this chat"
+                className={cn(
+                  "p-2 rounded-full transition-all active:scale-95 flex items-center justify-center mr-1",
+                  sessionMemory.trim()
+                    ? "bg-primary/10 text-primary hover:bg-primary/20"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Brain className="w-4 h-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="end" className="w-80 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Session memory</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Notes, context or instructions the assistant should keep in mind for every message in this chat.
+              </p>
+              <textarea
+                value={sessionMemory}
+                onChange={(e) => setSessionMemory(e.target.value)}
+                placeholder="e.g. We're launching in EU next month. Tone: punchy, no fluff."
+                rows={6}
+                className="w-full text-sm bg-background border border-border rounded-lg p-2 outline-none focus:border-primary/40 resize-none"
+              />
+            </PopoverContent>
+          </Popover>
 
           {isSending ? (
             <button
