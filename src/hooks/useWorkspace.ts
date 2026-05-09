@@ -1,0 +1,350 @@
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+type WorkspaceRole = "owner" | "editor";
+
+export interface WorkspaceInfo {
+  workspaceId: string;
+  workspaceName: string;
+  role: WorkspaceRole;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  userId: string;
+  email: string;
+  role: WorkspaceRole;
+  joinedAt: string;
+}
+
+export interface WorkspaceInvitation {
+  id: string;
+  email: string;
+  role: WorkspaceRole;
+  status: string;
+  createdAt: string;
+  token: string;
+}
+
+const normalizeWorkspaceRole = (role: string): WorkspaceRole => {
+  if (role === "owner" || role === "editor") return role;
+  return "editor";
+};
+
+async function fetchWorkspaces(userId: string): Promise<WorkspaceInfo[]> {
+  const mapWorkspaces = (rows: any[]) => rows.map((w: any) => ({
+    workspaceId: w.workspace_id,
+    workspaceName: w.workspace_name,
+    role: normalizeWorkspaceRole(w.role),
+    memberCount: Number(w.member_count),
+    createdAt: w.created_at,
+  }));
+
+  const { data: wsData, error } = await supabase.rpc("get_user_workspaces", {
+    _user_id: userId,
+  });
+
+  if (!error && wsData && (wsData as any[]).length > 0) {
+    return mapWorkspaces(wsData as any[]);
+  }
+
+  // Brief retry — the signup trigger creates a default workspace asynchronously.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await new Promise((r) => setTimeout(r, 300));
+    const { data: retryData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
+    if (retryData && (retryData as any[]).length > 0) {
+      return mapWorkspaces(retryData as any[]);
+    }
+  }
+
+  // Last resort: create a workspace. The RPC enforces a per-user cap, but we
+  // intentionally avoid this path for fresh signups (the trigger handles it)
+  // to prevent races where multiple components all create a workspace.
+  const { data: createdWorkspaceId, error: createError } = await supabase.rpc("create_workspace", {
+    _name: "My Workspace",
+  });
+
+  if (createError) {
+    const { data: conflictData } = await supabase.rpc("get_user_workspaces", { _user_id: userId });
+    if (conflictData && (conflictData as any[]).length > 0) {
+      return mapWorkspaces(conflictData as any[]);
+    }
+    return [];
+  }
+
+  localStorage.setItem("preferred_workspace_id", createdWorkspaceId);
+  return [{
+    workspaceId: createdWorkspaceId,
+    workspaceName: "My Workspace",
+    role: "owner",
+    memberCount: 1,
+    createdAt: new Date().toISOString(),
+  }];
+}
+
+export function useWorkspace() {
+  const queryClient = useQueryClient();
+  const { user, isLoading: authLoading } = useAuth();
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
+    () => localStorage.getItem("preferred_workspace_id")
+  );
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [invitations, setInvitations] = useState<WorkspaceInvitation[]>([]);
+
+  // Cached workspace list — shared across all components via React Query
+  const { data: workspaces = [], isLoading: queryLoading } = useQuery({
+    queryKey: ["workspaces", user?.id],
+    queryFn: () => {
+      if (!user) return Promise.resolve([]);
+      return fetchWorkspaces(user.id);
+    },
+    enabled: !!user && !authLoading,
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const isLoading = authLoading || queryLoading;
+
+  useEffect(() => {
+    if (authLoading || user) return;
+    setMembers([]);
+    setInvitations([]);
+  }, [authLoading, user]);
+
+  // CRITICAL: Every component that calls useWorkspace() owns its own
+  // activeWorkspaceId state. Without this, switching workspaces in one
+  // component (e.g. the breadcrumb) does NOT propagate to others (e.g.
+  // ConnectionsView), so they keep querying the previous workspace and
+  // think nothing is connected. Mirror localStorage on every change.
+  useEffect(() => {
+    const sync = () => {
+      const stored = localStorage.getItem("preferred_workspace_id");
+      setActiveWorkspaceId((current) => (current === stored ? current : stored));
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "preferred_workspace_id") sync();
+    };
+    window.addEventListener("workspace_changed", sync);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("workspace_changed", sync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  // Auto-select workspace when list loads
+  useEffect(() => {
+    if (workspaces.length === 0) return;
+    const preferredId = localStorage.getItem("preferred_workspace_id");
+
+    // If we have a preferred workspace id and it's in the list, keep it.
+    // If it's NOT in the list yet (e.g. just accepted an invite and the
+    // workspaces query is still warming), DO NOT overwrite it — that would
+    // bounce a newly invited member back to their personal workspace.
+    if (preferredId && workspaces.some(w => w.workspaceId === preferredId)) {
+      if (preferredId !== activeWorkspaceId) {
+        setActiveWorkspaceId(preferredId);
+        window.dispatchEvent(new Event("workspace_changed"));
+      }
+      return;
+    }
+    if (preferredId && !workspaces.some(w => w.workspaceId === preferredId)) {
+      // Preferred id not (yet) visible — leave activeWorkspaceId alone and
+      // let the next refetch resolve it.
+      return;
+    }
+
+    const fallback = workspaces.find(w => w.role === "owner")?.workspaceId || workspaces[0]?.workspaceId || null;
+    if (fallback && fallback !== activeWorkspaceId) {
+      setActiveWorkspaceId(fallback);
+      localStorage.setItem("preferred_workspace_id", fallback);
+      window.dispatchEvent(new Event("workspace_changed"));
+    }
+  }, [workspaces]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchWorkspaceMembersData = useCallback(async (wsId: string) => {
+    const { data: membersData, error: membersError } = await supabase.rpc("get_workspace_members", {
+      _workspace_id: wsId,
+    });
+
+    let mappedMembers: WorkspaceMember[] = membersData
+      ? (membersData as any[]).map((m) => ({
+          id: m.id,
+          userId: m.user_id,
+          email: m.email || "unknown",
+          role: normalizeWorkspaceRole(m.role),
+          joinedAt: m.joined_at,
+        }))
+      : [];
+
+    if (mappedMembers.length === 0) {
+      const { data: fallbackMembers, error: fallbackError } = await supabase
+        .from("workspace_members")
+        .select("id, user_id, role, joined_at")
+        .eq("workspace_id", wsId);
+
+      if (!fallbackError && fallbackMembers?.length) {
+        mappedMembers = fallbackMembers.map((m: any) => ({
+          id: m.id,
+          userId: m.user_id,
+          email: "unknown",
+          role: normalizeWorkspaceRole(m.role),
+          joinedAt: m.joined_at,
+        }));
+      }
+    }
+
+    if (membersError) {
+      console.warn("Failed to load workspace members via RPC:", membersError.message);
+    }
+
+    const { data: invData } = await supabase
+      .from("workspace_invitations")
+      .select("id, email, role, status, created_at, token")
+      .eq("workspace_id", wsId)
+      .eq("status", "pending");
+
+    const mappedInvitations: WorkspaceInvitation[] = invData
+      ? invData.map((inv: any) => ({
+          id: inv.id,
+          email: inv.email,
+          role: normalizeWorkspaceRole(inv.role),
+          status: inv.status,
+          createdAt: inv.created_at,
+          token: inv.token,
+        }))
+      : [];
+
+    return { members: mappedMembers, invitations: mappedInvitations };
+  }, []);
+
+  const loadMembers = useCallback(async (wsId: string) => {
+    const data = await fetchWorkspaceMembersData(wsId);
+    setMembers(data.members);
+    setInvitations(data.invitations);
+  }, [fetchWorkspaceMembersData]);
+
+  const loadMembersForWorkspace = useCallback(async (wsId: string) => {
+    return fetchWorkspaceMembersData(wsId);
+  }, [fetchWorkspaceMembersData]);
+
+  // Members are loaded lazily — only when loadMembers is called explicitly
+  // (e.g. when opening the workspace settings/members panel)
+
+  const invalidateWorkspaces = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+  }, [queryClient]);
+
+  const selectWorkspace = useCallback((wsId: string) => {
+    setActiveWorkspaceId(wsId);
+    localStorage.setItem("preferred_workspace_id", wsId);
+    window.dispatchEvent(new Event("workspace_changed"));
+  }, []);
+
+  const createWorkspace = useCallback(async (name: string) => {
+    if (!user) throw new Error("Not authenticated");
+
+    const trimmedName = name.trim();
+    if (!trimmedName) throw new Error("Workspace name is required");
+
+    const { data, error } = await supabase.rpc("create_workspace", {
+      _name: trimmedName,
+    });
+
+    if (error) {
+      const msg = (error as any)?.message || "";
+      if (msg.includes("OWNED_WORKSPACE_LIMIT_REACHED")) {
+        throw new Error(
+          "You can own a maximum of 5 workspaces. Delete one first, or ask to be invited as a member of additional workspaces (no limit on those)."
+        );
+      }
+      throw error;
+    }
+
+    invalidateWorkspaces();
+    return data;
+  }, [invalidateWorkspaces, user]);
+
+  const sendInvite = useCallback(async (email: string, role: WorkspaceRole, wsId?: string) => {
+    const targetWsId = wsId || activeWorkspaceId;
+    if (!targetWsId) throw new Error("No workspace selected");
+    const { data, error } = await supabase.functions.invoke("send-workspace-invite", {
+      body: { email, role, workspaceId: targetWsId },
+    });
+    if (error) throw error;
+    if (data?.error && data?.error !== "Already a member") throw new Error(data.error);
+    if (data?.alreadyInvited) {
+      if (targetWsId === activeWorkspaceId) await loadMembers(activeWorkspaceId);
+      return data;
+    }
+    if (data?.error === "Already a member") throw new Error(data.error);
+    if (targetWsId === activeWorkspaceId) await loadMembers(activeWorkspaceId);
+    return data;
+  }, [activeWorkspaceId, loadMembers]);
+
+  const removeMember = useCallback(async (memberId: string, wsId?: string) => {
+    await supabase.from("workspace_members").delete().eq("id", memberId);
+    const targetWsId = wsId || activeWorkspaceId;
+    if (targetWsId) await loadMembers(targetWsId);
+  }, [activeWorkspaceId, loadMembers]);
+
+  const updateMemberRole = useCallback(async (memberId: string, newRole: WorkspaceRole, wsId?: string) => {
+    await supabase.from("workspace_members").update({ role: newRole }).eq("id", memberId);
+    const targetWsId = wsId || activeWorkspaceId;
+    if (targetWsId) await loadMembers(targetWsId);
+  }, [activeWorkspaceId, loadMembers]);
+
+  const cancelInvitation = useCallback(async (invitationId: string, wsId?: string) => {
+    await supabase.from("workspace_invitations").delete().eq("id", invitationId);
+    const targetWsId = wsId || activeWorkspaceId;
+    if (targetWsId) await loadMembers(targetWsId);
+  }, [activeWorkspaceId, loadMembers]);
+
+  const renameWorkspace = useCallback(async (wsId: string, newName: string) => {
+    const { error } = await supabase.from("workspaces").update({ name: newName }).eq("id", wsId);
+    if (error) throw error;
+    invalidateWorkspaces();
+  }, [invalidateWorkspaces]);
+
+  const deleteWorkspace = useCallback(async (wsId: string) => {
+    await supabase.from("workspace_invitations").delete().eq("workspace_id", wsId);
+
+    // Delete the workspace before removing member rows. Workspace deletion RLS
+    // verifies the current user is still an owner; deleting membership first can
+    // strand an owned workspace with no visible members, making its DNA vanish.
+    const { error } = await supabase.from("workspaces").delete().eq("id", wsId);
+    if (error) throw error;
+
+    await supabase.from("workspace_members").delete().eq("workspace_id", wsId);
+    if (activeWorkspaceId === wsId) {
+      localStorage.removeItem("preferred_workspace_id");
+      setActiveWorkspaceId(null);
+    }
+    invalidateWorkspaces();
+  }, [activeWorkspaceId, invalidateWorkspaces]);
+
+  const activeWorkspace = workspaces.find(w => w.workspaceId === activeWorkspaceId) || null;
+
+  return {
+    workspaces,
+    activeWorkspaceId,
+    activeWorkspace,
+    selectWorkspace,
+    createWorkspace,
+    members,
+    invitations,
+    isLoading,
+    sendInvite,
+    removeMember,
+    updateMemberRole,
+    cancelInvitation,
+    renameWorkspace,
+    deleteWorkspace,
+    loadMembersForWorkspace,
+    reload: invalidateWorkspaces,
+  };
+}

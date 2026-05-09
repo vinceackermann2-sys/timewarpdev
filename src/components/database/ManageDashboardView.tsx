@@ -1,0 +1,1004 @@
+import { useState, useEffect, useCallback, useRef, ReactNode } from "react";
+import { motion } from "framer-motion";
+import {
+  Search, ClipboardCheck, RefreshCw, ListTodo, Award, Calendar,
+  Building2, Plus, Loader2, AlertTriangle, ArrowRight, Check,
+} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/useAuth";
+import { useBusinessDNA } from "./BusinessDNAContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { DashCardDetailPanel } from "./DashCardDetailPanel";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import {
+  DashboardCard, SOURCE_META, TAB_SUBTITLES,
+  TAB_FRAMING, type TabKind, type OpeningSummary, type HealthScore,
+  healthScoreStyle, gradeFromScore, deltaBadge, leverageLabelStyle, momentumStyle,
+} from "./dashboardTypes";
+
+/* ── People avatars (initials) ─────────────────────────────── */
+// Purple, Blue, Green, Yellow, Pink — picked by hashing the person's name
+// so each user keeps a consistent color across renders.
+const AVATAR_PALETTE = [
+  { bg: "bg-[hsl(280_70%_94%)]", text: "text-[hsl(280_55%_45%)]" }, // purple
+  { bg: "bg-[hsl(217_100%_94%)]", text: "text-[hsl(217_70%_42%)]" }, // blue
+  { bg: "bg-[hsl(142_55%_92%)]", text: "text-[hsl(142_55%_32%)]" }, // green
+  { bg: "bg-[hsl(48_100%_92%)]", text: "text-[hsl(37_85%_38%)]" },  // yellow
+  { bg: "bg-[hsl(335_75%_94%)]", text: "text-[hsl(335_60%_45%)]" }, // pink
+];
+
+function hashPick<T>(seed: string, arr: T[]): T {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return arr[h % arr.length];
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "?";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function PeopleAvatars() {
+  const { user } = useAuth();
+  if (!user) return null;
+  const meta = (user.user_metadata || {}) as Record<string, any>;
+  const avatarUrl: string | undefined = meta.avatar_url || meta.picture;
+  const fullName: string = meta.full_name || meta.name || meta.display_name || user.email || "You";
+  const swatch = hashPick(fullName, AVATAR_PALETTE);
+  return (
+    <div className="flex -space-x-1.5" title={`Viewed by ${fullName}`}>
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={fullName}
+          className="w-6 h-6 rounded-full ring-1 ring-white/40 object-cover backdrop-blur-md bg-white/30 shadow-sm"
+        />
+      ) : (
+        <span className={`w-6 h-6 rounded-full ring-1 ring-white/40 flex items-center justify-center text-[9px] font-bold backdrop-blur-md bg-white/30 shadow-sm ${swatch.text}`}>
+          {initials(fullName)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* Pull mentioned people out of card content (heuristic: capitalised "First Last") */
+function extractPeople(card: DashboardCard): string[] {
+  const out = new Set<string>();
+  const add = (n?: string | null) => { if (n && n.trim().length > 1) out.add(n.trim()); };
+  add(card.waitingParty);
+  add(card.metadata?.senderName);
+  add(card.metadata?.contactName);
+  add(card.metadata?.author);
+  add(card.metadata?.sharedBy);
+  if (card.metadata?.attendees) card.metadata.attendees.forEach(add);
+  if (out.size < 2) {
+    const text = `${card.title} ${card.description}`;
+    const matches = text.match(/\b[A-Z][a-z]+\s[A-Z][a-z]+\b/g) || [];
+    matches.slice(0, 3).forEach(add);
+  }
+  return Array.from(out).slice(0, 3);
+}
+
+const TABS = [
+  { id: "Briefing", label: "Briefing", icon: ClipboardCheck },
+  { id: "Updates", label: "Updates", icon: RefreshCw },
+  { id: "To-Dos", label: "To-Dos", icon: ListTodo },
+  { id: "Objectives", label: "Objectives", icon: Award },
+];
+
+const CACHE_KEY_PREFIX = "dash_cards_";
+const CACHE_TS_PREFIX = "dash_cards_ts_";
+const STALE_FLAG_PREFIX = "dash_stale_";
+const AUTO_REFRESH_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+function loadCachedCards(brandId: string): Record<string, DashboardCard[]> | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PREFIX + brandId);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveCachedCards(brandId: string, tabs: Record<string, DashboardCard[]>) {
+  try {
+    localStorage.setItem(CACHE_KEY_PREFIX + brandId, JSON.stringify(tabs));
+    localStorage.setItem(CACHE_TS_PREFIX + brandId, String(Date.now()));
+    localStorage.removeItem(STALE_FLAG_PREFIX + brandId);
+  } catch { /* quota exceeded – ignore */ }
+}
+
+function getCacheAgeMs(brandId: string): number {
+  try {
+    const ts = localStorage.getItem(CACHE_TS_PREFIX + brandId);
+    if (!ts) return Infinity;
+    return Date.now() - parseInt(ts, 10);
+  } catch { return Infinity; }
+}
+
+function isCacheStale(brandId: string): boolean {
+  try {
+    if (localStorage.getItem(STALE_FLAG_PREFIX + brandId) === "1") return true;
+  } catch { /* ignore */ }
+  return getCacheAgeMs(brandId) > AUTO_REFRESH_MS;
+}
+
+function markCacheStale(brandId: string) {
+  try { localStorage.setItem(STALE_FLAG_PREFIX + brandId, "1"); } catch { /* ignore */ }
+}
+
+/* Show timeAgo on cards only when "recent" (< ~24h) — keeps cards quiet */
+function isRecentTimeAgo(t?: string): boolean {
+  if (!t) return false;
+  const lower = t.toLowerCase();
+  return /\b(just now|now|min|minute|hour|hr|h ago|m ago|today)\b/.test(lower);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared card skeleton — clean, generous whitespace                  */
+/* ------------------------------------------------------------------ */
+interface CardShellProps {
+  card: DashboardCard;
+  onOpen: () => void;
+  topRight?: ReactNode;          // tiny accent (e.g. blue dot for objectives)
+  middle?: ReactNode;            // optional middle block (e.g. progress for objectives)
+  footerLeft?: ReactNode;        // avatars / date / leverage
+  footerRight: ReactNode;        // outline pill CTA with arrow
+  leadingControl?: ReactNode;    // optional left control (checkbox for to-dos)
+  dimmed?: boolean;
+  hideDescription?: boolean;
+  topLeft?: ReactNode;           // source logo (briefing/updates/todos)
+  colorTheme?: "blue" | "amber" | "emerald" | "purple" | "default";
+}
+
+function CardShell({
+  card, onOpen, topRight, middle, footerLeft, footerRight,
+  leadingControl, dimmed, hideDescription, topLeft, colorTheme
+}: CardShellProps) {
+  const delta = deltaBadge(card.deltaState);
+
+  const themeStyles = {
+    blue: "bg-blue-100/90 border-blue-200 hover:border-blue-300 dark:bg-blue-900/40 dark:border-blue-800/60 dark:hover:border-blue-700",
+    amber: "bg-amber-100/90 border-amber-200 hover:border-amber-300 dark:bg-amber-900/40 dark:border-amber-800/60 dark:hover:border-amber-700",
+    emerald: "bg-emerald-100/90 border-emerald-200 hover:border-emerald-300 dark:bg-emerald-900/40 dark:border-emerald-800/60 dark:hover:border-emerald-700",
+    purple: "bg-purple-100/90 border-purple-200 hover:border-purple-300 dark:bg-purple-900/40 dark:border-purple-800/60 dark:hover:border-purple-700",
+    default: "bg-secondary/80 border-border/80 hover:border-border",
+  };
+  const themeCls = themeStyles[colorTheme || "default"];
+
+  return (
+    <div
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
+      className={`group relative border rounded-2xl px-4 sm:px-6 py-5 w-full flex flex-col gap-4 transition-all duration-300 cursor-pointer text-left shadow-none opacity-100 ${themeCls} ${dimmed ? "opacity-60" : ""}`}
+    >
+      {/* Header: source logo (or leading control) ↔ accent */}
+      {(topLeft || leadingControl || topRight || delta) && (
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            {leadingControl}
+            {topLeft}
+            {delta && (
+              <span
+                title={delta.label}
+                className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${delta.cls}`}
+              >
+                <span className="leading-none">{delta.glyph}</span>
+                <span>{delta.label}</span>
+              </span>
+            )}
+          </div>
+          {topRight}
+        </div>
+      )}
+
+      {/* Title + description block */}
+      <div className="flex flex-col gap-2">
+        <h3 className={`text-[15px] font-bold leading-snug line-clamp-2 ${dimmed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+          {card.title}
+        </h3>
+        {!hideDescription && card.description && (
+          <p className="text-[12.5px] text-muted-foreground leading-relaxed line-clamp-2">
+            {card.description}
+          </p>
+        )}
+      </div>
+
+      {/* Optional middle block (objectives progress) */}
+      {middle}
+
+      {/* Footer: avatars/date ↔ outline CTA */}
+      <div className="mt-auto pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 flex items-center">{footerLeft}</div>
+        <div className="shrink-0">{footerRight}</div>
+      </div>
+    </div>
+  );
+}
+
+/* Outline pill CTA with arrow — matches screenshot exactly */
+function PillCTA({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      className="h-8 px-3.5 rounded-full text-[12px] font-medium gap-1.5 border-border/70 opacity-100 bg-primary text-white"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+    >
+      {label}
+      <ArrowRight className="h-3.5 w-3.5" />
+    </Button>
+  );
+}
+
+/* Source logo — top-right of card. Falls back to Business Brain Orb for system/DNA-derived signals. */
+function SourceLogo({ card, size = 22 }: { card: DashboardCard; size?: number }) {
+  const sourceKey = card.source || "general";
+  const sourceMeta = SOURCE_META[sourceKey] || SOURCE_META.general;
+  const isSystem =
+    !sourceMeta.icon ||
+    sourceKey === "general" ||
+    sourceKey === "system" ||
+    sourceKey === "business_dna" ||
+    sourceKey === "dna";
+
+  if (isSystem) {
+    return <BusinessBrainOrb size={size} />;
+  }
+
+  return (
+    <img
+      src={sourceMeta.icon}
+      alt={sourceMeta.label}
+      title={sourceMeta.label}
+      className="object-contain shrink-0"
+      style={{ width: size, height: size }}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Briefing Card                                                      */
+/* ------------------------------------------------------------------ */
+function BriefingCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
+  const people = extractPeople(card);
+  return (
+    <CardShell
+      card={card}
+      onOpen={onOpen}
+      colorTheme="blue"
+      topRight={<SourceLogo card={card} />}
+      footerLeft={<PeopleAvatars />}
+      footerRight={<PillCTA label={briefingCtaLabel(card)} onClick={onOpen} />}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Updates Card                                                       */
+/* ------------------------------------------------------------------ */
+function DashCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
+  const people = extractPeople(card);
+  return (
+    <CardShell
+      card={card}
+      onOpen={onOpen}
+      colorTheme="amber"
+      topRight={<SourceLogo card={card} />}
+      footerLeft={<PeopleAvatars />}
+      footerRight={<PillCTA label={updateCtaLabel(card)} onClick={onOpen} />}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  To-Do Card — checkbox + date + branded CTA                         */
+/* ------------------------------------------------------------------ */
+function todoCtaLabel(card: DashboardCard): string {
+  const t = (card.taskType || "").toLowerCase();
+  if (t.includes("approve") || t.includes("sign")) return "Sign";
+  if (t.includes("delegate")) return "Delegate";
+  if (t.includes("template")) return "Use template";
+  if (t.includes("review")) return "Review";
+  if (t.includes("reply") || t.includes("respond")) return "Reply";
+  if (t.includes("send")) return "Send";
+  if (t.includes("draft") || t.includes("write")) return "Draft";
+  if (t.includes("schedule") || t.includes("plan")) return "Schedule";
+  if (t.includes("call")) return "Call";
+  if (t.includes("pay") || t.includes("invoice")) return "Pay";
+  // fall back to a verb pulled from the title
+  const m = card.title.match(/^(Approve|Sign|Review|Draft|Send|Finalize|Delegate|Plan|Schedule|Reply|Call|Pay|Fix|Update|Check)\b/i);
+  if (m) {
+    const verb = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+    if (verb === "Approve") return "Sign";
+    if (verb === "Finalize") return "Finish";
+    return verb;
+  }
+  return "Do it";
+}
+
+/* Personal CTA labels for non-todo tabs */
+function briefingCtaLabel(card: DashboardCard): string {
+  const t = `${card.title} ${card.description || ""}`.toLowerCase();
+  if (/\brevenue|sales|mrr|arr|churn|cost|spend|cash|invoice|payment\b/.test(t)) return "See numbers";
+  if (/\bcustomer|user|signup|lead|audience\b/.test(t)) return "See who";
+  if (/\bcompetitor|market|trend\b/.test(t)) return "See market";
+  if (/\bteam|hire|employee|people\b/.test(t)) return "See team";
+  if (/\blaunch|release|ship|product\b/.test(t)) return "See launch";
+  return "Read more";
+}
+
+function updateCtaLabel(card: DashboardCard): string {
+  const req = (card.requestType || "").toLowerCase();
+  if (req.includes("approve") || req.includes("sign")) return "Approve";
+  if (req.includes("reply") || req.includes("respond")) return "Reply";
+  if (req.includes("review")) return "Review";
+  if (req.includes("decision") || req.includes("decide")) return "Decide";
+  if (card.waitingParty) return `Reply to ${card.waitingParty.split(/\s+/)[0]}`;
+  return "Reply";
+}
+
+function objectiveCtaLabel(card: DashboardCard): string {
+  const t = `${card.title}`.toLowerCase();
+  if (/\brevenue|mrr|arr|sales\b/.test(t)) return "Track revenue";
+  if (/\bchurn|retention\b/.test(t)) return "Track retention";
+  if (/\bgrowth|users|signup|acquisition\b/.test(t)) return "Track growth";
+  if (/\blaunch|ship|release\b/.test(t)) return "Track launch";
+  if (/\bhire|team|people\b/.test(t)) return "Track hiring";
+  return "Track goal";
+}
+
+function TodoCard({ card, done, onToggle, onOpen }: { card: DashboardCard; done: boolean; onToggle: () => void; onOpen: () => void }) {
+  const dueLabel = card.estimatedDuration || card.timeAgo;
+  const leverageLabel = card.leverageLabel;
+  const leverageCls = leverageLabelStyle(leverageLabel);
+  return (
+    <CardShell
+      card={card}
+      onOpen={onOpen}
+      colorTheme="emerald"
+      dimmed={done}
+      topRight={
+        <div className="flex items-center gap-2">
+          {leverageLabel && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${leverageCls}`}>
+              {leverageLabel}
+            </span>
+          )}
+          <SourceLogo card={card} />
+        </div>
+      }
+      leadingControl={
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          aria-label={done ? "Mark as not done" : "Mark as done"}
+          className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${done ? "bg-primary border-primary" : "border-border hover:border-primary/60"}`}
+        >
+          {done && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+        </button>
+      }
+      footerLeft={
+        dueLabel ? (
+          <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5" />
+            {dueLabel}
+          </div>
+        ) : null
+      }
+      footerRight={
+        done
+          ? <span className="text-[11px] text-muted-foreground italic px-2">Completed</span>
+          : <PillCTA label={todoCtaLabel(card)} onClick={onOpen} />
+      }
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Objective Card — blue dot + progress block                         */
+/* ------------------------------------------------------------------ */
+function parseNumeric(s?: unknown): number | null {
+  if (s == null) return null;
+  if (typeof s === "number") return Number.isFinite(s) ? s : null;
+  const str = typeof s === "string" ? s : String(s);
+  const n = parseFloat(str.replace(/[^0-9.\-]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function objectiveStatus(card: DashboardCard): { label: string; cls: string; barCls: string; pct: number } {
+  const explicit = typeof card.progress === "number" ? card.progress : null;
+  const cur = parseNumeric(card.successMetric?.current);
+  const tgt = parseNumeric(card.successMetric?.target);
+  let pct = explicit ?? (cur !== null && tgt && tgt !== 0 ? (cur / tgt) * 100 : 0);
+  pct = Math.max(0, Math.min(100, pct));
+
+  // Heuristic: lower-is-better metrics (churn, gross churn) → invert
+  const lowerIsBetter = /churn|cost|cac|loss|attrition/i.test(card.title);
+  const ratio = lowerIsBetter && cur !== null && tgt ? tgt / cur : pct / 100;
+
+  let label = "On Track";
+  let cls = "bg-[hsl(142_55%_94%)] text-[hsl(142_62%_30%)] border-[hsl(142_42%_75%)]";
+  let barCls = "bg-[hsl(142_62%_45%)]";
+
+  if (ratio < 0.6) {
+    label = "Behind";
+    cls = "bg-[hsl(0_100%_96%)] text-[hsl(0_68%_42%)] border-[hsl(0_75%_78%)]";
+    barCls = "bg-[hsl(0_72%_55%)]";
+  } else if (ratio < 0.85) {
+    label = "At Risk";
+    cls = "bg-[hsl(42_100%_94%)] text-[hsl(37_84%_36%)] border-[hsl(42_88%_72%)]";
+    barCls = "bg-[hsl(37_92%_55%)]";
+  }
+
+  return { label, cls, barCls, pct };
+}
+
+function ObjectiveCard({ card, onOpen }: { card: DashboardCard; onOpen: () => void }) {
+  const { label, cls, barCls, pct } = objectiveStatus(card);
+  const people = extractPeople(card);
+  const current = card.successMetric?.current;
+  const target = card.successMetric?.target;
+
+  return (
+    <CardShell
+      card={card}
+      onOpen={onOpen}
+      colorTheme="purple"
+      hideDescription
+      topRight={
+        <div className="flex items-center gap-2">
+          <SourceLogo card={card} />
+        </div>
+      }
+      middle={
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-background">
+          <p className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">Current Progress</p>
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="text-xl font-bold text-foreground truncate">{current || `${Math.round(pct)}%`}</span>
+              {target && <span className="text-xs text-muted-foreground truncate">/ {target}</span>}
+            </div>
+            <span className={`shrink-0 text-[10.5px] font-semibold px-2 py-0.5 rounded-md border ${cls}`}>
+              {label}
+            </span>
+          </div>
+          <div className="h-1.5 w-full rounded-full overflow-hidden bg-card">
+            <div className={`h-full rounded-full transition-all ${barCls}`} style={{ width: `${pct}%` }} />
+          </div>
+          {card.momentumIndicator?.display && (() => {
+            const m = momentumStyle(card.momentumIndicator!.state);
+            return (
+              <div className={`flex items-center gap-1.5 text-[11px] ${m.text}`}>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${m.dot}`} />
+                <span className="truncate">{card.momentumIndicator!.display}</span>
+              </div>
+            );
+          })()}
+        </div>
+      }
+      footerLeft={<PeopleAvatars />}
+      footerRight={<PillCTA label={objectiveCtaLabel(card)} onClick={onOpen} />}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Skeleton Loader — tab-aware, animated shimmer                      */
+/* ------------------------------------------------------------------ */
+function SkeletonCard({ tab, delay }: { tab: string; delay: number }) {
+  const isObjective = tab === "Objectives";
+  const isTodo = tab === "To-Dos";
+  return (
+    <div
+      className="bg-card border border-border/60 rounded-2xl px-4 sm:px-6 py-5 flex flex-col gap-4 animate-fade-in w-full"
+      style={{
+        animationDelay: `${delay}ms`,
+        animationFillMode: "both",
+      }}
+    >
+      {/* Header row */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          {isTodo && <Skeleton className="h-4 w-4 rounded-full" />}
+        </div>
+        <div className="flex items-center gap-2">
+          {isObjective && <Skeleton className="h-3 w-3 rounded-full" />}
+          <Skeleton className="h-[22px] w-[22px] rounded" />
+        </div>
+      </div>
+
+      {/* Title + description */}
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-4/5" />
+        {!isObjective && (
+          <>
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </>
+        )}
+      </div>
+
+      {/* Objective progress block */}
+      {isObjective && (
+        <div className="rounded-xl border border-border/50 px-4 py-3 flex flex-col gap-2.5 bg-background">
+          <Skeleton className="h-2.5 w-24" />
+          <div className="flex items-end justify-between gap-3">
+            <Skeleton className="h-6 w-20" />
+            <Skeleton className="h-4 w-16 rounded-md" />
+          </div>
+          <Skeleton className="h-1.5 w-full rounded-full" />
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="mt-auto pt-3 border-t border-border/40 flex items-center justify-between">
+        <div className="flex -space-x-1.5">
+          <Skeleton className="h-6 w-6 rounded-full" />
+          <Skeleton className="h-6 w-6 rounded-full" />
+          <Skeleton className="h-6 w-6 rounded-full" />
+        </div>
+        <Skeleton className="h-8 w-28 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+function CardSkeletons({ tab }: { tab: string }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {[0, 1, 2, 3].map((i) => (
+        <SkeletonCard key={i} tab={tab} delay={i * 80} />
+      ))}
+    </div>
+  );
+}
+
+function DetailPanelSkeleton() {
+  return (
+    <aside className="w-[420px] shrink-0 h-[calc(100%-1.5rem)] my-3 mr-3 flex flex-col rounded-2xl border border-border bg-background shadow-sm overflow-hidden animate-fade-in">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border/60">
+        <Skeleton className="h-5 w-24 rounded" />
+        <Skeleton className="h-7 w-7 rounded-md" />
+      </div>
+      {/* Title */}
+      <div className="px-5 py-4 flex flex-col gap-2 border-b border-border/40">
+        <Skeleton className="h-5 w-4/5" />
+        <Skeleton className="h-3 w-2/3" />
+      </div>
+      {/* Body */}
+      <div className="flex-1 px-5 py-4 flex flex-col gap-4">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-11/12" />
+        <Skeleton className="h-3 w-9/12" />
+        <div className="pt-2 flex flex-col gap-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+        <div className="pt-2 flex flex-col gap-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-10 w-full rounded-lg" />
+        </div>
+      </div>
+      {/* CTA */}
+      <div className="px-5 py-4 border-t border-border/60">
+        <Skeleton className="h-9 w-full rounded-md" />
+      </div>
+    </aside>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Add Objective Inline                                               */
+/* ------------------------------------------------------------------ */
+function AddObjectiveInline({ onAdd }: { onAdd: (title: string, desc: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    onAdd(title.trim(), desc.trim());
+    setTitle(""); setDesc(""); setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg border border-dashed border-border hover:border-primary/40 transition-colors">
+        <Plus className="h-3.5 w-3.5" /> Add Objective
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 w-full flex flex-col gap-2" style={{ flex: "1 1 calc(50% - 0.75rem)", maxWidth: "calc(50% - 0.5rem)", minWidth: "300px" }}>
+      <Input placeholder="Objective title" value={title} onChange={(e) => setTitle(e.target.value)} className="text-sm h-8" autoFocus />
+      <Input placeholder="Brief description (optional)" value={desc} onChange={(e) => setDesc(e.target.value)} className="text-sm h-8" />
+      <div className="flex gap-2 mt-1">
+        <Button size="sm" className="h-7 text-xs" onClick={handleSubmit} disabled={!title.trim()}>Add</Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setOpen(false)}>Cancel</Button>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main View                                                          */
+/* ------------------------------------------------------------------ */
+export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction }: { activeBrandId?: string | null; initialTab?: string; onExecuteAction?: (actionText: string) => void }) {
+  const { brands } = useBusinessDNA();
+  const [activeTab, setActiveTab] = useState(initialTab || TABS[0].id);
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
+  const [allTabCards, setAllTabCards] = useState<Record<string, DashboardCard[]>>({});
+  const [openingSummary, setOpeningSummary] = useState<OpeningSummary | null>(null);
+  const [healthScore, setHealthScore] = useState<HealthScore | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [customObjectives, setCustomObjectives] = useState<DashboardCard[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [detailCard, setDetailCard] = useState<DashboardCard | null>(null);
+  const [detailMinimized, setDetailMinimized] = useState(false);
+  const [completedTodos, setCompletedTodos] = useState<Set<string>>(new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const ids: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("dash-dismissed:") && localStorage.getItem(k) === "1") {
+          ids.push(k.slice("dash-dismissed:".length));
+        }
+      }
+      return new Set(ids);
+    } catch { return new Set(); }
+  });
+  const [stale, setStale] = useState(false);
+
+  const activeBrand = (activeBrandId ? brands.find(b => b.id === activeBrandId) : null) || brands[0] || null;
+  const workspaceId = typeof window !== "undefined" ? localStorage.getItem("preferred_workspace_id") : null;
+
+  // Listen for DNA mutations to mark dashboard stale (persisted across sessions)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.brandId && activeBrand && detail.brandId === activeBrand.id) {
+        setStale(true);
+        markCacheStale(activeBrand.id);
+      }
+    };
+    window.addEventListener("dna_mutated", handler);
+    return () => window.removeEventListener("dna_mutated", handler);
+  }, [activeBrand?.id]);
+
+  useEffect(() => {
+    if (!activeBrand) return;
+    setStale(false);
+    const brandRowId = (activeBrand as { _rowId?: string })._rowId || activeBrand.id;
+    const cached = loadCachedCards(brandRowId);
+    const cachedHasCards = cached && Object.values(cached).some((arr) => Array.isArray(arr) && arr.length > 0);
+    const staleCache = isCacheStale(brandRowId);
+    if (cachedHasCards) {
+      setAllTabCards(cached!);
+      // Auto-refresh in background if cache is stale (older than threshold or invalidated)
+      if (staleCache) fetchInsights(brandRowId);
+    } else {
+      // Empty localStorage cache — try the server snapshot for an instant warm render,
+      // then kick off the full AI refresh in the background.
+      hydrateFromSnapshot(brandRowId);
+      fetchInsights(brandRowId);
+    }
+  }, [activeBrand?.id]);
+
+  // Fast path: read the persisted dashboard snapshot from the DB so cards appear
+  // instantly on first load (or after clearing localStorage), without waiting for
+  // the full AI generation in `dashboard-insights`.
+  const hydrateFromSnapshot = useCallback(async (brandId: string) => {
+    try {
+      const { data } = await supabase
+        .from("dashboard_snapshots")
+        .select("tab_cards, opening_summary, health_score")
+        .eq("brand_id", brandId)
+        .maybeSingle();
+      if (!data?.tab_cards) return;
+      const tabs = data.tab_cards as unknown as Record<string, DashboardCard[]>;
+      const result: Record<string, DashboardCard[]> = {
+        Briefing: tabs.Briefing || [],
+        Updates: tabs.Updates || [],
+        "To-Dos": tabs["To-Dos"] || [],
+        Objectives: tabs.Objectives || [],
+      };
+      const hasAny = Object.values(result).some((arr) => arr.length > 0);
+      if (!hasAny) return;
+      // Only set if we still don't have cards (avoid clobbering a fast fetchInsights)
+      setAllTabCards((prev) => {
+        const prevHas = Object.values(prev).some((arr) => arr.length > 0);
+        return prevHas ? prev : result;
+      });
+      if (data.opening_summary) {
+        setOpeningSummary((prev) => prev || ({ text: data.opening_summary } as OpeningSummary));
+      }
+      if (data.health_score) {
+        setHealthScore((prev) => prev || (data.health_score as unknown as HealthScore));
+      }
+      // Warm localStorage so subsequent loads are even faster
+      saveCachedCards(brandId, result);
+    } catch (err) {
+      console.error("Snapshot hydrate failed:", err);
+    }
+  }, []);
+
+
+  const fetchInsights = useCallback(async (brandId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("dashboard-insights", {
+        body: { brandId, workspaceId },
+      });
+      if (fnError) throw fnError;
+      const tabs = data?.tabs || {};
+      const result: Record<string, DashboardCard[]> = {
+        Briefing: tabs.Briefing || [],
+        Updates: tabs.Updates || [],
+        "To-Dos": tabs["To-Dos"] || [],
+        Objectives: tabs.Objectives || [],
+      };
+      setAllTabCards(result);
+      setOpeningSummary(data?.openingSummary || null);
+      setHealthScore(data?.healthScore || null);
+      saveCachedCards(brandId, result);
+    } catch (e: any) {
+      console.error("Dashboard insights error:", e);
+      setError("Failed to load insights. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId]);
+
+  const handleRefresh = () => {
+    if (!activeBrand || loading) return;
+    setStale(false);
+    const brandRowId = (activeBrand as { _rowId?: string })._rowId || activeBrand.id;
+    fetchInsights(brandRowId);
+  };
+
+  const trackLearningEvent = useCallback(async (
+    eventType: "opened" | "clicked" | "completed" | "dismissed" | "snoozed" | "promoted",
+    card: DashboardCard,
+    extra?: Record<string, unknown>,
+  ) => {
+    if (!activeBrand) return;
+    try {
+      await supabase.functions.invoke("dashboard-learning-event", {
+        body: {
+          businessId: activeBrand.id,
+          workspaceId,
+          cardId: card.id,
+          tab: card.tab || inferTabFromCard(card, activeTab as TabKind),
+          eventType,
+          source: card.source || null,
+          category: card.category || null,
+          metadata: {
+            priority: card.priority,
+            theme: (card.category || "").toLowerCase() || undefined,
+            ...extra,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Failed to track dashboard learning event:", error);
+    }
+  }, [activeBrand, workspaceId, activeTab]);
+
+  const inferTabFromCard = (card: DashboardCard, currentTab: TabKind): TabKind => {
+    if (card.tab) return card.tab;
+    if (card.waitingParty || card.waitDuration || card.consequence) return "Updates";
+    if (card.successMetric || typeof card.progress === "number" || card.objectiveType) return "Objectives";
+    if (card.howTo || card.taskType || typeof card.leverageScore === "number") return "To-Dos";
+    return currentTab || "Briefing";
+  };
+
+  const openCardWithTracking = (card: DashboardCard) => {
+    setDetailCard(card);
+    trackLearningEvent("opened", card, { interaction: "card-open" });
+  };
+
+  const handleAddObjective = (title: string, description: string) => {
+    const newObj: DashboardCard = {
+      id: `custom-${Date.now()}`, priority: "High", title, description,
+      category: "Custom", icon: "target", source: "general",
+    };
+    setCustomObjectives((prev) => [...prev, newObj]);
+  };
+
+  const tabCards = allTabCards[activeTab] || [];
+  const baseCards = activeTab === "Objectives" ? [...customObjectives, ...tabCards] : tabCards;
+  const displayCards = baseCards.filter((c) => !dismissedIds.has(c.id));
+  const filteredCards = searchQuery
+    ? displayCards.filter((c) =>
+        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    : displayCards;
+
+  const hasCards = Object.values(allTabCards).some(arr => arr.length > 0);
+  const hasEverLoadedRef = useRef(false);
+  if (hasCards) hasEverLoadedRef.current = true;
+  const hasEverLoaded = hasEverLoadedRef.current;
+
+  // Auto-select first card so the right-side detail panel is always populated.
+  useEffect(() => {
+    if (filteredCards.length === 0) {
+      if (detailCard) setDetailCard(null);
+      return;
+    }
+    const stillExists = detailCard && filteredCards.some((c) => c.id === detailCard.id);
+    if (!stillExists) setDetailCard(filteredCards[0]);
+  }, [activeTab, filteredCards, detailCard]);
+
+  return (
+    <div className="h-full flex relative overflow-hidden bg-background">
+      {/* Left vertical tab menu */}
+      <aside className="w-52 shrink-0 border-r border-border/60 bg-background flex flex-col py-4 px-3 gap-0.5">
+        <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Dashboard
+        </div>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-2.5 py-2 text-sm font-medium rounded-md transition-colors text-left ${
+                isActive
+                  ? "bg-[#f3f5f7] text-[#101828]"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{tab.label}</span>
+            </button>
+          );
+        })}
+      </aside>
+      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-background">
+
+        <div className="flex items-start justify-between mb-4 gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl font-semibold tracking-tight">{activeTab}</h1>
+            </div>
+            {TAB_SUBTITLES[activeTab] && (
+              <p className="text-sm text-muted-foreground mt-0.5">{TAB_SUBTITLES[activeTab]}</p>
+            )}
+          </div>
+          {activeBrand && (
+            <Button variant="outline" size="default" className="gap-2 text-sm h-10 px-4 shrink-0 shadow-none opacity-100 bg-primary text-white" onClick={handleRefresh} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Update
+            </Button>
+          )}
+        </div>
+
+        {stale && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+            <span className="text-xs text-amber-800">Business data changed — insights may be outdated.</span>
+            <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 ml-auto" onClick={handleRefresh} disabled={loading}>
+              {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Regenerate"}
+            </Button>
+          </div>
+        )}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <input
+            type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2.5 border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm transition-colors bg-card border-border shadow-none"
+            placeholder="Search cards..."
+          />
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          {!activeBrand ? (
+            <CardSkeletons tab={activeTab} />
+          ) : loading && !hasEverLoaded ? (
+            <CardSkeletons tab={activeTab} />
+          ) : error && !hasCards ? (
+            <div className="text-destructive w-full py-8 text-center text-sm">
+              <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
+              <p>{error}</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={handleRefresh}>Retry</Button>
+            </div>
+          ) : (
+            <>
+              <motion.div key={`${activeTab}-${activeBrand.id}`} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {filteredCards.map((card) =>
+                activeTab === "Briefing" ? (
+                  <BriefingCard key={card.id} card={card} onOpen={() => openCardWithTracking(card)} />
+                ) : activeTab === "To-Dos" ? (
+                  <TodoCard
+                    key={card.id}
+                    card={card}
+                    done={completedTodos.has(card.id)}
+                    onToggle={() => setCompletedTodos(prev => {
+                      const next = new Set(prev);
+                      const wasDone = next.has(card.id);
+                      wasDone ? next.delete(card.id) : next.add(card.id);
+                      if (!wasDone) trackLearningEvent("completed", card, { interaction: "todo-toggle" });
+                      return next;
+                    })}
+                    onOpen={() => openCardWithTracking(card)}
+                  />
+                ) : activeTab === "Objectives" ? (
+                  <ObjectiveCard key={card.id} card={card} onOpen={() => openCardWithTracking(card)} />
+                ) : (
+                  <DashCard key={card.id} card={card} onOpen={() => openCardWithTracking(card)} />
+                )
+              )}
+              
+              {filteredCards.length === 0 && !searchQuery && (() => {
+                const tabKey = activeTab as TabKind;
+                const framing = TAB_FRAMING[tabKey] || TAB_FRAMING.Briefing;
+                const EmptyIcon = framing.emptyIcon;
+                return (
+                  <div className={`w-full py-12 px-6 text-center border-2 border-dashed rounded-2xl ${framing.accentSoftBg}`}>
+                    <div className={`mx-auto w-12 h-12 rounded-full ${framing.accentChip} flex items-center justify-center mb-3`}>
+                      <EmptyIcon className="h-6 w-6" />
+                    </div>
+                    <p className={`text-sm font-semibold ${framing.accentText} mb-1`}>{framing.emptyTitle}</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">{framing.emptyBody}</p>
+                  </div>
+                );
+              })()}
+              {filteredCards.length === 0 && searchQuery && (
+                <div className="text-muted-foreground w-full py-8 text-center text-sm">No cards match "{searchQuery}"</div>
+              )}
+            </motion.div>
+            </>
+          )}
+        </main>
+      </ScrollArea>
+      </div>
+
+      {loading && !hasEverLoaded && activeBrand ? (
+        <DetailPanelSkeleton />
+      ) : (
+        <DashCardDetailPanel
+          card={detailCard}
+          open={!!detailCard}
+          onClose={() => setDetailCard(null)}
+          onExecuteAction={onExecuteAction}
+          minimized={detailMinimized}
+          onMinimizedChange={setDetailMinimized}
+          onTrackEvent={(eventType, card, extra) => {
+            if (eventType === "dismissed") {
+              setDismissedIds((prev) => {
+                const next = new Set(prev);
+                next.add(card.id);
+                return next;
+              });
+            }
+            return trackLearningEvent(eventType, card, extra);
+          }}
+        />
+      )}
+    </div>
+  );
+}

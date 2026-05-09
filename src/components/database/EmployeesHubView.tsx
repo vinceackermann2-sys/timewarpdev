@@ -1,0 +1,374 @@
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Search, X, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { Skeleton } from "@/components/ui/skeleton";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { EmployeeDetailView } from "./EmployeeDetailView";
+import type { AIEmployee } from "./EmployeesView";
+import type { EmployeesTab } from "./DatabaseSidebar";
+import { AgentDetailView } from "./agents/AgentDetailView";
+import { normalizeAgentRow, type AIAgent } from "./agents/types";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+interface EmployeesHubViewProps {
+  activeTab: EmployeesTab;
+  onTabChange: (tab: EmployeesTab) => void;
+  onCreateWithTimeWarp: (kind: "agent" | "employee") => void;
+}
+
+export function EmployeesHubView({ activeTab, onTabChange, onCreateWithTimeWarp }: EmployeesHubViewProps) {
+  const { user, isLoading: authLoading } = useAuth();
+  const { activeWorkspaceId, isLoading: workspaceLoading } = useWorkspace();
+  const [items, setItems] = useState<Array<AIEmployee | AIAgent>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [renaming, setRenaming] = useState<AIEmployee | AIAgent | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [deleting, setDeleting] = useState<AIEmployee | AIAgent | null>(null);
+
+  const tableName = activeTab === "agents" ? "ai_agents" : "ai_employees";
+
+  const handleRename = async () => {
+    if (!renaming) return;
+    const name = renameValue.trim();
+    if (!name) return;
+    setRenameSaving(true);
+    const { error } = await supabase.from(tableName as any).update({ name }).eq("id", renaming.id);
+    setRenameSaving(false);
+    if (error) { toast.error("Could not rename", { description: error.message }); return; }
+    toast.success("Renamed");
+    setRenaming(null);
+    load();
+  };
+
+  const handleDeleteFromMenu = async () => {
+    if (!deleting) return;
+    const { error } = await supabase.from(tableName as any).delete().eq("id", deleting.id);
+    if (error) { toast.error("Could not delete", { description: error.message }); return; }
+    toast.success("Deleted");
+    if (selectedId === deleting.id) setSelectedId(null);
+    setDeleting(null);
+    load();
+  };
+
+  const load = async () => {
+    if (!user) { setIsLoading(false); return; }
+    setIsLoading(true);
+    try {
+      let query = supabase
+        .from((activeTab === "agents" ? "ai_agents" : "ai_employees") as any)
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (activeWorkspaceId) query = query.eq("workspace_id", activeWorkspaceId);
+      else query = query.eq("user_id", user.id);
+      const { data, error } = await query;
+      if (!error && data) {
+        setItems(activeTab === "agents" ? (data as any[]).map(normalizeAgentRow) : (data as unknown as AIEmployee[]));
+      }
+    } catch (e) {
+      console.warn("Failed to load employees:", e);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    if (authLoading || workspaceLoading) return;
+    load();
+    setSelectedId(null);
+    setSearch("");
+    setSearchOpen(false);
+  }, [activeWorkspaceId, authLoading, workspaceLoading, user, activeTab]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (it) =>
+        it.name.toLowerCase().includes(q) ||
+        (activeTab === "agents"
+          ? [
+              (it as AIAgent).description,
+              (it as AIAgent).trigger_type,
+              (it as AIAgent).trigger_source,
+              (it as AIAgent).trigger_condition,
+              (it as AIAgent).trigger_schedule,
+            ]
+          : [(it as AIEmployee).role, (it as AIEmployee).sop_title]
+        ).some((v) => String(v || "").toLowerCase().includes(q)),
+    );
+  }, [activeTab, items, search]);
+
+  const selected = items.find((i) => i.id === selectedId) || null;
+
+  const labelPlural = activeTab === "agents" ? "Agents" : "Employees";
+  const labelSingular = activeTab === "agents" ? "agent" : "employee";
+  const tagline = activeTab === "agents"
+    ? "The future of business - Agents for anything you can think of"
+    : "Strategic thinkers that sit above agents — a domain lens, owned scope, and the agents they supervise.";
+  const emptyHelp = activeTab === "agents"
+    ? "​"
+    : "Pick the domain (CMO, COO, Head of Sales…). TimeWarp will define what they own vs. advise on vs. don't touch, and the agents they should supervise.";
+
+  const rowSubtitle = (item: AIEmployee | AIAgent) => {
+    if (activeTab === "agents") {
+      const agent = item as AIAgent;
+      return agent.trigger_schedule || agent.trigger_condition || agent.trigger_type;
+    }
+    return (item as AIEmployee).role;
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("ai_employees" as any).delete().eq("id", id);
+    setSelectedId(null);
+    load();
+  };
+
+  return (
+    <div className="flex h-full min-h-0 w-full">
+      {/* Left customize side menu */}
+      <aside className="w-56 shrink-0 border-r border-border/60 bg-background p-3">
+        <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Customize
+        </p>
+        <nav className="mt-1 flex flex-col gap-0.5">
+          <button
+            onClick={() => onTabChange("agents")}
+            className={cn(
+              "w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors",
+              activeTab === "agents" ? "font-medium bg-[#f3f5f7] text-[#101828]" : "hover:bg-muted/50",
+            )}
+          >
+            Agents
+          </button>
+          <button
+            onClick={() => toast.info("AI Employees are coming soon", { description: "Strategic supervisors that orchestrate your agents." })}
+            disabled
+            className={cn(
+              "w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors flex items-center justify-between gap-2 cursor-not-allowed opacity-60",
+              "hover:bg-muted/30",
+            )}
+          >
+            <span>Employees</span>
+            <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+              Soon
+            </span>
+          </button>
+        </nav>
+      </aside>
+
+      {/* Middle list sidebar */}
+      <aside className="w-64 shrink-0 border-r border-border/60 bg-background flex flex-col min-h-0">
+        <div className="px-3 pt-3 pb-2 flex items-center justify-between gap-2">
+          {searchOpen ? (
+            <div className="flex-1 flex items-center gap-1 rounded-md border border-border/60 bg-white px-2 h-8">
+              <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={`Search ${labelPlural.toLowerCase()}...`}
+                className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+              />
+              <button
+                onClick={() => { setSearchOpen(false); setSearch(""); }}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Close search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Your {labelPlural}
+              </p>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="p-1.5 rounded-md hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={`Search ${labelPlural.toLowerCase()}`}
+                  title="Search"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => onCreateWithTimeWarp(activeTab === "agents" ? "agent" : "employee")}
+                  className="p-1.5 rounded-md hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={`Create ${labelSingular} with TimeWarp`}
+                  title={`Create ${labelSingular} with TimeWarp`}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3">
+          {isLoading ? (
+            <div className="space-y-1.5 px-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-md" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="px-2 py-6 text-center">
+              <p className="text-xs text-muted-foreground mb-3">
+                {items.length === 0
+                  ? `No ${labelPlural.toLowerCase()} yet.`
+                  : `No ${labelPlural.toLowerCase()} match "${search}".`}
+              </p>
+              {items.length === 0 && (
+                <button
+                  onClick={() => onCreateWithTimeWarp(activeTab === "agents" ? "agent" : "employee")}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  <Plus className="h-3 w-3" />
+                  Create with TimeWarp
+                </button>
+              )}
+            </div>
+          ) : (
+            <ul className="space-y-0.5">
+              {filtered.map((it) => {
+                const isSel = it.id === selectedId;
+                return (
+                  <li key={it.id} className="group relative">
+                    <button
+                      onClick={() => setSelectedId(it.id)}
+                      className={cn(
+                        "w-full text-left flex items-center gap-2.5 px-2 py-1.5 pr-8 rounded-md transition-colors",
+                        isSel ? "bg-[#f3f5f7] text-[#101828]" : "hover:bg-muted/50",
+                      )}
+                    >
+                      <BusinessBrainOrb size={24} />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("text-sm truncate", isSel ? "font-medium" : "")}>{it.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{rowSubtitle(it)}</p>
+                      </div>
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          aria-label="Item actions"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onSelect={() => { setRenameValue(it.name); setRenaming(it); }}>
+                          <Pencil className="h-3.5 w-3.5 mr-2" /> Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={() => setDeleting(it)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </aside>
+
+      {/* Right detail panel */}
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-background">
+        {selected ? activeTab === "agents" ? (
+          <AgentDetailView
+            agent={selected as AIAgent}
+            onBack={() => setSelectedId(null)}
+            onDeleted={() => { setSelectedId(null); load(); }}
+            onUpdated={(updated) => setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))}
+          />
+        ) : (
+          <EmployeeDetailView
+            employee={selected as AIEmployee}
+            onBack={() => setSelectedId(null)}
+            onDelete={handleDelete}
+          />
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-center p-8">
+            <BusinessBrainOrb size={72} className="mb-5 opacity-80" />
+            <h2 className="text-xl font-semibold mb-1.5">
+              {items.length === 0
+                ? `No ${labelPlural.toLowerCase()} yet`
+                : `Select a ${labelSingular}`}
+            </h2>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground/80 mb-3">
+              {tagline}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-md mb-5">
+              {items.length === 0
+                ? emptyHelp
+                : `Choose a ${labelSingular} from the list to view its details, SOP, and activity.`}
+            </p>
+            <button
+              onClick={() => onCreateWithTimeWarp(activeTab === "agents" ? "agent" : "employee")}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <Plus className="h-4 w-4" />
+              Create {labelSingular} with TimeWarp
+            </button>
+          </div>
+        )}
+      </main>
+
+      <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename {labelSingular}</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder="Name"
+            onKeyDown={(e) => { if (e.key === "Enter") handleRename(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenaming(null)}>Cancel</Button>
+            <Button onClick={handleRename} disabled={renameSaving || !renameValue.trim()}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this {labelSingular}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove "{deleting?.name}". This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteFromMenu}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

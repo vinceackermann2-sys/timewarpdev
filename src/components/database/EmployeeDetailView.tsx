@@ -1,0 +1,939 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { AIEmployee } from "./EmployeesView";
+import { EmployeeDomainLensPanel } from "./employees/EmployeeDomainLensPanel";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { ArrowLeft, Trash2, Play, Loader2, CheckCircle2, XCircle, Clock, Wifi, WifiOff, RefreshCw, FileText, ChevronDown, ChevronUp, Download, Database, X, Pencil, Save, Plus, Shield, Target, Zap, BarChart3, Star } from "lucide-react";
+import { EmployeeRunOverlay } from "./EmployeeRunOverlay";
+import { useToast } from "@/hooks/use-toast";
+import { useExtensionBridge, type BrowserAction } from "@/hooks/useExtensionBridge";
+import { useActionGate } from "@/hooks/useActionGate";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { Progress } from "@/components/ui/progress";
+
+interface LogEntry {
+  id: string;
+  status: string;
+  step_label: string | null;
+  message: string | null;
+  created_at: string;
+}
+
+interface Props {
+  employee: AIEmployee;
+  onBack: () => void;
+  onDelete: (id: string) => void;
+}
+function QualityScore({ employee, logs, loadingLogs }: { employee: AIEmployee; logs: LogEntry[]; loadingLogs: boolean }) {
+  const procedureSteps = Array.isArray(employee.sop_procedure) ? employee.sop_procedure.filter(s => String(s).trim()) : [];
+  let sopFilledCount = 0;
+  if (employee.sop_title?.trim()) sopFilledCount++;
+  if (employee.sop_purpose?.trim()) sopFilledCount++;
+  if (procedureSteps.length > 0) sopFilledCount++;
+  if (employee.sop_safety_notes?.trim()) sopFilledCount++;
+  const sopCompleteness = Math.round((sopFilledCount / 4) * 100);
+  const safetyCoverage = employee.sop_safety_notes?.trim() ? 100 : 0;
+  const businessGrounding = employee.linked_business_id ? 100 : 0;
+  const completedLogs = logs.filter(l => l.status === "completed").length;
+  const errorLogs = logs.filter(l => l.status === "error").length;
+  const totalExec = completedLogs + errorLogs;
+  const executionSuccess = totalExec > 0 ? Math.round((completedLogs / totalExec) * 100) : null;
+  const qualityOutputs = logs.filter(l => l.status === "completed" && l.message && l.message.length > 100).length;
+  const outputQuality = completedLogs > 0 ? Math.round((qualityOutputs / completedLogs) * 100) : null;
+  const divisor = 3 + (executionSuccess !== null ? 1 : 0) + (outputQuality !== null ? 1 : 0);
+  const overallScore = Math.round((sopCompleteness + safetyCoverage + businessGrounding + (executionSuccess ?? 0) + (outputQuality ?? 0)) / divisor);
+
+  const metrics = [
+    { label: "SOP Completeness", value: sopCompleteness, icon: Target },
+    { label: "Safety Coverage", value: safetyCoverage, icon: Shield },
+    { label: "Business Grounding", value: businessGrounding, icon: Zap },
+    { label: "Execution Success", value: executionSuccess, icon: BarChart3 },
+    { label: "Output Quality", value: outputQuality, icon: Star },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Quality Score</h3>
+        <span className="text-sm font-semibold">{overallScore}%</span>
+      </div>
+      <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+        {metrics.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 text-muted-foreground"><Icon className="h-3 w-3" />{label}</span>
+              <span className="font-medium">{value !== null ? `${value}%` : "No data"}</span>
+            </div>
+            <Progress value={value ?? 0} className="h-1.5" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Safety: blocked action keywords
+const BLOCKED_ACTIONS = [
+  "pay", "purchase", "buy", "checkout", "place order", "subscribe",
+  "sign up", "register", "create account",
+  "log in", "sign in", "login", "signin",
+];
+
+function isSafetyBlocked(action: any): string | null {
+  const actionStr = JSON.stringify(action).toLowerCase();
+
+  // Check for payment-related actions
+  if (/\b(pay|purchase|buy|checkout|place.?order|add.?to.?cart.*checkout)\b/.test(actionStr)) {
+    return "Blocked: payment action detected. Manual takeover required.";
+  }
+  // Check for signup
+  if (/\b(sign.?up|register|create.?account|registration)\b/.test(actionStr)) {
+    return "Blocked: account creation detected. Manual takeover required.";
+  }
+  // Check for login
+  if (/\b(log.?in|sign.?in|password|authenticate)\b/.test(actionStr)) {
+    return "Blocked: login action detected. Manual takeover required.";
+  }
+  // Check for sensitive data entry (credit card patterns, SSN patterns)
+  if (/\b(credit.?card|card.?number|cvv|ssn|social.?security)\b/.test(actionStr)) {
+    return "Blocked: sensitive data entry detected. Manual takeover required.";
+  }
+  return null;
+}
+
+export function EmployeeDetailView({ employee: initialEmployee, onBack, onDelete }: Props) {
+  const [employee, setEmployee] = useState<AIEmployee>(initialEmployee);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [currentStep, setCurrentStep] = useState("");
+  const [safetyAlert, setSafetyAlert] = useState<string | null>(null);
+  const { toast } = useToast();
+  const abortRef = useRef<AbortController | null>(null);
+  const pauseResolverRef = useRef<(() => void) | null>(null);
+  const isPausedRef = useRef(false);
+  const isManualModeRef = useRef(false);
+  const { extensionConnected, detecting, retryDetection, getPageContext, executeAction, signalStart, signalStop, updateOverlay } = useExtensionBridge();
+  const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
+  const [viewingResult, setViewingResult] = useState<LogEntry | null>(null);
+  const [savingToDb, setSavingToDb] = useState(false);
+  const { checkCanUseAction } = useActionGate();
+  const { activeWorkspace } = useWorkspace();
+  const [producedFiles, setProducedFiles] = useState<{ id: string; title: string; created_at: string }[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(employee.name);
+  const [editRole, setEditRole] = useState(employee.role);
+  const [editSopTitle, setEditSopTitle] = useState(employee.sop_title || "");
+  const [editPurposeWhy, setEditPurposeWhy] = useState(employee.sop_purpose || "");
+  const [editProcedure, setEditProcedure] = useState<string[]>(
+    Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []
+  );
+  const [editSafetyWarnings, setEditSafetyWarnings] = useState(
+    employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[0] || "" : ""
+  );
+  const [editSafetyRisks, setEditSafetyRisks] = useState(
+    employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[1] || "" : ""
+  );
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => { loadLogs(); loadProducedFiles(); }, [employee.id]);
+
+  const loadLogs = async () => {
+    setLoadingLogs(true);
+    const { data } = await supabase
+      .from("ai_employee_logs")
+      .select("*")
+      .eq("employee_id", employee.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setLogs((data || []) as unknown as LogEntry[]);
+    setLoadingLogs(false);
+  };
+
+  const loadProducedFiles = async () => {
+    setLoadingFiles(true);
+    const { data } = await supabase
+      .from("user_business_data")
+      .select("id, title, created_at")
+      .eq("source", "ai_employee")
+      .ilike("title", `${employee.name}%`)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setProducedFiles((data || []) as { id: string; title: string; created_at: string }[]);
+    setLoadingFiles(false);
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    await supabase.from("ai_employee_logs").delete().eq("id", logId);
+    setLogs(prev => prev.filter(l => l.id !== logId));
+    toast({ title: "Log entry deleted" });
+  };
+
+  const handleClearAllLogs = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase.from("ai_employee_logs").delete().eq("employee_id", employee.id).eq("user_id", session.user.id);
+    setLogs([]);
+    toast({ title: "Activity log cleared" });
+  };
+
+  const startEditing = () => {
+    setIsEditing(true);
+    setEditName(employee.name);
+    setEditRole(employee.role);
+    setEditSopTitle(employee.sop_title || "");
+    setEditPurposeWhy(employee.sop_purpose || "");
+    setEditProcedure(Array.isArray(employee.sop_procedure) ? employee.sop_procedure.map(String) : []);
+    setEditSafetyWarnings(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[0] || "" : "");
+    setEditSafetyRisks(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[1] || "" : "");
+  };
+
+  const handleSaveEdit = async () => {
+    setSavingEdit(true);
+    const joinedSafety = [editSafetyWarnings.trim(), editSafetyRisks.trim()].filter(Boolean).join("\n\n") || null;
+    const { error } = await supabase
+      .from("ai_employees" as any)
+      .update({
+        name: editName.trim(),
+        role: editRole.trim(),
+        sop_title: editSopTitle.trim() || null,
+        sop_purpose: editPurposeWhy.trim() || null,
+        sop_procedure: editProcedure.filter(p => p.trim()),
+        sop_safety_notes: joinedSafety,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("id", employee.id);
+    setSavingEdit(false);
+    if (error) {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      setEmployee(prev => ({
+        ...prev,
+        name: editName.trim(),
+        role: editRole.trim(),
+        sop_title: editSopTitle.trim() || null,
+        sop_purpose: editPurposeWhy.trim() || null,
+        sop_procedure: editProcedure.filter(p => p.trim()),
+        sop_safety_notes: joinedSafety,
+      }));
+      setIsEditing(false);
+      toast({ title: "Employee updated" });
+    }
+  };
+
+  const logStep = async (status: string, stepLabel: string, message: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    await supabase.from("ai_employee_logs").insert({
+      employee_id: employee.id,
+      user_id: session.user.id,
+      status,
+      step_label: stepLabel,
+      message,
+    });
+    await loadLogs();
+  };
+
+  const waitForUnpause = useCallback((): Promise<void> => {
+    if (!isPausedRef.current && !isManualModeRef.current) return Promise.resolve();
+    return new Promise((resolve) => {
+      pauseResolverRef.current = resolve;
+    });
+  }, []);
+
+  const handlePause = () => {
+    setIsPaused(true);
+    isPausedRef.current = true;
+    setSafetyAlert(null);
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: true, isManualMode: false, safetyAlert: null });
+  };
+
+  const handleContinue = () => {
+    setIsPaused(false);
+    isPausedRef.current = false;
+    setIsManualMode(false);
+    isManualModeRef.current = false;
+    setSafetyAlert(null);
+    pauseResolverRef.current?.();
+    pauseResolverRef.current = null;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: false, isManualMode: false, safetyAlert: null });
+  };
+
+  const handleManualTakeover = () => {
+    setIsPaused(true);
+    isPausedRef.current = true;
+    setIsManualMode(true);
+    isManualModeRef.current = true;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: true, isManualMode: true, safetyAlert });
+  };
+
+  const handleReturnControl = () => {
+    setIsManualMode(false);
+    isManualModeRef.current = false;
+    setIsPaused(false);
+    isPausedRef.current = false;
+    setSafetyAlert(null);
+    pauseResolverRef.current?.();
+    pauseResolverRef.current = null;
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep, isPaused: false, isManualMode: false, safetyAlert: null });
+  };
+
+  type ParsedAction = BrowserAction & { done?: boolean; message?: string; reasoning?: string };
+
+  const parseAction = (text: string): ParsedAction | ParsedAction[] | null => {
+    try {
+      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : text.trim();
+      const parsed = JSON.parse(jsonStr);
+      // Multi-step batching: detect { "steps": [...] } format
+      if (parsed.steps && Array.isArray(parsed.steps)) {
+        const validSteps = parsed.steps.filter((s: any) => s.action);
+        if (validSteps.length > 0) return validSteps;
+      }
+      if (parsed.action) return parsed;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const callRunEmployee = async (
+    session: any,
+    messages: Array<{ role: string; content: string }>,
+    pageContext: any,
+    skipAction = false
+  ): Promise<string> => {
+    const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-employee`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({
+        employee_id: employee.id,
+        messages,
+        pageContext,
+        skip_action: skipAction,
+      }),
+      signal: abortRef.current?.signal,
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    return data.content || "";
+  };
+
+  const handleRun = async () => {
+    if (!extensionConnected) {
+      toast({ title: "Extension not detected", description: "Install and log into the TimeWarp extension to run employees.", variant: "destructive" });
+      return;
+    }
+    if (!checkCanUseAction()) return;
+
+    setRunning(true);
+    setIsPaused(false);
+    isPausedRef.current = false;
+    setIsManualMode(false);
+    isManualModeRef.current = false;
+    setSafetyAlert(null);
+    setCurrentStep("Preparing tab group…");
+    updateOverlay({ visible: true, employeeName: employee.name, currentStep: "Preparing tab group…", isPaused: false, isManualMode: false });
+    const groupReady = await signalStart(employee.id, employee.name);
+    if (!groupReady) {
+      toast({
+        title: "Extension tab group failed",
+        description: "The extension didn't create a tab group. Make sure the TimeWarp extension is installed, enabled, and you're not in an incognito window.",
+        variant: "destructive",
+      });
+      setRunning(false);
+      setCurrentStep("");
+      updateOverlay({ visible: false });
+      return;
+    }
+    setCurrentStep("");
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setRunning(false); return; }
+
+      await logStep("running", "Started", `Running SOP: ${employee.sop_title || employee.role}`);
+
+      // Small delay to let extension set up the tab group
+      await new Promise(r => setTimeout(r, 1200));
+
+      const procedureSteps = Array.isArray(employee.sop_procedure) ? employee.sop_procedure : [];
+      const stepCount = procedureSteps.length;
+
+      const conversationHistory: Array<{ role: string; content: string }> = [
+        { role: "user", content: `Execute the FULL SOP procedure now, step by step. You have ${stepCount} procedure steps to complete. Start with step 1 immediately — navigate to the correct URL. There is no page context yet because you need to open the first page yourself. Do NOT return "done" until every single procedure step has been completed. Work through ALL ${stepCount} steps sequentially.` },
+      ];
+
+      const MAX_STEPS = 80;
+
+      for (let step = 0; step < MAX_STEPS; step++) {
+        if (abortRef.current?.signal.aborted) break;
+
+        // Wait if paused or manual mode (use refs for fresh values)
+        if (isPausedRef.current || isManualModeRef.current) {
+          await waitForUnpause();
+        }
+        if (abortRef.current?.signal.aborted) break;
+
+        const pageContext = await getPageContext();
+
+        setCurrentStep(`Step ${step + 1}: Thinking…`);
+        updateOverlay({ visible: true, employeeName: employee.name, currentStep: `Step ${step + 1}: Thinking…`, isPaused: false, isManualMode: false });
+        await logStep("running", `Step ${step + 1}`, "Thinking…");
+        const aiResponse = await callRunEmployee(session, conversationHistory, pageContext, step > 0);
+
+        conversationHistory.push({ role: "assistant", content: aiResponse });
+
+        const parsed = parseAction(aiResponse);
+
+        if (!parsed) {
+          // Retry: AI responded with plain text instead of JSON — ask it to fix
+          conversationHistory.push({
+            role: "user",
+            content: `Your response was not valid JSON. You MUST always respond with a JSON code block. Re-read the SOP and continue from where you left off. Respond with the next action as a JSON code block.`,
+          });
+          await logStep("running", `Step ${step + 1}`, "Retrying: AI did not return JSON");
+          continue;
+        }
+
+        // Normalize: single action → array of one for unified processing
+        const actionBatch: ParsedAction[] = Array.isArray(parsed) ? parsed : [parsed];
+
+        let batchDone = false;
+        for (let batchIdx = 0; batchIdx < actionBatch.length; batchIdx++) {
+          const action = actionBatch[batchIdx];
+          if (abortRef.current?.signal.aborted) break;
+
+          const stepLabel = actionBatch.length > 1
+            ? `Step ${step + 1}.${batchIdx + 1}`
+            : `Step ${step + 1}`;
+
+          if (action.done || action.action === "done") {
+            setCurrentStep("Completed");
+            updateOverlay({ visible: false });
+            await logStep("completed", "Completed", action.message || "SOP execution finished.");
+            toast({ title: "Run completed", description: `${employee.name} finished executing the SOP.` });
+            batchDone = true;
+            break;
+          }
+
+          // Safety check BEFORE execution
+          const safetyBlock = isSafetyBlocked(action);
+          if (safetyBlock) {
+            setSafetyAlert(safetyBlock);
+            setIsPaused(true);
+            isPausedRef.current = true;
+            setIsManualMode(true);
+            isManualModeRef.current = true;
+            await logStep("running", `${stepLabel} ⚠️`, `SAFETY: ${safetyBlock}`);
+
+            // Wait for user to handle manually and return control
+            await new Promise<void>((resolve) => {
+              pauseResolverRef.current = resolve;
+            });
+
+            if (abortRef.current?.signal.aborted) break;
+
+            // After manual takeover, tell AI the user handled it
+            conversationHistory.push({
+              role: "user",
+              content: `The user manually completed the sensitive action (${action.action}). Continue with the next SOP step. Get fresh page context.`,
+            });
+            setSafetyAlert(null);
+            continue;
+          }
+
+          if (action.action === "respond") {
+            setCurrentStep(`${stepLabel}: ${action.message?.slice(0, 60) || "Message"}`);
+            await logStep("running", stepLabel, action.message || action.reasoning || "Response");
+            continue;
+          }
+
+          setCurrentStep(`${stepLabel}: ${action.action}`);
+          updateOverlay({ visible: true, employeeName: employee.name, currentStep: `${stepLabel}: ${action.action}`, isPaused: false, isManualMode: false });
+          await logStep("running", stepLabel, `${action.action}: ${action.reasoning || action.selector || action.url || ""}`);
+
+          const result = await executeAction(action, true) || { success: false, action: action.action, error: "No response from extension" };
+
+          if (result.success) {
+            await logStep("running", `${stepLabel} ✓`, `Completed: ${action.action}`);
+          } else {
+            await logStep("error", `${stepLabel} ✗`, result.error || "Action failed");
+          }
+
+          const resultMsg = result.success
+            ? `Action "${action.action}" succeeded.${result.data ? ` Data: ${JSON.stringify(result.data)}` : ""}`
+            : `Action "${action.action}" failed: ${result.error || "unknown error"}`;
+
+          // Only add conversation context after the last action in the batch
+          if (batchIdx === actionBatch.length - 1) {
+            const freshContext = await getPageContext();
+            const contextInfo = freshContext?.url ? ` Current page: ${freshContext.url}` : "";
+            conversationHistory.push({ role: "user", content: resultMsg + contextInfo + ` Continue with the next SOP step. You have ${stepCount} total steps to complete.` });
+          }
+        }
+
+        if (batchDone) break;
+      }
+    } catch (e: any) {
+      if (e.name !== "AbortError") {
+        await logStep("error", "Error", e.message || "Unknown error");
+        toast({ title: "Run failed", description: e.message, variant: "destructive" });
+      }
+    } finally {
+      setRunning(false);
+      setIsPaused(false);
+      isPausedRef.current = false;
+      setIsManualMode(false);
+      isManualModeRef.current = false;
+      setSafetyAlert(null);
+      setCurrentStep("");
+      updateOverlay({ visible: false });
+      signalStop(employee.id);
+      abortRef.current = null;
+    }
+  };
+
+  const handleStop = () => {
+    abortRef.current?.abort();
+    updateOverlay({ visible: false });
+    signalStop(employee.id);
+    setRunning(false);
+    setIsPaused(false);
+    isPausedRef.current = false;
+    setIsManualMode(false);
+    isManualModeRef.current = false;
+    setSafetyAlert(null);
+    pauseResolverRef.current?.();
+    pauseResolverRef.current = null;
+    toast({ title: "Run stopped" });
+  };
+
+  const toggleResultExpand = (logId: string) => {
+    setExpandedResults(prev => {
+      const next = new Set(prev);
+      if (next.has(logId)) next.delete(logId);
+      else next.add(logId);
+      return next;
+    });
+  };
+
+  const handleDownloadResult = (log: LogEntry) => {
+    const blob = new Blob([log.message || ""], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${employee.name}-${log.step_label || "result"}-${new Date(log.created_at).toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveToDatabase = async (log: LogEntry) => {
+    setSavingToDb(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      const wsId = activeWorkspace?.workspaceId || localStorage.getItem("preferred_workspace_id");
+      await supabase.from("user_business_data").insert({
+        user_id: session.user.id,
+        workspace_id: wsId || null,
+        title: `${employee.name} – ${log.step_label || "Result"}`,
+        data_type: "document",
+        source: "ai_employee",
+        content: log.message || "",
+      });
+      toast({ title: "Saved to database", description: "Result added to your Business Database." });
+      setViewingResult(null);
+    } catch (e: any) {
+      toast({ title: "Failed to save", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingToDb(false);
+    }
+  };
+
+  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="space-y-2">
+      <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
+      <div className="text-sm">{children}</div>
+    </div>
+  );
+
+  const renderList = (items: any[], renderItem?: (item: any, i: number) => React.ReactNode) => {
+    if (!items || items.length === 0) return <p className="text-muted-foreground italic">Not specified</p>;
+    return (
+      <ul className="space-y-1">
+        {items.map((item, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="text-muted-foreground font-mono text-xs mt-0.5 w-5 text-right shrink-0">{i + 1}.</span>
+            <span>{renderItem ? renderItem(item, i) : String(item)}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const statusIcon = (status: string) => {
+    if (status === "completed") return <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />;
+    if (status === "error") return <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />;
+    return <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
+  };
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex items-center gap-3 p-4 border-b border-border">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <h2 className="font-semibold">{employee.name}</h2>
+          <p className="text-xs text-muted-foreground">{employee.role}</p>
+        </div>
+
+        {/* Extension status */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {detecting ? (
+            <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting extension…</>
+          ) : extensionConnected ? (
+            <><Wifi className="h-3.5 w-3.5 text-primary" /> Extension connected</>
+          ) : (
+            <button onClick={retryDetection} className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+              <WifiOff className="h-3.5 w-3.5 text-destructive" /> Extension not found
+              <RefreshCw className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        {!running && (
+          <>
+            <Button variant="outline" size="sm" className="gap-2" onClick={isEditing ? handleSaveEdit : startEditing} disabled={savingEdit}>
+              {savingEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isEditing ? <Save className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+              {isEditing ? "Save" : "Edit"}
+            </Button>
+            {isEditing && (
+              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+            )}
+            <Button
+              onClick={handleRun}
+              disabled={!extensionConnected || detecting || isEditing}
+              className="gap-2"
+              size="sm"
+              title={!extensionConnected ? "Install and log into the TimeWarp extension to run employees" : undefined}
+            >
+              <Play className="h-4 w-4" />
+              Run Employee
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(employee.id)} className="text-destructive hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div className="flex items-center gap-4">
+            <BusinessBrainOrb size={64} />
+            <div>
+              <h2 className="text-xl font-semibold">{employee.name}</h2>
+              <p className="text-muted-foreground">{employee.role}</p>
+            </div>
+          </div>
+
+          {!extensionConnected && !detecting && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+              <p className="font-medium text-destructive">Browser extension required</p>
+              <p className="text-muted-foreground mt-1">
+                Install and log into the TimeWarp browser extension to connect this employee to your browser and execute SOP steps automatically.
+              </p>
+            </div>
+          )}
+
+          {isEditing ? (
+            /* Edit Mode */
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">What should this employee be called?</Label>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="e.g. Alex" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">What role will they perform?</Label>
+                <Input value={editRole} onChange={e => setEditRole(e.target.value)} placeholder="e.g. Audience Researcher" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">What is the title of this procedure?</Label>
+                <Input value={editSopTitle} onChange={e => setEditSopTitle(e.target.value)} placeholder="e.g. Signal Mining Method" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Why does this procedure exist?</Label>
+                <Input value={editPurposeWhy} onChange={e => setEditPurposeWhy(e.target.value)} placeholder="e.g. To gather data-backed product research" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">What are the step-by-step instructions?</Label>
+                <p className="text-xs text-muted-foreground">The core procedure this employee will follow, in order.</p>
+                {editProcedure.map((p, i) => (
+                  <div key={i} className="flex gap-2 items-center">
+                    <span className="text-xs text-muted-foreground font-mono w-5 text-right shrink-0">{i + 1}.</span>
+                    <Input value={p} onChange={e => { const c = [...editProcedure]; c[i] = e.target.value; setEditProcedure(c); }} placeholder={`Step ${i + 1}`} />
+                    {editProcedure.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => setEditProcedure(editProcedure.filter((_, j) => j !== i))}><X className="h-3 w-3" /></Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setEditProcedure([...editProcedure, ""])} className="gap-1">
+                  <Plus className="h-3 w-3" /> Add Step
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Any safety warnings or regulations?</Label>
+                <Input value={editSafetyWarnings} onChange={e => setEditSafetyWarnings(e.target.value)} placeholder="e.g. Don't chat with anyone" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Any risk considerations?</Label>
+                <Input value={editSafetyRisks} onChange={e => setEditSafetyRisks(e.target.value)} placeholder="e.g. Escalation required for legal threats" />
+              </div>
+            </div>
+          ) : (
+            /* View Mode — matching wizard fields only */
+            <div className="space-y-6">
+              <Section title="SOP Title">
+                <p className="font-medium">{employee.sop_title || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Why does this procedure exist?">
+                <p>{employee.sop_purpose || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Procedure">
+                {employee.sop_procedure && employee.sop_procedure.length > 0
+                  ? renderList(employee.sop_procedure)
+                  : <p className="text-muted-foreground italic">Not specified</p>
+                }
+              </Section>
+              <Section title="Safety warnings or regulations">
+                <p>{(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[0] : "") || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+              <Section title="Risk considerations">
+                <p>{(employee.sop_safety_notes ? employee.sop_safety_notes.split("\n\n")[1] : "") || <span className="text-muted-foreground italic">Not specified</span>}</p>
+              </Section>
+
+              {employee.sop_revision_history && employee.sop_revision_history.length > 0 && (
+                <Section title="Revision History">
+                  <div className="space-y-1">
+                    {employee.sop_revision_history.map((rev: any, i: number) => (
+                      <div key={i} className="flex gap-3 text-xs">
+                        <span className="font-mono text-muted-foreground">{rev.version}</span>
+                        <span className="text-muted-foreground">{rev.date}</span>
+                        <span>{rev.notes}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
+            </div>
+          )}
+
+          {/* Domain Lens — strategic-thinker fields + supervised agents */}
+          {!isEditing && (
+            <EmployeeDomainLensPanel
+              employeeId={employee.id}
+              initial={{
+                domain_lens: employee.domain_lens ?? null,
+                owns: Array.isArray(employee.owns) ? employee.owns : [],
+                advises_on: Array.isArray(employee.advises_on) ? employee.advises_on : [],
+                does_not_touch: Array.isArray(employee.does_not_touch) ? employee.does_not_touch : [],
+                triggers: employee.triggers ?? null,
+              }}
+              onSaved={(next) => {
+                setEmployee((prev) => ({
+                  ...prev,
+                  domain_lens: next.domain_lens,
+                  owns: next.owns,
+                  advises_on: next.advises_on,
+                  does_not_touch: next.does_not_touch,
+                  triggers: next.triggers,
+                }));
+              }}
+            />
+          )}
+
+          {/* Quality Score */}
+          {!isEditing && (
+            <QualityScore employee={employee} logs={logs} loadingLogs={loadingLogs} />
+          )}
+
+          {/* Produced Files */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Produced Files</h3>
+            {loadingFiles ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              </div>
+            ) : producedFiles.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">No files produced yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {producedFiles.map(f => (
+                  <div key={f.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 text-sm">
+                    <FileText className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{f.title}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(f.created_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+
+          {/* Activity Log */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Activity Log</h3>
+              {logs.length > 0 && (
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1 h-7 text-xs" onClick={handleClearAllLogs}>
+                  <Trash2 className="h-3 w-3" /> Clear All
+                </Button>
+              )}
+            </div>
+            {loadingLogs ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading logs...
+              </div>
+            ) : logs.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">No activity yet. Click "Run Employee" to execute the SOP.</p>
+            ) : (
+              <div className="space-y-3 max-h-[500px] overflow-auto border border-border rounded-lg p-3 bg-muted/20">
+                {logs.map(log => {
+                  const isResult = log.status === "completed" && log.message && log.message.length > 40;
+
+                  return (
+                    <div key={log.id}>
+                      <div className="flex items-start gap-2.5 text-sm group">
+                        {statusIcon(log.status)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            {log.step_label && (
+                              <span className="font-medium text-xs bg-muted px-1.5 py-0.5 rounded">{log.step_label}</span>
+                            )}
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(log.created_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          {!isResult && log.message && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.message}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteLog(log.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+
+                      {/* Result Card */}
+                      {isResult && (
+                        <button
+                          onClick={() => setViewingResult(log)}
+                          className="mt-2 ml-6 w-[calc(100%-1.5rem)] rounded-xl border border-border bg-background hover:bg-muted/40 transition-colors p-4 text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <FileText className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{log.step_label || "Result"}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{log.message?.slice(0, 150)}…</p>
+                            </div>
+                            <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Result Viewer Dialog */}
+      <Dialog open={!!viewingResult} onOpenChange={(open) => !open && setViewingResult(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col p-0">
+          <div className="flex items-center justify-between p-5 pb-0">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">{viewingResult?.step_label || "Result"}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {viewingResult ? new Date(viewingResult.created_at).toLocaleString() : ""}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto px-5 py-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm whitespace-pre-wrap leading-relaxed">
+              {viewingResult?.message}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 p-5 pt-0 border-t border-border mt-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => viewingResult && handleDownloadResult(viewingResult)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => viewingResult && handleSaveToDatabase(viewingResult)}
+              disabled={savingToDb}
+            >
+              {savingToDb ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Database className="h-3.5 w-3.5" />}
+              Add to Business Database
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {running && (
+        <EmployeeRunOverlay
+          employeeName={employee.name}
+          currentStep={currentStep}
+          isPaused={isPaused}
+          isManualMode={isManualMode}
+          onPause={handlePause}
+          onContinue={handleContinue}
+          onStop={handleStop}
+          onManualTakeover={handleManualTakeover}
+          onReturnControl={handleReturnControl}
+          safetyAlert={safetyAlert}
+        />
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,154 @@
+import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ActionsCelebration } from "@/components/database/ActionsCelebration";
+
+const InviteAccept = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState<"loading" | "success" | "error" | "auth">("loading");
+  const [message, setMessage] = useState("");
+  const [showCelebration, setShowCelebration] = useState(false);
+  const token = searchParams.get("token");
+  const refCode = searchParams.get("ref");
+
+  useEffect(() => {
+    if (!token && !refCode) {
+      setStatus("error");
+      setMessage("Invalid invite link.");
+      return;
+    }
+
+    const accept = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setStatus("auth");
+        setMessage("Please sign in to accept this invitation.");
+        return;
+      }
+
+      // Handle workspace invitation
+      if (token) {
+        const { data, error } = await supabase.rpc("accept_workspace_invitation", {
+          _token: token,
+        });
+
+        if (error) {
+          setStatus("error");
+          setMessage(error.message);
+          return;
+        }
+
+        const result = data as any;
+        if (result?.error) {
+          setStatus("error");
+          setMessage(result.error);
+        } else {
+          if (result?.workspace_id) {
+            // Persist preference and invalidate cached workspace list so
+            // useWorkspace re-fetches and includes the new workspace
+            // immediately (otherwise a stale 30-min cache hides it and the
+            // auto-selector falls back to the user's owned workspace).
+            localStorage.setItem("preferred_workspace_id", result.workspace_id);
+            await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+            await queryClient.refetchQueries({ queryKey: ["workspaces"] });
+            window.dispatchEvent(new Event("workspace_changed"));
+          }
+          setStatus("success");
+          setMessage("You've been added to the workspace!");
+          // Show celebration for the 20 bonus actions granted
+          if (result?.actions_granted) {
+            setShowCelebration(true);
+          }
+        }
+      }
+
+      // Handle referral code (can coexist with invite)
+      if (refCode) {
+        try {
+          const { data: refResult } = await supabase.rpc("complete_referral", {
+            _referral_code: refCode,
+            _referred_user_id: session.user.id,
+          });
+          const rr = refResult as any;
+          if (rr?.success) {
+            setShowCelebration(true);
+            if (!token) {
+              setStatus("success");
+              setMessage("Welcome! You've received 20 bonus Actions!");
+            }
+          } else if (rr?.error && !token) {
+            setStatus("error");
+            setMessage(rr.error);
+          }
+        } catch {
+          // Referral processing failed silently if invite succeeded
+          if (!token) {
+            setStatus("error");
+            setMessage("Failed to process referral.");
+          }
+        }
+      }
+    };
+
+    accept();
+  }, [token, refCode]);
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="max-w-md w-full text-center space-y-4">
+        {status === "loading" && (
+          <>
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+            <p className="text-muted-foreground">Processing...</p>
+          </>
+        )}
+        {status === "success" && (
+          <>
+            <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto" />
+            <h1 className="text-xl font-semibold">{message}</h1>
+            <Button onClick={() => navigate("/app")}>Go to Workspace</Button>
+          </>
+        )}
+        {status === "error" && (
+          <>
+            <XCircle className="h-12 w-12 text-destructive mx-auto" />
+            <h1 className="text-xl font-semibold">Something went wrong</h1>
+            <p className="text-muted-foreground">{message}</p>
+            <Button variant="outline" onClick={() => navigate("/")}>Go Home</Button>
+          </>
+        )}
+        {status === "auth" && (
+          <>
+            <h1 className="text-xl font-semibold">{message}</h1>
+            <Button onClick={() => {
+              const params = new URLSearchParams();
+              if (token) params.set("redirect", `/invite?token=${token}`);
+              if (refCode) params.set("ref", refCode);
+              navigate(`/auth?${params.toString()}`);
+            }}>
+              Sign In
+            </Button>
+          </>
+        )}
+      </div>
+      <ActionsCelebration
+        open={showCelebration}
+        onOpenChange={(open) => {
+          setShowCelebration(open);
+          if (!open && status === "success") {
+            navigate("/app");
+          }
+        }}
+        actionsGranted={20}
+        reason="referred"
+      />
+    </div>
+  );
+};
+
+export default InviteAccept;

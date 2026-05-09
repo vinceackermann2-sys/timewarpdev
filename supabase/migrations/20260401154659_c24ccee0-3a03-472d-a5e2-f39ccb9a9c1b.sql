@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_recalculate_data_usage ON public.user_business_data;

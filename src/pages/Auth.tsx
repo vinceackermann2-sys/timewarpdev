@@ -1,0 +1,466 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
+import authBg from "@/assets/auth-bg.webp";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link as RouterLink } from "react-router-dom";
+import { ActionsCelebration } from "@/components/database/ActionsCelebration";
+import { getSafeSession } from "@/lib/authSession";
+import { lovable } from "@/integrations/lovable";
+
+const TIMEWARP_EXTENSION_ID = "hcijmgkimmhiehjcnljaookjomhocjdd";
+
+function sendDirectExtensionMessage(message: Record<string, any>): Promise<any | null> {
+  return new Promise((resolve) => {
+    const runtime = (globalThis as any).chrome?.runtime;
+    if (!runtime?.sendMessage) return resolve(null);
+    try {
+      runtime.sendMessage(TIMEWARP_EXTENSION_ID, message, (response: any) => {
+        if (runtime.lastError) return resolve(null);
+        resolve(response ?? null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+const Auth = () => {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationReason, setCelebrationReason] = useState<"referral" | "referred">("referred");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  const quizDataFromNav = (location.state as any)?.quizData;
+  // Only use stored quizData for passing to dashboard, not for UI display
+  const storedQuizData = (() => {
+    try {
+      const raw = localStorage.getItem("quizData") || sessionStorage.getItem("quizData");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+  // Show Google connect UI only when coming directly from quiz flow (nav state)
+  const quizData = quizDataFromNav;
+  // Data to pass forward to dashboard after auth
+  const quizDataForDashboard = quizDataFromNav ?? storedQuizData;
+
+  const navigateToDashboard = (isNewUser = false) => {
+    const params = new URLSearchParams();
+    const productUrl = searchParams.get("url");
+    if (productUrl) {
+      params.set("addProduct", "true");
+      params.set("url", productUrl);
+    }
+    if (isNewUser) {
+      params.set("onboarding", "business-dna");
+    }
+    const qs = params.toString();
+    navigate(`/app${qs ? `?${qs}` : ""}`, { state: { quizData: quizDataForDashboard } });
+  };
+
+  const refCode = searchParams.get("ref");
+  useEffect(() => {
+    if (refCode) {
+      localStorage.setItem("referral_code", refCode);
+      setIsSignUp(true);
+    }
+  }, [refCode]);
+
+  // ── Extension auth bridge ──
+  // If the extension launched sign-in via /auth?ext_nonce=..., once a session
+  // exists, post it back to the background. If the user is ALREADY signed in,
+  // we deliver immediately and show a "you can close this tab" confirmation
+  // instead of redirecting to /app.
+  const extNonce = searchParams.get("ext_nonce");
+  const [extDelivered, setExtDelivered] = useState(false);
+  useEffect(() => {
+    if (!extNonce) return;
+    let cancelled = false;
+    const tryDeliver = async () => {
+      const session = await getSafeSession();
+      if (cancelled || !session?.access_token) return false;
+      const authPayload = {
+        type: "TIMEWARP_AUTH_DELIVER",
+        nonce: extNonce,
+        session: {
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          user: { id: session.user.id, email: session.user.email },
+        },
+      };
+      const direct = await sendDirectExtensionMessage(authPayload);
+      window.postMessage(authPayload, window.location.origin);
+      if (direct?.success || direct?.success === undefined) {
+        setExtDelivered(true);
+        // Try to close the tab automatically (works if the tab was opened by the extension via chrome.tabs.create — window.close may be blocked).
+        setTimeout(() => { try { window.close(); } catch {} }, 600);
+      }
+      return true;
+    };
+    tryDeliver();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => { tryDeliver(); });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, [extNonce]);
+
+  useEffect(() => {
+    if (quizData) {
+      localStorage.setItem("quizData", JSON.stringify(quizData));
+      sessionStorage.setItem("quizData", JSON.stringify(quizData));
+    }
+
+    const processReferral = async (userId: string): Promise<boolean> => {
+      const storedRef = localStorage.getItem("referral_code");
+      if (storedRef) {
+        try {
+          const { data } = await supabase.rpc("complete_referral", {
+            _referral_code: storedRef,
+            _referred_user_id: userId,
+          });
+          localStorage.removeItem("referral_code");
+          if (data && (data as any).success) {
+            // Mark celebration as shown server-side so it never re-appears
+            await supabase
+              .from("referrals")
+              .update({ referred_celebrated_at: new Date().toISOString() })
+              .eq("referral_code", storedRef)
+              .eq("referred_user_id", userId);
+            setCelebrationReason("referred");
+            setShowCelebration(true);
+            return true;
+          }
+        } catch (err) {
+          console.error("Referral processing error:", err);
+        }
+      }
+      return false;
+    };
+
+    const handleAuthenticatedUser = async (userId: string, session: any) => {
+      // If we're handling an extension sign-in, do NOT redirect — let the
+      // ext_nonce effect deliver the session and show the close-tab message.
+      if (extNonce) return;
+      const celebrated = await processReferral(userId);
+      if (celebrated) return;
+      const redirect = searchParams.get("redirect");
+      if (redirect) {
+        navigate(redirect, { replace: true });
+        return;
+      }
+      // Detect brand-new user
+      const createdAt = new Date(session.user.created_at).getTime();
+      const isNewUser = Date.now() - createdAt < 30000;
+      if (!quizData) {
+        navigateToDashboard(isNewUser);
+      }
+    };
+
+    let isMounted = true;
+
+    const checkSession = async () => {
+      const session = await getSafeSession();
+      if (!isMounted || !session) return;
+      await handleAuthenticatedUser(session.user.id, session);
+    };
+
+    void checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted || !session) return;
+      await handleAuthenticatedUser(session.user.id, session);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate, quizData, searchParams, extNonce]);
+
+  const validateForm = () => {
+    if (!email || !password) {
+      toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" });
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
+      return false;
+    }
+    if (password.length < 6) {
+      toast({ title: "Password too short", description: "Password must be at least 6 characters.", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const session = await getSafeSession();
+      const extNonce = searchParams.get("ext_nonce");
+      const oauthRedirect = extNonce
+        ? `${window.location.origin}/auth?ext_nonce=${encodeURIComponent(extNonce)}&mode=login`
+        : `${window.location.origin}${searchParams.get("redirect") || "/app"}`;
+
+      // Not signed in yet — use managed OAuth (no extra scopes needed)
+      if (!session?.user) {
+        const result = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: oauthRedirect,
+          extraParams: { prompt: "select_account" },
+        });
+
+        if (result.error) throw result.error;
+        return;
+      }
+
+      // Already signed in — use custom OAuth flow for extra scopes
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const scopes = quizData
+        ? [
+            "https://www.googleapis.com/auth/gmail.send",
+            "https://www.googleapis.com/auth/gmail.compose",
+            "https://www.googleapis.com/auth/gmail.readonly",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/calendar",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/documents",
+            "https://www.googleapis.com/auth/forms.body.readonly",
+            "openid",
+            "email",
+            "profile",
+          ].join(" ")
+        : "openid email profile";
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/initiate-google-oauth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ user_id: session.user.id, scopes, origin: window.location.origin }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to initiate Google OAuth");
+      }
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error: any) {
+      toast({
+        title: "Google sign-in failed",
+        description: error.message || "Could not connect to Google. Please try again.",
+        variant: "destructive",
+      });
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setIsLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/app?view=aiceo` },
+        });
+        if (error) {
+          if (error.message.includes("already registered")) {
+            toast({
+              title: "Account exists",
+              description: "This email is already registered. Please log in instead.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
+        } else {
+          // onAuthStateChange will handle redirect with onboarding param
+          toast({ title: "Account created!", description: "You're now signed in. Welcome to TimeWarp!" });
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            toast({
+              title: "Invalid credentials",
+              description: "Please check your email and password.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
+        }
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (extNonce && extDelivered) {
+    return (
+      <div className="min-h-screen w-full bg-background flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3">
+          <img src="/favicon.png" alt="TimeWarp" className="h-12 w-12 rounded-lg object-cover mx-auto" />
+          <h1 className="text-2xl font-bold text-foreground">Extension signed in</h1>
+          <p className="text-sm text-muted-foreground">You can close this tab and return to the TimeWarp extension.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-background flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4 bg-background">
+        <div className="w-full max-w-md flex flex-col justify-center">
+          <div className="flex items-center gap-2 mb-6">
+            <img src="/favicon.png" alt="TimeWarp" className="h-9 w-9 rounded-lg object-cover" />
+            <span className="font-semibold text-lg text-foreground">TimeWarp</span>
+          </div>
+
+          <h1 className="text-3xl font-bold text-foreground mb-1">
+            {quizData ? "Connect your Google account" : isSignUp ? "Create your account" : "Welcome back"}
+          </h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            {quizData
+              ? "Sign in with Google to let TimeWarp access your Docs, Sheets, and Gmail"
+              : isSignUp
+                ? "Sign up to get started with AI-powered business tools"
+                : "Log in to your TimeWarp account"}
+          </p>
+
+          <Button
+            type="button"
+            variant={quizData ? "default" : "outline"}
+            className="w-full gap-3 mb-4 h-12 rounded-xl border border-border bg-[hsl(30,20%,20%)] text-[hsl(40,30%,95%)] dark:bg-[hsl(40,30%,95%)] dark:text-[hsl(30,20%,20%)] hover:opacity-90"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+            )}
+            Continue with Google
+          </Button>
+
+          {!quizData && (
+            <>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">OR</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="email" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-card border-border" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required className="pl-10 h-12 rounded-xl bg-card border-border" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {isSignUp && (
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="terms"
+                      checked={agreedToTerms}
+                      onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                      className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    />
+                    <label htmlFor="terms" className="text-sm text-muted-foreground leading-snug">
+                      I agree to our{" "}
+                      <RouterLink to="/terms-of-purchase" className="text-primary hover:underline">Terms of Service</RouterLink>
+                      {" "}and{" "}
+                      <RouterLink to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</RouterLink>
+                    </label>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 rounded-xl text-primary-foreground bg-primary"
+                  disabled={isLoading || (isSignUp && !agreedToTerms)}
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isSignUp ? "Create your account" : "Log In"}
+                </Button>
+              </form>
+
+              <div className="text-center text-sm mt-4">
+                {isSignUp ? (
+                  <>
+                    Already have an account?{" "}
+                    <button onClick={() => setIsSignUp(false)} className="hover:underline font-medium text-primary">Sign in here</button>
+                  </>
+                ) : (
+                  <>
+                    Don't have an account?{" "}
+                    <button onClick={() => setIsSignUp(true)} className="hover:underline font-medium text-primary">Sign up</button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+
+          {quizData && (
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              By connecting, you allow TimeWarp to read your Google Workspace data to provide insights and generate content.
+            </p>
+          )}
+        </div>
+      </div>
+      <ActionsCelebration
+        open={showCelebration}
+        onOpenChange={(open) => {
+          setShowCelebration(open);
+          if (!open) navigateToDashboard();
+        }}
+        actionsGranted={20}
+        reason={celebrationReason}
+      />
+    </div>
+  );
+};
+
+export default Auth;

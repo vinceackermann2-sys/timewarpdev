@@ -1,0 +1,528 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.49.4";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+async function updateBucketContext(supabaseAdmin: any, userId: string) {
+  try {
+    const { data: allData } = await supabaseAdmin
+      .from("user_business_data")
+      .select("data_type, source, title, content, analyzed_content, metadata, is_analyzed")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const contextJson = JSON.stringify({
+      updated_at: new Date().toISOString(),
+      total: allData?.length || 0,
+      items: (allData || []).map((item: any) => ({
+        data_type: item.data_type,
+        source: item.source,
+        title: item.title,
+        content: item.content || null,
+        analyzed_content: item.analyzed_content || null,
+        is_analyzed: item.is_analyzed,
+        metadata: item.metadata || null,
+      })),
+    });
+
+    await supabaseAdmin.storage
+      .from("business-data")
+      .upload(`${userId}/context.json`, new Blob([contextJson], { type: "application/json" }), {
+        upsert: true,
+        contentType: "application/json",
+      });
+  } catch (e) {
+    console.error("Failed to update bucket context");
+  }
+}
+
+// Determine if a MIME type is audio
+function isAudioMime(mime: string): boolean {
+  return mime.startsWith("audio/") || ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/mp4", "audio/m4a", "audio/aac", "audio/ogg", "audio/webm"].includes(mime);
+}
+
+// Determine if a MIME type is video
+function isVideoMime(mime: string): boolean {
+  return mime.startsWith("video/") || ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo", "video/avi"].includes(mime);
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("authorization");
+    const { type, content } = await req.json();
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    // Get user for persisting results
+    let userId: string | null = null;
+    let supabaseAdmin: any = null;
+    if (authHeader) {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false },
+      });
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+      if (user) userId = user.id;
+    }
+
+    let userPrompt = "";
+    let useMultimodal = false;
+    let mediaUrl = "";
+    let dataTitle = "Untitled";
+    let dataType = type;
+    let extractedText = "";
+
+    switch (type) {
+      case "text":
+        userPrompt = `Analyze this text content and provide a structured summary with key insights, topics, and any actionable information:\n\n${content.text}`;
+        dataTitle = content.text?.slice(0, 80) || "Text content";
+        extractedText = content.text || "";
+        break;
+
+      case "document": {
+        const name = content.documentName || "Unknown";
+        dataTitle = name;
+        if (content.documentText) {
+          extractedText = content.documentText;
+          userPrompt = `Analyze this document titled "${name}".\n\nContent:\n${content.documentText}\n\nProvide a structured summary including: document type, key topics, main findings, and actionable insights.`;
+        } else if (content.fileBase64) {
+          useMultimodal = true;
+          mediaUrl = `data:${content.fileMimeType || "application/pdf"};base64,${content.fileBase64}`;
+          userPrompt = `Analyze this document titled "${name}" in detail. Extract ALL text content, identify the document type, key topics, main findings, tables, and actionable insights. Return the full extracted text at the end under a "## Extracted Text" heading.`;
+        } else {
+          userPrompt = `Analyze a document titled "${name}". No content was provided.`;
+        }
+        break;
+      }
+
+      case "image":
+        useMultimodal = true;
+        dataTitle = content.imageName || "Image";
+        if (content.imageBase64) {
+          mediaUrl = `data:${content.imageMimeType || "image/png"};base64,${content.imageBase64}`;
+        }
+        userPrompt = `Analyze this image in detail. Describe what you see, extract any text (OCR), identify key elements, and provide relevant business insights. Return all extracted text under a "## Extracted Text" heading.`;
+        break;
+
+      case "audio": {
+        // Audio files: send as base64 to Gemini for transcription + analysis
+        const audioName = content.fileName || "Audio file";
+        dataTitle = audioName;
+        if (content.fileBase64) {
+          useMultimodal = true;
+          mediaUrl = `data:${content.fileMimeType || "audio/mpeg"};base64,${content.fileBase64}`;
+          userPrompt = `You are receiving an audio file titled "${audioName}". Please:
+1. **Transcribe** the entire audio content word-for-word
+2. **Summarize** the key topics discussed
+3. **Extract** any action items, decisions, names, dates, or numbers mentioned
+4. **Identify** speakers if there are multiple
+5. Provide **business insights** from the content
+
+Format your response with these sections:
+## Full Transcript
+(word-for-word transcription)
+
+## Summary
+(key topics and overview)
+
+## Key Findings
+(action items, decisions, important details)
+
+## Business Insights
+(actionable takeaways)`;
+        } else {
+          userPrompt = `An audio file titled "${audioName}" was uploaded but no content was provided for analysis.`;
+        }
+        break;
+      }
+
+      case "video": {
+        // Video files: send as base64 to Gemini for visual + audio analysis
+        const videoName = content.fileName || "Video file";
+        dataTitle = videoName;
+        if (content.fileBase64) {
+          useMultimodal = true;
+          mediaUrl = `data:${content.fileMimeType || "video/mp4"};base64,${content.fileBase64}`;
+          userPrompt = `You are receiving a video file titled "${videoName}". Please analyze both the visual and audio content:
+
+1. **Transcribe** all spoken audio content word-for-word
+2. **Describe** the key visual scenes, on-screen text, graphics, charts, or slides
+3. **Summarize** the overall content and purpose of the video
+4. **Extract** any action items, decisions, names, dates, numbers, or data shown
+5. **Identify** speakers or presenters if visible/audible
+6. Provide **business insights** from the content
+
+Format your response with these sections:
+## Audio Transcript
+(word-for-word transcription of spoken content)
+
+## Visual Content
+(description of key frames, slides, charts, on-screen text)
+
+## Summary
+(key topics and overview)
+
+## Key Findings
+(action items, decisions, important details)
+
+## Business Insights
+(actionable takeaways)`;
+        } else {
+          userPrompt = `A video file titled "${videoName}" was uploaded but no content was provided for analysis.`;
+        }
+        break;
+      }
+
+      case "website": {
+        const rawUrl = content.websiteUrl || "";
+        dataTitle = rawUrl || "URL";
+
+        // Detect URL type
+        const isYouTube = /(?:youtube\.com\/(?:watch|embed|shorts)|youtu\.be\/)/i.test(rawUrl);
+        const isSocialMedia = /(?:twitter\.com|x\.com|instagram\.com|facebook\.com|tiktok\.com|linkedin\.com)/i.test(rawUrl);
+
+        if (isYouTube) {
+          // Extract YouTube video ID
+          const videoIdMatch = rawUrl.match(/(?:v=|\/(?:embed|shorts)\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+          const videoId = videoIdMatch?.[1] || "";
+          
+          // Use oEmbed API for metadata
+          let videoTitle = rawUrl;
+          let videoAuthor = "";
+          try {
+            const oembedRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(rawUrl)}&format=json`);
+            if (oembedRes.ok) {
+              const oembed = await oembedRes.json();
+              videoTitle = oembed.title || rawUrl;
+              videoAuthor = oembed.author_name || "";
+              dataTitle = videoTitle;
+            }
+          } catch (_) { /* ignore */ }
+
+          // Fetch the YouTube page to extract transcript, description, chapters, and thumbnail
+          let transcript = "";
+          let videoDescription = "";
+          let chapters: string[] = [];
+          let thumbnailBase64 = "";
+          
+          try {
+            const fetchRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+              redirect: "follow",
+            });
+            if (fetchRes.ok) {
+              const pageHtml = await fetchRes.text();
+
+              // Extract video description
+              const descMatch = pageHtml.match(/"shortDescription"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+              if (descMatch) {
+                videoDescription = descMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+              }
+
+              // Extract chapters from description (timestamp patterns like "0:00 Intro")
+              if (videoDescription) {
+                const chapterLines = videoDescription.split("\n").filter(line => /^\d{1,2}:\d{2}/.test(line.trim()));
+                if (chapterLines.length > 1) chapters = chapterLines;
+              }
+
+              // Extract captions/transcript
+              const captionMatch = pageHtml.match(/"captionTracks"\s*:\s*(\[.*?\])/);
+              if (captionMatch) {
+                try {
+                  const captionTracks = JSON.parse(captionMatch[1]);
+                  // Prefer English, then auto-generated, then first available
+                  const enTrack = captionTracks.find((t: any) => t.languageCode === "en" && !t.kind) 
+                    || captionTracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"))
+                    || captionTracks[0];
+                  const captionUrl = enTrack?.baseUrl;
+
+                  if (captionUrl) {
+                    const captionRes = await fetch(captionUrl);
+                    if (captionRes.ok) {
+                      const captionXml = await captionRes.text();
+                      // Parse timed captions: extract timestamps + text
+                      const segments: string[] = [];
+                      const segmentRegex = /<text start="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
+                      let match;
+                      while ((match = segmentRegex.exec(captionXml)) !== null) {
+                        const startSec = parseFloat(match[1]);
+                        const mins = Math.floor(startSec / 60);
+                        const secs = Math.floor(startSec % 60);
+                        const timestamp = `${mins}:${secs.toString().padStart(2, "0")}`;
+                        const text = match[2]
+                          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                          .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\n/g, " ").trim();
+                        if (text) segments.push(`[${timestamp}] ${text}`);
+                      }
+                      transcript = segments.join("\n");
+                      
+                      // If regex failed, fallback to simple extraction
+                      if (!transcript) {
+                        transcript = captionXml
+                          .replace(/<[^>]+>/g, " ")
+                          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+                          .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+                          .replace(/\s+/g, " ").trim();
+                      }
+                    }
+                  }
+                } catch (_) {
+                  console.error("Failed to parse caption tracks");
+                }
+              }
+            }
+          } catch (_) { /* ignore */ }
+
+          // Get high-res thumbnail for visual context
+          if (videoId) {
+            try {
+              const thumbRes = await fetch(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
+              if (thumbRes.ok && thumbRes.headers.get("content-type")?.includes("image")) {
+                const thumbBuf = await thumbRes.arrayBuffer();
+                const uint8 = new Uint8Array(thumbBuf);
+                let binary = "";
+                for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+                thumbnailBase64 = btoa(binary);
+              }
+            } catch (_) { /* ignore */ }
+          }
+
+          // Send thumbnail for visual analysis
+          if (thumbnailBase64) {
+            useMultimodal = true;
+            mediaUrl = `data:image/jpeg;base64,${thumbnailBase64}`;
+          }
+
+          extractedText = transcript || videoDescription || "";
+
+          userPrompt = `Analyze this YouTube video thoroughly based on its full transcript, description, and thumbnail.
+
+**Video URL:** ${rawUrl}
+**Title:** ${videoTitle}
+${videoAuthor ? `**Channel:** ${videoAuthor}` : ""}
+
+${videoDescription ? `**Video Description:**\n${videoDescription.slice(0, 5000)}\n` : ""}
+
+${chapters.length > 0 ? `**Chapters:**\n${chapters.join("\n")}\n` : ""}
+
+${transcript ? `**FULL TIMESTAMPED TRANSCRIPT (this is what was said in the video):**\n${transcript.slice(0, 80000)}\n` : "⚠️ No transcript/captions available for this video — analyze based on available metadata."}
+
+${thumbnailBase64 ? "I've also attached the video thumbnail — analyze what's visually shown (people, setting, style, branding).\n" : ""}
+
+Provide a comprehensive, detailed analysis:
+
+## Video Summary
+A thorough overview of what the video covers — what was discussed, demonstrated, or presented.
+
+## What Was Said (Key Dialogue & Arguments)
+The most important things said in the video, organized by topic. Include direct quotes with timestamps where impactful.
+
+## What Was Shown (Visual Content)
+Based on the thumbnail and transcript context, describe the visual format (talking head, slides, demo, etc.), setting, people, and any visual elements mentioned.
+
+## Key Points & Topics
+Detailed bullet-pointed list of every major subject, argument, and insight discussed.
+
+## Notable Quotes
+The most impactful direct quotes from the transcript with timestamps.
+
+## Target Audience
+Who this video is made for and why.
+
+## Business Insights & Takeaways
+Actionable insights — what can be learned or applied from this video.
+
+## Content Strategy Notes
+Format analysis, engagement techniques used, and how this fits into content strategy.`;
+
+        } else if (isSocialMedia) {
+          // Social media URL — fetch what we can
+          let pageContent = "";
+          try {
+            const fetchRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
+              redirect: "follow",
+            });
+            if (fetchRes.ok) {
+              const html = await fetchRes.text();
+              pageContent = html
+                .replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 15000);
+            }
+          } catch (_) { /* ignore */ }
+
+          extractedText = pageContent;
+          userPrompt = `Analyze this social media URL: ${rawUrl}
+
+Extracted page content:
+${pageContent || "(could not fetch - may require authentication)"}
+
+Provide a structured analysis including: platform, content type (post, profile, video, etc.), key information, engagement context, and business insights. If content couldn't be fetched, analyze what you can infer from the URL structure.`;
+
+        } else {
+          // Standard website
+          let websiteContent = "";
+          try {
+            const fetchRes = await fetch(rawUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; TimeWarpBot/1.0)" },
+              redirect: "follow",
+            });
+            if (fetchRes.ok) {
+              const html = await fetchRes.text();
+              websiteContent = html
+                .replace(/<script[\s\S]*?<\/script>/gi, "")
+                .replace(/<style[\s\S]*?<\/style>/gi, "")
+                .replace(/<[^>]+>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 15000);
+            }
+          } catch (fetchErr) {
+            console.error("Failed to fetch website");
+          }
+
+          extractedText = websiteContent;
+          if (websiteContent) {
+            userPrompt = `Analyze this website (${rawUrl}).\n\nExtracted content:\n${websiteContent}\n\nProvide a structured summary including: what the website is about, key topics, main offerings/products, contact info if available, and actionable business insights.`;
+          } else {
+            userPrompt = `Analyze the website at ${rawUrl}. I couldn't fetch its content directly. Provide any insights you can based on the URL.`;
+          }
+        }
+        break;
+      }
+
+      default:
+        throw new Error(`Unsupported content type: ${type}`);
+    }
+
+    const messages: any[] = [
+      {
+        role: "system",
+        content:
+          "You are a business data analyst. Analyze the provided content thoroughly and return a structured, scannable summary. Use bold headers, bullet points, and tables where appropriate. Focus on extracting actionable business insights. For audio and video, prioritize accurate transcription of all spoken content.",
+      },
+    ];
+
+    if (useMultimodal && mediaUrl) {
+      messages.push({
+        role: "user",
+        content: [
+          { type: "text", text: userPrompt },
+          { type: "image_url", image_url: { url: mediaUrl } },
+        ],
+      });
+    } else {
+      messages.push({ role: "user", content: userPrompt });
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        reasoning: { effort: "high" },
+        messages,
+      }),
+    });
+
+    if (!response.ok) {
+      const status = response.status;
+      if (status === 429) {
+        return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (status === 402) {
+        return new Response(JSON.stringify({ success: false, error: "AI credits exhausted." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.error("AI gateway error: status", status);
+      throw new Error("AI service unavailable");
+    }
+
+    const data = await response.json();
+    const analysis = data.choices?.[0]?.message?.content || "No analysis generated.";
+
+    // Persist analyzed content to user_business_data and update bucket context
+    if (userId && supabaseAdmin) {
+      // DCE: Classify content into Business DNA pillars
+      let dnaPillars: string[] = [];
+      try {
+        const dceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-3-flash-preview",
+            reasoning: { effort: "high" },
+            messages: [
+              { role: "system", content: `Classify the following content into one or more Business DNA pillars. Return ONLY a JSON array of pillar IDs that genuinely match. Pillars: brand (identity/voice/values), product (features/pricing/USPs), audience (personas/pain points/segments), market (competitors/TAM/trends/SWOT), financial (revenue/costs/margins/CAC/LTV), operations (processes/SOPs/tech stack/KPIs), people (org/hiring/culture/team), growth (channels/funnels/campaigns/ads/retention), strategy (vision/OKRs/milestones/roadmap). Only include pillars with genuine signal. Return [] if nothing matches.` },
+              { role: "user", content: `Title: ${dataTitle}\n\nContent:\n${(extractedText || analysis || "").slice(0, 4000)}` }
+            ],
+            temperature: 0.1,
+          }),
+        });
+        if (dceResponse.ok) {
+          const dceResult = await dceResponse.json();
+          const dceContent = dceResult.choices?.[0]?.message?.content || "[]";
+          const match = dceContent.match(/\[[\s\S]*?\]/);
+          if (match) dnaPillars = JSON.parse(match[0]);
+        }
+      } catch (e) { console.error("DCE classification failed:", e); }
+
+      const primarySegment = dnaPillars[0] || null;
+
+      await supabaseAdmin.from("user_business_data").insert({
+        user_id: userId,
+        data_type: dataType,
+        source: "canvas",
+        title: dataTitle,
+        content: extractedText || content.text || content.documentText || content.websiteUrl || null,
+        analyzed_content: analysis,
+        is_analyzed: true,
+        metadata: {
+          ...(content.websiteUrl ? { url: content.websiteUrl } : {}),
+          ...(content.documentName || content.fileName ? { fileName: content.documentName || content.fileName } : {}),
+          ...(content.fileMimeType ? { mimeType: content.fileMimeType } : {}),
+          ...(type === "audio" ? { mediaType: "audio" } : {}),
+          ...(type === "video" ? { mediaType: "video" } : {}),
+          ...(primarySegment ? { dna_segment: primarySegment } : {}),
+          ...(dnaPillars.length > 0 ? { dna_pillars: dnaPillars } : {}),
+        },
+      });
+
+      // Refresh the consolidated bucket context
+      await updateBucketContext(supabaseAdmin, userId);
+    }
+
+    // Truncate extractedText in response — full version is already persisted in DB
+    const trimmedExtracted = extractedText ? extractedText.slice(0, 500) : null;
+    return new Response(JSON.stringify({ success: true, analysis, extractedText: trimmedExtracted }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error("analyze-content error:", msg, stack);
+    return new Response(JSON.stringify({ success: false, error: msg || "An internal error occurred" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "TimeWarp – AI CEO",
+  "version": "1.0.7",
+  "description": "TimeWarp – your private AI CEO. Securely connects the TimeWarp web app to your browser for safe, supervised Computer mode.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "tabGroups",
+    "sidePanel",
+    "debugger",
+    "windows",
+    "identity"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://timewarpdev.com/*",
+      "https://www.timewarpdev.com/*",
+      "https://timewarpdev.lovable.app/*",
+      "https://*.lovable.app/*",
+      "https://*.lovableproject.com/*"
+    ]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://ohvxqlxugqlzzbmfypiy.supabase.co https://timewarpdev.lovable.app https://timewarpdev.com; img-src 'self' data: https://www.google.com; object-src 'self'"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open TimeWarp",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,471 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import BusinessBrainOrb from "@/components/ui/business-brain-orb";
+import { PILLAR_BY_ID } from "./pillarConstants";
+import { buildPillarValues } from "./pillarDataMapper";
+import { PillarFieldRenderer } from "./PillarFieldRenderer";
+import { PillarFieldEditor } from "./PillarFieldEditor";
+import { useBusinessDNA, type BrandEntry, type ProductEntry, type AudienceEntry } from "@/components/database/BusinessDNAContext";
+import { Button } from "@/components/ui/button";
+import { Pencil, Check, AlertTriangle } from "lucide-react";
+import { isOverrideValue } from "./pillarOverrides";
+
+interface PillarViewProps {
+  pillarId: string;
+  agentName?: string;
+  brand?: BrandEntry;
+  products?: ProductEntry[];
+  audiences?: AudienceEntry[];
+  /** Pre-loaded JSON for extended pillars (market/financial/operations/people/growth/strategy), keyed by pillar id. */
+  pillarData?: Record<string, any>;
+}
+
+// Layout constants for the snake-path navigator (mirrors reference design)
+const H_HEADLINE = 40;
+const H_CHILD = 36;
+const H_BOTTOM_PADDING = 16;
+const X_HEADLINE = 1;
+const X_CHILD = 13;
+
+/** Check whether a pillar field value is effectively empty (= Gap). */
+function isFieldEmpty(value: any): boolean {
+  if (value === undefined || value === null || value === "") return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  if (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0) return true;
+  return false;
+}
+
+/** Mapping from pillar id → integration hint shown in Gap badges. */
+const PILLAR_INTEGRATION_HINT: Record<string, string> = {
+  financial: "Connect Stripe or upload financials",
+  market: "Connect HubSpot or run market research",
+  operations: "Connect Google Drive or upload SOPs",
+  people: "Connect Slack, Teams, or HR tools",
+  growth: "Connect HubSpot, Stripe, or ad platforms",
+  strategy: "Upload strategy docs or connect tools",
+};
+
+export function PillarView({ pillarId, agentName, brand, products = [], audiences = [], pillarData }: PillarViewProps) {
+  const pillar = PILLAR_BY_ID[pillarId];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const isNavigatingRef = useRef(false);
+  const navLockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeIdRef = useRef(activeItemId);
+  const { setBrands } = useBusinessDNA();
+  const [editMode, setEditMode] = useState(false);
+
+  const overrides = brand?.pillarOverrides?.[pillarId] || {};
+
+  // Raw structured values (pre-override) — used by the edit dialog so users see
+  // the AI-generated content as the editable baseline.
+  const baseValues = useMemo(() => {
+    if (!pillar) return {} as Record<string, any>;
+    return buildPillarValues(pillarId, { brand, products, audiences, extended: pillarData?.[pillarId] });
+  }, [pillar, pillarId, brand, products, audiences, pillarData]);
+
+  // Inject real values + apply user overrides into the pillar fields
+  const populatedPillar = useMemo(() => {
+    if (!pillar) return null;
+    const values = buildPillarValues(pillarId, {
+      brand, products, audiences,
+      extended: pillarData?.[pillarId],
+      overrides,
+    });
+    return {
+      ...pillar,
+      sections: pillar.sections.map((s) => ({
+        ...s,
+        fields: s.fields.map((f) => (values[f.id] !== undefined ? { ...f, value: values[f.id] } : f)),
+      })),
+    };
+  }, [pillar, pillarId, brand, products, audiences, pillarData, overrides]);
+
+  const handleSaveField = async (fieldId: string, nextText: string | null) => {
+    if (!brand) return;
+    setBrands((prev) =>
+      prev.map((b) => {
+        if (b.id !== brand.id) return b;
+        const allOverrides = { ...(b.pillarOverrides || {}) };
+        const pillarOv = { ...(allOverrides[pillarId] || {}) };
+        if (nextText === null || nextText.trim() === "") {
+          delete pillarOv[fieldId];
+        } else {
+          pillarOv[fieldId] = nextText;
+        }
+        if (Object.keys(pillarOv).length === 0) {
+          delete allOverrides[pillarId];
+        } else {
+          allOverrides[pillarId] = pillarOv;
+        }
+        return { ...b, pillarOverrides: allOverrides, lastUpdated: new Date().toISOString() };
+      }),
+    );
+  };
+
+  useEffect(() => {
+    activeIdRef.current = activeItemId;
+  }, [activeItemId]);
+
+  // Reset state on pillar change
+  useEffect(() => {
+    if (populatedPillar?.sections.length) {
+      setActiveItemId(`section-${populatedPillar.sections[0].id}`);
+      if (containerRef.current) containerRef.current.scrollTop = 0;
+    }
+  }, [pillarId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Build snake path geometry for the right-rail navigator
+  const treeLayout = useMemo(() => {
+    if (!populatedPillar) {
+      return { sectionsWithLayout: [] as any[], TotalHeight: 100, fullPathD: "" };
+    }
+    let currentY = 0;
+    const sections = populatedPillar.sections.map((section) => {
+      const numChildren = section.fields?.length || 0;
+      const sectionHeight = H_HEADLINE + numChildren * H_CHILD + (numChildren > 0 ? H_BOTTOM_PADDING : 0);
+      const startY = currentY;
+      const endY = currentY + sectionHeight;
+      currentY = endY;
+      return { ...section, startY, endY, sectionHeight, numChildren };
+    });
+
+    const totalH = currentY || 100;
+    let d = "";
+    let currX = X_HEADLINE;
+    d += `M ${currX} 0 `;
+    sections.forEach((sec) => {
+      if (currX !== X_HEADLINE) {
+        d += `L ${currX} ${sec.startY - 8} `;
+        d += `C ${currX} ${sec.startY}, ${X_HEADLINE} ${sec.startY}, ${X_HEADLINE} ${sec.startY + 8} `;
+        currX = X_HEADLINE;
+      }
+      if (sec.numChildren > 0) {
+        const childrenStartY = sec.startY + H_HEADLINE;
+        d += `L ${X_HEADLINE} ${childrenStartY - 8} `;
+        d += `C ${X_HEADLINE} ${childrenStartY}, ${X_CHILD} ${childrenStartY}, ${X_CHILD} ${childrenStartY + 8} `;
+        currX = X_CHILD;
+      }
+    });
+    d += `L ${currX} ${totalH} `;
+    return { sectionsWithLayout: sections, TotalHeight: totalH, fullPathD: d };
+  }, [populatedPillar]);
+
+  // Scroll-spy: highlight the section/field nearest the top of the viewport
+  useEffect(() => {
+    if (!populatedPillar) return;
+    const root = containerRef.current;
+    if (!root) return;
+
+    const handleScroll = () => {
+      if (isNavigatingRef.current) return;
+      const containerRect = root.getBoundingClientRect();
+      const tripwire = containerRect.top + containerRect.height * 0.35;
+
+      const targets: string[] = [];
+      populatedPillar.sections.forEach((s) => {
+        targets.push(`section-${s.id}`);
+        s.fields.forEach((f) => targets.push(f.id));
+      });
+
+      let foundId = targets[0];
+      for (const id of targets) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= tripwire + 10) foundId = id;
+        else break;
+      }
+      if (foundId !== activeIdRef.current) setActiveItemId(foundId);
+    };
+
+    root.addEventListener("scroll", handleScroll, { passive: true });
+    const tid = setTimeout(handleScroll, 200);
+    return () => {
+      root.removeEventListener("scroll", handleScroll);
+      clearTimeout(tid);
+    };
+  }, [populatedPillar]);
+
+  if (!populatedPillar) return null;
+
+  const scrollToElement = (id: string) => {
+    const root = containerRef.current;
+    const el = document.getElementById(id);
+    if (!root || !el) return;
+    if (navLockTimeoutRef.current) clearTimeout(navLockTimeoutRef.current);
+    isNavigatingRef.current = true;
+    setActiveItemId(id);
+    const containerRect = root.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const tripwireOffset = containerRect.height * 0.35;
+    const targetTop = root.scrollTop + (elRect.top - containerRect.top) - tripwireOffset;
+    root.scrollTo({ top: targetTop, behavior: "smooth" });
+    navLockTimeoutRef.current = setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 1000);
+  };
+
+  const activeSectionData =
+    treeLayout.sectionsWithLayout.find(
+      (s) => `section-${s.id}` === activeItemId || s.fields.some((f: any) => f.id === activeItemId)
+    ) || treeLayout.sectionsWithLayout[0] || { id: "", startY: 0, sectionHeight: 0 };
+
+  const springTrans = { type: "spring" as const, stiffness: 350, damping: 35 };
+  const logoUrl = brand?.logoUrls?.[brand?.selectedLogo ?? 0];
+  const completion = useMemo(() => {
+    if (!populatedPillar) return { done: 0, total: 0 };
+    const fields = populatedPillar.sections.flatMap((s) => s.fields);
+    const hasValue = (v: any) => {
+      if (isOverrideValue(v)) return v.__override.trim().length > 0;
+      if (v == null) return false;
+      if (typeof v === "string") return v.trim().length > 0;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "object") return Object.keys(v).length > 0;
+      return true;
+    };
+    const done = fields.filter((f) => hasValue(f.value)).length;
+    return { done, total: fields.length };
+  }, [populatedPillar]);
+
+  return (
+    <div ref={containerRef} className="h-full w-full overflow-y-auto bg-background">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-10 flex flex-col xl:flex-row gap-10 items-start bg-[#fcfcfd]">
+        {/* Main column */}
+        <div className="flex-1 min-w-0 w-full">
+          {/* Pillar Header — business logo + name + agent line */}
+          <div className="flex items-start justify-between mb-10 pb-8 border-b border-border gap-4">
+            <div className="flex items-start gap-5">
+              <div className="w-20 h-20 rounded-[20px] bg-card border border-border flex items-center justify-center shadow-md shrink-0 overflow-hidden p-2">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={brand?.name || "Business logo"}
+                    className="w-full h-full object-contain bg-background"
+                  />
+                ) : (
+                  <BusinessBrainOrb size={40} />
+                )}
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl font-black text-foreground tracking-tight mb-2">
+                  {populatedPillar.name}
+                </h1>
+                <div className="flex items-center gap-2">
+                  <BusinessBrainOrb size={16} />
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                    <span className="text-primary">{agentName || "AI"}</span>
+                    <span>//</span>
+                    <motion.span
+                      animate={{ opacity: [1, 0.4, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      Learning
+                    </motion.span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            {brand && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditMode((v) => !v)}
+                className="shrink-0 gap-2 bg-primary text-white"
+              >
+                {editMode ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Done
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Document flow */}
+          <div className="space-y-14 bg-[#fcfcfd]">
+            {populatedPillar.sections.map((section) => (
+              <section id={`section-${section.id}`} key={section.id} className="scroll-mt-6">
+                <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">
+                  {section.title}
+                </h2>
+                <div className="space-y-10">
+                  {section.fields.map((field) => (
+                    <div id={field.id} key={field.id} className="scroll-mt-6 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-foreground tracking-tight">
+                          {field.name.replace(/^\d+\.\s*/, "")}
+                        </h3>
+                        {isFieldEmpty(field.value) && !overrides[field.id] && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-[10px] font-semibold uppercase tracking-wide" title={PILLAR_INTEGRATION_HINT[pillarId] || "Connect integrations to fill this field"}>
+                            <AlertTriangle className="w-3 h-3" /> Gap
+                          </span>
+                        )}
+                      </div>
+                      {brand && editMode ? (
+                        <PillarFieldEditor
+                          field={field}
+                          baseValue={baseValues[field.id] ?? field.value}
+                          override={overrides[field.id]}
+                          autoOpen
+                          onSave={(next) => handleSaveField(field.id, next)}
+                        />
+                      ) : isFieldEmpty(field.value) && !overrides[field.id] ? (
+                        <p className="text-[13px] text-muted-foreground/60 italic">
+                          No data yet — {PILLAR_INTEGRATION_HINT[pillarId] || "connect integrations to fill this field"}
+                        </p>
+                      ) : (
+                        <PillarFieldRenderer field={field} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+
+        {/* Right-rail snake-path navigator */}
+        <aside className="hidden xl:flex w-[280px] shrink-0 sticky top-6 self-start justify-center pb-40">
+          <div className="w-[280px] relative px-4">
+            <div className="flex flex-col select-none relative w-full ml-3 pb-[40px] pt-[20px]">
+              {/* Top tail fade */}
+              <svg className="absolute left-0 top-0 pointer-events-none" width="20" height="20">
+                <defs>
+                  <linearGradient id="pillarTopFade" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--border))" stopOpacity="0" />
+                    <stop offset="100%" stopColor="hsl(var(--border))" stopOpacity="1" />
+                  </linearGradient>
+                </defs>
+                <path d={`M ${X_HEADLINE} 0 L ${X_HEADLINE} 20`} stroke="url(#pillarTopFade)" strokeWidth="1" />
+              </svg>
+
+              {/* Main track */}
+              <div className="relative w-full" style={{ height: treeLayout.TotalHeight }}>
+                {/* 1. Background grey line */}
+                <div className="absolute left-0 top-0 bottom-0 w-[20px] pointer-events-none">
+                  <svg width="20" height={treeLayout.TotalHeight} className="absolute left-0 top-0 overflow-visible">
+                    <path
+                      d={treeLayout.fullPathD}
+                      stroke="hsl(var(--border))"
+                      strokeWidth="1"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      fill="none"
+                    />
+                  </svg>
+                </div>
+
+                {/* 2. Active section highlight overlay */}
+                <motion.div
+                  className="absolute left-0 pointer-events-none overflow-hidden z-10"
+                  initial={false}
+                  animate={{
+                    top: activeSectionData.startY - 12,
+                    height: activeSectionData.sectionHeight + 24,
+                  }}
+                  transition={springTrans}
+                  style={{ width: "20px" }}
+                >
+                  <motion.svg
+                    width="20"
+                    height={treeLayout.TotalHeight}
+                    className="absolute left-0 top-0 overflow-visible"
+                    initial={false}
+                    animate={{ top: -(activeSectionData.startY - 12) }}
+                    transition={springTrans}
+                  >
+                    <path
+                      d={treeLayout.fullPathD}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      fill="none"
+                    />
+                  </motion.svg>
+                </motion.div>
+
+                {/* 3. Text content layer */}
+                <div className="absolute left-0 top-0 w-full z-20 flex flex-col">
+                  {treeLayout.sectionsWithLayout.map((section: any) => (
+                    <div
+                      key={section.id}
+                      className="relative w-full flex flex-col"
+                      style={{ height: section.sectionHeight }}
+                    >
+                      {/* Section headline */}
+                      <div
+                        className="flex items-center cursor-pointer group"
+                        style={{ height: H_HEADLINE, paddingLeft: "24px" }}
+                        onClick={() => scrollToElement(`section-${section.id}`)}
+                      >
+                        <span
+                          className={`text-[15px] font-medium transition-colors duration-200 tracking-tight ${
+                            activeItemId === `section-${section.id}` ||
+                            section.fields.some((f: any) => f.id === activeItemId)
+                              ? "text-primary"
+                              : "text-muted-foreground group-hover:text-foreground"
+                          }`}
+                        >
+                          {section.title}
+                        </span>
+                      </div>
+
+                      {/* Sub-items */}
+                      {section.fields && (
+                        <div className="flex flex-col">
+                          {section.fields.map((field: any) => {
+                            const isSectionActive = activeSectionData.id === section.id;
+                            return (
+                              <div
+                                key={field.id}
+                                className="flex items-center cursor-pointer group"
+                                style={{ height: H_CHILD, paddingLeft: "36px" }}
+                                onClick={() => scrollToElement(field.id)}
+                              >
+                                <span
+                                  className={`text-[14px] transition-colors duration-200 tracking-tight truncate ${
+                                    isSectionActive
+                                      ? "text-primary"
+                                      : "text-muted-foreground group-hover:text-foreground"
+                                  }`}
+                                >
+                                  {field.name.replace(/^\d+\.\s*/, "")}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bottom tail fade */}
+              <div className="relative w-full h-[24px]">
+                <svg className="absolute left-0 top-0 pointer-events-none" width="20" height="24">
+                  <defs>
+                    <linearGradient id="pillarBottomFade" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--border))" stopOpacity="1" />
+                      <stop offset="100%" stopColor="hsl(var(--border))" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path d={`M ${X_HEADLINE} 0 L ${X_HEADLINE} 24`} stroke="url(#pillarBottomFade)" strokeWidth="1" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+    </div>
+  );
+}
