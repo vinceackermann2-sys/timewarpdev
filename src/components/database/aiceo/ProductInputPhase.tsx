@@ -90,7 +90,7 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {chips.map((label, i) => (
+          {chips.map(({ label, Icon }, i) => (
             <motion.span
               key={label}
               initial={{ opacity: 0, y: 4 }}
@@ -98,7 +98,7 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
               transition={{ delay: 0.1 + i * 0.06, duration: 0.3 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/[0.06] border border-primary/10 text-[12px] font-medium text-primary/80"
             >
-              <ShoppingCart className="w-3 h-3" />{label}
+              <Icon className="w-3 h-3" />{label}
             </motion.span>
           ))}
         </div>
