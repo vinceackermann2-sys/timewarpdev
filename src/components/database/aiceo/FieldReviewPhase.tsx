@@ -368,7 +368,7 @@ function FieldReviewForm({ extractedProduct, onComplete }: { extractedProduct: E
         icon={Package}
         accent="from-blue-500/[0.06] to-transparent"
         badge={`${productFieldCount} fields`}
-        defaultOpen={false}
+        defaultOpen={true}
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <EditableField label="Product Name" value={name} onChange={setName} />
@@ -439,7 +439,7 @@ function FieldReviewForm({ extractedProduct, onComplete }: { extractedProduct: E
         icon={Users}
         accent="from-violet-500/[0.06] to-transparent"
         badge={`${audFieldCount} fields`}
-        defaultOpen={false}
+        defaultOpen={true}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <EditableField label="Audience Name" value={audName} onChange={setAudName} />
@@ -488,7 +488,7 @@ function FieldReviewForm({ extractedProduct, onComplete }: { extractedProduct: E
         icon={Palette}
         accent="from-amber-500/[0.06] to-transparent"
         badge={`${brandFieldCount} fields`}
-        defaultOpen={false}
+        defaultOpen={true}
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <EditableField label="Brand Name" value={brandName} onChange={setBrandName} />
