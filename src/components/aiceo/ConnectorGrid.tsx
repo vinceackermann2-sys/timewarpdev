@@ -24,6 +24,7 @@ interface ConnectorDef {
   name: string;
   description: string;
   logo: string;
+  comingSoon?: boolean;
 }
 
 
@@ -37,9 +38,9 @@ interface ConnectorDef {
   { id: "google_sheets", name: "Sheets", description: "Spreadsheets", logo: logoGoogleSheets },
   { id: "google_slides", name: "Slides", description: "Presentations", logo: logoGoogleSlides },
   { id: "google_gmail", name: "Gmail", description: "Emails & contacts", logo: logoGmail },
-  { id: "slack", name: "Slack", description: "Messages & channels", logo: logoSlack },
+  { id: "slack", name: "Slack", description: "Messages & channels", logo: logoSlack, comingSoon: true },
   { id: "hubspot", name: "HubSpot", description: "CRM, contacts & deals", logo: logoHubspot },
-  { id: "zoom", name: "Zoom", description: "Meetings & recordings", logo: logoZoom },
+  { id: "zoom", name: "Zoom", description: "Meetings & recordings", logo: logoZoom, comingSoon: true },
   { id: "stripe", name: "Stripe", description: "Payments & customers", logo: logoStripe },
 ];
 
