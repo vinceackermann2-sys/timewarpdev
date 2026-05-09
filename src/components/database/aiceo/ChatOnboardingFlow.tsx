@@ -92,9 +92,9 @@ export function ChatOnboardingFlow({ onComplete }: ChatOnboardingFlowProps) {
   // Forging state
   const [forgingStage, setForgingStage] = useState<ForgingStage>("ingesting");
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
-  const [createdBrandId, setCreatedBrandId] = useState<string | null>(null);
-  const [createdBrandRowId, setCreatedBrandRowId] = useState<string | null>(null);
-  const [createdBrandName, setCreatedBrandName] = useState<string | null>(null);
+  const [createdBrandId, setCreatedBrandId] = useState<string | null>(persisted?.createdBrandId ?? null);
+  const [createdBrandRowId, setCreatedBrandRowId] = useState<string | null>(persisted?.createdBrandRowId ?? null);
+  const [createdBrandName, setCreatedBrandName] = useState<string | null>(persisted?.createdBrandName ?? null);
 
   // Naming state
   const [agentName, setAgentName] = useState(persisted?.agentName ?? "");
@@ -107,10 +107,11 @@ export function ChatOnboardingFlow({ onComplete }: ChatOnboardingFlowProps) {
     try {
       const snapshot: PersistedOnboarding = {
         phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName,
+        createdBrandId, createdBrandRowId, createdBrandName,
       };
       window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(snapshot));
     } catch {}
-  }, [phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName]);
+  }, [phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName, createdBrandId, createdBrandRowId, createdBrandName]);
 
   // DNA context
   let contextAvailable = false;
