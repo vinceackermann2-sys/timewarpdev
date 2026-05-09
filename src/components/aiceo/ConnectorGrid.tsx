@@ -198,17 +198,19 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
           {connectors.map((connector, i) => {
             const isConnected = connectedProviders.includes(connector.id);
             const isConnecting = connectingProvider === connector.id;
+            const isComingSoon = connector.comingSoon;
 
             return (
               <button
                 key={connector.id}
                 onClick={() => {
-                  if (!isConnected && !isConnecting) {
+                  if (!isComingSoon && !isConnected && !isConnecting) {
                     handleConnect(connector);
                   }
                 }}
-                disabled={isConnecting}
+                disabled={isConnecting || isComingSoon}
                 style={{
+                  position: "relative",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -220,24 +222,46 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
                     ? "rgba(74, 222, 128, 0.08)"
                     : "rgba(255,255,255,0.04)",
                   border: `1.5px solid ${isConnected ? "rgba(74, 222, 128, 0.3)" : "rgba(255,255,255,0.1)"}`,
-                  cursor: isConnecting ? "wait" : "pointer",
+                  cursor: isComingSoon ? "not-allowed" : isConnecting ? "wait" : "pointer",
+                  opacity: isComingSoon ? 0.55 : 1,
                   transition: "all 0.3s ease",
                   animation: `fadeSlideUp 0.4s ease-out ${i * 0.08}s both`,
                 }}
-                className={!isConnecting ? "hover:scale-[1.05] active:scale-[0.97]" : ""}
+                className={!isConnecting && !isComingSoon ? "hover:scale-[1.05] active:scale-[0.97]" : ""}
                 onMouseEnter={(e) => {
-                  if (!isConnected) {
+                  if (!isConnected && !isComingSoon) {
                     (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99, 102, 241, 0.4)";
                     (e.currentTarget as HTMLButtonElement).style.background = "rgba(99, 102, 241, 0.08)";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isConnected) {
+                  if (!isConnected && !isComingSoon) {
                     (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.1)";
                     (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)";
                   }
                 }}
               >
+                {isComingSoon && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontSize: 8,
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      color: "rgba(255,255,255,0.7)",
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      borderRadius: 999,
+                      padding: "2px 6px",
+                    }}
+                  >
+                    Soon
+                  </span>
+                )}
                 {isConnecting ? (
                   <Loader2 size={28} className="animate-spin" style={{ color: "rgba(99, 102, 241, 0.8)" }} />
                 ) : isConnected ? (
@@ -269,7 +293,7 @@ export function ConnectorGrid({ onConnect, onModeChange, brandId }: ConnectorGri
                       textAlign: "center",
                     }}
                   >
-                    {connector.description}
+                    {isComingSoon ? "Coming soon" : connector.description}
                   </span>
                 </div>
               </button>
