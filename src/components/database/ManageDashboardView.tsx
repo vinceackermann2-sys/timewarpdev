@@ -163,7 +163,7 @@ function CardShell({
   const delta = deltaBadge(card.deltaState);
 
   const themeStyles = {
-    blue: "bg-blue-100/90 border-blue-200 hover:border-blue-300 dark:bg-blue-900/40 dark:border-blue-800/60 dark:hover:border-blue-700",
+    blue: "border-blue-200 hover:border-blue-300 dark:border-blue-800/60 dark:hover:border-blue-700 bg-slate-50",
     amber: "bg-amber-100/90 border-amber-200 hover:border-amber-300 dark:bg-amber-900/40 dark:border-amber-800/60 dark:hover:border-amber-700",
     emerald: "bg-emerald-100/90 border-emerald-200 hover:border-emerald-300 dark:bg-emerald-900/40 dark:border-emerald-800/60 dark:hover:border-emerald-700",
     purple: "bg-purple-100/90 border-purple-200 hover:border-purple-300 dark:bg-purple-900/40 dark:border-purple-800/60 dark:hover:border-purple-700",
