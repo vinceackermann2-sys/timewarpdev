@@ -552,15 +552,32 @@ JSON structure:
   }
 }
 
-FIELD GUIDELINES:
-- description: [WHAT IT IS] + [NEW MECHANISM] + [OUTCOME] + [HOW IT WORKS]
-- features: Observable facts about the product/service/plan
-- benefits: [FEATURE] → [WHAT IT MEANS FOR THE CUSTOMER]
-- painPoints: [FRUSTRATION] + [SPECIFIC MOMENT] + [CONSEQUENCE]
-- positioningStatement: "For [TARGET], [PRODUCT] is the [CATEGORY] that [KEY BENEFIT] because [REASON]"
-- commonObjections: Real objections with reframes and proof
-- audience description: [WHO] + [VALUES] + [CORE PAIN] + [DREAM OUTCOME]
-- Every output should feel specific to THIS business, not generic
+CANONICAL FIELD FORMULAS — apply these structures literally when synthesizing each field:
+
+PRODUCT formulas:
+- description: [WHAT IT IS] + [NEW MECHANISM] + [OUTCOME] + [HOW IT WORKS] + [GUARANTEE if any].
+- features: [OBSERVABLE THING ABOUT THE PRODUCT] — just the facts, no spin.
+- benefits: [FEATURE] → "which means" → [EMOTIONAL OUTCOME THE CUSTOMER FEELS].
+- howItWorks: [HOW IT WORKS IN PLAIN TERMS] + [WHY THAT MECHANISM PRODUCES THE RESULT].
+- offers (catalogue items): [SKU/VARIANT] + [NAME] + [DESCRIPTION] + [PRICE] + [POSITIONING IN RANGE].
+- pricing tiers: [TIER] + [PRICE POINT] + [WHAT'S INCLUDED] + [TARGET BUYER] + [POSITIONING RATIONALE].
+- useCases / targetScenarios: [SPECIFIC SITUATION] + [WHO IS IN IT] + [WHAT THE PRODUCT REPLACES].
+- positioningStatement: [WHO IT'S FOR] + [WHAT IT DOES] + [WHY IT'S BETTER] + [PROOF IT WORKS].
+- uniqueSellingPoints: [ONLY WE] + [CLAIM] + [MECHANISM] + [OUTCOME].
+- competitiveAdvantages: [COMPETITOR APPROACH] vs [THIS PRODUCT'S APPROACH] + [WHY WE WIN].
+- painPoints: [TRIGGER EVENT] + [EMOTIONAL FRUSTRATION] + [REAL-WORLD CONSEQUENCE].
+- commonObjections: [OBJECTION] → [REFRAME] → [PROOF].
+- proofPoints: [TYPE OF PROOF] + [CLAIM IT VALIDATES] + [HOW TO USE IN COMMUNICATION].
+
+AUDIENCE formulas:
+- description: [WHO] + [VALUES] + [CORE PAIN] + [DREAM OUTCOME] + [BUYING SIGNAL].
+- segmentation / persona name: [SEGMENT NAME] + [SIZE/PRIORITY] + [DISTINGUISHING CHARACTERISTIC] + [UNIQUE MESSAGE].
+- customerJourney: [STAGE] + [CUSTOMER STATE] + [WHAT THEY NEED] + [CONTENT/TOUCHPOINT] + [OBJECTIVE].
+- pain architecture (valuePropositions / painPoints): [SURFACE PAIN] + [ROOT PAIN] + [EMOTIONAL CORE] + [CONSEQUENCE IF UNSOLVED].
+- commonObjections: [OBJECTION] → [EMOTIONAL REFRAME] → [LOGICAL PROOF].
+- engagementPatterns: [CHANNEL] + [CONTENT TYPE] + [PEAK TIME] + [ENGAGEMENT DRIVER] + [CONVERSION MECHANISM].
+
+Every output should feel specific to THIS business, not generic. Never invent data not present in the source.
 
 Brand: "${brandName}"
 Page URL: ${pageUrl}
