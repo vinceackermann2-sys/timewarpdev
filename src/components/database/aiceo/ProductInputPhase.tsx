@@ -4,7 +4,7 @@
  */
 import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Globe, Loader2, Sparkles, ShoppingCart } from "lucide-react";
+import { ArrowRight, Globe, Loader2, Sparkles, ShoppingCart, DollarSign, Fingerprint, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ExtractedProduct {
