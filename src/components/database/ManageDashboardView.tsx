@@ -850,7 +850,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   return (
     <div className="h-full flex relative overflow-hidden bg-background">
       {/* Left vertical tab menu */}
-      <aside className="w-52 shrink-0 border-r border-border/60 bg-background flex flex-col py-4 px-3 gap-0.5">
+      <aside className="w-52 shrink-0 border-r border-border/60 bg-background flex flex-col py-4 px-3 gap-0.5 bg-[#fcfcfd]">
         <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Dashboard
         </div>
