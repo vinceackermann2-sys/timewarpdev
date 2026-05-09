@@ -337,7 +337,7 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     }
 
     fullContent = stripEmptyStatusLines(fullContent);
-    const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(fullContent || "I'm ready to help. What would you like me to do?");
+    const { content: sugCleanContent, suggestions, title: suggestionTitle, questions, planActions } = extractSuggestions(fullContent || "I didn't get a response from the model. Please try sending your message again.");
     const { content: cleanContent, artifact } = extractPlanArtifact(sugCleanContent);
     const { content: contentNoSources, attribution: parsedAttribution } = extractAssistantSources(cleanContent);
     const effectivePlanArtifact = artifact || (planMode && replyContractMeta === "strategic_plan" && contentNoSources.trim().length > 300
