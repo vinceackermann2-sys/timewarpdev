@@ -919,7 +919,8 @@ export function AgentChatView({
             m.role === "assistant" &&
             !m.isStreaming &&
             !dismissedSuggestionIds.has(m.id) &&
-            ((m.suggestionQuestions && m.suggestionQuestions.length > 0) || (m.suggestions && m.suggestions.length > 0)),
+            !!m.suggestionQuestions &&
+            m.suggestionQuestions.some((g) => /\?\s*$/.test((g.title || "").trim())),
         )
       : null;
   const composerHasQuestions = !!activeComposerPrompt?.suggestionQuestions?.length;
