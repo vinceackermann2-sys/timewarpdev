@@ -330,16 +330,15 @@ export function AgentChatInput({
                     </span>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent side="top" align="end" className="w-80 p-4">
-                  <div className="text-sm font-semibold text-foreground">Context window</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">How much of the AI's memory this chat is using.</p>
-                  <div className="flex items-baseline justify-between mt-3">
-                    <span className="text-lg font-medium text-foreground tabular-nums">{pct.toFixed(1)}% used</span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
+                <PopoverContent side="top" align="end" className="w-60 p-3">
+                  <div className="text-xs font-semibold text-foreground">Context window</div>
+                  <div className="flex items-baseline justify-between mt-2">
+                    <span className="text-sm font-medium text-foreground tabular-nums">{pct.toFixed(1)}% used</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
                       {fmt(contextTokens)} / {fmt(contextTokenLimit)}
                     </span>
                   </div>
-                  <div className="mt-2 h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all",
@@ -348,21 +347,7 @@ export function AgentChatInput({
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <div className={cn("mt-2 text-sm font-medium", status.color)}>{status.label}</div>
-
-                  <div className="mt-4 pt-3 border-t border-border">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Brain className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-xs font-medium text-foreground">Session memory</span>
-                    </div>
-                    <textarea
-                      value={sessionMemory}
-                      onChange={(e) => setSessionMemory(e.target.value)}
-                      placeholder="Notes the assistant should keep in mind for this chat…"
-                      rows={3}
-                      className="w-full text-xs bg-background border border-border rounded-lg p-2 outline-none focus:border-primary/40 resize-none"
-                    />
-                  </div>
+                  <div className={cn("mt-1.5 text-xs", status.color)}>{status.label}</div>
                 </PopoverContent>
               </Popover>
             );
