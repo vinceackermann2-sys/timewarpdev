@@ -53,6 +53,9 @@ type PersistedOnboarding = {
   confirmedBrand: BrandDraft | null;
   enrichInputsSummary: { fileCount: number; integrationCount: number };
   agentName: string;
+  createdBrandId: string | null;
+  createdBrandRowId: string | null;
+  createdBrandName: string | null;
 };
 
 function loadPersistedOnboarding(): Partial<PersistedOnboarding> | null {
@@ -64,6 +67,12 @@ function loadPersistedOnboarding(): Partial<PersistedOnboarding> | null {
     // Don't rehydrate transient phases — bounce back to a safe step.
     if (parsed.phase === "forging") parsed.phase = "connect";
     if (parsed.phase === "done") return null;
+    // If we restored "naming" but lost the created brand id (page was
+    // reloaded mid-flow), bounce back to "connect" so forging re-runs and
+    // the Continue button isn't a silent no-op.
+    if (parsed.phase === "naming" && !parsed.createdBrandId) {
+      parsed.phase = "connect";
+    }
     return parsed;
   } catch { return null; }
 }
@@ -83,9 +92,9 @@ export function ChatOnboardingFlow({ onComplete }: ChatOnboardingFlowProps) {
   // Forging state
   const [forgingStage, setForgingStage] = useState<ForgingStage>("ingesting");
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
-  const [createdBrandId, setCreatedBrandId] = useState<string | null>(null);
-  const [createdBrandRowId, setCreatedBrandRowId] = useState<string | null>(null);
-  const [createdBrandName, setCreatedBrandName] = useState<string | null>(null);
+  const [createdBrandId, setCreatedBrandId] = useState<string | null>(persisted?.createdBrandId ?? null);
+  const [createdBrandRowId, setCreatedBrandRowId] = useState<string | null>(persisted?.createdBrandRowId ?? null);
+  const [createdBrandName, setCreatedBrandName] = useState<string | null>(persisted?.createdBrandName ?? null);
 
   // Naming state
   const [agentName, setAgentName] = useState(persisted?.agentName ?? "");
@@ -98,10 +107,11 @@ export function ChatOnboardingFlow({ onComplete }: ChatOnboardingFlowProps) {
     try {
       const snapshot: PersistedOnboarding = {
         phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName,
+        createdBrandId, createdBrandRowId, createdBrandName,
       };
       window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(snapshot));
     } catch {}
-  }, [phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName]);
+  }, [phase, extractedProduct, targetUrl, confirmedAudiences, confirmedBrand, enrichInputsSummary, agentName, createdBrandId, createdBrandRowId, createdBrandName]);
 
   // DNA context
   let contextAvailable = false;
