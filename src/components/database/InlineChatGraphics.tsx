@@ -67,8 +67,59 @@ function downloadFile(filename: string, content: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
-interface DocSection { heading?: string; content: string }
-interface DocConfig { title: string; sections: DocSection[]; author?: string; date?: string }
+interface DocSection {
+  heading?: string;
+  content?: string;
+  /** Optional Mermaid diagram source for this section. Rendered above the content. */
+  mermaid?: string;
+  /** Optional image URL to render inside the section. */
+  image?: string;
+  /** Optional image caption. */
+  caption?: string;
+}
+interface DocConfig {
+  title: string;
+  sections: DocSection[];
+  author?: string;
+  date?: string;
+  /** Narrative through-line / red thread shown as a callout below the title. */
+  thread?: string;
+  /** Short executive summary shown at top of the document. */
+  summary?: string;
+}
+
+function MermaidDiagram({ source }: { source: string }) {
+  const [svg, setSvg] = useState<string>("");
+  const [err, setErr] = useState<string>("");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mermaid = (await import("mermaid")).default;
+        mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose", fontFamily: "inherit" });
+        const id = `m${Math.random().toString(36).slice(2)}`;
+        const { svg } = await mermaid.render(id, source.trim());
+        if (!cancelled) setSvg(svg);
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : "Diagram error");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [source]);
+  if (err) return <div className="text-xs text-muted-foreground italic">Diagram could not render.</div>;
+  if (!svg) return <div className="text-xs text-muted-foreground">Rendering diagram…</div>;
+  return <div className="my-3 flex justify-center [&_svg]:max-w-full [&_svg]:h-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+
+/** Strip stray markdown heading markers (e.g. "## Foo") from section content — they should be in `heading`. */
+function cleanSectionContent(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .split("\n")
+    .map((line) => line.replace(/^\s{0,3}#{1,6}\s+/, ""))
+    .join("\n")
+    .trim();
+}
 
 export function InlineDocument({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
   const [draftJson, setDraftJson] = useState(jsonString);
