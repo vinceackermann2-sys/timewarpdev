@@ -35,16 +35,30 @@ export function useChatPersistence({
   const saveChatSession = useCallback(
     async (msgs: ChatMessage[], chatId: string | null) => {
       if (!user || msgs.length === 0) return;
-      const nonStreaming = msgs.filter((m) => !m.isStreaming);
-      if (nonStreaming.length === 0) return;
+      // Persist ALL messages (including in-progress assistant streams) so that
+      // navigating away mid-response does not lose the user's question or the
+      // partial reply. Streaming messages are finalized in the persisted copy.
+      const persisted = msgs.map((m) =>
+        m.isStreaming
+          ? {
+              ...m,
+              isStreaming: false,
+              content:
+                m.content && m.content.trim().length > 0
+                  ? m.content + "\n\n---\n*⏸ Paused — you navigated away. Send another message to continue.*"
+                  : "⏸ Paused — you navigated away before this reply finished.",
+            }
+          : m,
+      );
+      if (persisted.length === 0) return;
 
-      const title = nonStreaming.find((m) => m.role === "user")?.content?.slice(0, 60) || "New Chat";
+      const title = persisted.find((m) => m.role === "user")?.content?.slice(0, 60) || "New Chat";
       const payload = {
         user_id: user.id,
         workspace_id: activeWorkspaceId || null,
         agent_name: selectedAgent || null,
         title,
-        messages: nonStreaming,
+        messages: persisted,
         assistant_memory: sessionMemory ?? "",
         goal_state: goalState as any,
         updated_at: new Date().toISOString(),
@@ -55,7 +69,7 @@ export function useChatPersistence({
           await supabase
             .from("agent_chat_sessions")
             .update({
-              messages: nonStreaming as any,
+              messages: persisted as any,
               updated_at: new Date().toISOString(),
               title,
               assistant_memory: sessionMemory ?? "",
@@ -77,6 +91,17 @@ export function useChatPersistence({
     },
     [user?.id, activeWorkspaceId, selectedAgent, sessionMemory, goalState],
   );
+
+  // Refs to latest values so unmount cleanup can flush without stale closures.
+  const messagesRef = useRef(messages);
+  const activeChatIdRef = useRef<string | null>(null);
+  const saveRef = useRef(saveChatSession);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+  useEffect(() => {
+    saveRef.current = saveChatSession;
+  }, [saveChatSession]);
 
   useEffect(() => {
     setMessages((prev) => {
