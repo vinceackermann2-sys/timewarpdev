@@ -666,7 +666,9 @@ serve(async (req) => {
       ...fetchedMarketEvidence,
     ].filter((x) => x.url && x.snippet).slice(0, 8);
 
-    const peopleSignals = await loadPeopleSignalsFromIntegrations(admin, user.id, brandId, wsId);
+    // Integrations excluded from DNA — people signals from connected providers
+    // are no longer used as enrichment evidence.
+    const peopleSignals = "(integrations are not used as evidence for Business DNA)";
 
     const brandParsed = safeParseJson(brandRow.content) || {};
     const firstProductParsed = safeParseJson(productRows[0]?.content) || {};
