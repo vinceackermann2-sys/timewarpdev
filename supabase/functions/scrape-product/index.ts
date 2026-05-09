@@ -479,6 +479,18 @@ RULES:
 - For colors: extract dominant hex colors visible on the page.
 - For logoUrls: ONLY actual logo image URLs (not product photos).
 - For visualIdentity: be specific and actionable, not generic.
+
+CANONICAL FIELD FORMULAS (apply when synthesizing each field):
+- name: short, ownable brand name as it appears on the site.
+- description (if asked elsewhere): [WHO YOU ARE] + [WHAT YOU STAND FOR] + [HOW YOU SHOW UP] + [WHAT MAKES YOU DIFFERENT] — single paragraph, present tense.
+- mission (if surfaced): [WHAT THE BUSINESS DOES] + [FOR WHOM] + [TO WHAT END] — present tense, no fluff.
+- vision (if surfaced): [FUTURE STATE OF THE WORLD] + [ROLE THE BUSINESS PLAYS IN CREATING IT] — 5–10 year horizon, aspirational, world-scale.
+- values: each value = [VALUE NAME] + [WHAT IT MEANS IN PRACTICE] + [HOW IT SHOWS UP IN DECISIONS]. Must pass the decision test (rules something out).
+- voice: [PERSONALITY ARCHETYPE] + [TONE SETTINGS: Formal↔Casual / Serious↔Playful / Authoritative↔Humble / Warm↔Cool / Simple↔Complex] + [VOCABULARY RULES] + [WHAT VOICE IS NOT].
+- visualIdentity: [COLOR SYSTEM] + [TYPOGRAPHY] + [IMAGERY STYLE] + [ICONOGRAPHY] + [LAYOUT PRINCIPLES].
+- taglines: [CORE TAGLINE] + [CAMPAIGN TAGLINES] + [EVERGREEN HOOKS].
+- positioning / perception: [HOW CUSTOMERS DESCRIBE THE BRAND] + [HOW THE MARKET CATEGORIZES IT] + [GAP BETWEEN DESIRED AND ACTUAL].
+
 - For businessType: classify the business into EXACTLY ONE of these categories based on homepage signals:
   "ecommerce" (product grids, add-to-cart, Shopify/WooCommerce markers)
   "saas" (pricing tiers, signup/login, app screenshots, API docs)
