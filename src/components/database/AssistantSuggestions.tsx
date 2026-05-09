@@ -22,28 +22,9 @@ function splitEmoji(raw: string): { emoji: string | null; label: string } {
   return { emoji: null, label: raw };
 }
 
-function fallbackOptionsForQuestion(question?: string): string[] {
-  const q = (question || "").toLowerCase();
-  if (/outcome|goal|objective|success/.test(q)) {
-    return ["💰 Revenue growth", "👥 More qualified leads", "📣 Brand reach", "🔁 Retention"];
-  }
-  if (/timeline|timeframe|when|run on|cover/.test(q)) {
-    return ["⚡ Next 30 days", "📅 This quarter", "🗓️ Next 6 months", "🚀 12-month roadmap"];
-  }
-  if (/constraint|non-negotiable|limit|budget/.test(q)) {
-    return ["💸 Limited budget", "⏱️ Limited time", "👤 Small team", "✅ No hard constraints"];
-  }
-  if (/kpi|metric|measure/.test(q)) {
-    return ["💰 Revenue", "👥 Leads", "📈 Conversion rate", "🔁 Retention"];
-  }
-  if (/audience|target|who/.test(q)) {
-    return ["👥 Existing customers", "🎯 New prospects", "🏢 B2B buyers", "🛒 Consumers"];
-  }
-  if (/channel|prioritize/.test(q)) {
-    return ["📣 Paid social", "🔎 Search", "✉️ Email", "🤝 Partnerships"];
-  }
-  return ["🎯 Best option", "⚡ Fastest path", "💰 Highest revenue", "🛡️ Lowest risk"];
-}
+// (Removed synthetic fallback options. Questions now show ONLY the
+// options the LLM provided plus the always-present "Something else"
+// custom-input row. No invented chips.)
 
 /**
  * AssistantSuggestions — renders clarifying-question cards with:
@@ -64,9 +45,12 @@ export function AssistantSuggestions({
   const [stepIdx, setStepIdx] = useState(0);
   const [answers, setAnswers] = useState<Array<{ q?: string; a: string }>>([]);
 
-  const groups: SuggestionGroup[] = questions && questions.length > 0
-    ? questions
-    : (suggestions && suggestions.length > 0 ? [{ title, suggestions }] : []);
+  // Only render real LLM-asked questions (title ending in `?`).
+  // Plain `suggestions` arrays without a question title are NOT shown
+  // here anymore — they used to surface as confusing ghost chips.
+  const groups: SuggestionGroup[] = (questions || []).filter(
+    (g) => /\?\s*$/.test((g.title || "").trim()),
+  );
 
   // Reset step state when the underlying questions change.
   const groupsKey = groups.map((g) => `${g.title || ""}|${g.suggestions.join(",")}`).join("||");
@@ -146,8 +130,9 @@ function SuggestionCard({
     return !CUSTOM_LIKE_REGEX.test(label.trim());
   });
   const headerTitle = group.title?.trim();
-  const baseSuggestions = group.suggestions.length > 0 ? group.suggestions : fallbackOptionsForQuestion(headerTitle);
-  const visibleSuggestions = (filteredSuggestions.length > 0 ? filteredSuggestions : baseSuggestions).slice(0, 4);
+  // Show ONLY the LLM-supplied options. If the model asked the question
+  // without options, the user can still answer via "Something else".
+  const visibleSuggestions = filteredSuggestions.slice(0, 4);
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
