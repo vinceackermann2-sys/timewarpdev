@@ -130,8 +130,9 @@ function SuggestionCard({
     return !CUSTOM_LIKE_REGEX.test(label.trim());
   });
   const headerTitle = group.title?.trim();
-  const baseSuggestions = group.suggestions.length > 0 ? group.suggestions : fallbackOptionsForQuestion(headerTitle);
-  const visibleSuggestions = (filteredSuggestions.length > 0 ? filteredSuggestions : baseSuggestions).slice(0, 4);
+  // Show ONLY the LLM-supplied options. If the model asked the question
+  // without options, the user can still answer via "Something else".
+  const visibleSuggestions = filteredSuggestions.slice(0, 4);
   const [customMode, setCustomMode] = useState(false);
   const [customText, setCustomText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
