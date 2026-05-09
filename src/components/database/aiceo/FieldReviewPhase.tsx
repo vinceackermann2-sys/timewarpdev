@@ -173,7 +173,7 @@ export function FieldReviewPhase({ targetUrl, onComplete }: FieldReviewPhaseProp
               Authorization: `Bearer ${session.access_token}`,
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-            body: JSON.stringify({ url: targetUrl, mode: "discover", stream: true }),
+            body: JSON.stringify({ url: targetUrl, mode: "core", stream: true }),
           }
         );
         if (!res.ok) throw new Error("Failed to analyze URL");
