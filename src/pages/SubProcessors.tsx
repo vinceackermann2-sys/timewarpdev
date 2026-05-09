@@ -25,20 +25,6 @@ const subProcessors: SubProcessor[] = [
     website: "https://ai.google.dev",
   },
   {
-    name: "OpenAI (via Lovable AI Gateway)",
-    purpose: "AI model inference for selected reasoning tasks",
-    data: "Prompts, conversation context",
-    location: "US",
-    website: "https://openai.com",
-  },
-  {
-    name: "Browserbase",
-    purpose: "Headless browser automation for AI agent web tasks",
-    data: "URLs, agent task instructions, captured screenshots",
-    location: "US",
-    website: "https://browserbase.com",
-  },
-  {
     name: "Firecrawl",
     purpose: "Web scraping and content extraction for research and onboarding",
     data: "URLs submitted for analysis",
