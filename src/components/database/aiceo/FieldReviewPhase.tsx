@@ -183,13 +183,29 @@ function PillarSkeleton({ icon: Icon, title, fieldCount, accent }: {
 }
 
 /* ── Main Component ── */
+const SCRAPE_CACHE_PREFIX = "tw_onboarding_scrape_v1:";
+
+function loadCachedScrape(url: string): ExtractedProduct | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(SCRAPE_CACHE_PREFIX + url);
+    return raw ? JSON.parse(raw) as ExtractedProduct : null;
+  } catch { return null; }
+}
+
+function saveCachedScrape(url: string, product: ExtractedProduct) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(SCRAPE_CACHE_PREFIX + url, JSON.stringify(product)); } catch {}
+}
+
 export function FieldReviewPhase({ targetUrl, onComplete }: FieldReviewPhaseProps) {
-  const [extractedProduct, setExtractedProduct] = useState<ExtractedProduct | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const cached = useRef<ExtractedProduct | null>(loadCachedScrape(targetUrl)).current;
+  const [extractedProduct, setExtractedProduct] = useState<ExtractedProduct | null>(cached);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [loadingStage, setLoadingStage] = useState("Connecting to website...");
   const [loadingPercent, setLoadingPercent] = useState(5);
   const [error, setError] = useState<string | null>(null);
-  const fetched = useRef(false);
+  const fetched = useRef(!!cached);
 
   useEffect(() => {
     if (fetched.current) return;
@@ -223,7 +239,7 @@ export function FieldReviewPhase({ targetUrl, onComplete }: FieldReviewPhaseProp
             const product = resultData.extracted?.product || {};
             const brand = resultData.extracted?.brand || {};
             const audience = resultData.extracted?.audience || {};
-            setExtractedProduct({
+            const extracted: ExtractedProduct = {
               name: product.name || brand.name || "My Product",
               category: product.category || brand.category || "",
               businessType: brand.businessType || "general",
@@ -241,7 +257,9 @@ export function FieldReviewPhase({ targetUrl, onComplete }: FieldReviewPhaseProp
               rawProduct: product,
               rawAudience: audience,
               rawBrand: brand,
-            });
+            };
+            setExtractedProduct(extracted);
+            saveCachedScrape(targetUrl, extracted);
             setIsLoading(false);
           } else if (data.type === "error") {
             throw new Error(data.error || "Analysis failed");
