@@ -353,36 +353,19 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       userSnippet: userMsg.content || "",
     });
     const derivedPlanActions = effectivePlanArtifact ? extractPlanActions(effectivePlanArtifact.markdown) : [];
-    // Fold derived plan actions into the first question group so they
-    // surface alongside the AI-authored options on the legacy single-card
-    // path. When the AI asks multiple questions, the parser already
-    // produces multiple groups — preserve them as-is.
-    let mergedQuestions = (() => {
-      if (questions.length === 0 && derivedPlanActions.length > 0) {
-        return [{ suggestions: derivedPlanActions.map((a) => a.label).slice(0, 4) }];
-      }
-      if (questions.length > 0 && derivedPlanActions.length > 0) {
-        const first = questions[0];
-        return [
-          {
-            ...first,
-            suggestions: [...first.suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4),
-          },
-          ...questions.slice(1),
-        ];
-      }
-      return questions;
-    })();
+    // Questions are ONLY real `[SUGGEST:Question?::Options]` groups from
+    // the model (the parser already filters out anything without a `?`
+    // title). Plan actions and derived next-step labels are NOT folded
+    // into the question chips — they remain a separate concept.
+    let mergedQuestions: SuggestionGroup[] = questions;
     if (mergedQuestions.length === 0 && streamedQuestionGroups.length > 0) {
-      mergedQuestions = streamedQuestionGroups;
+      mergedQuestions = streamedQuestionGroups.filter(hasQuestionTitle);
     }
-    const bareClarifier = mergedQuestions.length === 0 ? extractBareClarifyingQuestion(contentNoSources) : null;
-    if (bareClarifier) mergedQuestions = [bareClarifier];
-    const isQuestionPause = mergedQuestions.some(hasQuestionTitle) && isClarifierOnlyContent(contentNoSources);
+    const isQuestionPause = mergedQuestions.length > 0 && isClarifierOnlyContent(contentNoSources);
     const modelReplayContent = isQuestionPause
       ? buildQuestionReplayContent(contentNoSources, mergedQuestions)
       : fullContent;
-    const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
+    const mergedSuggestions = suggestions.slice(0, 4);
     const fallbackTitle: string | undefined = suggestionTitle;
     const actionPayloads: Record<string, string> = {};
     const keyFor = (label: string) => label.replace(/^(\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic})*\uFE0F?)\s+/u, "").trim();
