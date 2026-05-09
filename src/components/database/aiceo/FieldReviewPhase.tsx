@@ -162,7 +162,6 @@ function PillarSkeleton({ icon: Icon, title, fieldCount, accent }: {
           <p className="text-[15px] font-bold text-foreground tracking-tight">{title}</p>
           <p className="text-[12px] text-muted-foreground mt-0.5">{fieldCount} fields</p>
         </div>
-        <Loader2 className="w-4 h-4 text-muted-foreground/60 animate-spin" />
       </div>
       <div className="px-6 py-5 space-y-4 border-t border-border/30">
         {Array.from({ length: Math.min(5, fieldCount) }).map((_, i) => (
@@ -267,20 +266,6 @@ export function FieldReviewPhase({ targetUrl, onComplete }: FieldReviewPhaseProp
   if (isLoading || !extractedProduct) {
     return (
       <div className="space-y-4">
-        <div className="bg-card border border-border/40 rounded-2xl p-5 shadow-sm space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Loader2 className="w-5 h-5 text-primary animate-spin" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-bold text-foreground truncate">{targetUrl}</p>
-              <p className="text-[13px] text-muted-foreground">{loadingStage}</p>
-            </div>
-            <p className="text-[14px] font-bold text-primary">{loadingPercent}%</p>
-          </div>
-          <Progress value={loadingPercent} className="h-2" />
-        </div>
-
         <PillarSkeleton icon={Package} title="Product DNA" fieldCount={15} accent="from-blue-500/[0.06] to-transparent" />
         <PillarSkeleton icon={Users} title="Audience DNA" fieldCount={13} accent="from-violet-500/[0.06] to-transparent" />
         <PillarSkeleton icon={Palette} title="Brand DNA" fieldCount={11} accent="from-amber-500/[0.06] to-transparent" />
