@@ -139,10 +139,10 @@ export default function SubProcessors() {
                 paid plan may object to a new sub-processor on legitimate data-protection grounds by
                 contacting us at{" "}
                 <a
-                  href="mailto:hello@timewarpdev.com"
+                  href="mailto:vincentackermann@timewarpdev.com"
                   className="text-primary underline hover:text-primary/80"
                 >
-                  hello@timewarpdev.com
+                  vincentackermann@timewarpdev.com
                 </a>
                 .
               </li>
@@ -197,10 +197,10 @@ export default function SubProcessors() {
               We review this page whenever we add, remove, or change a sub-processor. Customers can
               subscribe to updates by emailing{" "}
               <a
-                href="mailto:hello@timewarpdev.com"
+                href="mailto:vincentackermann@timewarpdev.com"
                 className="text-primary underline hover:text-primary/80"
               >
-                hello@timewarpdev.com
+                vincentackermann@timewarpdev.com
               </a>{" "}
               with the subject "Subscribe: sub-processors".
             </p>
@@ -219,10 +219,10 @@ export default function SubProcessors() {
               </Link>
               , or contact{" "}
               <a
-                href="mailto:hello@timewarpdev.com"
+                href="mailto:vincentackermann@timewarpdev.com"
                 className="text-primary underline hover:text-primary/80"
               >
-                hello@timewarpdev.com
+                vincentackermann@timewarpdev.com
               </a>
               .
             </p>
