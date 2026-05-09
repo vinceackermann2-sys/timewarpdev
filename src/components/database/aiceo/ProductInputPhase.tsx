@@ -4,7 +4,7 @@
  */
 import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Globe, Loader2, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Globe, Loader2, Sparkles, Zap, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ExtractedProduct {
@@ -46,7 +46,7 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
     }
   }, [url, onComplete]);
 
-  const chips = ["Products & Pricing", "Brand Identity", "Audience Signals", "Social Proof"];
+  const chips = ["Products & Pricing", "Brand Identity", "Purchasing Triggers", "Social Proof"];
 
   return (
     <motion.div
@@ -61,9 +61,9 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
             <Sparkles className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-[17px] font-bold text-foreground tracking-tight">Connect your business</p>
+            <p className="text-[17px] font-bold text-foreground tracking-tight">Connect your product</p>
             <p className="text-[14px] text-muted-foreground mt-0.5">
-              Enter your website URL.
+              Enter your product URL.
             </p>
           </div>
         </div>
@@ -77,7 +77,7 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
           <input
             type="text"
             className="w-full border border-border/50 rounded-2xl pl-12 pr-5 py-4 text-[15px] bg-background/80 focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all shadow-sm"
-            placeholder="https://yourwebsite.com"
+            placeholder="https://yourwebsite.com/product"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && url.trim()) handleUrlScrape(); }}
@@ -93,7 +93,7 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
               transition={{ delay: 0.1 + i * 0.06, duration: 0.3 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/[0.06] border border-primary/10 text-[12px] font-medium text-primary/80"
             >
-              <Zap className="w-3 h-3" />{label}
+              <Users className="w-3 h-3" />{label}
             </motion.span>
           ))}
         </div>
