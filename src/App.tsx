@@ -17,6 +17,7 @@ import InviteAccept from "./pages/InviteAccept";
 import PricingPage from "./pages/PricingPage";
 import Support from "./pages/Support";
 import DataDeletion from "./pages/DataDeletion";
+import SubProcessors from "./pages/SubProcessors";
 import SuperchargeDna from "./pages/SuperchargeDna";
 
 // New /app/* nested-route shell + pages (replaces the old monolithic
@@ -76,6 +77,7 @@ const App = () => {
                   <Route path="/terms" element={<TermsOfPurchase />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/data-deletion" element={<DataDeletion />} />
+                  <Route path="/sub-processors" element={<SubProcessors />} />
 
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
