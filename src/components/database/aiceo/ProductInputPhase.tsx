@@ -46,7 +46,12 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
     }
   }, [url, onComplete]);
 
-  const chips = ["Products & Pricing", "Brand Identity", "Purchasing Triggers", "Social Proof"];
+  const chips: { label: string; Icon: typeof ShoppingCart }[] = [
+    { label: "Products & Pricing", Icon: DollarSign },
+    { label: "Brand Identity", Icon: Fingerprint },
+    { label: "Purchasing Triggers", Icon: ShoppingCart },
+    { label: "Social Proof", Icon: Users },
+  ];
 
   return (
     <motion.div
