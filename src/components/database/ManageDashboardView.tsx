@@ -874,7 +874,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         })}
       </aside>
       <div className="flex-1 min-w-0 flex flex-col">
-      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-background">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-background bg-[#fcfcfd]">
 
         <div className="flex items-start justify-between mb-4 gap-4">
           <div className="min-w-0 flex-1">
