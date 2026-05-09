@@ -698,46 +698,11 @@ serve(async (req) => {
       audienceExternalMarkdown = audienceExternalMarkdown.slice(0, 900);
     }
 
-    // ---- Connection signals ----------------------------------------------------
-    // When the user has connected providers (Outlook, Gmail, OneDrive, HubSpot,
-    // Slack, etc.), surface a tiny, anti-fabrication summary of what we observe:
-    // # of contacts, vendor-domain hints, top tools mentioned, # of files, # of
-    // deals/pipeline value, # of Slack channels, etc. The AI uses this STRICTLY
-    // as evidence — never as license to invent specifics. Each pillar prompt
-    // already enforces "empty if no evidence".
-    const { data: connectionsRaw } = await admin
-      .from("user_connections")
-      .select("provider, status, metadata, connected_at")
-      .eq("user_id", user.id)
-      .eq("status", "connected");
-    const connectedProviders: string[] = (connectionsRaw || []).map((c: any) => c.provider);
-
-    let connectionContext = "(no integrations connected)";
-    if (connectedProviders.length > 0) {
-      const lines: string[] = [];
-      lines.push(`Connected providers (${connectedProviders.length}): ${connectedProviders.join(", ")}`);
-      // Pillar relevance map — tells AI which pillars these signals can ground.
-      lines.push("Provider → pillar relevance:");
-      const relevance: Record<string, string> = {
-        microsoft_outlook: "people, operations, growth (customer comms, vendor emails, team activity)",
-        microsoft_onedrive: "operations, strategy (documents, contracts, decks, processes)",
-        microsoft_onenote: "operations, strategy (notes, SOPs, planning docs)",
-        microsoft_teams: "people, operations (channels = teams/processes, members = headcount)",
-        google_gmail: "people, operations, growth (customer comms, vendors)",
-        google_calendar: "people, operations (recurring meetings = processes, attendees = team)",
-        google_drive: "operations, strategy (documents, decks, contracts)",
-        google_docs: "operations, strategy",
-        google_sheets: "financial, operations (KPI sheets, budgets, trackers)",
-        google_slides: "strategy, growth (decks, plans, pitches)",
-        slack: "people, operations (channels = teams, members = headcount, activity)",
-        hubspot: "financial, growth, audience (deals, pipeline, contacts, owners = team)",
-        zoom: "people, operations (recurring meetings, recordings)",
-      };
-      for (const p of connectedProviders) {
-        if (relevance[p]) lines.push(`  • ${p} → ${relevance[p]}`);
-      }
-      connectionContext = lines.join("\n");
-    }
+    // Integrations intentionally excluded from Business DNA enrichment.
+    // Connected providers are used for actions/automation only — they do not
+    // contribute evidence to DNA fields. DNA is grounded purely in onboarding
+    // brand/product/audience context, uploaded files, and cited market evidence.
+    const connectionContext = "(integrations are not used as evidence for Business DNA)";
 
     const systemPrompt = `You are a senior business strategist generating Business DNA for one of the 9 strategic pillars, following the TimeWarp Business DNA Model document.
 
