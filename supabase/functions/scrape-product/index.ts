@@ -607,7 +607,7 @@ serve(async (req) => {
 
   // Parse request body early to check for streaming mode
   const reqBody = await req.json();
-  const isStreamingRequest = reqBody.mode === "discover" && reqBody.stream === true;
+  const isStreamingRequest = (reqBody.mode === "discover" || reqBody.mode === "core") && reqBody.stream === true;
 
   // Race the entire handler against a 50s timeout so we return a proper
   // CORS-enabled error instead of letting the gateway send a bare 504.
