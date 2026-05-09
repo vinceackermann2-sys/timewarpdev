@@ -688,16 +688,14 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
     const brandRowId = (activeBrand as { _rowId?: string })._rowId || activeBrand.id;
     const cached = loadCachedCards(brandRowId);
     const cachedHasCards = cached && Object.values(cached).some((arr) => Array.isArray(arr) && arr.length > 0);
-    const staleCache = isCacheStale(brandRowId);
     if (cachedHasCards) {
       setAllTabCards(cached!);
-      // Auto-refresh in background if cache is stale (older than threshold or invalidated)
-      if (staleCache) fetchInsights(brandRowId);
+      // No background auto-refresh — user must press "Update" to regenerate.
+      if (isCacheStale(brandRowId)) setStale(true);
     } else {
-      // Empty localStorage cache — try the server snapshot for an instant warm render,
-      // then kick off the full AI refresh in the background.
+      // Empty localStorage cache — show instant warm render from server snapshot
+      // if available. Do NOT auto-trigger a full AI refresh; wait for user.
       hydrateFromSnapshot(brandRowId);
-      fetchInsights(brandRowId);
     }
   }, [activeBrand?.id]);
 
