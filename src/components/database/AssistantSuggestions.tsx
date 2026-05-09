@@ -45,9 +45,12 @@ export function AssistantSuggestions({
   const [stepIdx, setStepIdx] = useState(0);
   const [answers, setAnswers] = useState<Array<{ q?: string; a: string }>>([]);
 
-  const groups: SuggestionGroup[] = questions && questions.length > 0
-    ? questions
-    : (suggestions && suggestions.length > 0 ? [{ title, suggestions }] : []);
+  // Only render real LLM-asked questions (title ending in `?`).
+  // Plain `suggestions` arrays without a question title are NOT shown
+  // here anymore — they used to surface as confusing ghost chips.
+  const groups: SuggestionGroup[] = (questions || []).filter(
+    (g) => /\?\s*$/.test((g.title || "").trim()),
+  );
 
   // Reset step state when the underlying questions change.
   const groupsKey = groups.map((g) => `${g.title || ""}|${g.suggestions.join(",")}`).join("||");
