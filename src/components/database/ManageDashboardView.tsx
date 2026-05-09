@@ -163,7 +163,7 @@ function CardShell({
   const delta = deltaBadge(card.deltaState);
 
   const themeStyles = {
-    blue: "bg-blue-100/90 border-blue-200 hover:border-blue-300 dark:bg-blue-900/40 dark:border-blue-800/60 dark:hover:border-blue-700",
+    blue: "border-blue-200 hover:border-blue-300 dark:border-blue-800/60 dark:hover:border-blue-700 bg-slate-50",
     amber: "bg-amber-100/90 border-amber-200 hover:border-amber-300 dark:bg-amber-900/40 dark:border-amber-800/60 dark:hover:border-amber-700",
     emerald: "bg-emerald-100/90 border-emerald-200 hover:border-emerald-300 dark:bg-emerald-900/40 dark:border-emerald-800/60 dark:hover:border-emerald-700",
     purple: "bg-purple-100/90 border-purple-200 hover:border-purple-300 dark:bg-purple-900/40 dark:border-purple-800/60 dark:hover:border-purple-700",
@@ -850,7 +850,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
   return (
     <div className="h-full flex relative overflow-hidden bg-background">
       {/* Left vertical tab menu */}
-      <aside className="w-52 shrink-0 border-r border-border/60 bg-background flex flex-col py-4 px-3 gap-0.5">
+      <aside className="w-52 shrink-0 border-r border-border/60 bg-background flex flex-col py-4 px-3 gap-0.5 bg-[#fcfcfd]">
         <div className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Dashboard
         </div>
@@ -874,7 +874,7 @@ export function ManageDashboardView({ activeBrandId, initialTab, onExecuteAction
         })}
       </aside>
       <div className="flex-1 min-w-0 flex flex-col">
-      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-background">
+      <div className="px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-3 bg-background bg-[#fcfcfd]">
 
         <div className="flex items-start justify-between mb-4 gap-4">
           <div className="min-w-0 flex-1">
