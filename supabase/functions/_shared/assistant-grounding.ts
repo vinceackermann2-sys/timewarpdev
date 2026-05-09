@@ -96,16 +96,15 @@ const DATA_BACKED_SUGGESTIONS_BLOCK = `
 `.trim();
 
 const CLARIFYING_QUESTIONS_BLOCK = `
-## Clarifying questions (\`[SUGGEST:…]\`) — goal-specific, never templated, always include a wildcard
-- Use \`[SUGGEST:…]\` only when a **decision-critical** answer is missing and would materially change the work.
-- The question stem itself must reference **the exact goal the user just stated** (quote or paraphrase a noun/verb from their last message). Generic stems like "What would you like to do?", "How can I help?", "Pick a direction" are **banned** — rewrite them around the user's words.
+## Clarifying questions (\`[SUGGEST:…]\`) — goal-specific, never templated
+- Use \`[SUGGEST:…]\` whenever a **decision-critical** answer is missing **or** when you have just finished a task and the user's logical next move depends on choices only they can make. Never end a completed task without offering at least 2 concrete next-step chips tied to **that exact task**.
+- The question stem itself must reference **the exact deliverable just produced or goal the user just stated** (quote or paraphrase a specific noun/verb from their last message or your own output — e.g. the channel you proposed, the segment you analyzed, the asset you generated). Generic stems like "What would you like to do?", "How can I help?", "Pick a direction", "Anything else?" are **banned**.
 - Each option must be a concrete, decision-shaping path for *that* goal — not a generic menu. If the same option text could be reused in an unrelated conversation, it is too template-y; rewrite it.
-- **Always include one "something else" / open-ended escape option** as the final chip (e.g. "🔀 None of these — let me describe it" or "✏️ Different angle: <free text>"). The user must always have a way out of the prescribed paths.
+- **Do NOT include a generic "something else", "custom workflow", "I'll type it", "None of these — let me describe it", or any open-ended escape chip.** The chat input already lets the user type freely; adding such a chip is redundant and forbidden.
+- Every chip must reference a **specific** named entity from this turn (the offer, channel, metric, audience, deliverable, or file you just worked on). If you cannot produce 2 specific chips, ask one plain-sentence follow-up question instead.
 - When **Pre-Flight: Ask These First** appears in context, put the required \`[SUGGEST:…]\` line(s) **before** substantive output (after at most one ≤20-word sentence). Never place the only blocking questions after paragraphs of recommendations, tables, or \`[PLAN_ARTIFACT]\` / visual fences — that wastes the user’s time and forces rework.
 - When you already owe substantive output in the same turn, you may place an additional \`[SUGGEST:…]\` **between** major sections only if the user must choose a fork mid-way; otherwise deliver the owed section first, then ask.
-- If enough evidence exists to answer well, do **not** ask unnecessary questions.
 - When the pre-flight block says the user is **continuing a pending request**, stay on the original task until it is done or truly blocked.
-- Do **not** append gratuitous \`[SUGGEST:…]\` menus after a finished answer.
 `.trim();
 
 const OPEN_ENDED_GROWTH_BLOCK = `
