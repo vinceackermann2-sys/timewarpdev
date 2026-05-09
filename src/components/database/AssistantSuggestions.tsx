@@ -22,28 +22,9 @@ function splitEmoji(raw: string): { emoji: string | null; label: string } {
   return { emoji: null, label: raw };
 }
 
-function fallbackOptionsForQuestion(question?: string): string[] {
-  const q = (question || "").toLowerCase();
-  if (/outcome|goal|objective|success/.test(q)) {
-    return ["💰 Revenue growth", "👥 More qualified leads", "📣 Brand reach", "🔁 Retention"];
-  }
-  if (/timeline|timeframe|when|run on|cover/.test(q)) {
-    return ["⚡ Next 30 days", "📅 This quarter", "🗓️ Next 6 months", "🚀 12-month roadmap"];
-  }
-  if (/constraint|non-negotiable|limit|budget/.test(q)) {
-    return ["💸 Limited budget", "⏱️ Limited time", "👤 Small team", "✅ No hard constraints"];
-  }
-  if (/kpi|metric|measure/.test(q)) {
-    return ["💰 Revenue", "👥 Leads", "📈 Conversion rate", "🔁 Retention"];
-  }
-  if (/audience|target|who/.test(q)) {
-    return ["👥 Existing customers", "🎯 New prospects", "🏢 B2B buyers", "🛒 Consumers"];
-  }
-  if (/channel|prioritize/.test(q)) {
-    return ["📣 Paid social", "🔎 Search", "✉️ Email", "🤝 Partnerships"];
-  }
-  return ["🎯 Best option", "⚡ Fastest path", "💰 Highest revenue", "🛡️ Lowest risk"];
-}
+// (Removed synthetic fallback options. Questions now show ONLY the
+// options the LLM provided plus the always-present "Something else"
+// custom-input row. No invented chips.)
 
 /**
  * AssistantSuggestions — renders clarifying-question cards with:
