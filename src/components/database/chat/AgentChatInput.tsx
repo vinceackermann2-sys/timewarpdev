@@ -66,6 +66,8 @@ export function AgentChatInput({
   setSessionMemoryOpen: (v: boolean | ((p: boolean) => boolean)) => void;
   sessionMemory: string;
   setSessionMemory: (v: string) => void;
+  contextTokens?: number;
+  contextTokenLimit?: number;
   uploadedFiles: FileChip[];
   setUploadedFiles: React.Dispatch<React.SetStateAction<FileChip[]>>;
   employees: { id: string; name: string; role: string }[];
