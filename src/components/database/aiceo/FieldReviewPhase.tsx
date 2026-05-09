@@ -404,7 +404,7 @@ function FieldReviewForm({ extractedProduct, onComplete }: { extractedProduct: E
   return (
     <div className="space-y-4">
       {/* Product Pillar — 15 fields */}
-      <PillarSection title="Product DNA" icon={Package} accent="from-blue-500/[0.06] to-transparent" badge="15 fields · What you build & deliver" defaultOpen={true}>
+      <PillarSection title="Product DNA" icon={Package} accent="from-blue-500/[0.06] to-transparent" badge="15 fields · What you build & deliver" defaultOpen={false}>
         <EditableField label="Product Name" value={productName} onChange={setProductName} />
         <EditableField label="1. Product Description" value={p1_description} onChange={setP1} multiline />
         <FieldList label="2. Product Catalogue" tags={p2_catalogue} onChange={setP2} placeholder="Add SKU…" />
@@ -439,7 +439,7 @@ function FieldReviewForm({ extractedProduct, onComplete }: { extractedProduct: E
       </PillarSection>
 
       {/* Audience Pillar — 13 fields */}
-      <PillarSection title="Audience DNA" icon={Users} accent="from-violet-500/[0.06] to-transparent" badge="13 fields · Who you serve" defaultOpen={true}>
+      <PillarSection title="Audience DNA" icon={Users} accent="from-violet-500/[0.06] to-transparent" badge="13 fields · Who you serve" defaultOpen={false}>
         <EditableField label="1. Audience Description" value={a1_description} onChange={setA1} multiline />
         <EditableField label="2. Segmentation Model" value={a2_segmentation} onChange={setA2} multiline />
         <EditableField label="3. Buyer Persona" value={a3_persona} onChange={setA3} />
@@ -456,7 +456,7 @@ function FieldReviewForm({ extractedProduct, onComplete }: { extractedProduct: E
       </PillarSection>
 
       {/* Brand Pillar — 11 fields */}
-      <PillarSection title="Brand DNA" icon={Palette} accent="from-amber-500/[0.06] to-transparent" badge="11 fields · Identity & perception" defaultOpen={true}>
+      <PillarSection title="Brand DNA" icon={Palette} accent="from-amber-500/[0.06] to-transparent" badge="11 fields · Identity & perception" defaultOpen={false}>
         <EditableField label="Brand Name" value={brandName} onChange={setBrandName} />
         <EditableField label="1. Brand Description" value={b1_description} onChange={setB1} multiline />
         <EditableField label="2. Mission Statement" value={b2_mission} onChange={setB2} multiline />
