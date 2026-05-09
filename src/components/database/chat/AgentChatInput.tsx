@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode, type RefObject } from "react";
-import { ArrowUp, FileUp, ListTodo, Monitor, ScrollText, Square, X } from "lucide-react";
+import { ArrowUp, Brain, FileUp, ListTodo, Monitor, ScrollText, Square, X } from "lucide-react";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { MentionState } from "@/lib/agentChat/mentionHelpers";
 import { AgentChatPlusMenu, AgentChatPlusTrigger } from "./AgentChatPlusMenu";
