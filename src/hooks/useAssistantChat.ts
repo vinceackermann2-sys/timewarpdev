@@ -797,29 +797,14 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       userSnippet: userMsg.content || "",
     });
     const derivedPlanActions = artifact ? extractPlanActions(artifact.markdown) : [];
-    const mergedSuggestions = [...suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4);
-    let mergedQuestions = (() => {
-      if (questions.length === 0 && derivedPlanActions.length > 0) {
-        return [{ suggestions: derivedPlanActions.map((a) => a.label).slice(0, 4) }];
-      }
-      if (questions.length > 0 && derivedPlanActions.length > 0) {
-        const first = questions[0];
-        return [
-          {
-            ...first,
-            suggestions: [...first.suggestions, ...derivedPlanActions.map((a) => a.label)].slice(0, 4),
-          },
-          ...questions.slice(1),
-        ];
-      }
-      return questions;
-    })();
+    const mergedSuggestions = suggestions.slice(0, 4);
+    // Same redo as the streaming path: only real `[SUGGEST:Question?::…]`
+    // groups become question chips. Plan actions stay separate.
+    let mergedQuestions: SuggestionGroup[] = questions;
     if (mergedQuestions.length === 0 && streamedQuestionGroups.length > 0) {
-      mergedQuestions = streamedQuestionGroups;
+      mergedQuestions = streamedQuestionGroups.filter(hasQuestionTitle);
     }
-    const bareClarifier = mergedQuestions.length === 0 ? extractBareClarifyingQuestion(contentNoSources) : null;
-    if (bareClarifier) mergedQuestions = [bareClarifier];
-    const isQuestionPause = mergedQuestions.some(hasQuestionTitle) && isClarifierOnlyContent(contentNoSources);
+    const isQuestionPause = mergedQuestions.length > 0 && isClarifierOnlyContent(contentNoSources);
     const modelReplayContent = isQuestionPause
       ? buildQuestionReplayContent(contentNoSources, mergedQuestions)
       : accumulatedContent;
