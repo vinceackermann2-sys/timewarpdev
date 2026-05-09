@@ -4,7 +4,7 @@
  */
 import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Globe, Loader2, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Globe, Loader2, Sparkles, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ExtractedProduct {
@@ -93,7 +93,7 @@ export function ProductInputPhase({ onComplete }: ProductInputPhaseProps) {
               transition={{ delay: 0.1 + i * 0.06, duration: 0.3 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/[0.06] border border-primary/10 text-[12px] font-medium text-primary/80"
             >
-              <Users className="w-3 h-3" />{label}
+              <ShoppingCart className="w-3 h-3" />{label}
             </motion.span>
           ))}
         </div>
