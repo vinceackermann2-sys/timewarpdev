@@ -126,6 +126,7 @@ const TASK_STATUS_BLOCK = `
 - Treat the thread as **one active task** until the user’s original ask is satisfied or you are genuinely blocked on their input / missing data.
 - When **Pre-Flight: Continuing a Pending Request** appears, the latest user line is **not** a new topic — apply it, then continue the original work in the same reply.
 - When you **fully delivered** what they asked for this turn, end with a short **Status** line: **Task complete** — one sentence on what you delivered.
+- **Immediately after Task complete**, append a \`[SUGGEST:…]\` block with 2–4 concrete next-step chips that name the **specific deliverable, asset, metric, channel, or entity you just produced**. Never end with Task complete and no chips. Never use generic chips like "Anything else?", "Continue", "Custom workflow", or "I'll type" — and do not add an open-ended escape chip (the chat input handles that).
 - When work is **not** finished (need their answer, connector returned nothing, or multi-step work remains), end with **Still in progress:** one sentence stating what is left.
 - Never use **Task complete** if a promised lookup or deliverable is still missing.
 `.trim();
