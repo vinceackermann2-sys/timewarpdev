@@ -1046,7 +1046,7 @@ export function AgentChatView({
           contextTokens={Math.round(
             (messages.reduce((acc, m) => acc + (m.content?.length || 0), 0) + sessionMemory.length) / 4,
           )}
-          contextTokenLimit={200000}
+          contextTokenLimit={1_000_000}
           uploadedFiles={uploadedFiles}
           setUploadedFiles={setUploadedFiles}
           employees={employees}
