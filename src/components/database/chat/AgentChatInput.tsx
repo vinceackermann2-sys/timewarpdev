@@ -23,6 +23,8 @@ export function AgentChatInput({
   setSessionMemoryOpen,
   sessionMemory,
   setSessionMemory,
+  contextTokens = 0,
+  contextTokenLimit = 200000,
   uploadedFiles,
   setUploadedFiles,
   employees,
