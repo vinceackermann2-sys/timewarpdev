@@ -199,6 +199,11 @@ export function AgentChatView({
       }
       return;
     }
+    // Seed activity timestamp the moment a send starts so the watchdog doesn't
+    // immediately trip on a stale (or zero) lastActivityRef before the
+    // assistant message is registered.
+    lastActivityRef.current = Date.now();
+    stalledRef.current = false;
     stallIntervalRef.current = setInterval(() => {
       if (stalledRef.current) return;
       const elapsed = Date.now() - lastActivityRef.current;
