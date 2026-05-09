@@ -52,7 +52,9 @@ export function buildChatMarkdownComponents(msg: ChatMessage): Partial<Component
         return <InlineChatAnalytics jsonString={text} />;
       }
       if (className?.includes("language-document")) {
-        return <InlineDocument jsonString={text} />;
+        // Document artifacts are surfaced via the Task Report viewer instead
+        // of inline in the chat body. Hide the raw block here.
+        return null;
       }
       if (className?.includes("language-analytics")) {
         return <InlineChatAnalytics jsonString={text} />;
@@ -67,7 +69,9 @@ export function buildChatMarkdownComponents(msg: ChatMessage): Partial<Component
         return <InlineChatAnalytics jsonString={text} />;
       }
       if (inferredJsonKind === "document") {
-        return <InlineDocument jsonString={text} />;
+        // Document artifacts are surfaced via the Task Report viewer instead
+        // of inline in the chat body. Hide the raw block here.
+        return null;
       }
       if (inferredJsonKind === "spreadsheet") {
         return <InlineSpreadsheet jsonString={text} />;
