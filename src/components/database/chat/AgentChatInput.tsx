@@ -293,38 +293,80 @@ export function AgentChatInput({
             />
           </div>
 
-          <Popover open={sessionMemoryOpen} onOpenChange={setSessionMemoryOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                title="Session memory — context the assistant will remember for this chat"
-                className={cn(
-                  "p-2 rounded-full transition-all active:scale-95 flex items-center justify-center mr-1",
-                  sessionMemory.trim()
-                    ? "bg-primary/10 text-primary hover:bg-primary/20"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <Brain className="w-4 h-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side="top" align="end" className="w-80 p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Brain className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">Session memory</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-2">
-                Notes, context or instructions the assistant should keep in mind for every message in this chat.
-              </p>
-              <textarea
-                value={sessionMemory}
-                onChange={(e) => setSessionMemory(e.target.value)}
-                placeholder="e.g. We're launching in EU next month. Tone: punchy, no fluff."
-                rows={6}
-                className="w-full text-sm bg-background border border-border rounded-lg p-2 outline-none focus:border-primary/40 resize-none"
-              />
-            </PopoverContent>
-          </Popover>
+          {(() => {
+            const pct = Math.min(100, (contextTokens / Math.max(1, contextTokenLimit)) * 100);
+            const fmt = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}K` : `${n}`);
+            const status =
+              pct < 60
+                ? { label: "Plenty of room", color: "text-emerald-600" }
+                : pct < 85
+                ? { label: "Getting full", color: "text-amber-600" }
+                : { label: "Almost full — start a new chat soon", color: "text-destructive" };
+            return (
+              <Popover open={sessionMemoryOpen} onOpenChange={setSessionMemoryOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    title="Context window — how much of the AI's memory this chat is using"
+                    className="flex items-center gap-1.5 px-2.5 h-8 mr-1 rounded-full bg-muted/60 hover:bg-muted text-xs text-muted-foreground transition-colors"
+                  >
+                    <span className="font-medium tabular-nums">{pct.toFixed(1)}%</span>
+                    <span className="relative inline-flex w-3.5 h-3.5">
+                      <svg viewBox="0 0 16 16" className="w-3.5 h-3.5">
+                        <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2" />
+                        <circle
+                          cx="8"
+                          cy="8"
+                          r="6"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeDasharray={`${(pct / 100) * 2 * Math.PI * 6} ${2 * Math.PI * 6}`}
+                          strokeDashoffset="0"
+                          transform="rotate(-90 8 8)"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="end" className="w-80 p-4">
+                  <div className="text-sm font-semibold text-foreground">Context window</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">How much of the AI's memory this chat is using.</p>
+                  <div className="flex items-baseline justify-between mt-3">
+                    <span className="text-lg font-medium text-foreground tabular-nums">{pct.toFixed(1)}% used</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {fmt(contextTokens)} / {fmt(contextTokenLimit)}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        pct < 60 ? "bg-foreground" : pct < 85 ? "bg-amber-500" : "bg-destructive",
+                      )}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className={cn("mt-2 text-sm font-medium", status.color)}>{status.label}</div>
+
+                  <div className="mt-4 pt-3 border-t border-border">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Brain className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-xs font-medium text-foreground">Session memory</span>
+                    </div>
+                    <textarea
+                      value={sessionMemory}
+                      onChange={(e) => setSessionMemory(e.target.value)}
+                      placeholder="Notes the assistant should keep in mind for this chat…"
+                      rows={3}
+                      className="w-full text-xs bg-background border border-border rounded-lg p-2 outline-none focus:border-primary/40 resize-none"
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
+            );
+          })()}
 
           {isSending ? (
             <button
