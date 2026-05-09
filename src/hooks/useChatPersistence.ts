@@ -123,11 +123,26 @@ export function useChatPersistence({
   useEffect(() => {
     if (messages.length === 0) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveChatSession(messages, activeChatId), 2000);
+    saveTimerRef.current = setTimeout(() => saveChatSession(messages, activeChatId), 600);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [messages, activeChatId, saveChatSession, sessionMemory, goalState]);
+
+  // Track latest activeChatId so the unmount flush can target it.
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
+
+  // Flush on unmount (user navigates away mid-stream) so the user message and
+  // any partial assistant reply are preserved instead of being lost.
+  useEffect(() => {
+    return () => {
+      const msgs = messagesRef.current;
+      if (msgs.length === 0) return;
+      void saveRef.current(msgs, activeChatIdRef.current);
+    };
+  }, []);
 
   // When the user signs out / switches account or workspace, drop the active
   // chat id so we never update or display another user's session.
