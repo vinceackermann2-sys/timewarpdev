@@ -162,7 +162,6 @@ function PillarSkeleton({ icon: Icon, title, fieldCount, accent }: {
           <p className="text-[15px] font-bold text-foreground tracking-tight">{title}</p>
           <p className="text-[12px] text-muted-foreground mt-0.5">{fieldCount} fields</p>
         </div>
-        <Loader2 className="w-4 h-4 text-muted-foreground/60 animate-spin" />
       </div>
       <div className="px-6 py-5 space-y-4 border-t border-border/30">
         {Array.from({ length: Math.min(5, fieldCount) }).map((_, i) => (
