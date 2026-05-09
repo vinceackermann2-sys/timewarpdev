@@ -659,7 +659,8 @@ export function AgentChatView({
         (m) =>
           m.role === "assistant" &&
           !m.isStreaming &&
-          ((m.suggestionQuestions && m.suggestionQuestions.length > 0) || (m.suggestions && m.suggestions.length > 0)),
+          !!m.suggestionQuestions &&
+          m.suggestionQuestions.some((g) => /\?\s*$/.test((g.title || "").trim())),
       );
       if (lastAssistantWithPrompt) {
         setDismissedSuggestionIds((prev) => {
