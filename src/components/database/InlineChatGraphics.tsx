@@ -67,8 +67,59 @@ function downloadFile(filename: string, content: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
-interface DocSection { heading?: string; content: string }
-interface DocConfig { title: string; sections: DocSection[]; author?: string; date?: string }
+interface DocSection {
+  heading?: string;
+  content?: string;
+  /** Optional Mermaid diagram source for this section. Rendered above the content. */
+  mermaid?: string;
+  /** Optional image URL to render inside the section. */
+  image?: string;
+  /** Optional image caption. */
+  caption?: string;
+}
+interface DocConfig {
+  title: string;
+  sections: DocSection[];
+  author?: string;
+  date?: string;
+  /** Narrative through-line / red thread shown as a callout below the title. */
+  thread?: string;
+  /** Short executive summary shown at top of the document. */
+  summary?: string;
+}
+
+function MermaidDiagram({ source }: { source: string }) {
+  const [svg, setSvg] = useState<string>("");
+  const [err, setErr] = useState<string>("");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mermaid = (await import("mermaid")).default;
+        mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose", fontFamily: "inherit" });
+        const id = `m${Math.random().toString(36).slice(2)}`;
+        const { svg } = await mermaid.render(id, source.trim());
+        if (!cancelled) setSvg(svg);
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : "Diagram error");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [source]);
+  if (err) return <div className="text-xs text-muted-foreground italic">Diagram could not render.</div>;
+  if (!svg) return <div className="text-xs text-muted-foreground">Rendering diagram…</div>;
+  return <div className="my-3 flex justify-center [&_svg]:max-w-full [&_svg]:h-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
+}
+
+/** Strip stray markdown heading markers (e.g. "## Foo") from section content — they should be in `heading`. */
+function cleanSectionContent(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .split("\n")
+    .map((line) => line.replace(/^\s{0,3}#{1,6}\s+/, ""))
+    .join("\n")
+    .trim();
+}
 
 export function InlineDocument({ jsonString, editorEnabled = true }: { jsonString: string; editorEnabled?: boolean }) {
   const [draftJson, setDraftJson] = useState(jsonString);
@@ -97,7 +148,8 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
         doc.setFontSize(11);
         doc.setFont("helvetica", "normal");
       }
-      const lines = doc.splitTextToSize(sec.content, 170);
+      const cleaned = cleanSectionContent(sec.content || "");
+      const lines = doc.splitTextToSize(cleaned, 170);
       lines.forEach((line: string) => {
         if (y > 280) { doc.addPage(); y = 20; }
         doc.text(line, 20, y);
@@ -118,13 +170,36 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
         {config.date && <span className="text-xs text-muted-foreground">{config.date}</span>}
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
-      <div className="px-5 py-4 space-y-4 max-h-[400px] overflow-y-auto">
-        {sections.map((sec, i) => (
-          <div key={i}>
-            {sec.heading && <h4 className="text-sm font-semibold text-foreground mb-1.5">{sec.heading}</h4>}
-            <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{sec.content}</p>
+      <div className="px-5 py-4 space-y-5 max-h-[520px] overflow-y-auto">
+        {config.thread && (
+          <div className="rounded-lg border-l-2 border-primary/60 bg-primary/5 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-primary/80 mb-1">Red thread</div>
+            <p className="text-sm text-foreground/85 leading-relaxed">{config.thread}</p>
           </div>
-        ))}
+        )}
+        {config.summary && (
+          <div className="text-sm text-foreground/80 leading-relaxed italic border-b border-border/40 pb-3">
+            {config.summary}
+          </div>
+        )}
+        {sections.map((sec, i) => {
+          const cleaned = cleanSectionContent(sec.content || "");
+          return (
+            <div key={i} className="space-y-2">
+              {sec.heading && <h4 className="text-sm font-semibold text-foreground">{sec.heading}</h4>}
+              {sec.mermaid && <MermaidDiagram source={sec.mermaid} />}
+              {sec.image && (
+                <figure className="my-2">
+                  <img src={sec.image} alt={sec.caption || sec.heading || "figure"} className="rounded-md border border-border/50 max-w-full h-auto" />
+                  {sec.caption && <figcaption className="text-xs text-muted-foreground mt-1 text-center">{sec.caption}</figcaption>}
+                </figure>
+              )}
+              {cleaned && (
+                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">{cleaned}</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
