@@ -148,7 +148,8 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
         doc.setFontSize(11);
         doc.setFont("helvetica", "normal");
       }
-      const lines = doc.splitTextToSize(sec.content, 170);
+      const cleaned = cleanSectionContent(sec.content || "");
+      const lines = doc.splitTextToSize(cleaned, 170);
       lines.forEach((line: string) => {
         if (y > 280) { doc.addPage(); y = 20; }
         doc.text(line, 20, y);
@@ -169,13 +170,36 @@ export function InlineDocument({ jsonString, editorEnabled = true }: { jsonStrin
         {config.date && <span className="text-xs text-muted-foreground">{config.date}</span>}
         <GraphicActions onSave={handleSave} onDownload={handleDownload} editor={editor} />
       </div>
-      <div className="px-5 py-4 space-y-4 max-h-[400px] overflow-y-auto">
-        {sections.map((sec, i) => (
-          <div key={i}>
-            {sec.heading && <h4 className="text-sm font-semibold text-foreground mb-1.5">{sec.heading}</h4>}
-            <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{sec.content}</p>
+      <div className="px-5 py-4 space-y-5 max-h-[520px] overflow-y-auto">
+        {config.thread && (
+          <div className="rounded-lg border-l-2 border-primary/60 bg-primary/5 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-primary/80 mb-1">Red thread</div>
+            <p className="text-sm text-foreground/85 leading-relaxed">{config.thread}</p>
           </div>
-        ))}
+        )}
+        {config.summary && (
+          <div className="text-sm text-foreground/80 leading-relaxed italic border-b border-border/40 pb-3">
+            {config.summary}
+          </div>
+        )}
+        {sections.map((sec, i) => {
+          const cleaned = cleanSectionContent(sec.content || "");
+          return (
+            <div key={i} className="space-y-2">
+              {sec.heading && <h4 className="text-sm font-semibold text-foreground">{sec.heading}</h4>}
+              {sec.mermaid && <MermaidDiagram source={sec.mermaid} />}
+              {sec.image && (
+                <figure className="my-2">
+                  <img src={sec.image} alt={sec.caption || sec.heading || "figure"} className="rounded-md border border-border/50 max-w-full h-auto" />
+                  {sec.caption && <figcaption className="text-xs text-muted-foreground mt-1 text-center">{sec.caption}</figcaption>}
+                </figure>
+              )}
+              {cleaned && (
+                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">{cleaned}</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
