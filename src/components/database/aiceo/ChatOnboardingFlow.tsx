@@ -43,15 +43,42 @@ interface ChatOnboardingFlowProps {
 
 function sleep(ms: number) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
+const ONBOARDING_STORAGE_KEY = "tw_onboarding_state_v1";
+
+type PersistedOnboarding = {
+  phase: Phase;
+  extractedProduct: ExtractedProduct | null;
+  targetUrl: string | null;
+  confirmedAudiences: AudienceDraft[];
+  confirmedBrand: BrandDraft | null;
+  enrichInputsSummary: { fileCount: number; integrationCount: number };
+  agentName: string;
+};
+
+function loadPersistedOnboarding(): Partial<PersistedOnboarding> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedOnboarding>;
+    // Don't rehydrate transient phases — bounce back to a safe step.
+    if (parsed.phase === "forging") parsed.phase = "connect";
+    if (parsed.phase === "done") return null;
+    return parsed;
+  } catch { return null; }
+}
+
 export function ChatOnboardingFlow({ onComplete }: ChatOnboardingFlowProps) {
-  const [phase, setPhase] = useState<Phase>("product");
+  const persisted = useRef<Partial<PersistedOnboarding> | null>(loadPersistedOnboarding()).current;
+
+  const [phase, setPhase] = useState<Phase>(persisted?.phase ?? "product");
 
   // Collected data across phases
-  const [extractedProduct, setExtractedProduct] = useState<ExtractedProduct | null>(null);
-  const [targetUrl, setTargetUrl] = useState<string | null>(null);
-  const [confirmedAudiences, setConfirmedAudiences] = useState<AudienceDraft[]>([]);
-  const [confirmedBrand, setConfirmedBrand] = useState<BrandDraft | null>(null);
-  const [enrichInputsSummary, setEnrichInputsSummary] = useState({ fileCount: 0, integrationCount: 0 });
+  const [extractedProduct, setExtractedProduct] = useState<ExtractedProduct | null>(persisted?.extractedProduct ?? null);
+  const [targetUrl, setTargetUrl] = useState<string | null>(persisted?.targetUrl ?? null);
+  const [confirmedAudiences, setConfirmedAudiences] = useState<AudienceDraft[]>(persisted?.confirmedAudiences ?? []);
+  const [confirmedBrand, setConfirmedBrand] = useState<BrandDraft | null>(persisted?.confirmedBrand ?? null);
+  const [enrichInputsSummary, setEnrichInputsSummary] = useState(persisted?.enrichInputsSummary ?? { fileCount: 0, integrationCount: 0 });
 
   // Forging state
   const [forgingStage, setForgingStage] = useState<ForgingStage>("ingesting");
