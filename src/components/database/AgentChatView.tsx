@@ -169,7 +169,7 @@ export function AgentChatView({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const STALL_TIMEOUT_MS = 90_000;
+  const STALL_TIMEOUT_MS = 180_000;
   const lastActivityRef = useRef<number>(0);
   const activeAssistantIdRef = useRef<string | null>(null);
   const stalledRef = useRef<boolean>(false);
@@ -207,7 +207,12 @@ export function AgentChatView({
     stallIntervalRef.current = setInterval(() => {
       if (stalledRef.current) return;
       const elapsed = Date.now() - lastActivityRef.current;
-      if (elapsed < STALL_TIMEOUT_MS) return;
+      const activeId = activeAssistantIdRef.current;
+      const activeMessage = activeId ? messages.find((m) => m.id === activeId) : null;
+      const hasRunningSteps = !!activeMessage?.taskSteps?.some((s) => s.status === "running");
+      const hasAnyAssistantProgress =
+        !!activeMessage && ((activeMessage.content?.trim().length || 0) > 0 || (activeMessage.taskSteps?.length || 0) > 0);
+      if (elapsed < STALL_TIMEOUT_MS || hasRunningSteps || hasAnyAssistantProgress) return;
       stalledRef.current = true;
       cancelledRef.current = true;
       const assistantId = activeAssistantIdRef.current;
