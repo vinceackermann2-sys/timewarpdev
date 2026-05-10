@@ -105,16 +105,33 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
+      let closed = false;
       const send = (payload: unknown) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        if (closed) return false;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+          return true;
+        } catch {
+          closed = true;
+          return false;
+        }
       };
       const sendStep = (label: string, status: "running" | "done" | "error", action = "process", detail?: string) => {
         send({ type: "progress", step: { label, status, action, detail } });
       };
       const close = () => {
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
+        if (closed) return;
+        closed = true;
+        try {
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        } catch { /* client disconnected */ }
       };
+      const heartbeat = setInterval(() => {
+        if (!send({ type: "progress", step: { label: "Still working…", status: "running", action: "heartbeat" } })) {
+          clearInterval(heartbeat);
+        }
+      }, 15000);
 
       (async () => {
         try {
@@ -377,14 +394,21 @@ export function createAssistantChatSseResponse(input: AssistantChatStreamInput, 
             queryTopic,
             liveSourceRegistry: sourceRegistry,
           });
+          clearInterval(heartbeat);
           close();
         } catch (error: any) {
+          clearInterval(heartbeat);
           edgeLog("assistant-chat", "stream_error", { message: String(error?.message || error) });
           console.error("assistant-chat stream error:", error?.message || error);
           send({ type: "error", error: error?.message || "An internal error occurred" });
           close();
         }
       })();
+    },
+    cancel() {
+      // The browser intentionally closed the stream (cancel / navigation / watchdog).
+      // `send()` is guarded above so late async completions do not throw uncaught
+      // "stream controller cannot close or enqueue" errors.
     },
   });
 
