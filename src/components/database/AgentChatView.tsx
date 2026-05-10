@@ -212,12 +212,7 @@ export function AgentChatView({
     stallIntervalRef.current = setInterval(() => {
       if (stalledRef.current) return;
       const elapsed = Date.now() - lastActivityRef.current;
-      const activeId = activeAssistantIdRef.current;
-      const activeMessage = activeId ? messagesRef.current.find((m) => m.id === activeId) : null;
-      const hasRunningSteps = !!activeMessage?.taskSteps?.some((s) => s.status === "running");
-      const hasAnyAssistantProgress =
-        !!activeMessage && ((activeMessage.content?.trim().length || 0) > 0 || (activeMessage.taskSteps?.length || 0) > 0);
-      if (elapsed < STALL_TIMEOUT_MS || hasRunningSteps || hasAnyAssistantProgress) return;
+      if (elapsed < STALL_TIMEOUT_MS) return;
       stalledRef.current = true;
       cancelledRef.current = true;
       const assistantId = activeAssistantIdRef.current;
