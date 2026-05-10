@@ -143,7 +143,12 @@ export function AgentChatView({
   const [selectedChatEmployees, setSelectedChatEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const [onboardingLocked, setOnboardingLocked] = useState<boolean>(!!forceOnboarding && messages.length === 0);
   useEffect(() => {
@@ -169,7 +174,7 @@ export function AgentChatView({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const STALL_TIMEOUT_MS = 90_000;
+  const STALL_TIMEOUT_MS = 180_000;
   const lastActivityRef = useRef<number>(0);
   const activeAssistantIdRef = useRef<string | null>(null);
   const stalledRef = useRef<boolean>(false);

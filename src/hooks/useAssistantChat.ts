@@ -205,7 +205,10 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
       } : m));
     };
     const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
-      if (step.action === "heartbeat") return;
+      if (step.action === "heartbeat") {
+        syncTaskSteps();
+        return;
+      }
       const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
       if (existingIdx !== -1 && step.status !== "running") {
         taskSteps[existingIdx].status = step.status;
@@ -654,7 +657,10 @@ export function useAssistantChat(deps: AgentChatTransportDeps) {
     };
 
     const handleProgressStep = (step: { label: string; status: "running" | "done" | "error"; action?: string; detail?: string }) => {
-      if (step.action === "heartbeat") return;
+      if (step.action === "heartbeat") {
+        syncUI();
+        return;
+      }
       const existingIdx = taskSteps.findIndex(s => s.label === step.label && s.status === "running");
       if (existingIdx !== -1 && step.status !== "running") {
         taskSteps[existingIdx].status = step.status;
