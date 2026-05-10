@@ -143,7 +143,12 @@ export function AgentChatView({
   const [selectedChatEmployees, setSelectedChatEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const [onboardingLocked, setOnboardingLocked] = useState<boolean>(!!forceOnboarding && messages.length === 0);
   useEffect(() => {
@@ -208,7 +213,7 @@ export function AgentChatView({
       if (stalledRef.current) return;
       const elapsed = Date.now() - lastActivityRef.current;
       const activeId = activeAssistantIdRef.current;
-      const activeMessage = activeId ? messages.find((m) => m.id === activeId) : null;
+      const activeMessage = activeId ? messagesRef.current.find((m) => m.id === activeId) : null;
       const hasRunningSteps = !!activeMessage?.taskSteps?.some((s) => s.status === "running");
       const hasAnyAssistantProgress =
         !!activeMessage && ((activeMessage.content?.trim().length || 0) > 0 || (activeMessage.taskSteps?.length || 0) > 0);
