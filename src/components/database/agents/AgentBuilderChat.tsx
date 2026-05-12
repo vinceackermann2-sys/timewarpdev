@@ -74,9 +74,10 @@ function mergeSpec(prev: DraftSpec, patch: Partial<DraftSpec>): DraftSpec {
     if (Array.isArray(v)) {
       // Replace arrays wholesale — let the model own list state.
       (next as any)[k] = v;
-    } else if (typeof v === "object") {
+    } else if (v && typeof v === "object") {
       const existing = (next as any)[k];
-      (next as any)[k] = existing && typeof existing === "object" ? { ...existing, ...v } : { ...v };
+      const vObj = v as Record<string, unknown>;
+      (next as any)[k] = existing && typeof existing === "object" ? { ...existing, ...vObj } : { ...vObj };
     } else {
       (next as any)[k] = v;
     }
