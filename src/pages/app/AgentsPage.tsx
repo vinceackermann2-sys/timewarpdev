@@ -56,7 +56,7 @@ export default function AgentsPage() {
 
   const [agents, setAgents] = useState<AIAgent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showWizard, setShowWizard] = useState(false);
+  const [showWizard, setShowWizard] = useState<false | "chat" | "form">(false);
   const [selected, setSelected] = useState<AIAgent | null>(null);
   const [renaming, setRenaming] = useState<AIAgent | null>(null);
   const [renameValue, setRenameValue] = useState("");
