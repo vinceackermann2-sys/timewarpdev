@@ -153,7 +153,7 @@ export default function AgentsPage() {
                 Pure-executor automations. One trigger, one SOP, one job — every time, the same way.
               </p>
             </div>
-            <Button onClick={() => setShowWizard(true)} className="gap-2 shrink-0">
+            <Button onClick={() => setShowWizard("chat")} className="gap-2 shrink-0">
               <Plus className="h-4 w-4" /> Create agent
             </Button>
           </div>
@@ -170,7 +170,7 @@ export default function AgentsPage() {
             <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
               Build your first agent: pick a trigger, list the steps, set hard safety limits, and assign a supervising employee.
             </p>
-            <Button onClick={() => setShowWizard(true)} className="gap-2">
+            <Button onClick={() => setShowWizard("chat")} className="gap-2">
               <Plus className="h-4 w-4" /> Build your first agent
             </Button>
           </div>
@@ -193,7 +193,7 @@ export default function AgentsPage() {
               {agents.length} agent{agents.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Button onClick={() => setShowWizard(true)} className="gap-2 shrink-0">
+          <Button onClick={() => setShowWizard("chat")} className="gap-2 shrink-0">
             <Plus className="h-4 w-4" /> Create agent
           </Button>
         </div>
