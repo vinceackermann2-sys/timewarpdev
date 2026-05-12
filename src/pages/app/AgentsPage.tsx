@@ -110,16 +110,25 @@ export default function AgentsPage() {
   }
 
   if (showWizard) {
+    const handleCreated = async (id: string) => {
+      setShowWizard(false);
+      await loadAgents();
+      const { data } = await supabase.from("ai_agents").select("*").eq("id", id).maybeSingle();
+      if (data) setSelected(normalizeAgentRow(data));
+    };
+    if (showWizard === "chat") {
+      return (
+        <AgentBuilderChat
+          onCancel={() => setShowWizard(false)}
+          onCreated={handleCreated}
+          onSwitchToForm={() => setShowWizard("form")}
+        />
+      );
+    }
     return (
       <CreateAgentWizard
         onCancel={() => setShowWizard(false)}
-        onCreated={async (id) => {
-          setShowWizard(false);
-          await loadAgents();
-          // Auto-open the newly created agent.
-          const { data } = await supabase.from("ai_agents").select("*").eq("id", id).maybeSingle();
-          if (data) setSelected(normalizeAgentRow(data));
-        }}
+        onCreated={handleCreated}
       />
     );
   }
