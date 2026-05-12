@@ -1056,7 +1056,21 @@ export function AgentChatView({
           sessionMemory={sessionMemory}
           setSessionMemory={setSessionMemory}
           contextTokens={Math.round(
-            (messages.reduce((acc, m) => acc + (m.content?.length || 0), 0) + sessionMemory.length) / 4,
+            (
+              // Visible conversation
+              messages.reduce((acc, m) => acc + (m.content?.length || 0), 0) +
+              // Persistent session memory injected on every turn
+              (sessionMemory?.length || 0) +
+              // Attached file content (text + base64 image payload approx)
+              uploadedFiles.reduce(
+                (acc, f) => acc + ((f as any).content?.length || 0) + ((f as any).base64?.length || 0),
+                0,
+              )
+            ) / 4 +
+            // Baseline server-side context the AI always receives:
+            // system prompt + brand identity + DNA pillars + connections
+            // inventory + RAG retrieval + performance evidence (~60K tokens).
+            60_000,
           )}
           contextTokenLimit={1_000_000}
           uploadedFiles={uploadedFiles}
