@@ -37,6 +37,7 @@ import {
   normalizeAgentRow,
 } from "@/components/database/agents/types";
 import { CreateAgentWizard } from "@/components/database/agents/CreateAgentWizard";
+import { AgentBuilderChat } from "@/components/database/agents/AgentBuilderChat";
 import { AgentDetailView } from "@/components/database/agents/AgentDetailView";
 
 /**
