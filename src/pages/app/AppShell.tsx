@@ -15,6 +15,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { AppTopBreadcrumb } from "@/components/app/AppTopBreadcrumb";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
+import { Seo } from "@/components/Seo";
 
 /**
  * AppShell — the layout for everything under /app/*.
