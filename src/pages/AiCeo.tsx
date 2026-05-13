@@ -60,6 +60,11 @@ const AiCeo = () => {
 
   return (
     <>
+      <Seo
+        title="TimeWarp — AI CEO that runs your business autonomously"
+        description="Connect your tools to a private AI workforce that automates operations, executes tasks, and runs your business while you focus on the future of work."
+        path="/"
+      />
       <UploadedHomePage />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
     </>
