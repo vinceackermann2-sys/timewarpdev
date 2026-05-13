@@ -317,6 +317,12 @@ export default function AppShell() {
 
   return (
     <BusinessDNAProvider>
+      <Seo
+        title="TimeWarp App"
+        description="Your private AI CEO workspace."
+        path="/app"
+        noindex
+      />
       <OnboardingGate />
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">

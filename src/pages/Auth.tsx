@@ -12,6 +12,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
 import { getSafeSession } from "@/lib/authSession";
 import { lovable } from "@/integrations/lovable";
+import { Seo } from "@/components/Seo";
 
 const TIMEWARP_EXTENSION_ID = "hcijmgkimmhiehjcnljaookjomhocjdd";
 
@@ -331,6 +332,12 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col">
+      <Seo
+        title="Sign in — TimeWarp"
+        description="Sign in or create your TimeWarp account to access your AI CEO and AI workforce."
+        path="/auth"
+        noindex
+      />
       <div className="flex-1 flex items-center justify-center p-4 bg-background">
         <div className="w-full max-w-md flex flex-col justify-center">
           <div className="flex items-center gap-2 mb-6">
