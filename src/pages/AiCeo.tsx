@@ -5,6 +5,7 @@ import { getSafeSession } from "@/lib/authSession";
 import { AuthDialog } from "@/components/landing/AuthDialog";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import UploadedHomePage from "@/components/landing/uploaded/UploadedHomePage";
+import { Seo } from "@/components/Seo";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
