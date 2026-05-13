@@ -28,7 +28,7 @@ export default function Support() {
               </div>
               <div>
                 <h2 className="font-semibold text-lg mb-1">Email Support</h2>
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-foreground/80 mb-3">
                   Send us an email and we'll get back to you as soon as possible.
                 </p>
                 <a href="mailto:support@timewarpdev.com">
@@ -47,7 +47,7 @@ export default function Support() {
               </div>
               <div>
                 <h2 className="font-semibold text-lg mb-1">Feedback & Feature Requests</h2>
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-foreground/80 mb-3">
                   Have an idea or found a bug? Let us know through the Developer dialog in the app sidebar.
                 </p>
                 <Link to="/app">
