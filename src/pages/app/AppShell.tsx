@@ -15,6 +15,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { AppSidebar } from "@/components/app/AppSidebar";
 import { AppTopBreadcrumb } from "@/components/app/AppTopBreadcrumb";
 import { ActionsCelebration } from "@/components/database/ActionsCelebration";
+import { Seo } from "@/components/Seo";
 
 /**
  * AppShell — the layout for everything under /app/*.
@@ -317,6 +318,12 @@ export default function AppShell() {
 
   return (
     <BusinessDNAProvider>
+      <Seo
+        title="TimeWarp App"
+        description="Your private AI CEO workspace."
+        path="/app"
+        noindex
+      />
       <OnboardingGate />
       <SidebarProvider>
         <div className="h-screen overflow-hidden flex w-full bg-background">
