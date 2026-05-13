@@ -380,6 +380,22 @@ export default function PricingPage({ embedded = false }: { embedded?: boolean }
   return (
     <div className={cn("bg-background", !embedded && "min-h-screen")}>
       {!embedded && (
+        <Seo
+          title="Pricing — TimeWarp AI CEO Plans & Action Packs"
+          description="Choose a TimeWarp plan that fits your business — from a free trial to the unlimited TimeWarp OG founding tier. Compare actions, AI employees, and add-on packs."
+          path="/pricing"
+          jsonLd={{
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: FAQS.map((f) => ({
+              "@type": "Question",
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
+          }}
+        />
+      )}
+      {!embedded && (
         <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
           <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
             <ArrowLeft className="h-4 w-4" />
