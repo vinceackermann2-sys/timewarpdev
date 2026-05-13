@@ -6,10 +6,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Seo } from "@/components/Seo";
 
 export default function DataDeletion() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Seo
+        title="Data Deletion & Integration Guide — TimeWarp"
+        description="Step-by-step instructions to disconnect integrations, request data deletion, and manage your TimeWarp account data."
+        path="/data-deletion"
+      />
       <div className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 inline-block">
           ← Back to home

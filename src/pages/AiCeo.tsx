@@ -5,6 +5,7 @@ import { getSafeSession } from "@/lib/authSession";
 import { AuthDialog } from "@/components/landing/AuthDialog";
 import { AiCeoChatView } from "@/components/aiceo/AiCeoChatView";
 import UploadedHomePage from "@/components/landing/uploaded/UploadedHomePage";
+import { Seo } from "@/components/Seo";
 
 const AiCeo = () => {
   const [searchParams] = useSearchParams();
@@ -60,6 +61,11 @@ const AiCeo = () => {
 
   return (
     <>
+      <Seo
+        title="TimeWarp — AI CEO that runs your business autonomously"
+        description="Connect your tools to a private AI workforce that automates operations, executes tasks, and runs your business while you focus on the future of work."
+        path="/"
+      />
       <UploadedHomePage />
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} productUrl={authProductUrl} />
     </>

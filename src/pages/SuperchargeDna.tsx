@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBusinessDNA, BusinessDNAProvider } from "@/components/database/BusinessDNAContext";
 import { SuperchargeDNAWizard } from "@/components/database/SuperchargeDNAWizard";
+import { Seo } from "@/components/Seo";
 
 
 function SuperchargeDnaInner() {
@@ -67,6 +68,11 @@ function SuperchargeDnaInner() {
 export default function SuperchargeDna() {
   return (
     <BusinessDNAProvider>
+      <Seo
+        title="Supercharge your Business DNA — TimeWarp"
+        description="Build a deep, structured Business DNA that powers your AI CEO and AI workforce with precise context about your brand, products, and audience."
+        path="/supercharge-dna"
+      />
       <SuperchargeDnaInner />
     </BusinessDNAProvider>
   );

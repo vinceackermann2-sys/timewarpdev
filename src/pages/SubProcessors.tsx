@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
+import { Seo } from "@/components/Seo";
 
 type SubProcessor = {
   name: string;
@@ -57,6 +58,11 @@ const subProcessors: SubProcessor[] = [
 export default function SubProcessors() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Seo
+        title="Sub-processors — TimeWarp"
+        description="The third-party services TimeWarp uses to deliver its product, what data they process, and the guidelines we apply when engaging them."
+        path="/sub-processors"
+      />
       <div className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <Link
           to="/"

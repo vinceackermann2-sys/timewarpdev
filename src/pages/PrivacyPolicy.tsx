@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
 import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
+import { Seo } from "@/components/Seo";
 
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Seo
+        title="Privacy Policy — TimeWarp"
+        description="How TimeWarp collects, processes, and protects your personal and business data, including GDPR rights and data retention details."
+        path="/privacy"
+      />
       <div className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 inline-block">
           ← Back to home
