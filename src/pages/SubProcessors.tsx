@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { WorkspaceFooter } from "@/components/database/WorkspaceFooter";
+import { Seo } from "@/components/Seo";
 
 type SubProcessor = {
   name: string;
