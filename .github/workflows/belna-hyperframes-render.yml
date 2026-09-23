@@ -1,15 +1,9 @@
-name: Belna HyperFrames CLI Render
+name: Belna HyperFrames Frame-Matched Render
 
 on:
   push:
     branches:
       - belna-hyperframes-cli-render
-    paths:
-      - "belna-hyperframes/**"
-      - ".github/workflows/belna-hyperframes-render.yml"
-  pull_request:
-    branches:
-      - main
     paths:
       - "belna-hyperframes/**"
       - ".github/workflows/belna-hyperframes-render.yml"
@@ -21,7 +15,7 @@ permissions:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       HYPERFRAMES_NO_UPDATE_CHECK: "1"
       HYPERFRAMES_TELEMETRY_DISABLED: "1"
@@ -41,7 +35,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           ffmpeg -version | head -n 1
-          ffprobe -version | head -n 1
+
+      - name: Rebuild frame-matched compositions
+        run: python3 belna-hyperframes/generate_frame_matched.py
+
+      - name: Fetch and verify exact Muse motion plate
+        run: |
+          mkdir -p belna-hyperframes/sv/assets belna-hyperframes/en/assets
+          curl -fL --retry 5 --retry-delay 2 --retry-all-errors             "https://about.fb.com/wp-content/uploads/2026/09/Introducing-Muse_Sizzle-Video.mp4"             -o /tmp/reference.mp4
+          WIDTH=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 /tmp/reference.mp4)
+          HEIGHT=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 /tmp/reference.mp4)
+          FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 /tmp/reference.mp4)
+          FRAMES=$(ffprobe -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_frames -of csv=p=0 /tmp/reference.mp4)
+          DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/reference.mp4)
+          echo "plate: ${WIDTH}x${HEIGHT}, fps=${FPS}, frames=${FRAMES}, duration=${DURATION}"
+          test "$WIDTH" = "1920"
+          test "$HEIGHT" = "1080"
+          test "$FPS" = "24/1"
+          test "$FRAMES" = "1981"
+          python3 - "$DURATION" <<'PY'
+import sys
+d=float(sys.argv[1])
+assert abs(d-82.541667) < 0.01, d
+PY
+          cp /tmp/reference.mp4 belna-hyperframes/sv/assets/reference.mp4
+          cp /tmp/reference.mp4 belna-hyperframes/en/assets/reference.mp4
 
       - name: Verify official HyperFrames CLI
         run: |
@@ -49,57 +67,57 @@ jobs:
           npx --yes hyperframes@0.8.65 doctor --json
           npx --yes hyperframes@0.8.65 browser ensure
 
-      - name: Lint Swedish project
+      - name: Lint Swedish
         working-directory: belna-hyperframes/sv
         run: npx --yes hyperframes@0.8.65 lint
 
-      - name: Lint English project
+      - name: Lint English
         working-directory: belna-hyperframes/en
         run: npx --yes hyperframes@0.8.65 lint
 
-      - name: Check Swedish project
+      - name: Check Swedish
         working-directory: belna-hyperframes/sv
-        run: npx --yes hyperframes@0.8.65 check --samples 13 --at-transitions
+        run: npx --yes hyperframes@0.8.65 check --samples 21 --at-transitions
 
-      - name: Check English project
+      - name: Check English
         working-directory: belna-hyperframes/en
-        run: npx --yes hyperframes@0.8.65 check --samples 13 --at-transitions
+        run: npx --yes hyperframes@0.8.65 check --samples 21 --at-transitions
 
-      - name: Render Swedish 24fps
+      - name: Render Swedish frame-matched version
         working-directory: belna-hyperframes/sv
         run: |
-          mkdir -p ../renders
-          npx --yes hyperframes@0.8.65 render --output ../renders/belna_muse_hyperframes_sv.mp4 --fps 24 --quality delivery
+          mkdir -p ../renders-v2
+          npx --yes hyperframes@0.8.65 render --output ../renders-v2/belna_muse_frame_matched_sv.mp4 --fps 24 --quality delivery
 
-      - name: Render English 24fps
+      - name: Render English frame-matched version
         working-directory: belna-hyperframes/en
         run: |
-          mkdir -p ../renders
-          npx --yes hyperframes@0.8.65 render --output ../renders/belna_muse_hyperframes_en.mp4 --fps 24 --quality delivery
+          mkdir -p ../renders-v2
+          npx --yes hyperframes@0.8.65 render --output ../renders-v2/belna_muse_frame_matched_en.mp4 --fps 24 --quality delivery
 
-      - name: Verify outputs
+      - name: Verify final videos
         working-directory: belna-hyperframes
         run: |
-          for f in renders/*.mp4; do
+          for f in renders-v2/*.mp4; do
             echo "=== $f ==="
-            ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames -show_entries format=duration -of json "$f"
+            ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames -show_entries format=duration -of json "$f"
           done
 
       - name: Package
         working-directory: belna-hyperframes
         run: |
-          cp sv/index.html belna_hyperframes_sv.html
-          cp en/index.html belna_hyperframes_en.html
-          zip -j belna_hyperframes_cli_renders.zip renders/*.mp4 belna_hyperframes_sv.html belna_hyperframes_en.html
+          cp sv/index.html belna_frame_matched_sv.html
+          cp en/index.html belna_frame_matched_en.html
+          zip -j belna_frame_matched_v2.zip renders-v2/*.mp4 belna_frame_matched_sv.html belna_frame_matched_en.html
 
-      - name: Upload renders
+      - name: Upload frame-matched renders
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: belna-hyperframes-cli-renders
+          name: belna-hyperframes-frame-matched-v2
           path: |
-            belna-hyperframes/renders/*.mp4
-            belna-hyperframes/belna_hyperframes_cli_renders.zip
+            belna-hyperframes/renders-v2/*.mp4
+            belna-hyperframes/belna_frame_matched_v2.zip
             belna-hyperframes/sv/index.html
             belna-hyperframes/en/index.html
           if-no-files-found: error
