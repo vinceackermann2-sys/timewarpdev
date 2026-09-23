@@ -62,6 +62,19 @@ jobs:
               assert len(raw) == 31982
               expected = {"sv": "4aee774a674cfea3e5fc8e9f2fb84e43aa5824f6155b679d7afce217cc7fdf25", "en": "1c2bc15867cacbce9ecd6ce8177017b26a92d09ed5e3612bc67dff2c4840eb75"}
               assert digest == expected[lang]
+
+              # HyperFrames layout semantics: these elements intentionally paint outside
+              # their local visual boxes to match the Muse orbit/entrance choreography.
+              text = raw.decode("utf-8")
+              import re
+              text = re.sub(
+                  r'(<div class="app [^"]+"[^>]*><span>[^<]*</span>)<b>',
+                  r'\1<b data-layout-allow-overflow>',
+                  text,
+              )
+              text = text.replace('class="questionPatch"', 'class="questionPatch" data-layout-allow-overflow')
+              text = text.replace('class="browserBar"', 'class="browserBar" data-layout-allow-overflow')
+              out.write_text(text, encoding="utf-8")
           PY
 
       - name: Fetch and verify exact Muse motion plate
