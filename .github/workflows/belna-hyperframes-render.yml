@@ -87,9 +87,13 @@ jobs:
 
       - name: Package
         working-directory: belna-hyperframes
-        run: zip -j belna_hyperframes_cli_renders.zip renders/*.mp4 sv/index.html en/index.html
+        run: |
+          cp sv/index.html belna_hyperframes_sv.html
+          cp en/index.html belna_hyperframes_en.html
+          zip -j belna_hyperframes_cli_renders.zip renders/*.mp4 belna_hyperframes_sv.html belna_hyperframes_en.html
 
       - name: Upload renders
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: belna-hyperframes-cli-renders
