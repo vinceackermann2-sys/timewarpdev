@@ -53,11 +53,7 @@ jobs:
           test "$HEIGHT" = "1080"
           test "$FPS" = "24/1"
           test "$FRAMES" = "1981"
-          python3 - "$DURATION" <<'PY'
-import sys
-d=float(sys.argv[1])
-assert abs(d-82.541667) < 0.01, d
-PY
+          python3 -c 'import sys; d=float(sys.argv[1]); assert abs(d-82.541667) < 0.01, d' "$DURATION"
           cp /tmp/reference.mp4 belna-hyperframes/sv/assets/reference.mp4
           cp /tmp/reference.mp4 belna-hyperframes/en/assets/reference.mp4
 
