@@ -30,10 +30,12 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install FFmpeg
+      - name: Verify FFmpeg
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
           ffmpeg -version | head -n 1
 
       - name: Rebuild frame-matched compositions
@@ -42,11 +44,17 @@ jobs:
       - name: Fetch and verify exact Muse motion plate
         run: |
           mkdir -p belna-hyperframes/sv/assets belna-hyperframes/en/assets
-          curl -fL --retry 5 --retry-delay 2 --retry-all-errors             "https://about.fb.com/wp-content/uploads/2026/09/Introducing-Muse_Sizzle-Video.mp4"             -o /tmp/reference.mp4
+          curl -fL --connect-timeout 20 --max-time 180 --retry 3 --retry-delay 2 --retry-all-errors \
+            -A "Mozilla/5.0" \
+            "https://about.fb.com/wp-content/uploads/2026/09/Introducing-Muse_Sizzle-Video.mp4" \
+            -o /tmp/reference.mp4
           WIDTH=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 /tmp/reference.mp4)
           HEIGHT=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 /tmp/reference.mp4)
           FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 /tmp/reference.mp4)
-          FRAMES=$(ffprobe -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_frames -of csv=p=0 /tmp/reference.mp4)
+          FRAMES=$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of csv=p=0 /tmp/reference.mp4)
+          if [ -z "$FRAMES" ] || [ "$FRAMES" = "N/A" ]; then
+            FRAMES=$(ffprobe -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_frames -of csv=p=0 /tmp/reference.mp4)
+          fi
           DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/reference.mp4)
           echo "plate: ${WIDTH}x${HEIGHT}, fps=${FPS}, frames=${FRAMES}, duration=${DURATION}"
           test "$WIDTH" = "1920"
