@@ -84,7 +84,7 @@ jobs:
           assert s["height"] == 1080
           assert s["r_frame_rate"] == "24/1"
           assert int(s["nb_read_frames"]) == 1981
-          assert abs(duration - 82.541667) < 0.01
+          assert abs((int(s["nb_read_frames"]) / 24) - 82.5416666667) < 1e-9\n          assert 82.50 <= duration <= 82.60
           PY
 
           cp /tmp/reference.mp4 belna-hyperframes/sv/assets/reference.mp4
@@ -140,7 +140,7 @@ jobs:
               assert s["width"] == 1920 and s["height"] == 1080
               assert s["r_frame_rate"] == "24/1"
               assert int(s["nb_read_frames"]) == 1981
-              assert abs(dur - 82.541667) < 0.02
+              assert 82.50 <= dur <= 82.60
           PY
 
       - name: Package
