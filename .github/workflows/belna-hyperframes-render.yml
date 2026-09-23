@@ -24,42 +24,58 @@ jobs:
     timeout-minutes: 45
     env:
       HYPERFRAMES_NO_UPDATE_CHECK: "1"
+      HYPERFRAMES_TELEMETRY_DISABLED: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Node 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Verify FFmpeg
-        run: ffmpeg -version | head -n 1
-
-      - name: Install / verify official HyperFrames CLI
+      - name: Install FFmpeg
         run: |
-          npx --yes hyperframes@latest --version
-          npx --yes hyperframes@latest doctor --json || true
-          npx --yes hyperframes@latest browser ensure
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
 
-      - name: Lint Swedish composition
-        working-directory: belna-hyperframes
-        run: npx --yes hyperframes@latest lint sv.html
+      - name: Verify official HyperFrames CLI
+        run: |
+          npx --yes hyperframes@0.8.65 --version
+          npx --yes hyperframes@0.8.65 doctor --json
+          npx --yes hyperframes@0.8.65 browser ensure
 
-      - name: Lint English composition
-        working-directory: belna-hyperframes
-        run: npx --yes hyperframes@latest lint en.html
+      - name: Lint Swedish project
+        working-directory: belna-hyperframes/sv
+        run: npx --yes hyperframes@0.8.65 lint
+
+      - name: Lint English project
+        working-directory: belna-hyperframes/en
+        run: npx --yes hyperframes@0.8.65 lint
+
+      - name: Check Swedish project
+        working-directory: belna-hyperframes/sv
+        run: npx --yes hyperframes@0.8.65 check --samples 13 --at-transitions
+
+      - name: Check English project
+        working-directory: belna-hyperframes/en
+        run: npx --yes hyperframes@0.8.65 check --samples 13 --at-transitions
 
       - name: Render Swedish 24fps
-        working-directory: belna-hyperframes
+        working-directory: belna-hyperframes/sv
         run: |
-          mkdir -p renders
-          npx --yes hyperframes@latest render -c sv.html --output renders/belna_muse_hyperframes_sv.mp4 --fps 24 --quality delivery
+          mkdir -p ../renders
+          npx --yes hyperframes@0.8.65 render --output ../renders/belna_muse_hyperframes_sv.mp4 --fps 24 --quality delivery
 
       - name: Render English 24fps
-        working-directory: belna-hyperframes
+        working-directory: belna-hyperframes/en
         run: |
-          npx --yes hyperframes@latest render -c en.html --output renders/belna_muse_hyperframes_en.mp4 --fps 24 --quality delivery
+          mkdir -p ../renders
+          npx --yes hyperframes@0.8.65 render --output ../renders/belna_muse_hyperframes_en.mp4 --fps 24 --quality delivery
 
       - name: Verify outputs
         working-directory: belna-hyperframes
@@ -71,7 +87,7 @@ jobs:
 
       - name: Package
         working-directory: belna-hyperframes
-        run: zip -j belna_hyperframes_cli_renders.zip renders/*.mp4 sv.html en.html
+        run: zip -j belna_hyperframes_cli_renders.zip renders/*.mp4 sv/index.html en/index.html
 
       - name: Upload renders
         uses: actions/upload-artifact@v4
@@ -80,7 +96,7 @@ jobs:
           path: |
             belna-hyperframes/renders/*.mp4
             belna-hyperframes/belna_hyperframes_cli_renders.zip
-            belna-hyperframes/sv.html
-            belna-hyperframes/en.html
+            belna-hyperframes/sv/index.html
+            belna-hyperframes/en/index.html
           if-no-files-found: error
           retention-days: 7
