@@ -42,7 +42,7 @@ jobs:
       - name: Rebuild exact frame-matched compositions
         run: |
           mkdir -p belna-hyperframes/sv belna-hyperframes/en
-          base64 -d belna-hyperframes/payloads/sv.html.gz.b64 | gzip -dc > belna-hyperframes/sv/index.html
+          cat belna-hyperframes/payloads/sv/*.part > /tmp/sv.html.gz.b64\n          base64 -d /tmp/sv.html.gz.b64 | gzip -dc > belna-hyperframes/sv/index.html
           base64 -d belna-hyperframes/payloads/en.html.gz.b64 | gzip -dc > belna-hyperframes/en/index.html
           test "$(wc -c < belna-hyperframes/sv/index.html)" = "31982"
           test "$(wc -c < belna-hyperframes/en/index.html)" = "31982"
