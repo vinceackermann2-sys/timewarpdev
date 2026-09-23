@@ -52,6 +52,7 @@ jobs:
           for lang, paths in specs.items():
               encoded = "".join(p.read_text().strip() for p in paths)
               print(lang, "base64 chars", len(encoded))
+              encoded += "=" * ((4 - len(encoded) % 4) % 4)
               packed = base64.b64decode(encoded, validate=True)
               raw = gzip.decompress(packed)
               out = Path(f"belna-hyperframes/{lang}/index.html")
