@@ -42,12 +42,23 @@ jobs:
       - name: Rebuild exact frame-matched compositions
         run: |
           mkdir -p belna-hyperframes/sv belna-hyperframes/en
-          cat belna-hyperframes/payloads/sv/*.part > /tmp/sv.html.gz.b64
-          base64 -d /tmp/sv.html.gz.b64 | gzip -dc > belna-hyperframes/sv/index.html
-          base64 -d belna-hyperframes/payloads/en.html.gz.b64 | gzip -dc > belna-hyperframes/en/index.html
-          test "$(wc -c < belna-hyperframes/sv/index.html)" = "31982"
-          test "$(wc -c < belna-hyperframes/en/index.html)" = "31982"
-          sha256sum belna-hyperframes/sv/index.html belna-hyperframes/en/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, gzip, hashlib
+          specs = {
+              "sv": sorted(Path("belna-hyperframes/payloads/sv").glob("*.part")),
+              "en": [Path("belna-hyperframes/payloads/en.html.gz.b64")],
+          }
+          for lang, paths in specs.items():
+              encoded = "".join(p.read_text().strip() for p in paths)
+              print(lang, "base64 chars", len(encoded))
+              packed = base64.b64decode(encoded, validate=True)
+              raw = gzip.decompress(packed)
+              out = Path(f"belna-hyperframes/{lang}/index.html")
+              out.write_bytes(raw)
+              print(lang, "html bytes", len(raw), "sha256", hashlib.sha256(raw).hexdigest())
+              assert len(raw) == 31982
+          PY
 
       - name: Fetch and verify exact Muse motion plate
         run: |
