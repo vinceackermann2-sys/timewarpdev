@@ -7,6 +7,12 @@ on:
     paths:
       - "belna-hyperframes/**"
       - ".github/workflows/belna-hyperframes-render.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "belna-hyperframes/**"
+      - ".github/workflows/belna-hyperframes-render.yml"
   workflow_dispatch:
 
 permissions:
