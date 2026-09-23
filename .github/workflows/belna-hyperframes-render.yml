@@ -37,31 +37,40 @@ jobs:
             sudo apt-get install -y ffmpeg
           fi
           ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
 
-      - name: Rebuild frame-matched compositions
-        run: python3 belna-hyperframes/generate_frame_matched.py
+      - name: Rebuild exact frame-matched compositions
+        run: |
+          mkdir -p belna-hyperframes/sv belna-hyperframes/en
+          base64 -d belna-hyperframes/payloads/sv.html.gz.b64 | gzip -dc > belna-hyperframes/sv/index.html
+          base64 -d belna-hyperframes/payloads/en.html.gz.b64 | gzip -dc > belna-hyperframes/en/index.html
+          test "$(wc -c < belna-hyperframes/sv/index.html)" = "31982"
+          test "$(wc -c < belna-hyperframes/en/index.html)" = "31982"
+          sha256sum belna-hyperframes/sv/index.html belna-hyperframes/en/index.html
 
       - name: Fetch and verify exact Muse motion plate
         run: |
           mkdir -p belna-hyperframes/sv/assets belna-hyperframes/en/assets
-          curl -fL --connect-timeout 20 --max-time 300 --retry 3 --retry-delay 2 --retry-all-errors \
-            -A "Mozilla/5.0" \
-            "https://about.fb.com/wp-content/uploads/2026/09/Introducing-Muse_Sizzle-Video.mp4" \
-            -o /tmp/reference.mp4
-          WIDTH=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 /tmp/reference.mp4)
-          HEIGHT=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 /tmp/reference.mp4)
-          FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 /tmp/reference.mp4)
-          FRAMES=$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of csv=p=0 /tmp/reference.mp4)
-          if [ -z "$FRAMES" ] || [ "$FRAMES" = "N/A" ]; then
-            FRAMES=$(ffprobe -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_frames -of csv=p=0 /tmp/reference.mp4)
-          fi
-          DURATION=$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of csv=p=0 /tmp/reference.mp4)
-          echo "plate: ${WIDTH}x${HEIGHT}, fps=${FPS}, frames=${FRAMES}, duration=${DURATION}"
-          test "$WIDTH" = "1920"
-          test "$HEIGHT" = "1080"
-          test "$FPS" = "24/1"
-          test "$FRAMES" = "1981"
-          python3 -c 'import sys; d=float(sys.argv[1]); assert abs(d-82.541667) < 0.01, d' "$DURATION"
+          curl -fL --connect-timeout 20 --max-time 300 --retry 3 --retry-delay 2 --retry-all-errors             -A "Mozilla/5.0"             "https://about.fb.com/wp-content/uploads/2026/09/Introducing-Muse_Sizzle-Video.mp4"             -o /tmp/reference.mp4
+
+          python3 - <<'PY'
+          import json, subprocess, sys
+          p = subprocess.run([
+              "ffprobe","-v","error","-select_streams","v:0","-count_frames",
+              "-show_entries","stream=width,height,r_frame_rate,nb_read_frames",
+              "-show_entries","format=duration","-of","json","/tmp/reference.mp4"
+          ], check=True, capture_output=True, text=True)
+          d = json.loads(p.stdout)
+          s = d["streams"][0]
+          duration = float(d["format"]["duration"])
+          print("plate:", s["width"], s["height"], s["r_frame_rate"], s["nb_read_frames"], duration)
+          assert s["width"] == 1920
+          assert s["height"] == 1080
+          assert s["r_frame_rate"] == "24/1"
+          assert int(s["nb_read_frames"]) == 1981
+          assert abs(duration - 82.541667) < 0.01
+          PY
+
           cp /tmp/reference.mp4 belna-hyperframes/sv/assets/reference.mp4
           cp /tmp/reference.mp4 belna-hyperframes/en/assets/reference.mp4
 
@@ -102,10 +111,21 @@ jobs:
       - name: Verify final videos
         working-directory: belna-hyperframes
         run: |
-          for f in renders-v2/*.mp4; do
-            echo "=== $f ==="
-            ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames -show_entries format=duration -of json "$f"
-          done
+          python3 - <<'PY'
+          import glob, json, subprocess
+          for f in glob.glob("renders-v2/*.mp4"):
+              p = subprocess.run([
+                  "ffprobe","-v","error","-select_streams","v:0","-count_frames",
+                  "-show_entries","stream=codec_name,width,height,r_frame_rate,nb_read_frames",
+                  "-show_entries","format=duration","-of","json",f
+              ], check=True, capture_output=True, text=True)
+              d=json.loads(p.stdout); s=d["streams"][0]; dur=float(d["format"]["duration"])
+              print(f, s, dur)
+              assert s["width"] == 1920 and s["height"] == 1080
+              assert s["r_frame_rate"] == "24/1"
+              assert int(s["nb_read_frames"]) == 1981
+              assert abs(dur - 82.541667) < 0.02
+          PY
 
       - name: Package
         working-directory: belna-hyperframes
