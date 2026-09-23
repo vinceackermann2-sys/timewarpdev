@@ -47,7 +47,7 @@ jobs:
           import base64, gzip, hashlib
           specs = {
               "sv": sorted(Path("belna-hyperframes/payloads/sv").glob("*.part")),
-              "en": [Path("belna-hyperframes/payloads/en.html.gz.b64")],
+              "en": sorted(Path("belna-hyperframes/payloads/en").glob("*.part")),
           }
           for lang, paths in specs.items():
               encoded = "".join(p.read_text().strip() for p in paths)
@@ -57,8 +57,11 @@ jobs:
               raw = gzip.decompress(packed)
               out = Path(f"belna-hyperframes/{lang}/index.html")
               out.write_bytes(raw)
-              print(lang, "html bytes", len(raw), "sha256", hashlib.sha256(raw).hexdigest())
+              digest = hashlib.sha256(raw).hexdigest()
+              print(lang, "html bytes", len(raw), "sha256", digest)
               assert len(raw) == 31982
+              expected = {"sv": "4aee774a674cfea3e5fc8e9f2fb84e43aa5824f6155b679d7afce217cc7fdf25", "en": "1c2bc15867cacbce9ecd6ce8177017b26a92d09ed5e3612bc67dff2c4840eb75"}
+              assert digest == expected[lang]
           PY
 
       - name: Fetch and verify exact Muse motion plate
