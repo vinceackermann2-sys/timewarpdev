@@ -36,9 +36,23 @@ jobs:
           cat belna_launch/.tesseract-work/layout.json
           echo "=== ACTION TYPES ==="
           python3 - <<'PY'
-          s=open('belna_launch/.tesseract-work/actions.schema.json').read()
-          for term in ['createFxRectLayer','createFxTextLayer','groupFxCompositionLayers','setFxPropertyKeyframes','setFxPositionKeyframes','setFxPropertyAnimator']:
+          import json
+          p='belna_launch/.tesseract-work/actions.schema.json'
+          data=json.load(open(p))
+          terms=['createFxRectLayer','createFxTextLayer','groupFxCompositionLayers','setFxPropertyKeyframes','setFxPositionKeyframes','setFxPropertyAnimator']
+          s=json.dumps(data)
+          for term in terms:
               print(term, term in s)
+          def walk(x,path='root'):
+              if isinstance(x,dict):
+                  blob=json.dumps(x)
+                  if any(t in blob for t in ['setFxPositionKeyframes','setFxPropertyAnimator']) and len(blob)<18000:
+                      print('=== NODE',path,'===')
+                      print(json.dumps(x,indent=2))
+                  for k,v in x.items(): walk(v,path+'/'+str(k))
+              elif isinstance(x,list):
+                  for i,v in enumerate(x): walk(v,path+'/'+str(i))
+          walk(data)
           PY
       - uses: actions/upload-artifact@v4
         with:
