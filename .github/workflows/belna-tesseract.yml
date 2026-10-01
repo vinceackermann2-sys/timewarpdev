@@ -10,10 +10,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip libasound2t64 libvulkan1 mesa-vulkan-drivers ffmpeg
       - name: Install Tesseract 0.3.0
         run: |
           set -euxo pipefail
@@ -40,9 +36,7 @@ jobs:
           cat belna_launch/.tesseract-work/layout.json
           echo "=== ACTION TYPES ==="
           python3 - <<'PY'
-          import json
-          p='belna_launch/.tesseract-work/actions.schema.json'
-          s=open(p).read()
+          s=open('belna_launch/.tesseract-work/actions.schema.json').read()
           for term in ['createFxRectLayer','createFxTextLayer','groupFxCompositionLayers','setFxPropertyKeyframes','setFxPositionKeyframes','setFxPropertyAnimator']:
               print(term, term in s)
           PY
