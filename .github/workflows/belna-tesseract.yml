@@ -1,4 +1,4 @@
-name: Belna Tesseract Probe
+name: Belna Tesseract Launch Film
 
 on:
   push:
@@ -6,10 +6,11 @@ on:
       - belna-launch-tesseract-20261001
 
 jobs:
-  probe:
+  render:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Tesseract 0.3.0
         run: |
           set -euxo pipefail
@@ -21,40 +22,238 @@ jobs:
           INSTALLER=$(find /tmp/tesseract-cli -name install.sh | head -1)
           bash "$INSTALLER"
           "$HOME/.local/share/Tesseract/bin/tsrct" --version
-      - name: Probe schema
+
+      - name: Ensure renderer dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libasound2t64 libvulkan1 mesa-vulkan-drivers ffmpeg fonts-dejavu-core
+
+      - name: Author editable Belna launch film
         env:
           TESSERACT_SKILL: tesseract-motion
         run: |
           set -euxo pipefail
-          mkdir -p belna_launch/.tesseract-work belna_launch/Previews
+          ROOT="$GITHUB_WORKSPACE/belna_launch"
           TSRCT="$HOME/.local/share/Tesseract/bin/tsrct"
-          "$TSRCT" project create --project belna_launch/Belna-Launch.tsrct
-          "$TSRCT" project schema --document > belna_launch/.tesseract-work/document.schema.json
-          "$TSRCT" project schema > belna_launch/.tesseract-work/actions.schema.json
-          "$TSRCT" project checkout --project belna_launch/Belna-Launch.tsrct --output belna_launch/.tesseract-work/layout.json
-          echo "=== LAYOUT ==="
-          cat belna_launch/.tesseract-work/layout.json
-          echo "=== ACTION TYPES ==="
+          rm -rf "$ROOT"
+          mkdir "$ROOT"
+          mkdir -p "$ROOT/.tesseract-work" "$ROOT/Previews"
+          "$TSRCT" project create --project "$ROOT/Belna-Launch.tsrct"
+          "$TSRCT" project schema --document > "$ROOT/.tesseract-work/document.schema.json"
+          "$TSRCT" project schema > "$ROOT/.tesseract-work/actions.schema.json"
+          "$TSRCT" project checkout --project "$ROOT/Belna-Launch.tsrct" --output "$ROOT/.tesseract-work/layout.json"
+
           python3 - <<'PY'
           import json
-          p='belna_launch/.tesseract-work/actions.schema.json'
-          data=json.load(open(p))
-          terms=['createFxRectLayer','createFxTextLayer','groupFxCompositionLayers','setFxPropertyKeyframes','setFxPositionKeyframes','setFxPropertyAnimator']
-          s=json.dumps(data)
-          for term in terms:
-              print(term, term in s)
-          def walk(x,path='root'):
-              if isinstance(x,dict):
-                  blob=json.dumps(x)
-                  if any(t in blob for t in ['setFxPositionKeyframes','setFxPropertyAnimator']) and len(blob)<18000:
-                      print('=== NODE',path,'===')
-                      print(json.dumps(x,indent=2))
-                  for k,v in x.items(): walk(v,path+'/'+str(k))
-              elif isinstance(x,list):
-                  for i,v in enumerate(x): walk(v,path+'/'+str(i))
-          walk(data)
+          p="belna_launch/.tesseract-work/layout.json"
+          d=json.load(open(p))
+          d["dimensions"]={"width":1920,"height":1080}
+          d["duration"]=28.0
+          d["composition"]["name"]="Belna Launch Film"
+          json.dump(d,open(p,"w"),indent=2)
           PY
+          "$TSRCT" project commit --project "$ROOT/Belna-Launch.tsrct" --file "$ROOT/.tesseract-work/layout.json"
+
+          FONT_REG="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+          FONT_BOLD="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+          "$TSRCT" project import-font --project "$ROOT/Belna-Launch.tsrct" --file "$FONT_REG" > "$ROOT/.tesseract-work/font-regular.json"
+          "$TSRCT" project import-font --project "$ROOT/Belna-Launch.tsrct" --file "$FONT_BOLD" > "$ROOT/.tesseract-work/font-bold.json"
+
+          python3 - <<'PY'
+          import json
+
+          ROOT="belna_launch"
+          def face(path):
+              obj=json.load(open(path))
+              found=[]
+              def walk(x):
+                  if isinstance(x,dict):
+                      if "fontFamily" in x and "fontStyle" in x:
+                          found.append((x["fontFamily"],x["fontStyle"]))
+                      for v in x.values(): walk(v)
+                  elif isinstance(x,list):
+                      for v in x: walk(v)
+              walk(obj)
+              if not found:
+                  raise SystemExit(f"No font face in {path}: {obj}")
+              return found[0]
+
+          reg_family,reg_style=face(f"{ROOT}/.tesseract-work/font-regular.json")
+          bold_family,bold_style=face(f"{ROOT}/.tesseract-work/font-bold.json")
+          print("FONT_REG",reg_family,reg_style)
+          print("FONT_BOLD",bold_family,bold_style)
+
+          CREAM=[0.984,0.976,0.953,1]
+          WHITE=[1,1,1,1]
+          INK=[0.055,0.067,0.10,1]
+          MUTED=[0.36,0.39,0.45,1]
+          BLUE=[0.19,0.43,0.95,1]
+          BORDER=[0.88,0.89,0.91,1]
+
+          actions=[]
+          next_id=1
+
+          def rid():
+              global next_id
+              x=next_id; next_id+=1; return x
+
+          def rect(name,x,y,w,h,color,start=0,dur=28000,rotation=0,opacity=100):
+              lid=rid()
+              actions.append({
+                  "type":"createFxRectLayer","compositionId":"main","layerId":lid,"name":name,"insertIndex":0,
+                  "activeRange":{"start":start,"duration":dur},
+                  "transform":{"anchorPoint":[0,0],"position":[x,y],"scale":[100,100],"rotation":rotation,"opacity":opacity},
+                  "rect":{"size":[w,h],"fillColor":color}
+              })
+              return lid
+
+          def text_layer(name,copy,x,y,w,h,size,color,start,dur,bold=True,justify="left"):
+              lid=rid()
+              actions.append({
+                  "type":"createFxTextLayer","compositionId":"main","insertIndex":0,"layerId":lid,"name":name,
+                  "activeRange":{"start":start,"duration":dur},
+                  "transform":{"anchorPoint":[0,0],"position":[x,y],"scale":[100,100],"rotation":0,"opacity":100},
+                  "sourceText":{
+                      "text":copy,
+                      "fontFamily":bold_family if bold else reg_family,
+                      "fontStyle":bold_style if bold else reg_style,
+                      "fontSize":size,
+                      "fillColor":color,
+                      "justification":justify,
+                      "boxText":True,
+                      "boxPosition":[0,0],
+                      "boxSize":[w,h]
+                  }
+              })
+              return lid
+
+          def fade(lid,dur,fade_in=320,fade_out=280,maxop=100):
+              if dur < fade_in+fade_out+100: return
+              actions.append({
+                  "type":"setFxPropertyKeyframes","compositionId":"main",
+                  "property":{"layerId":lid,"propertyType":"opacity"},
+                  "keyframes":[
+                      {"id":f"l{lid}-op-0","layerTime":0,"value":{"type":"float","value":0},"easing":{"type":"linear"}},
+                      {"id":f"l{lid}-op-in","layerTime":fade_in,"value":{"type":"float","value":maxop},"easing":{"type":"cubicBezier","x1":0.2,"y1":0,"x2":0.2,"y2":1}},
+                      {"id":f"l{lid}-op-hold","layerTime":dur-fade_out,"value":{"type":"float","value":maxop},"easing":{"type":"linear"}},
+                      {"id":f"l{lid}-op-out","layerTime":dur-1,"value":{"type":"float","value":0},"easing":{"type":"linear"}}
+                  ]
+              })
+
+          def scene_text(name,copy,x,y,w,h,size,color,start,dur,bold=True,delay=0):
+              actual_start=start+delay
+              actual_dur=dur-delay
+              lid=text_layer(name,copy,x,y,w,h,size,color,actual_start,actual_dur,bold)
+              fade(lid,actual_dur)
+              return lid
+
+          def scene_rect(name,x,y,w,h,color,start,dur,delay=0,rotation=0,maxop=100):
+              actual_start=start+delay
+              actual_dur=dur-delay
+              lid=rect(name,x,y,w,h,color,actual_start,actual_dur,rotation)
+              fade(lid,actual_dur,220,240,maxop)
+              return lid
+
+          rect("Background",0,0,1920,1080,CREAM)
+
+          s,d=0,4000
+          scene_rect("Hook blue stem",934,190,52,330,BLUE,s,d,0)
+          scene_rect("Hook blue arm",795,329,330,52,BLUE,s,d,90)
+          scene_text("Hook line 1","Bring anything",170,590,1580,160,124,INK,s,d,True,120)
+          scene_text("Hook line 2","to life.",170,735,1580,160,124,BLUE,s,d,True,350)
+          scene_text("Hook eyebrow","BELNA",172,520,500,60,30,MUTED,s,d,False,520)
+
+          s,d=3600,3800
+          scene_text("Meet Belna","Meet Belna.",170,240,1500,150,132,INK,s,d,True,120)
+          scene_text("Personal agent","A personal AI agent that does the work.",176,430,1450,150,54,MUTED,s,d,False,380)
+          scene_rect("Agent core",1530,660,120,120,BLUE,s,d,300,45)
+          scene_rect("Agent orbit top",1430,610,420,6,BLUE,s,d,450,maxop=55)
+          scene_rect("Agent orbit bottom",1430,830,420,6,BLUE,s,d,560,maxop=30)
+
+          s,d=7000,4800
+          scene_text("Capability intro","Give it an outcome.",170,145,1500,110,78,INK,s,d,True,100)
+          cards=[
+              ("Research.","Find what matters.",170,355,0),
+              ("Build.","Turn ideas into work.",690,355,330),
+              ("Handle work.","Take action for you.",1210,355,660),
+          ]
+          for idx,(head,sub,x,y,delay) in enumerate(cards):
+              scene_rect(f"Card {idx+1}",x,y,440,390,WHITE,s,d,delay)
+              scene_rect(f"Card accent {idx+1}",x,y,440,10,BLUE,s,d,delay+80)
+              scene_text(f"Card head {idx+1}",head,x+44,y+62,352,100,56,INK,s,d,True,delay+150)
+              scene_text(f"Card sub {idx+1}",sub,x+44,y+172,340,120,32,MUTED,s,d,False,delay+240)
+
+          s,d=11400,5100
+          scene_text("One agent","One agent.",170,130,1500,120,92,INK,s,d,True,100)
+          scene_text("Identity line","Its own tools. Under your control.",170,255,1500,90,42,MUTED,s,d,False,280)
+          scene_rect("Identity rail",945,410,8,420,BLUE,s,d,260,maxop=45)
+          items=[
+              ("COMPUTER","A place to work",260,475,0),
+              ("MAILBOX","A place to communicate",730,565,260),
+              ("WALLET","A place to transact",1200,655,520),
+          ]
+          for idx,(head,sub,x,y,delay) in enumerate(items):
+              scene_rect(f"Identity card {idx+1}",x,y,450,160,WHITE,s,d,delay)
+              scene_rect(f"Identity dot {idx+1}",x+28,y+34,18,18,BLUE,s,d,delay+60,45)
+              scene_text(f"Identity head {idx+1}",head,x+64,y+26,330,45,27,INK,s,d,True,delay+90)
+              scene_text(f"Identity sub {idx+1}",sub,x+64,y+74,330,50,24,MUTED,s,d,False,delay+140)
+
+          s,d=16100,4300
+          scene_text("Control title","You stay in control.",170,235,1500,140,110,INK,s,d,True,80)
+          scene_text("Control sub","Belna works toward the outcome. You decide the boundaries.",176,405,1420,125,39,MUTED,s,d,False,360)
+          scene_rect("Control line",176,610,1380,6,BORDER,s,d,420,maxop=85)
+          scene_rect("Control active line",176,610,790,6,BLUE,s,d,620,maxop=100)
+          scene_rect("Control marker",945,572,82,82,BLUE,s,d,800,45)
+
+          s,d=20100,4000
+          scene_rect("Blue field",0,0,1920,1080,BLUE,s,d,0)
+          scene_text("Safe Swedish AI","Safe Swedish AI.",170,300,1580,150,124,WHITE,s,d,True,160)
+          scene_text("Privacy line","Built around privacy, safety, and user control.",176,495,1420,105,39,[0.90,0.94,1,1],s,d,False,430)
+          scene_rect("Swedish cross V",1630,715,34,200,WHITE,s,d,650,maxop=80)
+          scene_rect("Swedish cross H",1547,798,200,34,WHITE,s,d,760,maxop=80)
+
+          s,d=23700,4300
+          scene_text("Belna wordmark","Belna",170,225,1450,180,160,INK,s,d,True,80)
+          scene_text("End promise","Bring anything to life.",176,460,1450,100,58,BLUE,s,d,True,330)
+          scene_text("URL","belna.se",176,615,900,80,34,MUTED,s,d,False,580)
+          scene_rect("End mark V",1580,235,42,270,BLUE,s,d,320)
+          scene_rect("End mark H",1466,349,270,42,BLUE,s,d,460)
+          scene_text("CTA","GET STARTED",176,790,450,60,24,INK,s,d,True,760)
+
+          json.dump(actions,open(f"{ROOT}/.tesseract-work/actions.json","w"),indent=2)
+          with open(f"{ROOT}/.tesseract-work/edit-notes.txt","w") as fp:
+              fp.write("""Belna launch film — motion-led product introduction
+Duration: 28s
+Canvas: 1920x1080
+Creative direction: warm minimal Scandinavian canvas, dark editorial typography, electric-blue agent motif.
+Narrative: promise -> product -> capabilities -> identity/tools -> control -> safety -> CTA.
+All product UI imagery is abstract motion graphics; no mocked integration is represented as a working product screen.
+Audio: intentionally silent visual master; no narration/music was supplied.
+""")
+          print("action_count",len(actions))
+          PY
+
+          "$TSRCT" project apply --project "$ROOT/Belna-Launch.tsrct" --actions "$ROOT/.tesseract-work/actions.json"
+
+      - name: Render and inspect
+        env:
+          TESSERACT_SKILL: tesseract-motion
+        run: |
+          set -euxo pipefail
+          ROOT="$GITHUB_WORKSPACE/belna_launch"
+          TSRCT="$HOME/.local/share/Tesseract/bin/tsrct"
+          "$TSRCT" filmstrip --project "$ROOT/Belna-Launch.tsrct" --start-ms 0 --duration-ms 28000 --interval-ms 2000 --tile-width 320 --tile-height 180 --items-per-row 4 --output "$ROOT/Previews/Filmstrip.png"
+          for T in 1.2 4.8 8.8 13.1 17.7 21.8 25.7; do
+            NAME=$(echo "$T" | tr '.' '_')
+            "$TSRCT" preview --project "$ROOT/Belna-Launch.tsrct" --time "$T" --output "$ROOT/Previews/Frame-${NAME}.png"
+          done
+          "$TSRCT" export --project "$ROOT/Belna-Launch.tsrct" --output "$ROOT/Belna-Launch.mp4" --encoder-backend external-ffmpeg-command --ffmpeg-path /usr/bin/ffmpeg --resolution 1080p --fps 30
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,r_frame_rate -of json "$ROOT/Belna-Launch.mp4" > "$ROOT/.tesseract-work/ffprobe-final.json"
+          cat "$ROOT/.tesseract-work/ffprobe-final.json"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: belna-tesseract-probe
+          name: belna-launch-tesseract-final
           path: belna_launch/
+          include-hidden-files: true
