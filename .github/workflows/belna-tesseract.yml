@@ -1,0 +1,52 @@
+name: Belna Tesseract Probe
+
+on:
+  push:
+    branches:
+      - belna-launch-tesseract-20261001
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip libasound2t64 libvulkan1 mesa-vulkan-drivers ffmpeg
+      - name: Install Tesseract 0.3.0
+        run: |
+          set -euxo pipefail
+          cd /tmp
+          curl -fL -o tesseract.zip https://github.com/mirage-hq/Tesseract/releases/download/v0.3.0/tesseract-0.3.0-linux-x86_64.zip
+          curl -fL -o tesseract.zip.sha256 https://github.com/mirage-hq/Tesseract/releases/download/v0.3.0/tesseract-0.3.0-linux-x86_64.zip.sha256
+          sha256sum -c tesseract.zip.sha256
+          unzip -q tesseract.zip -d tesseract-cli
+          INSTALLER=$(find /tmp/tesseract-cli -name install.sh | head -1)
+          bash "$INSTALLER"
+          "$HOME/.local/share/Tesseract/bin/tsrct" --version
+      - name: Probe schema
+        env:
+          TESSERACT_SKILL: tesseract-motion
+        run: |
+          set -euxo pipefail
+          mkdir -p belna_launch/.tesseract-work belna_launch/Previews
+          TSRCT="$HOME/.local/share/Tesseract/bin/tsrct"
+          "$TSRCT" project create --project belna_launch/Belna-Launch.tsrct
+          "$TSRCT" project schema --document > belna_launch/.tesseract-work/document.schema.json
+          "$TSRCT" project schema > belna_launch/.tesseract-work/actions.schema.json
+          "$TSRCT" project checkout --project belna_launch/Belna-Launch.tsrct --output belna_launch/.tesseract-work/layout.json
+          echo "=== LAYOUT ==="
+          cat belna_launch/.tesseract-work/layout.json
+          echo "=== ACTION TYPES ==="
+          python3 - <<'PY'
+          import json
+          p='belna_launch/.tesseract-work/actions.schema.json'
+          s=open(p).read()
+          for term in ['createFxRectLayer','createFxTextLayer','groupFxCompositionLayers','setFxPropertyKeyframes','setFxPositionKeyframes','setFxPropertyAnimator']:
+              print(term, term in s)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: belna-tesseract-probe
+          path: belna_launch/
