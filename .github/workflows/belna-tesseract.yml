@@ -14,10 +14,10 @@ jobs:
         run: |
           set -euxo pipefail
           cd /tmp
-          curl -fL -o tesseract.zip https://github.com/mirage-hq/Tesseract/releases/download/v0.3.0/tesseract-0.3.0-linux-x86_64.zip
-          curl -fL -o tesseract.zip.sha256 https://github.com/mirage-hq/Tesseract/releases/download/v0.3.0/tesseract-0.3.0-linux-x86_64.zip.sha256
-          sha256sum -c tesseract.zip.sha256
-          unzip -q tesseract.zip -d tesseract-cli
+          curl -fL -O https://github.com/mirage-hq/Tesseract/releases/download/v0.3.0/tesseract-0.3.0-linux-x86_64.zip
+          curl -fL -O https://github.com/mirage-hq/Tesseract/releases/download/v0.3.0/tesseract-0.3.0-linux-x86_64.zip.sha256
+          sha256sum -c tesseract-0.3.0-linux-x86_64.zip.sha256
+          unzip -q tesseract-0.3.0-linux-x86_64.zip -d tesseract-cli
           INSTALLER=$(find /tmp/tesseract-cli -name install.sh | head -1)
           bash "$INSTALLER"
           "$HOME/.local/share/Tesseract/bin/tsrct" --version
