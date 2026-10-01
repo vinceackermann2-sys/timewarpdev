@@ -23,7 +23,16 @@ jobs:
           bash "$INSTALLER"
           "$HOME/.local/share/Tesseract/bin/tsrct" --version
 
-      - name: Author editable Belna launch film
+      - name: Install renderer and Belna font
+        run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libasound2t64 libvulkan1 mesa-vulkan-drivers ffmpeg
+          mkdir -p /tmp/belna-font
+          curl -fL -o /tmp/belna-font/HankenGrotesk-Regular.ttf https://raw.githubusercontent.com/marcologous/hanken-grotesk/master/fonts/ttf/HankenGrotesk-Regular.ttf
+          curl -fL -o /tmp/belna-font/HankenGrotesk-Bold.ttf https://raw.githubusercontent.com/marcologous/hanken-grotesk/master/fonts/ttf/HankenGrotesk-Bold.ttf
+
+      - name: Author branded editable Belna launch film
         env:
           TESSERACT_SKILL: tesseract-motion
         run: |
@@ -31,7 +40,6 @@ jobs:
           ROOT="$GITHUB_WORKSPACE/belna_launch"
           TSRCT="$HOME/.local/share/Tesseract/bin/tsrct"
           rm -rf "$ROOT"
-          mkdir "$ROOT"
           mkdir -p "$ROOT/.tesseract-work" "$ROOT/Previews"
           "$TSRCT" project create --project "$ROOT/Belna-Launch.tsrct"
           "$TSRCT" project schema --document > "$ROOT/.tesseract-work/document.schema.json"
@@ -49,13 +57,11 @@ jobs:
           PY
           "$TSRCT" project commit --project "$ROOT/Belna-Launch.tsrct" --file "$ROOT/.tesseract-work/layout.json"
 
-          FONT_REG="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-          FONT_BOLD="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-          "$TSRCT" project import-font --project "$ROOT/Belna-Launch.tsrct" --file "$FONT_REG" > "$ROOT/.tesseract-work/font-regular.json"
-          "$TSRCT" project import-font --project "$ROOT/Belna-Launch.tsrct" --file "$FONT_BOLD" > "$ROOT/.tesseract-work/font-bold.json"
+          "$TSRCT" project import-font --project "$ROOT/Belna-Launch.tsrct" --file /tmp/belna-font/HankenGrotesk-Regular.ttf > "$ROOT/.tesseract-work/font-regular.json"
+          "$TSRCT" project import-font --project "$ROOT/Belna-Launch.tsrct" --file /tmp/belna-font/HankenGrotesk-Bold.ttf > "$ROOT/.tesseract-work/font-bold.json"
 
           python3 - <<'PY'
-          import json
+          import json, math
 
           ROOT="belna_launch"
           def face(path):
@@ -75,15 +81,20 @@ jobs:
 
           reg_family,reg_style=face(f"{ROOT}/.tesseract-work/font-regular.json")
           bold_family,bold_style=face(f"{ROOT}/.tesseract-work/font-bold.json")
-          print("FONT_REG",reg_family,reg_style)
-          print("FONT_BOLD",bold_family,bold_style)
+          print("BELNA_FONT_REG",reg_family,reg_style)
+          print("BELNA_FONT_BOLD",bold_family,bold_style)
 
-          CREAM=[0.984,0.976,0.953,1]
+          # Exact palette from the prior Belna video/brand brief.
+          BG=[246/255,246/255,247/255,1]        # #F6F6F7
           WHITE=[1,1,1,1]
-          INK=[0.055,0.067,0.10,1]
-          MUTED=[0.36,0.39,0.45,1]
-          BLUE=[0.19,0.43,0.95,1]
-          BORDER=[0.88,0.89,0.91,1]
+          INK=[23/255,24/255,26/255,1]         # #17181A
+          NAVY=[21/255,40/255,75/255,1]        # #15284B
+          BLUE=[74/255,127/255,212/255,1]      # #4A7FD4
+          DARKBLUE=[46/255,91/255,168/255,1]   # #2E5BA8
+          GLOW=[184/255,212/255,247/255,1]     # #B8D4F7
+          MARK=[134/255,168/255,255/255,1]     # #86A8FF
+          MUTED=[74/255,78/255,87/255,1]
+          BORDER=[218/255,221/255,227/255,1]
 
           actions=[]
           next_id=1
@@ -92,29 +103,49 @@ jobs:
               global next_id
               x=next_id; next_id+=1; return x
 
+          def transform(x,y,rotation=0,opacity=100):
+              return {"anchorPoint":[0,0],"position":[x,y],"scale":[100,100],"rotation":rotation,"opacity":opacity}
+
           def rect(name,x,y,w,h,color,start=0,dur=28000,rotation=0,opacity=100):
               lid=rid()
               actions.append({
                   "type":"createFxRectLayer","compositionId":"main","layerId":lid,"name":name,"insertIndex":0,
                   "activeRange":{"start":start,"duration":dur},
-                  "transform":{"anchorPoint":[0,0],"position":[x,y],"scale":[100,100],"rotation":rotation,"opacity":opacity},
+                  "transform":transform(x,y,rotation,opacity),
                   "rect":{"size":[w,h],"fillColor":color}
               })
               return lid
 
-          def text_layer(name,copy,x,y,w,h,size,color,start,dur,bold=True,justify="left"):
+          def shape(name,points,x,y,color,start=0,dur=28000,opacity=100):
+              lid=rid()
+              cmds=[{"type":"moveTo","x":points[0][0],"y":points[0][1]}]
+              cmds += [{"type":"lineTo","x":px,"y":py} for px,py in points[1:]]
+              cmds.append({"type":"close"})
+              actions.append({
+                  "type":"createFxShapeLayer","compositionId":"main","layerId":lid,"name":name,"insertIndex":0,
+                  "activeRange":{"start":start,"duration":dur},
+                  "transform":transform(x,y,0,opacity),
+                  "shape":{
+                      "path":{"commands":cmds},
+                      "fills":[{"paint":{"type":"solid","color":color},"fillRule":"nonZeroWinding","blendMode":"normal","opacity":1.0}],
+                      "strokes":[]
+                  }
+              })
+              return lid
+
+          def text_layer(name,copy,x,y,w,h,size,color,start,dur,bold=True):
               lid=rid()
               actions.append({
                   "type":"createFxTextLayer","compositionId":"main","insertIndex":0,"layerId":lid,"name":name,
                   "activeRange":{"start":start,"duration":dur},
-                  "transform":{"anchorPoint":[0,0],"position":[x,y],"scale":[100,100],"rotation":0,"opacity":100},
+                  "transform":transform(x,y),
                   "sourceText":{
                       "text":copy,
                       "fontFamily":bold_family if bold else reg_family,
                       "fontStyle":bold_style if bold else reg_style,
                       "fontSize":size,
                       "fillColor":color,
-                      "justification":justify,
+                      "justification":"left",
                       "boxText":True,
                       "boxPosition":[0,0],
                       "boxSize":[w,h]
@@ -122,115 +153,159 @@ jobs:
               })
               return lid
 
-          def fade(lid,dur,fade_in=320,fade_out=280,maxop=100):
+          def fade(lid,dur,fade_in=280,fade_out=240,maxop=100):
               if dur < fade_in+fade_out+100: return
               actions.append({
                   "type":"setFxPropertyKeyframes","compositionId":"main",
                   "property":{"layerId":lid,"propertyType":"opacity"},
                   "keyframes":[
-                      {"id":f"l{lid}-op-0","layerTime":0,"value":{"type":"float","value":0},"easing":{"type":"linear"}},
-                      {"id":f"l{lid}-op-in","layerTime":fade_in,"value":{"type":"float","value":maxop},"easing":{"type":"cubicBezier","x1":0.2,"y1":0,"x2":0.2,"y2":1}},
-                      {"id":f"l{lid}-op-hold","layerTime":dur-fade_out,"value":{"type":"float","value":maxop},"easing":{"type":"linear"}},
-                      {"id":f"l{lid}-op-out","layerTime":dur-1,"value":{"type":"float","value":0},"easing":{"type":"linear"}}
+                      {"id":f"l{lid}-0","layerTime":0,"value":{"type":"float","value":0},"easing":{"type":"linear"}},
+                      {"id":f"l{lid}-1","layerTime":fade_in,"value":{"type":"float","value":maxop},"easing":{"type":"cubicBezier","x1":0.2,"y1":0,"x2":0.2,"y2":1}},
+                      {"id":f"l{lid}-2","layerTime":dur-fade_out,"value":{"type":"float","value":maxop},"easing":{"type":"linear"}},
+                      {"id":f"l{lid}-3","layerTime":dur-1,"value":{"type":"float","value":0},"easing":{"type":"linear"}}
                   ]
               })
 
           def scene_text(name,copy,x,y,w,h,size,color,start,dur,bold=True,delay=0):
-              actual_start=start+delay
-              actual_dur=dur-delay
-              lid=text_layer(name,copy,x,y,w,h,size,color,actual_start,actual_dur,bold)
-              fade(lid,actual_dur)
+              st=start+delay; du=dur-delay
+              lid=text_layer(name,copy,x,y,w,h,size,color,st,du,bold)
+              fade(lid,du)
               return lid
 
           def scene_rect(name,x,y,w,h,color,start,dur,delay=0,rotation=0,maxop=100):
-              actual_start=start+delay
-              actual_dur=dur-delay
-              lid=rect(name,x,y,w,h,color,actual_start,actual_dur,rotation)
-              fade(lid,actual_dur,220,240,maxop)
+              st=start+delay; du=dur-delay
+              lid=rect(name,x,y,w,h,color,st,du,rotation)
+              fade(lid,du,220,220,maxop)
               return lid
 
-          rect("Background",0,0,1920,1080,CREAM)
+          def scene_shape(name,points,x,y,color,start,dur,delay=0,maxop=100):
+              st=start+delay; du=dur-delay
+              lid=shape(name,points,x,y,color,st,du)
+              fade(lid,du,240,220,maxop)
+              return lid
 
+          def scaled(poly,scale):
+              return [((px-20)*scale,(py-28)*scale) for px,py in poly]
+
+          # Exact four-facet mark geometry from Belna's prior vector reconstruction.
+          TOP=[(51.5,33.5),(59.3,53.0),(52.0,59.1),(50.4,59.1),(43.7,53.0)]
+          LEFT=[(42.7,52.9),(50.0,59.7),(49.2,61.9),(42.5,68.1),(23.8,60.6)]
+          RIGHT=[(60.2,52.9),(79.1,60.5),(60.8,68.0),(53.3,61.8),(53.0,59.8)]
+          BOTTOM=[(50.2,62.7),(52.7,62.7),(59.0,68.7),(44.0,68.7)]
+          CENTER=[(51.50,55.20),(52.76,58.46),(56.26,58.65),(53.54,60.86),(54.44,64.25),
+                  (51.50,62.35),(48.56,64.25),(49.46,60.86),(46.74,58.65),(50.24,58.46)]
+
+          def mark(x,y,scale,start,dur,color=MARK,cut=BG,delay=0,prefix="Mark"):
+              ids=[]
+              for i,(poly,dd) in enumerate([(TOP,0),(LEFT,90),(RIGHT,180),(BOTTOM,270)]):
+                  ids.append(scene_shape(f"{prefix} facet {i+1}",scaled(poly,scale),x,y,color,start,dur,delay+dd))
+              ids.append(scene_shape(f"{prefix} center star",scaled(CENTER,scale),x,y,cut,start,dur,delay+340))
+              return ids
+
+          def star4(name,cx,cy,r,color,opacity=16):
+              pts=[(0,-r),(1.1,-1.1),(r,0),(1.1,1.1),(0,r),(-1.1,1.1),(-r,0),(-1.1,-1.1)]
+              return shape(name,pts,cx,cy,color,0,28000,opacity)
+
+          # Persistent branded canvas / starfield.
+          rect("Background",0,0,1920,1080,BG)
+          star_specs=[
+              (105,118,9,NAVY,10),(312,880,6,BLUE,15),(485,142,5,NAVY,8),(712,930,8,NAVY,10),
+              (934,90,5,BLUE,13),(1122,894,6,NAVY,9),(1365,150,8,NAVY,8),(1582,890,5,BLUE,13),
+              (1790,185,6,NAVY,9),(1680,520,4,NAVY,8),(126,630,5,BLUE,11),(1030,540,4,NAVY,7)
+          ]
+          for i,(x,y,r,c,o) in enumerate(star_specs):
+              star4(f"Sky star {i+1}",x,y,r,c,o)
+
+          # 0.0–4.0 — Promise.
           s,d=0,4000
-          scene_rect("Hook blue stem",934,190,52,330,BLUE,s,d,0)
-          scene_rect("Hook blue arm",795,329,330,52,BLUE,s,d,90)
-          scene_text("Hook line 1","Bring anything",170,590,1580,160,124,INK,s,d,True,120)
-          scene_text("Hook line 2","to life.",170,735,1580,160,124,BLUE,s,d,True,350)
-          scene_text("Hook eyebrow","BELNA",172,520,500,60,30,MUTED,s,d,False,520)
+          mark(1360,118,6.1,s,d,MARK,BG,60,"Hook mark")
+          scene_text("Hook eyebrow","BELNA",160,220,480,58,27,NAVY,s,d,True,90)
+          scene_text("Hook line 1","Bring anything",155,430,1510,150,124,INK,s,d,True,180)
+          scene_text("Hook line 2","to life.",155,570,1100,160,124,BLUE,s,d,True,360)
+          scene_text("Hook sub","From an idea to real work, with one personal agent.",162,790,1260,80,32,MUTED,s,d,False,620)
 
-          s,d=3600,3800
-          scene_text("Meet Belna","Meet Belna.",170,240,1500,150,132,INK,s,d,True,120)
-          scene_text("Personal agent","A personal AI agent that does the work.",176,430,1450,150,54,MUTED,s,d,False,380)
-          scene_rect("Agent core",1530,660,120,120,BLUE,s,d,300,45)
-          scene_rect("Agent orbit top",1430,610,420,6,BLUE,s,d,450,maxop=55)
-          scene_rect("Agent orbit bottom",1430,830,420,6,BLUE,s,d,560,maxop=30)
+          # 3.7–7.4 — Product reveal.
+          s,d=3700,3700
+          scene_text("Meet Belna","Meet Belna.",155,255,1300,150,128,INK,s,d,True,100)
+          scene_text("Personal agent","Your personal AI agent that does the work.",162,445,1260,110,48,MUTED,s,d,False,330)
+          mark(1475,530,5.8,s,d,MARK,BG,180,"Reveal mark")
 
+          # 7.0–11.8 — Capabilities.
           s,d=7000,4800
-          scene_text("Capability intro","Give it an outcome.",170,145,1500,110,78,INK,s,d,True,100)
+          scene_text("Capability intro","Give it an outcome.",155,145,1450,110,76,INK,s,d,True,80)
           cards=[
-              ("Research.","Find what matters.",170,355,0),
-              ("Build.","Turn ideas into work.",690,355,330),
-              ("Handle work.","Take action for you.",1210,355,660),
+              ("Research.","Find what matters.",155,355,0),
+              ("Build.","Turn ideas into work.",685,355,300),
+              ("Handle.","Take action for you.",1215,355,600),
           ]
           for idx,(head,sub,x,y,delay) in enumerate(cards):
-              scene_rect(f"Card {idx+1}",x,y,440,390,WHITE,s,d,delay)
-              scene_rect(f"Card accent {idx+1}",x,y,440,10,BLUE,s,d,delay+80)
-              scene_text(f"Card head {idx+1}",head,x+44,y+62,352,100,56,INK,s,d,True,delay+150)
-              scene_text(f"Card sub {idx+1}",sub,x+44,y+172,340,120,32,MUTED,s,d,False,delay+240)
+              scene_rect(f"Capability card {idx+1}",x,y,450,380,WHITE,s,d,delay)
+              scene_rect(f"Capability accent {idx+1}",x,y,450,8,MARK,s,d,delay+80)
+              scene_text(f"Capability head {idx+1}",head,x+40,y+60,365,95,54,INK,s,d,True,delay+150)
+              scene_text(f"Capability sub {idx+1}",sub,x+40,y+170,350,95,30,MUTED,s,d,False,delay+230)
 
+          # 11.4–16.5 — Identity and tools.
           s,d=11400,5100
-          scene_text("One agent","One agent.",170,130,1500,120,92,INK,s,d,True,100)
-          scene_text("Identity line","Its own tools. Under your control.",170,255,1500,90,42,MUTED,s,d,False,280)
-          scene_rect("Identity rail",945,410,8,420,BLUE,s,d,260,maxop=45)
+          scene_text("One agent","One agent.",155,130,1450,115,90,INK,s,d,True,90)
+          scene_text("Identity line","Its own tools. One place to get things done.",160,260,1430,80,40,MUTED,s,d,False,260)
+          scene_rect("Identity rail",944,410,5,420,GLOW,s,d,280,maxop=75)
           items=[
-              ("COMPUTER","A place to work",260,475,0),
-              ("MAILBOX","A place to communicate",730,565,260),
-              ("WALLET","A place to transact",1200,655,520),
+              ("COMPUTER","A place to work",230,455,0),
+              ("MAILBOX","A place to communicate",735,565,250),
+              ("WALLET","A place to transact",1240,675,500),
           ]
           for idx,(head,sub,x,y,delay) in enumerate(items):
-              scene_rect(f"Identity card {idx+1}",x,y,450,160,WHITE,s,d,delay)
-              scene_rect(f"Identity dot {idx+1}",x+28,y+34,18,18,BLUE,s,d,delay+60,45)
-              scene_text(f"Identity head {idx+1}",head,x+64,y+26,330,45,27,INK,s,d,True,delay+90)
-              scene_text(f"Identity sub {idx+1}",sub,x+64,y+74,330,50,24,MUTED,s,d,False,delay+140)
+              scene_rect(f"Tool card {idx+1}",x,y,450,150,WHITE,s,d,delay)
+              star4(f"Tool sparkle {idx+1}",x+32,y+39,7,BLUE,90)
+              scene_text(f"Tool head {idx+1}",head,x+60,y+24,330,40,25,NAVY,s,d,True,delay+80)
+              scene_text(f"Tool sub {idx+1}",sub,x+60,y+70,330,42,23,MUTED,s,d,False,delay+130)
 
+          # 16.1–20.4 — Approval/control.
           s,d=16100,4300
-          scene_text("Control title","You stay in control.",170,235,1500,140,110,INK,s,d,True,80)
-          scene_text("Control sub","Belna works toward the outcome. You decide the boundaries.",176,405,1420,125,39,MUTED,s,d,False,360)
-          scene_rect("Control line",176,610,1380,6,BORDER,s,d,420,maxop=85)
-          scene_rect("Control active line",176,610,790,6,BLUE,s,d,620,maxop=100)
-          scene_rect("Control marker",945,572,82,82,BLUE,s,d,800,45)
+          scene_text("Control title","You stay in control.",155,240,1500,130,106,INK,s,d,True,80)
+          scene_text("Control sub","Belna asks before important actions.",162,410,1400,90,42,MUTED,s,d,False,340)
+          scene_rect("Approval card",160,610,960,230,WHITE,s,d,440)
+          scene_text("Approval eyebrow","BELNA IS WAITING FOR YOUR APPROVAL",205,652,780,42,22,NAVY,s,d,True,520)
+          scene_text("Approval body","Review the action. Then allow or deny.",205,710,760,60,29,MUTED,s,d,False,600)
+          scene_rect("Deny button",1240,650,190,74,[0.93,0.94,0.95,1],s,d,690)
+          scene_text("Deny","DENY",1290,673,110,34,21,NAVY,s,d,True,740)
+          scene_rect("Allow button",1460,650,220,74,NAVY,s,d,780)
+          scene_text("Allow","ALLOW",1515,673,120,34,21,WHITE,s,d,True,830)
 
-          s,d=20100,4000
-          scene_rect("Blue field",0,0,1920,1080,BLUE,s,d,0)
-          scene_text("Safe Swedish AI","Safe Swedish AI.",170,300,1580,150,124,WHITE,s,d,True,160)
-          scene_text("Privacy line","Built around privacy, safety, and user control.",176,495,1420,105,39,[0.90,0.94,1,1],s,d,False,430)
-          scene_rect("Swedish cross V",1630,715,34,200,WHITE,s,d,650,maxop=80)
-          scene_rect("Swedish cross H",1547,798,200,34,WHITE,s,d,760,maxop=80)
+          # 20.1–24.0 — Safety / Sweden.
+          s,d=20100,3900
+          scene_rect("Safety field",0,0,1920,1080,NAVY,s,d,0)
+          scene_text("Safety eyebrow","BELNA",160,250,500,50,27,GLOW,s,d,True,90)
+          scene_text("Safety title","A safer kind of AI.",155,370,1500,145,118,WHITE,s,d,True,180)
+          scene_text("Safety sub","Swedish. Private. Built around your control.",162,570,1400,100,40,GLOW,s,d,False,430)
+          mark(1510,650,4.6,s,d,MARK,NAVY,350,"Safety mark")
 
-          s,d=23700,4300
-          scene_text("Belna wordmark","Belna",170,225,1450,180,160,INK,s,d,True,80)
-          scene_text("End promise","Bring anything to life.",176,460,1450,100,58,BLUE,s,d,True,330)
-          scene_text("URL","belna.se",176,615,900,80,34,MUTED,s,d,False,580)
-          scene_rect("End mark V",1580,235,42,270,BLUE,s,d,320)
-          scene_rect("End mark H",1466,349,270,42,BLUE,s,d,460)
-          scene_text("CTA","GET STARTED",176,790,450,60,24,INK,s,d,True,760)
+          # 24.0–28.0 — Branded end card.
+          s,d=24000,4000
+          scene_rect("End field",0,0,1920,1080,NAVY,s,d,0)
+          mark(1390,205,6.4,s,d,MARK,NAVY,120,"End mark")
+          scene_text("End wordmark","Belna",155,245,1150,170,154,WHITE,s,d,True,100)
+          scene_text("End promise","Bring anything to life.",162,475,1200,95,54,GLOW,s,d,True,330)
+          scene_text("End url","belna.se",162,625,700,70,34,[0.78,0.84,0.93,1],s,d,False,540)
+          scene_text("End cta","GET STARTED",162,820,450,55,23,WHITE,s,d,True,730)
 
           json.dump(actions,open(f"{ROOT}/.tesseract-work/actions.json","w"),indent=2)
           with open(f"{ROOT}/.tesseract-work/edit-notes.txt","w") as fp:
-              fp.write("""Belna launch film — motion-led product introduction
+              fp.write("""Belna launch film — Tesseract native master
           Duration: 28s
-          Canvas: 1920x1080
-          Creative direction: warm minimal Scandinavian canvas, dark editorial typography, electric-blue agent motif.
-          Narrative: promise -> product -> capabilities -> identity/tools -> control -> safety -> CTA.
-          All product UI imagery is abstract motion graphics; no mocked integration is represented as a working product screen.
-          Audio: intentionally silent visual master; no narration/music was supplied.
+          Canvas: 1920x1080 @ 30fps export
+          Brand: Hanken Grotesk, #F6F6F7 canvas, #17181A ink, #4A7FD4 blue, #15284B navy, #86A8FF four-facet mark.
+          Narrative: promise -> Belna reveal -> research/build/handle -> computer/mailbox/wallet -> approval/control -> safe Swedish AI -> CTA.
+          The four-facet Belna mark is built as native vector shape layers from the prior approved SVG geometry.
+          No third-party app integration is represented as live product footage.
+          Audio: intentionally silent visual master; no narration or soundtrack was supplied.
           """)
           print("action_count",len(actions))
           PY
 
           "$TSRCT" project apply --project "$ROOT/Belna-Launch.tsrct" --actions "$ROOT/.tesseract-work/actions.json"
 
-      - name: Render and inspect
+      - name: Render and validate
         env:
           TESSERACT_SKILL: tesseract-motion
         run: |
@@ -248,6 +323,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: belna-launch-tesseract-final
+          name: belna-launch-tesseract-final-v2
           path: belna_launch/
           include-hidden-files: true
