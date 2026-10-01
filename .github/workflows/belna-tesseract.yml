@@ -224,13 +224,13 @@ jobs:
           json.dump(actions,open(f"{ROOT}/.tesseract-work/actions.json","w"),indent=2)
           with open(f"{ROOT}/.tesseract-work/edit-notes.txt","w") as fp:
               fp.write("""Belna launch film — motion-led product introduction
-Duration: 28s
-Canvas: 1920x1080
-Creative direction: warm minimal Scandinavian canvas, dark editorial typography, electric-blue agent motif.
-Narrative: promise -> product -> capabilities -> identity/tools -> control -> safety -> CTA.
-All product UI imagery is abstract motion graphics; no mocked integration is represented as a working product screen.
-Audio: intentionally silent visual master; no narration/music was supplied.
-""")
+          Duration: 28s
+          Canvas: 1920x1080
+          Creative direction: warm minimal Scandinavian canvas, dark editorial typography, electric-blue agent motif.
+          Narrative: promise -> product -> capabilities -> identity/tools -> control -> safety -> CTA.
+          All product UI imagery is abstract motion graphics; no mocked integration is represented as a working product screen.
+          Audio: intentionally silent visual master; no narration/music was supplied.
+          """)
           print("action_count",len(actions))
           PY
 
